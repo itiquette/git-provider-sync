@@ -1,0 +1,44 @@
+# SPDX-FileCopyrightText: Josef Andersson
+#
+# SPDX-License-Identifier: CC0-1.0
+
+---
+name: Golang Lint
+on: [workflow_call] # yamllint disable-line rule:truthy
+
+permissions:
+  contents: read
+  # Optional: allow read access to pull request. Use with `only-new-issues` option.
+  # pull-requests: read
+
+jobs:
+  golangci:
+    name: GolangCI-Lint analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden GitHub runner
+        uses: step-security/harden-runner@91182cccc01eb5e619899d80e4e971d6181294a7 #v2.10.1
+        with:
+          egress-policy: audit
+
+      - name: Checkout repository
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 #v4.1.7
+
+      - name: Setup Go
+        uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 #v5.0.2
+        with:
+          go-version: "1.23.0"
+          cache: false
+
+      - name: Generate mocks
+        run: |
+          go install github.com/vektra/mockery/v2@v2.44.1
+          go mod tidy
+          ./scripts/generatemock.sh
+
+      - name: golangci-Lint analysis
+        uses: golangci/golangci-lint-action@aaa42aa0628b4ae2578232a66b541047968fac86 #v6.1.0
+        with:
+          skip-cache: true
+          skip-save-cache: true
+          version: v1.61.0

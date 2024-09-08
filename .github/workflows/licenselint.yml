@@ -1,0 +1,30 @@
+# SPDX-FileCopyrightText: Josef Andersson
+#
+# SPDX-License-Identifier: CC0-1.0
+
+---
+name: REUSE Compliance
+
+on: [workflow_call] # yamllint disable-line rule:truthy
+
+permissions:
+  contents: read
+
+jobs:
+  reuse:
+    name: License (REUSE) analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden GitHub runner
+        uses: step-security/harden-runner@91182cccc01eb5e619899d80e4e971d6181294a7 #v2.10.1
+        with:
+          egress-policy: audit
+
+      - name: Checkout repository
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 #v4.1.7
+        with:
+          fetch-depth: 7
+
+      # License (REUSE)
+      - name: REUSE Compliance
+        uses: fsfe/reuse-action@3ae3c6bdf1257ab19397fab11fd3312144692083 #v4.0

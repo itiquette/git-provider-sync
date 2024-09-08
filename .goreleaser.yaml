@@ -1,0 +1,472 @@
+# SPDX-FileCopyrightText: Josef Andersson
+#
+# SPDX-License-Identifier: CC0-1.0
+
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+---
+version: 2
+project_name: gitprovidersync
+
+# https://goreleaser.com/customization/env
+env:
+  - CGO_ENABLED=0
+  - LDFLAGS=-s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{ .CommitDate }}
+
+before:
+  hooks:
+    - go mod tidy
+    - go install github.com/vektra/mockery/v2@v2.44.1
+    - ./scripts/generatemock.sh
+    - ./scripts/manpage.sh
+    - ./scripts/completions.sh
+
+# https://goreleaser.com/customization/builds/
+builds:
+  ## linux -------------------
+  - id: "linux-amd64"
+    binary: gitprovidersync-{{ .Os }}-{{ .Arch }}
+    main: ./main.go
+    no_unique_dist_dir: true
+    goos:
+      - linux
+    goarch:
+      - amd64
+    mod_timestamp: "{{ .CommitTimestamp }}"
+    flags:
+      - -trimpath
+    ldflags:
+      - "{{ .Env.LDFLAGS }}"
+
+  - id: "linux-arm64"
+    binary: gitprovidersync-{{ .Os }}-{{ .Arch }}
+    main: ./main.go
+    no_unique_dist_dir: true
+    goos:
+      - linux
+    goarch:
+      - arm64
+    mod_timestamp: "{{ .CommitTimestamp }}"
+    flags:
+      - -trimpath
+    ldflags:
+      - "{{ .Env.LDFLAGS }}"
+
+  - id: "linux-ppc64le"
+    binary: gitprovidersync-{{ .Os }}-{{ .Arch }}
+    main: ./main.go
+    no_unique_dist_dir: true
+    goos:
+      - linux
+    goarch:
+      - ppc64le
+    mod_timestamp: "{{ .CommitTimestamp }}"
+    flags:
+      - -trimpath
+    ldflags:
+      - "{{ .Env.LDFLAGS }}"
+
+  - id: "linux-riscv64"
+    binary: gitprovidersync-{{ .Os }}-{{ .Arch }}
+    main: ./main.go
+    no_unique_dist_dir: true
+    goos:
+      - linux
+    goarch:
+      - riscv64
+    mod_timestamp: "{{ .CommitTimestamp }}"
+    flags:
+      - -trimpath
+    ldflags:
+      - "{{ .Env.LDFLAGS }}"
+
+  ## darwin -------------------
+  - id: "darwin-amd64"
+    binary: gitprovidersync-{{ .Os }}-{{ .Arch }}
+    main: ./main.go
+    no_unique_dist_dir: true
+    goos:
+      - darwin
+    goarch:
+      - amd64
+    mod_timestamp: "{{ .CommitTimestamp }}"
+    flags:
+      - -trimpath
+    ldflags:
+      - "{{ .Env.LDFLAGS }}"
+
+  - id: "darwin-arm64"
+    binary: gitprovidersync-{{ .Os }}-{{ .Arch }}
+    main: ./main.go
+    no_unique_dist_dir: true
+    goos:
+      - darwin
+    goarch:
+      - arm64
+    mod_timestamp: "{{ .CommitTimestamp }}"
+    flags:
+      - -trimpath
+    ldflags:
+      - "{{ .Env.LDFLAGS }}"
+
+  ## freebsd -------------------
+  - id: "freebsd-amd64"
+    binary: gitprovidersync-{{ .Os }}-{{ .Arch }}
+    main: ./main.go
+    no_unique_dist_dir: true
+    goos:
+      - freebsd
+    goarch:
+      - amd64
+    mod_timestamp: "{{ .CommitTimestamp }}"
+    flags:
+      - -trimpath
+    ldflags:
+      - "{{ .Env.LDFLAGS }}"
+
+  - id: "freebsd-arm"
+    binary: gitprovidersync-{{ .Os }}-{{ .Arch }}
+    main: ./main.go
+    no_unique_dist_dir: true
+    goos:
+      - freebsd
+    goarch:
+      - arm64
+    mod_timestamp: "{{ .CommitTimestamp }}"
+    flags:
+      - -trimpath
+    ldflags:
+      - "{{ .Env.LDFLAGS }}"
+
+  - id: "freebsd-risc"
+    binary: gitprovidersync-{{ .Os }}-{{ .Arch }}
+    main: ./main.go
+    no_unique_dist_dir: true
+    goos:
+      - freebsd
+    goarch:
+      - riscv64
+    mod_timestamp: "{{ .CommitTimestamp }}"
+    flags:
+      - -trimpath
+    ldflags:
+      - "{{ .Env.LDFLAGS }}"
+
+  ## dragonfly -------------------
+  - id: "dragonfly-amd64"
+    binary: gitprovidersync-{{ .Os }}-{{ .Arch }}
+    main: ./main.go
+    no_unique_dist_dir: true
+    goos:
+      - dragonfly
+    goarch:
+      - amd64
+    mod_timestamp: "{{ .CommitTimestamp }}"
+    flags:
+      - -trimpath
+    ldflags:
+      - "{{ .Env.LDFLAGS }}"
+
+  ## netbsd -------------------
+  - id: "netbsd-amd64"
+    binary: gitprovidersync-{{ .Os }}-{{ .Arch }}
+    main: ./main.go
+    no_unique_dist_dir: true
+    goos:
+      - netbsd
+    goarch:
+      - amd64
+    mod_timestamp: "{{ .CommitTimestamp }}"
+    flags:
+      - -trimpath
+    ldflags:
+      - "{{ .Env.LDFLAGS }}"
+
+  - id: "netbsd-arm64"
+    binary: gitprovidersync-{{ .Os }}-{{ .Arch }}
+    main: ./main.go
+    no_unique_dist_dir: true
+    goos:
+      - netbsd
+    goarch:
+      - arm64
+    mod_timestamp: "{{ .CommitTimestamp }}"
+    flags:
+      - -trimpath
+    ldflags:
+      - "{{ .Env.LDFLAGS }}"
+
+  ## openbsd -------------------
+  - id: "openbsd-amd64"
+    binary: gitprovidersync-{{ .Os }}-{{ .Arch }}
+    main: ./main.go
+    no_unique_dist_dir: true
+    goos:
+      - openbsd
+    goarch:
+      - amd64
+    mod_timestamp: "{{ .CommitTimestamp }}"
+    flags:
+      - -trimpath
+    ldflags:
+      - "{{ .Env.LDFLAGS }}"
+
+  - id: "openbsd-arm64"
+    binary: gitprovidersync-{{ .Os }}-{{ .Arch }}
+    main: ./main.go
+    no_unique_dist_dir: true
+    goos:
+      - openbsd
+    goarch:
+      - arm64
+    mod_timestamp: "{{ .CommitTimestamp }}"
+    flags:
+      - -trimpath
+    ldflags:
+      - "{{ .Env.LDFLAGS }}"
+
+  - id: "openbsd-riscv64"
+    binary: gitprovidersync-{{ .Os }}-{{ .Arch }}
+    main: ./main.go
+    no_unique_dist_dir: true
+    goos:
+      - openbsd
+    goarch:
+      - riscv64
+    mod_timestamp: "{{ .CommitTimestamp }}"
+    flags:
+      - -trimpath
+    ldflags:
+      - "{{ .Env.LDFLAGS }}"
+
+  ## plan9 ------------------- disabled, flaky https://github.com/golang/go/issues/49338
+  # - id: "plan9-amd64"
+  #   binary: gitprovidersync-{{ .Os }}-{{ .Arch }}
+  #   main: ./main.go
+  #   no_unique_dist_dir: true
+  #   goos:
+  #     - plan9
+  #   goarch:
+  #     - amd64
+  #   mod_timestamp: "{{ .CommitTimestamp }}"
+  #   flags:
+  #     - -trimpath
+  #   ldflags:
+  #     - "{{ .Env.LDFLAGS }}"
+
+  # - id: "plan9-arm"
+  #   binary: gitprovidersync-{{ .Os }}-{{ .Arch }}
+  #   main: ./main.go
+  #   no_unique_dist_dir: true
+  #   goos:
+  #     - plan9
+  #   goarch:
+  #     - arm
+  #   mod_timestamp: "{{ .CommitTimestamp }}"
+  #   flags:
+  #     - -trimpath
+  #   ldflags:
+  #     - "{{ .Env.LDFLAGS }}"
+  #
+# verifiable builds TO-DO enable when repo public
+# https://goreleaser.com/customization/verifiable_builds/
+# gomod:
+#   proxy: true
+
+# source archive
+source:
+  enabled: true
+  name_template: "{{ .ProjectName }}-{{ .Version }}-src"
+
+# https://goreleaser.com/customization/archive/
+# tar.gz archives - binary, license info, docs
+archives:
+  - id: archive
+    format: tar.gz
+    wrap_in_directory: true
+    allow_different_binary_count: true
+    files:
+      - LICENSE
+      - README.adoc
+      - REUSE.toml
+      - LICENSES
+      - SECURITY.md
+      - docs/*
+      - generated/manpages/*
+      - generated/completions/*
+
+# https://goreleaser.com/customization/nfpm/
+# to-do: sign deb rpm
+# deb, rpm, apk, rpm
+nfpms:
+  - file_name_template: "{{ .ConventionalFileName }}"
+    maintainer: Josef Andersson <janderssonse@proton.me>
+    vendor: Itiquette
+    homepage: https://github.com/itiquette/git-provider-sync
+    description: A tool for syncing Git providers.
+    license: EUPL-1.2
+    section: utils
+    bindir: /usr/bin
+    contents:
+      - src: ./generated/completions/gitprovidersync.bash
+        dst: /usr/share/bash-completion/completions/gitprovidersync
+        file_info:
+          mode: 0644
+      - src: ./generated/completions/gitprovidersync.fish
+        dst: /usr/share/fish/vendor_completions.d/gitprovidersync
+        file_info:
+          mode: 0644
+      - src: ./generated/completions/gitprovidersync.zsh
+        dst: /usr/share/zsh/vendor-completions/_gitprovidersync
+        file_info:
+          mode: 0644
+      - src: ./generated/manpages/gitprovidersync.1.gz
+        dst: /usr/share/man/man1/
+        file_info:
+          mode: 0644
+      - src: ./LICENSE
+        dst: /usr/share/doc/gitprovidersync/copyright
+        file_info:
+          mode: 0644
+    dependencies:
+      - git
+    formats:
+      - deb
+      - rpm
+      - apk
+    deb:
+      lintian_overrides:
+        - statically-linked-binary
+# https://goreleaser.com/customization/snapcraft/
+# to-do: consider snap
+
+# https://goreleaser.com/customization/docker/#customization
+# to-do: copy extra files - license, doc etc
+# to-do: consider use ko instead https://goreleaser.com/customization/ko/
+# container image , multi arch
+dockers:
+  - image_templates:
+      - "ghcr.io/itiquette/{{.ProjectName}}:v{{ .Version }}-amd64"
+    dockerfile: Containerfile
+    use: buildx
+    goos: linux
+    goarch: amd64
+    build_flag_templates:
+      - --pull
+      - --platform=linux/amd64
+      - --label=org.opencontainers.image.title={{ .ProjectName }}
+      - --label=org.opencontainers.image.description={{ .ProjectName }}
+      - --label=org.opencontainers.image.source={{ .GitURL}}
+      - --label=org.opencontainers.image.version={{ .Version }}
+      - --label=org.opencontainers.image.created={{ .Date }}
+      - --label=org.opencontainers.image.revision={{ .FullCommit }}
+      - --label=org.opencontainers.image.licenses=EUPL-1.2
+
+  - image_templates:
+      - "ghcr.io/itiquette/{{.ProjectName}}:v{{ .Version }}-arm64"
+    dockerfile: Containerfile
+    use: buildx
+    goos: linux
+    goarch: arm64
+    build_flag_templates:
+      - --pull
+      - --platform=linux/arm64
+      - --label=org.opencontainers.image.title={{ .ProjectName }}
+      - --label=org.opencontainers.image.description={{ .ProjectName }}
+      - --label=org.opencontainers.image.source={{ .GitURL}}
+      - --label=org.opencontainers.image.version={{ .Version }}
+      - --label=org.opencontainers.image.created={{ .Date }}
+      - --label=org.opencontainers.image.revision={{ .FullCommit }}
+      - --label=org.opencontainers.image.licenses=EUPL-1.2
+
+# https://goreleaser.com/customization/docker_manifest/
+docker_manifests:
+  - name_template: "ghcr.io/itiquette/{{.ProjectName}}:v{{ .Version }}"
+    image_templates:
+      - "ghcr.io/itiquette/{{.ProjectName}}:v{{ .Version }}-amd64"
+      - "ghcr.io/itiquette/{{.ProjectName}}:v{{ .Version }}-arm64"
+
+# https://goreleaser.com/customization/checksum/
+# artifacts checksum
+checksum:
+  name_template: "{{ .ProjectName }}_checksums_sha256.txt"
+  algorithm: sha256
+
+# https://goreleaser.com/customization/metadata/
+# metadata
+metadata:
+  mod_timestamp: "{{ .CommitTimestamp }}"
+
+# https://goreleaser.com/customization/sbom/
+# sboms - output sbom for archive, source and linux-packages (with syft)
+sboms:
+  - id: archive
+    artifacts: archive
+  - id: source
+    artifacts: source
+  - id: package
+    artifacts: package
+
+# https://goreleaser.com/customization/reportsizes/
+report_sizes: true
+
+# sign (checksum file)
+# https://goreleaser.com/customization/sign
+signs:
+  - cmd: cosign
+    certificate: "${artifact}.pem"
+    args:
+      - sign-blob
+      - "--output-certificate=${certificate}"
+      - "--output-signature=${signature}"
+      - "${artifact}"
+      - "--yes" # needed on cosign 2.0.0+
+    artifacts: checksum
+    output: true
+
+# sign (container image)
+# https://goreleaser.com/customization/docker_sign
+docker_signs:
+  - cmd: cosign
+    artifacts: all
+    output: true
+    args:
+      - "sign"
+      - "${artifact}@${digest}"
+      - "--yes" # needed on cosign 2.0.0+
+
+# changelog
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - "^test:"
+      - "^test\\("
+      - "merge conflict"
+      - Merge pull request
+      - Merge remote-tracking branch
+      - Merge branch
+      - go mod tidy
+  groups:
+    - title: Dependency updates
+      regexp: '^.*?(.+)\(deps\)!?:.+$'
+      order: 300
+    - title: "New Features"
+      regexp: '^.*?feat(\(.+\))??!?:.+$'
+      order: 100
+    - title: "Bug fixes"
+      regexp: '^.*?(fix|refactor)(\(.+\))??!?:.+$'
+      order: 200
+    - title: "Documentation updates"
+      regexp: ^.*?docs?(\(.+\))??!?:.+$
+      order: 400
+    - title: "Build process updates"
+      regexp: ^.*?(build|ci)(\(.+\))??!?:.+$
+      order: 400
+    - title: Other work
+      order: 9999
+
+release:
+  name_template: "v{{ .Version }}"
+  footer: |
+    **Full Changelog**: https://github.com/itiquette/git-provider-sync/compare/{{ .PreviousTag }}...{{ if .IsNightly }}nightly{{ else }}{{ .Tag }}{{ end }}

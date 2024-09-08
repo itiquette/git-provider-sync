@@ -1,0 +1,11 @@
+# SPDX-FileCopyrightText: 2024 Josef Andersson
+#
+# SPDX-License-Identifier: CC0-1.0
+
+version = 1
+
+[[annotations]]
+path = [".github/pull_request_template.md", "go.sum", "docs/dco.txt","assets/gpsgopher.png"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "janderssonse. <https://github.com/janderssonse>"
+SPDX-License-Identifier = "CC0-1.0"

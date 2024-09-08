@@ -1,0 +1,100 @@
+// SPDX-FileCopyrightText: Josef Andersson
+//
+// SPDX-License-Identifier: CC0-1.0
+
+= Git Provider Sync
+:revdate: {docdatetime}
+:doctype: article
+:imagesdir: assets
+:source-highlighter: rouge
+
+ifdef::env-github[]
+:tip-caption: :bulb:
+:note-caption: :information_source:
+:important-caption: :heavy_exclamation_mark:
+:caution-caption: :fire:
+:warning-caption: :warning:
+endif::[]
+
+image:https://img.shields.io/github/v/tag/itiquette/git-provider-sync?style=for-the-badge&color=yellow[Tag,link=https://github.com/itiquette/git-provider-sync/tags]
+link:LICENSE[image:https://img.shields.io/badge/EUPL-European%20Union%20Public%20Licence%201.2-librarygreen?style=for-the-badge[EUPL 1.2]]
+image:https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fapi.reuse.software%2Fstatus%2Fgithub.com%2Fitiquette%2Fgit-provider-sync&query=status&style=for-the-badge&label=REUSE[REUSE,link=https://api.reuse.software/info/github.com/itiquette/git-provider-sync]
+https://scorecard.dev/viewer/?uri=github.com/itiquette/git-provider-sync[image:https://api.scorecard.dev/projects/github.com/itiquette/git-provider-sync/badge?style=for-the-badge[OpenSSF Scorecard]]
+
+ifdef::env-github[]
+++++
+<p align="center">
+  <img width="350"  src="assets/gpsgopher.png">
+</p>
+++++
+endif::[]
+
+ifndef::env-github[]
+image::gpsgopher.png[logo, 350, align=center]
+endif::[]
+
+== About
+
+A CLI tool to:
+
+- *Mirror Repositories* between Git Providers.
+
+- *Batch Clone Repositories* directly to a specified target directory.
+
+- *Archive Repositories* into a compressed archive format (tar.gz) for easy storage.
+
+=== Supported Git Providers
+
+- GitHub
+- GitLab
+- Gitea
+
+=== Supported Targets
+
+- GitHub
+- GitLab
+- Gitea
+- Compressed Archive file (tar.gz)
+- Directory
+
+== Usage
+
+Usage notes can be found in link:docs/usage.adoc[the usage guide]. 
+
+== Contributing
+
+If you have questions, concerns, bug reports, etc, please file an issue in the repository’s Issue Tracker.
+Also, please also see link:CONTRIBUTING.md[the contribution guide].
+
+== Development
+
+Development instructions can be found in the link:DEVELOPMENT.adoc[the development guide].
+
+== Roadmap
+
+It’s not dead yet Jim! In fact, there are future plans. See "Issues".
+
+- ui: improve logging output
+- ui: improve config printout
+- ci: Add tags and changelog handling
+- chore: Improve unit tests and docs
+- feat: per target settings (force-push, ssh url etc)
+- feat: per repo settings (force-push, ssh url etc)
+- fix: use more provider lib features
+- feat: Add additional providers, including support for custom
+- feat: Add parallelism where it might hurt running in sequential mode (clone). But K-I-S-S is the leading guide here.
+- external: Fix and/or report few known bugs in the eco system regarding Git Provider Sync, which would improve this app. 
+
+IMPORTANT: This project is currently in Beta status -> I'm happy to take issues and improvement suggestions - about documentation, code, system flow or something else. Just keep-it-simple.:)
+This app takes no responsibility for data-loss. Use "as-is". Make sure that tokens you use have *limited write access* - dont give them root-like permissions - but that is what you always do,right.
+With that said, a health best effort is done to test the application with unit/integration tests and real life tests.
+
+== License
+
+This project is licensed under the EUPL 1.2 License - see the link:LICENSE[LICENSE] file for details.
+
+Most non code assets are under Creative Commons CC0-1.0.
+
+For detailed license information, please refer to the file headers.
+
+'''''

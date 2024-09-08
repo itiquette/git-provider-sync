@@ -1,0 +1,18 @@
+# SPDX-FileCopyrightText: 2024 Josef Andersson
+#
+# SPDX-License-Identifier: CC0-1.0
+
+configurations:
+  conf1:
+    source:
+      provider: gitlab
+      domain: conf1domain
+      user: user
+      include:
+        repositories: aproject
+
+    targets:
+      tar:
+        provider: archive
+        providerspecific:
+          archivetargetdir: /tmp/mytest

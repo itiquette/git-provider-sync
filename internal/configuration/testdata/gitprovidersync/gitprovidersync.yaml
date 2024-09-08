@@ -1,0 +1,32 @@
+# SPDX-FileCopyrightText: 2024 Josef Andersson
+#
+# SPDX-License-Identifier: CC0-1.0
+
+configurations:
+  conf1:
+    source:
+      provider: xdgprovider1
+      user: xdguser1
+      include:
+        repositories: xdgrepo1, xdgrepo2
+
+    targets:
+      atarget:
+        provider: xdgtarget1provider
+        domain: xdgtarget2domain
+      anothertarget:
+        provider: xdgtarget2provider
+        domain: xdgtarget2domain
+  confxdg:
+    source:
+      provider: xdgconfprovider
+      domain: xdgconfdomain
+      user: xdgconfuser
+      include:
+        repositories: xdgconfrepo
+
+    targets:
+      atarget:
+        provider: xdgconftarget
+        domain: xdgconfdomain
+        group: xdgconfgroup

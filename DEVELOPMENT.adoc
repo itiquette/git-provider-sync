@@ -1,0 +1,144 @@
+// SPDX-FileCopyrightText: 2024 Josef Andersson
+//
+// SPDX-License-Identifier: CC0-1.0
+
+= Development Guide
+:toc: left
+:toc-title: Table of Contents
+:doctype: article
+:revdate: {docdatetime}
+:imagesdir: assets
+:icons: font
+:source-highlighter: rouge
+
+ifdef::env-github[]
+:tip-caption: :bulb:
+:note-caption: :information_source:
+:important-caption: :heavy_exclamation_mark:
+:caution-caption: :fire:
+:warning-caption: :warning:
+endif::[]
+
+== Introduction
+
+This guide provides help getting started with development.
+
+== Pre-requirements
+
+=== Developed with
+
+[cols="1,1", options="header"]
+|===
+|Dependency |Version
+|Go |1.23+
+|Podman |4.9.3+
+|Git |2.43+
+|Make (GNU) |4.3+
+|Ubuntu |24.04
+|===
+
+=== Additional
+
+[cols="2,3", options="header"]
+|===
+|Tool |Description
+|https://github.com/golangci/golangci-lint[golangci-lint] |Umbrella project for various Go linters
+|https://github.com/vektra/mockery[mockery] |Mock code generator for Go
+|https://goreleaser.com/[GoReleaser] |Build and release artifacts for Go
+|https://github.com/anchore/syft[syft] |CLI tool for generating SBOM
+|https://github.com/bombsimon/wsl[wsl] |Formatter tool
+|https://github.com/sigstore/cosign[cosign] |Signing artifacts and images
+|https://honnef.co/go/tools/cmd/staticcheck[staticcheck] |Static linting tool
+|https://golang.org/x/vuln/cmd/govulncheck[govulncheck] |Vulnerability tool
+|https://scorecard.dev/[OpenSSF Scorecard] |Security health for open-source projects
+|===
+
+==== Installing Pre Req Developer Tools
+
+You can install the additional developer tooling using one of the following methods:
+
+.Option 1: Run the helper install script
+[source,console]
+----
+./scripts/installdevprereq.sh
+----
+
+.Option 2: Use the Make target
+[source,console]
+----
+make install/prereq
+----
+
+== Development Workflow
+
+=== Make Targets
+
+Make is used to automate various development tasks. To see all available targets:
+
+[source,console]
+----
+make help
+----
+
+[NOTE]
+====
+* Make targets are hierarchical. For example, `make quality` runs all quality checks, while `make quality/license` only runs the license check.
+* For details on each target, refer to the link:Makefile[Makefile].
+====
+
+=== Running Tests
+
+Tests are written in Go's idiomatic table-driven style.
+
+.Run all tests
+[source,console]
+----
+make test
+----
+
+.Run tests with coverage
+[source,console]
+----
+make test/cover
+----
+
+== Code Quality Checks
+
+=== Running Checks Locally
+
+Before submitting a Pull Request, run the quality checks locally:
+
+[source,console]
+----
+make quality
+----
+
+TIP: If a check fails, you can run individual checks (e.g., `make quality/lint`) to pinpoint the issue.
+
+=== Quality Check Tools
+
+==== Linting
+* https://github.com/oxsecurity/megalinter[MegaLinter]: Various linting tools
+** BASH, Markdown, YAML, GitHub Actions, and security scans
+* https://github.com/golangci/golangci-lint[golangci-lint]: Go-specific linters
+** Configuration: link:.golangci.yml[.golangci.yml]
+
+==== License Compliance
+* https://github.com/fsfe/reuse-tool[REUSE]: Ensures proper licensing and copyright notices
+
+==== Commit Structure
+* https://github.com/siderolabs/conform[Conform]: Checks commit message format
+
+==== Go-specific Checks
+* Standard Go tests
+* Additional tools: `go vet`, `staticcheck`, `go mod tidy`, `govulncheck`
+
+=== Interpreting Quality Check Results
+
+If checks fail:
+
+1. Run individual checks to isolate the issue (e.g., `make quality/lint`)
+2. Review the error messages in your terminal output
+3. Consult the documentation for the specific tool that reported the error
+4. Fix the issues and re-run the checks
+5. For CI pipeline failures, reproduce locally, fix, and update your Pull Request
