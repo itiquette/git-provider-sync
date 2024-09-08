@@ -1,0 +1,32 @@
+# SPDX-FileCopyrightText: Josef Andersson
+#
+# SPDX-License-Identifier: CC0-1.0
+
+---
+name: Git Provider Sync Workflow
+
+on:
+  push:
+    branches:
+      - main
+    # tags:
+    #   - v[0-9]+.[0-9]+.[0-9]+
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  commitlint:
+    uses: ./.github/workflows/commitlint.yml
+  # dependencyreviewlint:
+  #   uses: ./.github/workflows/dependencyreview.yml Disablied until public
+  licenselint:
+    uses: ./.github/workflows/licenselint.yml
+  golint:
+    uses: ./.github/workflows/golint.yml
+  misclint:
+    uses: ./.github/workflows/misclint.yml
+  test:
+    if: "!failure()"
+    needs: [licenselint, golint, misclint] #TO-DO enable commitlint, dependencyreview when public
+    uses: ./.github/workflows/test.yml

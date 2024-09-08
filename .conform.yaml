@@ -1,0 +1,34 @@
+# SPDX-FileCopyrightText: Josef Andersson
+#
+# SPDX-License-Identifier: CC0-1.0
+
+---
+policies:
+  - type: commit
+    spec:
+      dco: true
+      gpg:
+        required: true
+      header:
+        length: 90
+        imperative: true
+        case: lower
+        invalidLastCharacters: .
+      body:
+        required: false
+      conventional:
+        types:
+          [
+            "build",
+            "chore",
+            "ci",
+            "docs",
+            "feat",
+            "fix",
+            "perf",
+            "refactor",
+            "revert",
+            "style",
+            "test",
+          ]
+        scopes: [".*"]

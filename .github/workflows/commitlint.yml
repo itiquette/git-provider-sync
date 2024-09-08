@@ -1,0 +1,32 @@
+# SPDX-FileCopyrightText: Josef Andersson
+#
+# SPDX-License-Identifier: CC0-1.0
+
+---
+name: Commit Lint
+on: [workflow_call] # yamllint disable-line rule:truthy
+
+jobs:
+  conform:
+    name: Commit (conform) analysis
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Harden GitHub runner
+        uses: step-security/harden-runner@5c7944e73c4c2a096b17a9cb74d65b6c2bbafbde #v2.9.1
+        with:
+          egress-policy: audit
+
+      - name: Checkout repository
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 #v4.1.7
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }} # https://github.com/actions/checkout/issues/426
+
+      - name: Setup main branch
+        run: git fetch origin main:main
+
+      - name: Commit (conform) analysis
+        uses: docker://ghcr.io/siderolabs/conform:v0.1.0-alpha.29
+        with:
+          args: "enforce --base-branch=main"

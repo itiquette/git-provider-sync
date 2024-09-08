@@ -1,0 +1,116 @@
+// SPDX-FileCopyrightText: Josef Andersson
+//
+// SPDX-License-Identifier: CC0-1.0
+
+= Installation Guide for Git Provider Sync
+:toc: left
+:toc-title: Table of Contents
+:doctype: article
+:revdate: {docdatetime}
+:imagesdir: assets
+:icons: font
+:source-highlighter: rouge
+
+== Introduction
+
+This guide provides instructions for installing Git Provider Sync.
+You can download pre-built binaries or packages for your platform from the https://github.com/itiquette/git-provider-sync/releases[Releases page].
+
+== GitHub Releases Overview
+
+=== Linux Packages
+
+`apk`, `deb`, and `rpm` packages exists for the following architectures:
+
+* x86_64/amd64
+* arm64/aarch64
+* ppc64le
+* riscv64
+
+.Installing Local Linux Packages
+[cols="1,2", options="header"]
+|===
+|Package Type |Installation Command
+|deb |`sudo apt install <path_to_deb_file>`
+|rpm |`sudo dnf install <path_to_rpm_file>`
+|apk |`apk add --allow-untrusted <path_to_apk_file>`
+|===
+
+TIP: For how-to regarding installation methods, refer to:
+https://itsfoss.com/install-deb-files-ubuntu/[Installing DEB files] or
+https://itsfoss.com/install-rpm-files-fedora/[Installing RPM files]
+
+=== Binaries (tar.gz)
+
+Pre-compiled binaries can be found for various operating systems and architectures:
+
+.Linux
+* `..._linux_ppc64le.tar.gz`
+* `..._linux_riscv64.tar.gz`
+* `..._linux_arm64.tar.gz`
+* `..._linux_amd64.tar.gz`
+
+.Darwin (macOS)
+* `..._darwin_amd64.tar.gz`
+* `..._darwin_arm64.tar.gz`
+
+.BSD Variants
+* DragonFly BSD: `..._dragonfly_amd64.tar.gz`
+* FreeBSD: `..._freebsd_arm64.tar.gz`, `..._freebsd_amd64.tar.gz`
+* NetBSD: `..._netbsd_amd64.tar.gz`, `..._netbsd_arm64.tar.gz`
+* OpenBSD: `..._openbsd_amd64.tar.gz`, `..._openbsd_arm64.tar.gz`
+
+=== Source Code Assets
+
+For those who prefer to build from source:
+
+* `...-src.tar.gz`
+* Source code (zip) (automatically added to Release Assets by GitHub)
+* Source code (tar.gz) (automatically added to Release Assets by GitHub)
+
+== Docker/Podman Installation
+
+[source,console]
+----
+podman run --rm -it \
+  -v ${PWD}/gitprovidersync.yaml:/usr/bin/gitprovidersync.yaml \
+  ghcr.io/itiquette/gitprovidersync:<version> sync \
+  --config-file /usr/bin/gitprovidersync.yaml
+----
+
+== Windows Support
+
+[NOTE]
+====
+Windows builds are not supported or tested, and there are not plans for it. If you need to use Git Provider Sync on Windows, consider using Windows Subsystem for Linux (WSL).
+====
+
+== Security Assets Overview
+
+The project provide several security-related assets to ensure the integrity and authenticity of the releases:
+
+=== SBOM (Software Bill of Materials)
+
+Each release includes SBOM files in JSON format:
+
+* `gitprovidersync<version>_<arch>.sbom.json`
+
+=== Checksums and Signatures
+
+* `gitprovidersync_checksums_sha256.txt`: SHA256 checksums for all release assets
+* `gitprovidersync_checksums_sha256.txt.pem`: Public PEM certificate for verification
+* `gitprovidersync_checksums_sha256.txt.sig`: Signature file for Cosign verification
+
+=== SLSA Level 3 Attestation
+
+* `multiple.intoto.jsonl`: Signed provenance for attestation
+
+These security assets allow you to:
+
+* Verify the integrity of downloaded artifacts
+* Confirm that builds are reproducible
+* Validate dependencies and content using the provided SBOMs
+
+== Conclusion
+
+If you encounter any issues or have questions, please refer to our project's issue tracker or documentation.

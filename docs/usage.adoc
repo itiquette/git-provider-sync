@@ -1,0 +1,676 @@
+// SPDX-FileCopyrightText: Josef Andersson
+//
+// SPDX-License-Identifier: CC0-1.0
+
+= Usage
+:toc: preamble
+:toc-title: 
+:revdate: {docdatetime}
+:doctype: article
+:imagesdir: assets
+:source-highlighter: rouge
+
+ifdef::env-github[]
+:tip-caption: :bulb:
+:note-caption: :information_source:
+:important-caption: :heavy_exclamation_mark:
+:caution-caption: :fire:
+:warning-caption: :warning:
+endif::[]
+
+It's simple.:)
+You configure one or more source Git Providers.
+Every configured source provider can be configured to have have one or more targets. 
+The targets can be another Git Provider user or organisation, an archive or a directory.
+
+== Quick Start
+
+You will need to:
+
+[arabic]
+. Install a pre offered package or build `Git Provider Sync`.
+  Installation options can be found under link:../INSTALL.adoc[the installation guide].
+. Create a configuration with at least one source provider and target provider - link:../examples/gitprovidersync.exampleconf.yaml[see a commented example]
+
+. Verify your configuration visually
++
+[source,console,indent=4]
+----
+gitprovidersync print
+----
++
+. Start syncing
++
+[source,console,indent=4]
+----
+gitprovidersync sync
+----
+
+=== Options
+
+.List available options
+[source,console]
+----
+gitprovidersync --help
+----
+
+.Read the man page (only if installed as package - deb, rpm, apk)
+[source,console]
+----
+man gitprovidersync
+----
+
+TO-DO: ADD HELP IMAGE
+
+NOTE: The option `--from` should be in https://pkg.go.dev/time#ParseDuration[Go duration string form].
+
+== Examples
+
+=== Example: print out the current configuration (non default configuration file location)
+
+[source,console]
+----
+gitprovidersync print --config-file /path/to/a/conffilem.yaml
+----
+
+=== Example: sync 
+
+.With options to:
+- Force push existing target repositories
+- Fetch source repositories updated at most three hours ago
+- Cleanup repository names
+- Using a configuration file at a custom location
+
+[source,console]
+----
+ gitprovidersync --force-push --from='-3h' --cleanup-name --config-file /usr/bin/gitprovidersync.yaml
+----
+
+== Configuration
+
+The default configuration file name is `gitprovidersync.yaml`.
+This file will, by default be searched for in the binary run directory, or under the `$XDG_CONFIG_HOME/gitprovidersync` directory.
+
+It is possible to add a path to a configuration file via the `--config-file` option.
+Configuration can also/and given by environment variables and a .env-file.
+
+The configuration is read in the following priority order, and does it best to aggregate the configurations.
+
+[arabic]
+.Priority order
+. Environment variable
+. .env file
+. default configurationfile 
+. XDG_CONFIG_HOME
+
+For some funky override inspirations you can have a look in the
+link:../internal/config/[configuration reading unit tests]
+
+[NOTE]
+====
+.Configuration notes
+- Environment variable: MUST start with `GPS_` and be in upper case with underscore separation.
+  Example: GPS_CONFIGURATIONS_SOURCE_PROVIDER=envconfprovider.
+- .env file: MUST be in upper case with underscore separation. Example: CONFIGURATIONS_SOURCE_PROVIDER=dotenvprovider.
+====
+
+Configuration and usage should be pretty straight forward.
+Have a look in the link:../examples/gitprovidersync.exampleconf.yaml[commented
+example configuration to get an idea of the various configuration options].
+
+== Source Notes
+
+=== GitHub
+
+=== GitHub API Authentication
+
+GitHub imposes
+https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api[api
+rate limits] on unauthenticated requests.
+Use a token, or you will reach those limits quickly.
+
+== Target Notes
+
+=== Gitea
+
+.How to generate an access token for a Gitea user, with rights to create.
+[source,yaml]
+----
+curl -H "Content-Type: application/json" -d '{"name":"<tokenname>","scopes":["write:organization","write:repository","read:user","write:user"]}' -u user:password https://<giteahost>/api/v1/users/<username>/tokens
+----
+
+=== Directory Target
+
+A directory target is a directory containing the working copy repositories from the source. 
+Default is to check out all remote branches locally and to keep the original origin remote.
+
+==== Configure
+
+.Example: configuring directory target dir
+[source,yaml]
+----
+      localtar:
+        provider: directory
+        providerspecific:
+          directorytargetdir: <full/path/to/directory/where/repositories/go>
+----
+
+=== Compressed Archive (tar.gz) Target
+
+A compressed archive target is a directory containing tar.gz-files of the bare repositories.
+The archives will add the prefix <timeadfsadf> to the file, so multiple re-runs should be possible with the same target.
+See further notes below for examples of how to get a working copy from a bare repository.
+
+==== Configure
+
+.Example: configuring tar archive target dir
+[source,yaml]
+----
+      localtar:
+        provider: archive
+        providerspecific:
+          archivetargetdir: <full/path/to/directory/where/tar/archives/go>
+----
+
+==== Unpack and restore a working copy repository from a compressed archive
+
+* Unpack the tar.gz file. Options in [] are optional (target directory).
+
+[source,console]
+----
+tar -xvzf <path/to/tar.gz-archive> [-C /path/to/target/dir]
+----
+
+* You will now have a bare Git Repository. 
+You will have to Git Clone the bare repository to get back a working copy.
+
+[source,console]
+----
+git clone <path/to/unpacked-bare-git-repository> [/path/to/clone-target/dir]
+----
+
+NOTE: https://duckduckgo.com/?hps=1&q=bare+repository&atb=v297-2&ia=web[What is a bare Git Repository?]
+
+==== Check out all branches in the working copy (optional).
+
+.Standing in the working directory, check out all branches. Ignore the fatal warning you most likely will get for the main or master branch - it already exists.
+[source,console]
+----
+for b in `git branch -r | grep -v -- '->'`; do git branch --track ${b##origin/} $b; done
+----
+
+.Verify
+[source,console]
+----
+git branch -a # all branches
+git branch -l # local
+git branch -r # remote
+----
+
+==== Change the "origin" of your working copy to point to another origin than the default bare repository (optional).
+
+NOTE: In this example, we change it to point to the remote "origin" it was synced from, but this could of course be another git repository hosted somewhere else.
+
+.From the working directory, show the remote origin. 
+[source,console]
+----
+git remote -v #gives origin <path/to/unpacked-bare-git-repository> if you haven't changed anything yet.
+----
+
+.Print out the remote origin the repository was synced from.
+[source,console]
+----
+# Temporarily cd into the uncompressed bare repository and print out the original remote origin
+(cd <path/to/unpacked-bare-git-repository>; git remote -v) 
+----
+
+.In your working copy, set the new remote origin 
+[source,console]
+----
+git remote set-url origin <the origin url show above>
+# verify
+git remote -v # shows the new remote origin 
+----
+NOTE: If remote origin is in https format, https://docs.github.com/en/get-started/getting-started-with-git/about-remote-repositories[you might want to set it to ssh-format instead]
+
+
+== CI/CD examples
+
+A few examples of how you can run Git Provider Syns in various CI/CD environments.
+
+=== GitLab CI
+
+.With example env. Dont ever commit and put a token in a .gitlab-ci file.
+[source,yaml]
+----
+# This GitLab CI example shows two GitLab CI jobs.
+# A regular job, to run on schedule.
+# A manual job, to be run manually from the GitLab CI UI.
+
+variables:
+  IMAGE:
+    description: "Path to container image"
+    value: "path/to/gitprovidersync/image:version"
+  # Source provider configuration example
+
+  GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_PROVIDER:
+    description: "Source provider for the configuration (e.g., gitlab, github,gitea see docs)"
+    value: "gitlab"
+  GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_DOMAIN:
+    description: "Domain of the source provider (gitlab.com,github.com etc)"
+    value: "gitlab.com"
+  GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_USER:
+    description: "Username for the source provider"
+    value: "auser"
+  GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_INCLUDE_REPOSITORIES:
+    description: "Comma-separated list of repositories to include (of empty, all are fetched)"
+    value: "areponame,anotherreponame"
+
+  # Source provider configuration example
+  GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_PROVIDER:
+    description: "Target provider for the configuration (e.g., gitlab, github, directory, tar, directory etc)"
+    value: "gitlab"
+  GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_DOMAIN:
+    description: "Domain of the target provider (e.g., gitlab.com, yourgitlab.domainname)"
+    value: "gitlab.com"
+  GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_USER:
+    description: "Target group or namespace in the target provider"
+    value: "ausername"
+  ACTIVE_FROM_LIMIT:
+    description: "How old changes to be considered, golang string time duration format."
+    value: "-30000h"
+
+  # There would be a masked token/secret with correct write acccess
+  # Never commit that, use it as a secret from you CI/CD env
+  #GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_TOKEN: <asecrettoken>
+
+# Template for the script part
+.git-provider-sync-script-template: &sync_script
+  image:
+    name: $IMAGE
+    entrypoint: [""]
+  variables:
+    GIT_STRATEGY: none
+  script:
+    - gitprovidersync print
+    - gitprovidersync sync --active-from-limit $ACTIVE_FROM_LIMIT --force-push
+
+# Regular job that only runs on schedule.
+# To schedule the GitLab CI job (git-provider-sync) to run at regular intervals,
+# you can use GitLab's CI/CD pipelines schedule feature.
+# This allows you to trigger pipelines at specific times using cron syntax.
+scheduled-sync:
+  <<: *sync_script
+  only:
+    - schedules
+
+# Manual job extending the same template
+manual_sync:
+  when: manual
+  manual_confirmation: "Are you sure you want to start a git-provider-sync run?"
+  except:
+    - schedules
+  <<: *sync_script
+----
+
+=== GitHub Action
+
+.With example env. Dont ever commit and put token in the ci file.
+[source,yaml]
+----
+# This GitHub Action example shows two GitHub Action jobs.
+# A regular job, to run on a schedule.
+# A manual job, to be run manually from the GitHub Action UI.
+
+name: Git Provider Sync
+
+on:
+  schedule:
+    - cron:
+        "0 */2 * * *" # Adjust cron expression as needed for scheduling.
+        # This example would run every other hour.
+  workflow_dispatch: # Allows manual triggering from the GitHub Actions UI, and inputs: allows for GUI input dynamically 
+      inputs:
+      # # https://github.com/orgs/community/discussions/26324
+      #  IMAGE:
+      #    description: "Path to container image"
+      #    required: true
+      #    default: "path/to/gitprovidersync/image:version"
+
+        GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_PROVIDER:
+          description: "Source provider for the configuration (e.g., gitlab, github, gitea see docs)"
+          required: true
+          default: "gitlab"
+
+        GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_DOMAIN:
+          description: "Domain of the source provider (gitlab.com, github.com, etc.)"
+          required: true
+          default: "gitlab.com"
+
+        GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_USER:
+          description: "Username for the source provider"
+          required: true
+          default: "auser"
+
+        GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_INCLUDE_REPOSITORIES:
+          description: "Comma-separated list of repositories to include (if empty, all are fetched)"
+          required: false
+          default: "areponame,anotherreponame"
+
+        GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_PROVIDER:
+          description: "Target provider for the configuration (e.g., gitlab, github, directory, archive, etc.)"
+          required: true
+          default: "gitlab"
+
+        GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_DOMAIN:
+          description: "Domain of the target provider (e.g., gitlab.com, yourgitlab.domainname)"
+          required: true
+          default: "gitlab.com"
+
+        GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_USER:
+          description: "Target group or namespace in the target provider"
+          required: true
+          default: "ausername"
+
+        ACTIVE_FROM_LIMIT:
+          description: "How old changes to be considered, Golang string time duration format."
+          required: true
+          default: "-30000h"
+
+  # You would set secret tokens in GitHub Secrets 
+  # Example: GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_TOKEN: ${{ secrets.YOUR_SECRET_NAME }}
+
+jobs:
+  scheduled-sync:
+    runs-on: ubuntu-latest
+    environment: test
+    container:
+      # image: ${{ env.IMAGE }} # https://github.com/orgs/community/discussions/26324
+      image: "path/to/gitprovidersync/image:version"
+    
+    env:
+      # IMAGE: path/to/gitprovidersync/image:version
+
+      # Source provider configuration example
+      GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_PROVIDER: gitlab
+      GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_DOMAIN: gitlab.com
+      GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_USER: auser
+      GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_INCLUDE_REPOSITORIES: areponame,anotherreponame
+
+      # Target provider configuration example
+      GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_PROVIDER: gitlab
+      GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_DOMAIN: gitlab.com
+      GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_USER: ausername
+      GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_TOKEN: ${{ secrets.EXAMPLETARGET1_TOKEN }}
+      
+      ACTIVE_FROM_LIMIT: "-30000h"
+
+    if: github.event_name == 'schedule'
+    steps:
+      - name: Print configuration
+        run: gitprovidersync print
+
+      - name: Sync configuration
+        run: gitprovidersync sync --active-from-limit ${{ env.ACTIVE_FROM_LIMIT }} --force-push
+
+  manual_sync:
+    runs-on: ubuntu-latest
+    environment: test
+    container:
+      # image: ${{ inputs.IMAGE }} # https://github.com/orgs/community/discussions/26324
+      image: "path/to/gitprovidersync/image:version"
+    env:
+      # Source provider configuration example
+      GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_PROVIDER: ${{ inputs.GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_PROVIDER }}
+      GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_DOMAIN: ${{ inputs.GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_DOMAIN }}
+      GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_USER: ${{ inputs.GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_USER }}
+      GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_INCLUDE_REPOSITORIES: ${{ inputs.GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_INCLUDE_REPOSITORIES }}
+      
+      # Target provider configuration example
+      GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_PROVIDER: ${{ inputs.GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_PROVIDER }}
+      GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_DOMAIN: ${{ inputs.GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_DOMAIN }}
+      GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_USER: ${{ inputs.GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_USER }}
+      GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_TOKEN: ${{ secrets.EXAMPLETARGET1_TOKEN }}
+      
+      ACTIVE_FROM_LIMIT: ${{ inputs.ACTIVE_FROM_LIMIT }}
+    
+    if: github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Print configuration
+        run: gitprovidersync print
+
+      - name: Sync configuration
+        run: gitprovidersync sync --active-from-limit ${{ env.ACTIVE_FROM_LIMIT }} --force-push
+----
+
+=== Tekton CI
+
+Tekton doesn’t have native support for scheduled triggers or manual dispatch in the same way GitHub Actions or GitLab does.
+You can achieve similar results using Tekton Triggers and CronJobs.
+
+.A Tekton Pipeline Example
+[source,yaml]
+----
+
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: git-provider-sync-pipeline
+spec:
+  params:
+    - name: IMAGE
+      description: "Path to container image"
+      default: "path/to/gitprovidersync/image:version"
+
+    - name: GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_PROVIDER
+      description: "Source provider for the configuration (e.g., gitlab, github, gitea)"
+      default: "gitlab"
+
+    - name: GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_DOMAIN
+      description: "Domain of the source provider"
+      default: "gitlab.com"
+
+    - name: GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_USER
+      description: "Username for the source provider"
+      default: "auser"
+
+    - name: GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_INCLUDE_REPOSITORIES
+      description: "Comma-separated list of repositories to include"
+      default: "areponame,anotherreponame"
+
+    - name: GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_PROVIDER
+      description: "Target provider for the configuration"
+      default: "gitlab"
+
+    - name: GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_DOMAIN
+      description: "Domain of the target provider"
+      default: "gitlab.com"
+
+    - name: GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_USER
+      description: "Target group or namespace in the target provider"
+      default: "ausername"
+
+    - name: GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_TOKEN
+      description: "Target token"
+      default: "ausername"
+
+    - name: ACTIVE_FROM_LIMIT
+      description: "How old changes to be considered, Golang string time duration format."
+      default: "-30000h"
+
+  tasks:
+    - name: sync-configuration
+      taskRef:
+        name: git-provider-sync-task
+      params:
+        - name: IMAGE
+          value: $(params.IMAGE)
+        - name: GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_PROVIDER
+          value: $(params.GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_PROVIDER)
+        - name: GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_DOMAIN
+          value: $(params.GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_DOMAIN)
+        - name: GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_USER
+          value: $(params.GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_USER)
+        - name: GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_INCLUDE_REPOSITORIES
+          value: $(params.GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_INCLUDE_REPOSITORIES)
+        - name: GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_PROVIDER
+          value: $(params.GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_PROVIDER)
+        - name: GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_DOMAIN
+          value: $(params.GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_DOMAIN)
+        - name: GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_USER
+          value: $(params.GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_USER)
+        - name: GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_TOKEN
+          value: $(params.GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_TOKEN)
+        - name: ACTIVE_FROM_LIMIT
+          value: $(params.ACTIVE_FROM_LIMIT)
+----
+
+.A Tekton Task Example
+[source,yaml]
+----
+
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: git-provider-sync-task
+spec:
+  params:
+    - name: IMAGE
+    - name: GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_PROVIDER
+    - name: GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_DOMAIN
+    - name: GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_USER
+    - name: GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_INCLUDE_REPOSITORIES
+    - name: GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_PROVIDER
+    - name: GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_DOMAIN
+    - name: GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_USER
+    - name: GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_TOKEN
+    - name: ACTIVE_FROM_LIMIT
+
+  steps:
+    - name: print-configuration
+      image: $(params.IMAGE)
+      env:
+        - name: GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_PROVIDER
+          value: $(params.GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_PROVIDER)
+        - name: GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_DOMAIN
+          value: $(params.GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_DOMAIN)
+        - name: GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_USER
+          value: $(params.GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_USER)
+        - name: GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_INCLUDE_REPOSITORIES
+          value: $(params.GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_INCLUDE_REPOSITORIES)
+        - name: GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_PROVIDER
+          value: $(params.GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_PROVIDER)
+        - name: GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_DOMAIN
+          value: $(params.GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_DOMAIN)
+        - name: GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_USER
+          value: $(params.GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_USER)
+        - name: GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_TOKEN
+          value: $(params.GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_TOKEN)
+        - name: ACTIVE_FROM_LIMIT
+          value: $(params.ACTIVE_FROM_LIMIT)
+      script: |
+        gitprovidersync print
+
+    - name: sync-configuration
+      image: $(params.IMAGE)
+      env:
+        - name: GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_PROVIDER
+          value: $(params.GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_PROVIDER)
+        - name: GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_DOMAIN
+          value: $(params.GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_DOMAIN)
+        - name: GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_USER
+          value: $(params.GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_USER)
+        - name: GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_INCLUDE_REPOSITORIES
+          value: $(params.GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_INCLUDE_REPOSITORIES)
+        - name: GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_PROVIDER
+          value: $(params.GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_PROVIDER)
+        - name: GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_DOMAIN
+          value: $(params.GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_DOMAIN)
+        - name: GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_USER
+          value: $(params.GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_USER)
+        - name: GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_TOKEN
+          value: $(params.GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_TOKEN)
+        - name: ACTIVE_FROM_LIMIT
+          value: $(params.ACTIVE_FROM_LIMIT)
+      script: |
+        gitprovidersync sync \
+          --active-from-limit $(params.ACTIVE_FROM_LIMIT) \
+          --force-push
+----
+
+.A Scheduled Run Example using Kubernetes CronJob:
+[source,yaml]
+----
+
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: git-provider-sync-cronjob
+spec:
+  schedule: "0 */2 * * *"  # Every other hour
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: tekton-bot
+          containers:
+            - name: git-provider-sync
+              image: ghcr.io/itiquette/gitprovidersync:v0.3.1
+              env:
+                - name: IMAGE
+                  value: "path/to/gitprovidersync/image:version"
+                - name: GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_PROVIDER
+                  value: "gitlab"
+                - name: GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_DOMAIN
+                  value: "gitlab.com"
+                - name: GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_USER
+                  value: "auser"
+                - name: GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_INCLUDE_REPOSITORIES
+                  value: "areponame,anotherreponame"
+                - name: GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_PROVIDER
+                  value: "gitlab"
+                - name: GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_DOMAIN
+                  value: "gitlab.com"
+                - name: GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_USER
+                  value: "ausername"
+                - name: ACTIVE_FROM_LIMIT
+                  value: "-30000h"
+              command: ["sh", "-c", "gitprovidersync print && gitprovidersync sync --active-from-limit $ACTIVE_FROM_LIMIT --force-push"]
+          restartPolicy: OnFailure
+
+----
+
+.A Manual Trigger Example:
+[source,yaml]
+----
+
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  name: git-provider-sync-manual-run
+spec:
+  pipelineRef:
+    name: git-provider-sync-pipeline
+  params:
+    - name: IMAGE
+      value: "path/to/gitprovidersync/image:version"
+    - name: GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_PROVIDER
+      value: "gitlab"
+    - name: GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_DOMAIN
+      value: "gitlab.com"
+    - name: GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_USER
+      value: "auser"
+    - name: GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_INCLUDE_REPOSITORIES
+      value: "areponame,anotherreponame"
+    - name: GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_PROVIDER
+      value: "gitlab"
+    - name: GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_DOMAIN
+      value: "gitlab.com"
+    - name: GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_USER
+      value: "ausername"
+    - name: GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_TOKEN
+      value: "token"
+    - name: ACTIVE_FROM_LIMIT
+      value: "-30000h"
+
+----

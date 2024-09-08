@@ -1,0 +1,51 @@
+# SPDX-FileCopyrightText: 2024 Josef Andersson
+#
+# SPDX-License-Identifier: CC0-1.0
+
+configurations:
+  conf1:
+    source:
+      provider: gitlab
+      domain: conf1domain
+      include:
+        repositories: aproject, anotherproject
+
+    targets:
+      atarget:
+        provider: gitea
+        domain: gitea.com
+        token: atoken
+        group: agroup
+      anothertarget:
+        provider: github
+        domain: github.com
+        token: anothertoken
+        group: anothergroup
+  conf2:
+    source:
+      provider: gitea
+      domain: conf2domain
+      user: user
+      exclude:
+        repositories: aproject, anotherproject
+
+    targets:
+      atarget:
+        provider: gitea
+        domain: gitea.com
+        token: atoken
+        group: agroup
+  conflocal:
+    source:
+      provider: localconfprovider
+      domain: localconfdomain
+      user: localconfuser
+      exclude:
+        repositories: localconfrepo, localconfrepo2
+
+    targets:
+      localtarget:
+        provider: localconfprovider
+        domain: localconfdomain
+        token: localconftoken
+        group: localconfgroup

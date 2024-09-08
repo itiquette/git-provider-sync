@@ -1,0 +1,39 @@
+# SPDX-FileCopyrightText: Josef Andersson
+#
+# SPDX-License-Identifier: CC0-1.0
+
+---
+name: Golang Test
+
+on: [workflow_call] # yamllint disable-line rule:truthy
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: ["1.23.0"]
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+      - name: Harden GitHub runner
+        uses: step-security/harden-runner@5c7944e73c4c2a096b17a9cb74d65b6c2bbafbde #v2.9.1
+        with:
+          egress-policy: audit
+
+      - name: Checkout repository
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 #v4.1.7
+
+      - name: Setup Go ${{ matrix.go-version }}
+        uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 #v5.0.2
+        with:
+          go-version: ${{ matrix.go-version }}
+
+      - name: Go test run
+        run: |
+          go install github.com/vektra/mockery/v2@v2.44.1
+          go mod tidy
+          ./scripts/generatemock.sh
+          # shellcheck disable=SC2046
+          go test -count=1 $(go list './...' | grep -v generated)
