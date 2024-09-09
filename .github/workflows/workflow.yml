@@ -17,7 +17,7 @@ on:
 
 permissions:
   contents: read
-  
+
 jobs:
   commitlint:
     uses: ./.github/workflows/commitlint.yml
