@@ -3,10 +3,15 @@
 # SPDX-License-Identifier: CC0-1.0
 ---
 name: MegaLinter
-on: [workflow_call] # yamllint disable-line rule:truthy
+on:
+  workflow_call: # yamllint disable-line rule:truthy
+
+permissions:
+  contents: read
 
 env:
   MEGALINTER_CONFIG: /development/megalinter.yml
+
 jobs:
   megalinter:
     name: Megalinter analysis
@@ -20,7 +25,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 #v4.1.7
         with:
-          fetch-depth: 7
+          fetch-depth: 10
 
       - name: MegaLinter lint
         id: ml
@@ -33,3 +38,4 @@ jobs:
           name: MegaLinter reports
           path: |
             megalinter-reports
+          retention-days: 5

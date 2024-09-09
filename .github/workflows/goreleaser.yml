@@ -9,13 +9,16 @@ on:
     tags:
       - v[0-9]+.[0-9]+.[0-9]+
 
-permissions:
-  contents: write # needed to write releases
-  id-token: write # needed for keyless signing
-  packages: write # needed for ghcr access
+permissions: read-all
 
 jobs:
   goreleaser:
+    
+    permissions:
+      contents: write # needed to write releases
+      id-token: write # needed for keyless signing
+      packages: write # needed for ghcr access
+
     name: GoReleaser build and release
     outputs:
       hashes: ${{ steps.binary.outputs.hashes }}
