@@ -40,4 +40,5 @@ jobs:
         with:
           skip-cache: true
           skip-save-cache: true
+          cache-invalidation-interval: 0
           version: v1.61.0
