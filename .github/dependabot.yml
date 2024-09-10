@@ -1,4 +1,7 @@
-# This is the version of the Dependabot configuration file format
+# SPDX-FileCopyrightText: Josef Andersson
+#
+# SPDX-License-Identifier: CC0-1.0
+
 version: 2
 
 updates:
