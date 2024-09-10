@@ -1,0 +1,117 @@
+# This is the version of the Dependabot configuration file format
+version: 2
+
+updates:
+  # Configuration for GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    target-branch: "main"
+
+    # Configure commit messages to follow conventional commit format
+    commit-message:
+      prefix: "fix"
+      include: "scope"
+
+    # Configure the format of pull request branch names
+    pull-request-branch-name:
+      # Use hyphens as separators in branch names
+      separator: "-"
+
+    # Automatically add these labels to created pull requests
+    labels:
+      - "dependencies"
+      - "actions"
+
+      # Group definitions for related dependencies
+    groups:
+      # Group for version control system related dependencies
+      actions-dependencies:
+        patterns:
+          - "*"
+        # Only group minor and patch updates
+        update-types:
+          - "minor"
+          - "patch"
+
+    # Separate major updates from groups
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+    # Limit the number of open pull requests Dependabot can have at one time
+    open-pull-requests-limit: 4
+
+  # Configuration for Go module updates
+  - package-ecosystem: "gomod"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    target-branch: "main"
+
+    # Group definitions for related dependencies
+    groups:
+      # Group for version control system related dependencies
+      vcs-dependencies:
+        patterns:
+          - "code.gitea.io/sdk/gitea"
+          - "github.com/fluxcd/go-git-providers"
+          - "github.com/go-git/go-git/v5"
+          - "github.com/google/go-github/v64"
+          - "github.com/xanzy/go-gitlab"
+        # Only group minor and patch updates
+        update-types:
+          - "minor"
+          - "patch"
+
+      # Group for koanf-related dependencies
+      koanf-dependencies:
+        patterns:
+          - "github.com/knadh/koanf*"
+        update-types:
+          - "minor"
+          - "patch"
+
+      # Group for general utility libraries
+      utility-dependencies:
+        patterns:
+          - "github.com/hashicorp/go-retryablehttp"
+          - "github.com/mholt/archiver/v4"
+          - "github.com/pkg/errors"
+          - "github.com/rs/zerolog"
+        update-types:
+          - "minor"
+          - "patch"
+
+      # Group for testing and CLI dependencies
+      test-and-cli-dependencies:
+        patterns:
+          - "github.com/spf13/cobra"
+          - "github.com/stretchr/testify"
+        update-types:
+          - "minor"
+          - "patch"
+
+    # Separate major updates from groups
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+    # Configure commit messages to follow conventional commit format
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+
+    # Configure the format of pull request branch names
+    pull-request-branch-name:
+      # Use hyphens as separators in branch names
+      separator: "-"
+
+    # Automatically add these labels to created pull requests
+    labels:
+      - "dependencies"
+      - "go"
+
+    # Limit the number of open pull requests Dependabot can have at one time
+    open-pull-requests-limit: 4
