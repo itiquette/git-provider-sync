@@ -12,7 +12,6 @@ policies:
       header:
         length: 90
         imperative: true
-        case: lower
         invalidLastCharacters: .
       body:
         required: false
