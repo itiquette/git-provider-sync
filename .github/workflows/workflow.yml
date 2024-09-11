@@ -21,8 +21,8 @@ permissions:
 jobs:
   commitlint:
     uses: ./.github/workflows/commitlint.yml
-  # dependencyreviewlint:
-  #   uses: ./.github/workflows/dependencyreview.yml Disablied until public
+  dependencyreviewlint:
+    uses: ./.github/workflows/dependencyreview.yml Disablied until public
   licenselint:
     uses: ./.github/workflows/licenselint.yml
   golint:
