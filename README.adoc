@@ -72,18 +72,8 @@ Development instructions can be found in the link:DEVELOPMENT.adoc[the developme
 
 == Roadmap
 
-It’s not dead yet Jim! In fact, there are future plans. See "Issues".
-
-- ui: improve logging output
-- ui: improve config printout
-- ci: Add tags and changelog handling
-- chore: Improve unit tests and docs
-- feat: per target settings (force-push, ssh url etc)
-- feat: per repo settings (force-push, ssh url etc)
-- fix: use more provider lib features
-- feat: Add additional providers, including support for custom
-- feat: Add parallelism where it might hurt running in sequential mode (clone). But K-I-S-S is the leading guide here.
-- external: Fix and/or report few known bugs in the eco system regarding Git Provider Sync, which would improve this app. 
+It’s not dead yet Jim! In fact, there are future plans.
+See "Issues" for planned future enhancements.
 
 IMPORTANT: This project is currently in Beta status -> I'm happy to take issues and improvement suggestions - about documentation, code, system flow or something else. Just keep-it-simple.:)
 This app takes no responsibility for data-loss. Use "as-is". Make sure that tokens you use have *limited write access* - dont give them root-like permissions - but that is what you always do,right.
