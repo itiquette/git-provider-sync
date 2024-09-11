@@ -30,6 +30,6 @@ jobs:
         run: git fetch origin main:main
 
       - name: Commit (conform) analysis
-        uses: docker://ghcr.io/siderolabs/conform:v0.1.0-alpha.29
+        uses: docker://ghcr.io/siderolabs/conform@31dbdabfe2d9e5d93035bdd8fb8a1e1181d247339e66536b8e6183801d390657 #v0.1.0-alpha.30-1-ga6572d2
         with:
           args: "enforce --base-branch=main"
