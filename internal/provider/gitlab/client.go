@@ -206,6 +206,8 @@ func newRepositoryMetainfo(ctx context.Context, config configuration.ProviderCon
 }
 
 // getVisibility returns the visibility of a GitLab project.
+// If a public project is fetched from GitLab API without token, this field will be empty
+// and is therefore set to public.
 func getVisibility(vis gogitlab.VisibilityValue) string {
 	switch vis {
 	case gogitlab.PublicVisibility:
@@ -215,7 +217,7 @@ func getVisibility(vis gogitlab.VisibilityValue) string {
 	case gogitlab.InternalVisibility:
 		return "internal"
 	default:
-		return "public" // TODO: Handle this case better
+		return "public"
 	}
 }
 
