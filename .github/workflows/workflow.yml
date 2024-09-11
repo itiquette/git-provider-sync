@@ -22,7 +22,7 @@ jobs:
   commitlint:
     uses: ./.github/workflows/commitlint.yml
   dependencyreviewlint:
-    uses: ./.github/workflows/dependencyreview.yml Disablied until public
+    uses: ./.github/workflows/dependencyreview.yml
   licenselint:
     uses: ./.github/workflows/licenselint.yml
   golint:
