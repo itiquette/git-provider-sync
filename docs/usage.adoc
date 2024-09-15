@@ -28,7 +28,7 @@ The targets can be another Git Provider user or organisation, an archive or a di
 You will need to:
 
 [arabic]
-. Install a pre offered package or build `Git Provider Sync`.
+. Install a pre offered package OR build `Git Provider Sync`.
   Installation options can be found under link:../INSTALL.adoc[the installation guide].
 . Create a configuration with at least one source provider and target provider - link:../examples/gitprovidersync.exampleconf.yaml[see a commented example]
 
@@ -118,7 +118,13 @@ Configuration and usage should be pretty straight forward.
 Have a look in the link:../examples/gitprovidersync.exampleconf.yaml[commented
 example configuration to get an idea of the various configuration options].
 
-== Source Notes
+== Provider Notes
+
+=== Auth
+
+Default is to use Basic Auth to the providers. For that, you will have to provide a token in configuration "Token".
+
+You can also use ssh by configuring the gitinfo.type (https,sshagen,sshkey) and providing a path to a key and a pw.
 
 === GitHub
 

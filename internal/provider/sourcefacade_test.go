@@ -57,11 +57,13 @@ func TestClone(t *testing.T) {
 	}
 
 	for _, tabletest := range tests {
+		protocol := model.GitInfo{}
+
 		t.Run(tabletest.name, func(t *testing.T) {
 			mockReader := new(mocks.SourceReader)
 			tabletest.mockSetup(mockReader)
 
-			repos, err := Clone(ctx, mockReader, tabletest.metainfos)
+			repos, err := Clone(ctx, mockReader, protocol, tabletest.metainfos)
 
 			if tabletest.wantErr {
 				require.Error(err)

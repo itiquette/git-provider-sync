@@ -33,7 +33,7 @@ type Archive struct {
 //
 // Returns an error if any step of the process fails, including source directory validation,
 // target directory creation, file mapping, or archive creation.
-func (a Archive) Push(ctx context.Context, option model.PushOption) error {
+func (a Archive) Push(ctx context.Context, option model.PushOption, _ model.GitInfo, _ model.GitInfo) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Archive:Push")
 	option.DebugLog(logger).Msg("Archive:Push")

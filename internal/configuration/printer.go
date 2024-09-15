@@ -9,6 +9,7 @@ package configuration
 import (
 	"fmt"
 	"io"
+	"itiquette/git-provider-sync/internal/model"
 	"strings"
 )
 
@@ -72,8 +73,28 @@ func printRemoteProviderDetails(config ProviderConfig, writer io.Writer) {
 		fmt.Fprintf(writer, " User: %s\n", config.User)
 	}
 
+	// Protocol
+	printGitProtocol(writer, config)
+
 	printStringMap(" Include", config.Include, writer)
 	printStringMap(" Exclude", config.Exclude, writer)
+}
+
+func printGitProtocol(writer io.Writer, config ProviderConfig) {
+	fmt.Fprint(writer, " GitInfo:\n")
+
+	if len(config.GitInfo.Type) == 0 {
+		fmt.Fprintf(writer, "  Type: %s\n", model.HTTPS)
+	} else {
+		fmt.Fprintf(writer, "  Type: %s\n", config.GitInfo.Type)
+		fmt.Fprintf(writer, "  SSHPrivateKeyPath: %s\n", config.GitInfo.SSHPrivateKeyPath)
+
+		if len(config.GitInfo.SSHPrivateKeyPW) == 0 {
+			fmt.Fprintln(writer, "  SSHPrivateKeyPW not specified")
+		} else {
+			fmt.Fprintln(writer, "  SSHPrivateKeyPW: <*****>")
+		}
+	}
 }
 
 // printStringMap writes a map of strings to the provided writer if the map is not empty.

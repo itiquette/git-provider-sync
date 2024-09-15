@@ -30,13 +30,7 @@ type Directory struct {
 
 // Push writes an existing repository to a target directory according to the given push options.
 // It handles the process of cloning a new repository or updating an existing one.
-//
-// Parameters:
-// - ctx: The context for the operation, which can be used for cancellation and passing values.
-// - option: The PushOption containing details about the push operation, including the target directory.
-//
-// Returns an error if any step of the process fails.
-func (dir Directory) Push(ctx context.Context, option model.PushOption) error {
+func (dir Directory) Push(ctx context.Context, option model.PushOption, sourceGitInfo model.GitInfo, _ model.GitInfo) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Directory: Push")
 	option.DebugLog(logger).Msg("Directory: Push")
@@ -66,10 +60,10 @@ func (dir Directory) Push(ctx context.Context, option model.PushOption) error {
 
 	// Determine whether to clone or pull based on CLI options and directory existence
 	if cliOption.ForcePush || !directoryExists(targetDirPath) {
-		return dir.handleClone(ctx, sourceRepoDir, targetDirPath)
+		return dir.handleClone(ctx, sourceRepoDir, targetDirPath, model.GitInfo{})
 	}
 
-	return dir.handlePull(ctx, targetDirPath)
+	return dir.handlePull(ctx, targetDirPath, sourceGitInfo)
 }
 
 // checkSourceRepoExists verifies the existence of the source repository directory and checks for files.
@@ -118,14 +112,18 @@ func directoryExists(dir string) bool {
 // - targetDirPath: The path where the repository should be cloned.
 //
 // Returns an error if any step of the cloning process fails.
-func (dir Directory) handleClone(ctx context.Context, sourceRepoDir, targetDirPath string) error {
+func (dir Directory) handleClone(ctx context.Context, sourceRepoDir, targetDirPath string, protocol model.GitInfo) error {
 	logger := log.Logger(ctx)
 
 	if err := moveDirToTmp(ctx, targetDirPath); err != nil {
 		return fmt.Errorf("failed to move directory to tmp: %w", err)
 	}
 
-	cloneOption := model.NewCloneOption(sourceRepoDir, false, targetDirPath)
+	metainfo := model.RepositoryMetainfo{
+		HTTPSURL: sourceRepoDir,
+		SSHURL:   sourceRepoDir,
+	}
+	cloneOption := model.NewCloneOption(ctx, metainfo, false, targetDirPath, protocol)
 
 	repo, err := dir.gitClient.Clone(ctx, cloneOption)
 	if err != nil {
@@ -152,8 +150,8 @@ func (dir Directory) handleClone(ctx context.Context, sourceRepoDir, targetDirPa
 // - targetDirPath: The path to the existing repository.
 //
 // Returns an error if the pull operation fails.
-func (dir Directory) handlePull(ctx context.Context, targetDirPath string) error {
-	pullOption := model.NewPullOption("", "", targetDirPath)
+func (dir Directory) handlePull(ctx context.Context, targetDirPath string, sourceGitinfo model.GitInfo) error {
+	pullOption := model.NewPullOption("", "", targetDirPath, sourceGitinfo)
 	if err := dir.gitClient.Pull(ctx, pullOption); err != nil {
 		return fmt.Errorf("failed to pull updates to %s: %w", targetDirPath, err)
 	}

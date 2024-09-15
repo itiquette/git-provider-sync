@@ -18,6 +18,7 @@ type TargetWriter interface {
 	// Parameters:
 	//   - ctx: A context.Context for handling cancellation and timeouts.
 	//   - option: A model.PushOption containing configuration for the push operation.
+	//   - protocol: A model.GitProtocol containing Git Protocol configuration.
 	//
 	// Returns:
 	//   - error: An error if the push operation fails, or nil if successful.
@@ -28,7 +29,7 @@ type TargetWriter interface {
 	//   2. Prepare the data to be pushed based on the PushOption.
 	//   3. Perform the actual push operation.
 	//   4. Handle any errors or conflicts that may arise during the push.
-	Push(ctx context.Context, option model.PushOption) error
+	Push(ctx context.Context, option model.PushOption, sourceGitInfo model.GitInfo, targetGitInfo model.GitInfo) error
 }
 
 // Example usage:

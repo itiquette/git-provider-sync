@@ -48,13 +48,13 @@ func runSync(cmd *cobra.Command, _ []string) {
 	ctx := cmd.Root().Context()
 	ctx = addInputOptionsToContext(ctx, cmd)
 
-	var configLoaderInstance configuration.ConfigLoader = configuration.DefaultConfigLoader{}
-	config, err := configLoaderInstance.LoadConfiguration(ctx)
-	model.HandleError(ctx, err)
-
 	withCaller := model.CLIOptions(ctx).VerbosityWithCaller
 	outputFormat := model.CLIOptions(ctx).OutputFormat
 	ctx = log.InitLogger(ctx, cmd, withCaller, outputFormat)
+
+	var configLoaderInstance configuration.ConfigLoader = configuration.DefaultConfigLoader{}
+	config, err := configLoaderInstance.LoadConfiguration(ctx)
+	model.HandleError(ctx, err)
 
 	err = sync(ctx, config)
 	model.HandleError(ctx, err)
@@ -158,7 +158,10 @@ func sourceRepositories(ctx context.Context, config configuration.ProviderConfig
 		return nil, nil
 	}
 
-	repositories, err := provider.Clone(ctx, target.Git{}, metainfos)
+	gitOption := config.GitInfo //TODO fix next iteration
+	gitOption.ProviderToken = config.Token
+
+	repositories, err := provider.Clone(ctx, target.Git{}, gitOption, metainfos)
 	if err != nil {
 		return nil, fmt.Errorf("failed to clone source git-provider repositories: %w", err)
 	}
@@ -179,8 +182,11 @@ func toTarget(ctx context.Context, sourceProvider, targetProvider configuration.
 		return fmt.Errorf("failed to initialize a new target provider client: %w", err)
 	}
 
+	sourceGitInfo := sourceProvider.GitInfo //TODO
+	sourceGitInfo.ProviderToken = sourceProvider.Token
+
 	for _, repository := range repositories {
-		if err := processRepository(ctx, targetProvider, providerClient, repository); err != nil {
+		if err := processRepository(ctx, targetProvider, providerClient, repository, sourceGitInfo); err != nil {
 			return fmt.Errorf("failed to process repositories: %w", err)
 		}
 	}
@@ -191,7 +197,7 @@ func toTarget(ctx context.Context, sourceProvider, targetProvider configuration.
 }
 
 // processRepository handles the synchronization of a single repository.
-func processRepository(ctx context.Context, targetProvider configuration.ProviderConfig, providerClient interfaces.GitProvider, repository interfaces.GitRepository) error {
+func processRepository(ctx context.Context, targetProvider configuration.ProviderConfig, providerClient interfaces.GitProvider, repository interfaces.GitRepository, sourceGitInfo model.GitInfo) error {
 	logger := log.Logger(ctx)
 	repository.Metainfo().DebugLog(logger).Msg("processRepository:")
 
@@ -215,7 +221,7 @@ func processRepository(ctx context.Context, targetProvider configuration.Provide
 		return err
 	}
 
-	return pushRepository(ctx, targetProvider, providerClient, repository)
+	return pushRepository(ctx, sourceGitInfo, targetProvider, providerClient, repository)
 }
 
 // setupRepository prepares the repository for synchronization.
@@ -230,7 +236,7 @@ func setupRepository(ctx context.Context, targetProvider configuration.ProviderC
 }
 
 // pushRepository pushes the repository to the target provider.
-func pushRepository(ctx context.Context, targetProvider configuration.ProviderConfig, providerClient interfaces.GitProvider, repository interfaces.GitRepository) error {
+func pushRepository(ctx context.Context, sourceGitInfo model.GitInfo, targetProvider configuration.ProviderConfig, providerClient interfaces.GitProvider, repository interfaces.GitRepository) error {
 	var targett interfaces.TargetWriter
 
 	switch strings.ToLower(targetProvider.Provider) {
@@ -242,7 +248,7 @@ func pushRepository(ctx context.Context, targetProvider configuration.ProviderCo
 		targett = target.NewGit(repository, repository.Metainfo().Name(ctx))
 	}
 
-	if err := provider.Push(ctx, targetProvider, providerClient, targett, repository); err != nil {
+	if err := provider.Push(ctx, targetProvider, providerClient, targett, repository, sourceGitInfo); err != nil {
 		return fmt.Errorf("failed to push to target repositories: %w", err)
 	}
 

@@ -69,7 +69,9 @@ func TestPush(t *testing.T) {
 			mockRepo := new(mocks.GitRepository)
 			tabletest.mockSetup(mockClient, mockRepo)
 
-			err := Push(ctx, tabletest.config, mockClient, mockGitCore{}, mockRepo)
+			sourceGitInfo := model.GitInfo{}
+
+			err := Push(ctx, tabletest.config, mockClient, mockGitCore{}, mockRepo, sourceGitInfo)
 
 			if tabletest.wantErr {
 				require.Error(err)
@@ -121,7 +123,7 @@ func TestGetPushOption(t *testing.T) {
 			},
 			repository: mockRepositoryWithName("repo"),
 			forcePush:  true,
-			expected:   model.NewPushOption("https://user:token@gitlab.com/user/repo", false, true),
+			expected:   model.NewPushOption("https://gitlab.com/user/repo", false, true),
 		},
 	}
 
@@ -324,7 +326,7 @@ func (mockGitCore) Clone(_ context.Context, _ model.CloneOption) (model.Reposito
 	return model.Repository{}, nil
 }
 
-func (mockGitCore) Push(_ context.Context, _ model.PushOption) error {
+func (mockGitCore) Push(_ context.Context, _ model.PushOption, _ model.GitInfo, _ model.GitInfo) error {
 	return nil
 }
 

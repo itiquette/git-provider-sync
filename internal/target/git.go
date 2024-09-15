@@ -8,13 +8,19 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
+	"itiquette/git-provider-sync/internal/configuration"
 	"itiquette/git-provider-sync/internal/interfaces"
 	"itiquette/git-provider-sync/internal/log"
 	"itiquette/git-provider-sync/internal/model"
 
 	"github.com/go-git/go-git/v5"
 	gogitconfig "github.com/go-git/go-git/v5/config"
+
+	"github.com/go-git/go-git/v5/plumbing/transport"
+	"github.com/go-git/go-git/v5/plumbing/transport/http"
+	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
 	"github.com/rs/zerolog"
 )
 
@@ -40,7 +46,24 @@ func (g Git) Clone(ctx context.Context, option model.CloneOption) (model.Reposit
 	logger.Trace().Msg("Entering Git:Clone")
 	logger.Debug().Str("url", option.URL).Str("target", option.TargetPath).Msg("Git:Clone")
 
-	gitGoCloneOptions := newGitGoCloneOption(option.URL, option.Mirror)
+	var gitGoCloneOptions git.CloneOptions
+
+	var err error
+
+	var auth transport.AuthMethod
+
+	if strings.EqualFold(option.GitInfo.Type, model.SSHKEY) {
+		auth, err = ssh.NewPublicKeysFromFile("git", option.GitInfo.SSHPrivateKeyPath, option.GitInfo.SSHPrivateKeyPW)
+		if err != nil {
+			return model.Repository{}, fmt.Errorf("generate publickeys failed: %w", err)
+		}
+	}
+
+	if strings.EqualFold(option.GitInfo.Type, model.HTTPS) || len(option.GitInfo.Type) == 0 {
+		auth = &http.BasicAuth{Username: "anyUser", Password: option.GitInfo.ProviderToken}
+	}
+
+	gitGoCloneOptions = newGitGoCloneOption(option.URL, option.Mirror, auth)
 
 	cloneRepository, err := git.PlainClone(option.TargetPath, false, &gitGoCloneOptions)
 	if err != nil {
@@ -68,8 +91,6 @@ func (g Git) Pull(ctx context.Context, option model.PullOption) error {
 	logger.Trace().Msg("Entering Git:Pull")
 	option.DebugLog(logger).Msg("Git:Pull")
 
-	pullOptions := newGitGoPullOption(option.Name, option.TargetPath)
-
 	targetRepository, err := git.PlainOpen(option.TargetPath)
 	if err != nil {
 		return fmt.Errorf("failed to open repository directory %s: %w", option.TargetPath, err)
@@ -84,7 +105,24 @@ func (g Git) Pull(ctx context.Context, option model.PullOption) error {
 		return fmt.Errorf("workspace at %s is unclean, aborting", option.TargetPath)
 	}
 
-	if err := worktree.Pull(&pullOptions); err != nil {
+	var gitPullOptions git.PullOptions
+
+	var auth transport.AuthMethod
+
+	if strings.EqualFold(option.GitInfo.Type, model.SSHKEY) {
+		auth, err = ssh.NewPublicKeysFromFile("git", option.GitInfo.SSHPrivateKeyPath, option.GitInfo.SSHPrivateKeyPW)
+		if err != nil {
+			return fmt.Errorf("generate publickeys failed: %w", err)
+		}
+	}
+
+	if strings.EqualFold(option.GitInfo.Type, model.HTTPS) || len(option.GitInfo.Type) == 0 {
+		auth = &http.BasicAuth{Username: "anyUser", Password: option.GitInfo.ProviderToken}
+	}
+
+	gitPullOptions = newGitGoPullOption(configuration.ORIGIN, "", auth)
+
+	if err := worktree.Pull(&gitPullOptions); err != nil {
 		if errors.Is(err, git.NoErrAlreadyUpToDate) {
 			logger.Debug().Msgf("Repository %s already up-to-date, ignoring Pull", g.name)
 			g.updateSyncRunMetainfo(ctx, "uptodate")
@@ -110,16 +148,31 @@ func (g Git) Pull(ctx context.Context, option model.PullOption) error {
 // - option: The PushOption containing details about the push operation, including the target and RefSpecs.
 //
 // Returns an error if the push operation fails.
-func (g Git) Push(ctx context.Context, option model.PushOption) error {
+func (g Git) Push(ctx context.Context, option model.PushOption, _ model.GitInfo, targetGitInfo model.GitInfo) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Git:Push")
 	option.DebugLog(logger).Msg("Git:Push")
 
 	g.logRemotes(logger)
 
-	gitOptions := newGitGoPushOption(option.Target, option.RefSpecs, option.Prune)
+	var auth transport.AuthMethod
 
-	logger.Info().Str("target", option.ScrubTarget()).Msg("Pushing to:")
+	var err error
+
+	if strings.EqualFold(targetGitInfo.Type, model.SSHKEY) {
+		auth, err = ssh.NewPublicKeysFromFile("git", targetGitInfo.SSHPrivateKeyPath, targetGitInfo.SSHPrivateKeyPW)
+		if err != nil {
+			return fmt.Errorf("generate publickeys failed: %w", err)
+		}
+	}
+
+	if strings.EqualFold(targetGitInfo.Type, model.HTTPS) || len(targetGitInfo.Type) == 0 {
+		auth = &http.BasicAuth{Username: "anyUser", Password: targetGitInfo.ProviderToken}
+	}
+
+	gitOptions := newGitGoPushOption(option.Target, option.RefSpecs, option.Prune, auth)
+
+	logger.Info().Str("target", option.Target).Msg("Pushing to:")
 
 	if err := g.goGitRepository.Push(&gitOptions); err != nil {
 		if errors.Is(err, git.NoErrAlreadyUpToDate) {

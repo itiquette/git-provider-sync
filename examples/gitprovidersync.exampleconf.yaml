@@ -10,6 +10,10 @@ configurations: # a list of project configurations. Mandatory - at least one.
       user: user # Git provider repositories owner. Mandatory (if no group given).Mutually exclusive with group
       group: group # Git provider group/organization owner. Mandatory (if no user given).  Mutually exclusive with user
       token: git provider token. Optional but recommended to avoid GitHub-api limits, private repositories etc.
+      gitoption: # https,sshagent,sshkey (default if empty is https)
+        type: sshkey
+        sshprivatekeypath: /key/path # Only applicable if sshkey was sethhhhhhhhh
+        sshprivatekeypw: #dont use saved pws here other htan for test
       include: # Git provider repositories to include. Optional (if empty, all are mirrored))
         repositories: a-dummy-project, another-dummy-project # a list of user/group repositories to include
       exclude: # Git provider repositories to exclude. Optional (if empty, none are excluded)

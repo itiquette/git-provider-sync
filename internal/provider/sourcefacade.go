@@ -20,11 +20,10 @@ import (
 // It takes a context, a SourceReader interface for cloning operations,
 // and a slice of RepositoryMetainfo containing information about the repositories to clone.
 // It returns a slice of GitRepository interfaces representing the cloned repositories and any error encountered.
-func Clone(ctx context.Context, reader interfaces.SourceReader, metainfos []model.RepositoryMetainfo) ([]interfaces.GitRepository, error) {
+func Clone(ctx context.Context, reader interfaces.SourceReader, gitInfo model.GitInfo, metainfos []model.RepositoryMetainfo) ([]interfaces.GitRepository, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Cloning repositories")
 
-	// Pre-allocate the slice to improve performance
 	repositories := make([]interfaces.GitRepository, 0, len(metainfos))
 	tmpDirPath, err := model.GetTmpDirPath(ctx)
 
@@ -32,28 +31,18 @@ func Clone(ctx context.Context, reader interfaces.SourceReader, metainfos []mode
 		return nil, fmt.Errorf("failed to clone, could not get tmp dir path: %s %w", tmpDirPath, err)
 	}
 
-	for _, info := range metainfos {
-		// Construct the target path for the repository
-		targetPath := filepath.Join(tmpDirPath, info.OriginalName)
+	for _, metainfo := range metainfos {
+		targetPath := filepath.Join(tmpDirPath, metainfo.OriginalName)
 
-		// Log the cloning operation
-		logger.Info().
-			Str("url", info.HTTPSURL).
-			Str("target", targetPath).
-			Msg("Cloning repository")
+		option := model.NewCloneOption(ctx, metainfo, true, targetPath, gitInfo)
 
-		// Prepare cloning options
-		option := model.NewCloneOption(info.HTTPSURL, true, targetPath)
-
-		// Perform the cloning operation
-		rep, err := reader.Clone(ctx, option)
+		resultRepo, err := reader.Clone(ctx, option)
 		if err != nil {
-			return nil, fmt.Errorf("failed to clone repository %s: %w", info.OriginalName, err)
+			return nil, fmt.Errorf("failed to clone repository %s: %w", metainfo.OriginalName, err)
 		}
 
-		// Attach metadata to the cloned repository
-		rep.Meta = info
-		repositories = append(repositories, rep)
+		resultRepo.Meta = metainfo
+		repositories = append(repositories, resultRepo)
 	}
 
 	return repositories, nil

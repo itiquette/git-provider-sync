@@ -57,9 +57,11 @@ A CLI tool to:
 - Compressed Archive file (tar.gz)
 - Directory
 
-== Usage
+== Installation and Usage
 
-Usage notes can be found in link:docs/usage.adoc[the usage guide]. 
+Quick Start and usage notes can be found in link:docs/usage.adoc[the usage guide].
+
+Installation notes can be found in link:INSTALL.adoc[the Installation guide].
 
 == Contributing
 
@@ -74,8 +76,10 @@ Development instructions can be found in the link:DEVELOPMENT.adoc[the developme
 
 It’s not dead yet Jim! In fact, there are future plans.
 See "Issues" for planned future enhancements.
+When they are done, I'll release a 0.1.0-version, and will think about the next milestone.
 
-IMPORTANT: This project is currently in Beta status -> I'm happy to take issues and improvement suggestions - about documentation, code, system flow or something else. Just keep-it-simple.:)
+
+IMPORTANT: This project is currently in Beta status - expect break in both configuration and flags -> I'm happy to take issues and improvement suggestions - about documentation, code, system flow or something else. Just keep-it-simple.:)
 This app takes no responsibility for data-loss. Use "as-is". Make sure that tokens you use have *limited write access* - dont give them root-like permissions - but that is what you always do,right.
 With that said, a health best effort is done to test the application with unit/integration tests and real life tests.
 

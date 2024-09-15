@@ -8,7 +8,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"regexp"
 	"strings"
 
 	"itiquette/git-provider-sync/internal/configuration"
@@ -37,7 +36,7 @@ var (
 //   - repository: The Git repository interface
 //
 // Returns an error if any step in the process fails.
-func Push(ctx context.Context, config configuration.ProviderConfig, provider interfaces.GitProvider, writer interfaces.TargetWriter, repository interfaces.GitRepository) error {
+func Push(ctx context.Context, config configuration.ProviderConfig, provider interfaces.GitProvider, writer interfaces.TargetWriter, repository interfaces.GitRepository, sourceGitInfo model.GitInfo) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Push:")
 	config.DebugLog(logger).Msg("Push:")
@@ -49,7 +48,10 @@ func Push(ctx context.Context, config configuration.ProviderConfig, provider int
 	cliOptions := model.CLIOptions(ctx)
 
 	pushOption := getPushOption(ctx, config, repository, cliOptions.ForcePush)
-	if err := writer.Push(ctx, pushOption); err != nil {
+	gitInfo := config.GitInfo //TODO: next iteration
+	gitInfo.ProviderToken = config.Token
+
+	if err := writer.Push(ctx, pushOption, sourceGitInfo, gitInfo); err != nil {
 		return fmt.Errorf("%w: %w", ErrPushChanges, err)
 	}
 
@@ -201,7 +203,7 @@ func toGitURLWithToken(ctx context.Context, config configuration.ProviderConfig,
 
 	targetProviderConfigURLWithProjectPath := buildTargetURL(trimmedProviderConfigURL, projectPath, cliOption.PlainHTTP)
 
-	return insertToken(targetProviderConfigURLWithProjectPath, config.Token)
+	return targetProviderConfigURLWithProjectPath
 }
 
 // getProjectPath constructs the project path based on whether it's a group or user repository.
@@ -222,11 +224,4 @@ func buildTargetURL(trimmedProviderConfigURL, projectPath string, plainHTTP bool
 	}
 
 	return fmt.Sprintf("https://%s/%s", trimmedProviderConfigURL, projectPath)
-}
-
-// insertToken inserts the authentication token into the URL.
-func insertToken(url, token string) string {
-	groupHTTPURL := regexp.MustCompile("(http[s]?://)(.*)")
-
-	return groupHTTPURL.ReplaceAllString(url, "${1}user:"+token+"@${2}")
 }

@@ -107,37 +107,31 @@ func (ghc Client) Metainfos(ctx context.Context, config configuration.ProviderCo
 
 	var metainfos []model.RepositoryMetainfo
 
+	var repos []*gogithub.Repository
+
 	var err error
 
+	//TODO - the go-git provider lib will go, these is a nec fugly workaround for a bug, until we ca
+	// fully remove it
+	rawClient := gogithub.NewClient(nil).WithAuthToken(config.Token)
+
 	if config.IsGroup() {
-		orgRef := model.NewOrgRef(config.Domain, config.Group)
+		opt := &gogithub.RepositoryListByOrgOptions{Type: "all"}
 
-		orgRepos, err := ghc.gitProviderClient.OrgRepositories().List(ctx, orgRef)
+		repos, _, err = rawClient.Repositories.ListByOrg(ctx, config.Group, opt)
 		if err != nil {
-			return nil, fmt.Errorf("failed to fetch organization repositories: %w", err)
-		}
-
-		metainfos, err = ghc.processRepositories(ctx, config, orgRepos)
-		if err != nil {
-			return nil, fmt.Errorf("failed to fetch organization repositories: %w", err)
+			return nil, fmt.Errorf("failed to fetch org repositories: %w", err)
 		}
 	} else {
-		userRef := model.NewUserRef(config.Domain, config.User)
+		opt := &gogithub.RepositoryListByAuthenticatedUserOptions{Type: "all"}
 
-		userRepos, err := ghc.gitProviderClient.UserRepositories().List(ctx, userRef)
-		if err != nil {
-			return nil, fmt.Errorf("failed to fetch user repositories: %w", err)
-		}
-
-		metainfos, err = ghc.processRepositories(ctx, config, userRepos)
+		repos, _, err = rawClient.Repositories.ListByAuthenticatedUser(ctx, opt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to fetch user repositories: %w", err)
 		}
 	}
 
-	if err != nil {
-		return nil, err
-	}
+	metainfos = ghc.processRepositories(ctx, config, repos)
 
 	if filtering {
 		return ghc.filter.FilterMetainfo(ctx, config, metainfos)
@@ -148,43 +142,25 @@ func (ghc Client) Metainfos(ctx context.Context, config configuration.ProviderCo
 
 // processRepositories is a helper function to process a list of repositories (either Org or User)
 // and convert them into RepositoryMetainfo slices.
-func (ghc Client) processRepositories(ctx context.Context, config configuration.ProviderConfig, repos interface{}) ([]model.RepositoryMetainfo, error) {
-	var metainfos []model.RepositoryMetainfo
+func (ghc Client) processRepositories(ctx context.Context, config configuration.ProviderConfig, repos []*gogithub.Repository) []model.RepositoryMetainfo {
+	var metainfos []model.RepositoryMetainfo //nolint:prealloc
 
 	logger := log.Logger(ctx)
 
-	switch rep := repos.(type) {
-	case []gitprovider.OrgRepository:
-		for _, repo := range rep {
-			name := repo.Repository().GetRepository()
-			metainfo, err := newRepositoryMeta(ctx, config, ghc, name)
+	for _, repo := range repos {
+		name := repo.GetName()
+		metainfo, err := newRepositoryMeta(ctx, config, ghc, name)
 
-			if err != nil {
-				logger.Warn().Err(err).Str("repo", name).Msg("Failed to create organization repository metadata")
+		if err != nil {
+			logger.Warn().Err(err).Str("repo", name).Msg("Failed to create organization repository metadata")
 
-				continue
-			}
-
-			metainfos = append(metainfos, metainfo)
+			continue
 		}
-	case []gitprovider.UserRepository:
-		for _, repo := range rep {
-			name := repo.Repository().GetRepository()
-			metainfo, err := newRepositoryMeta(ctx, config, ghc, name)
 
-			if err != nil {
-				logger.Warn().Err(err).Str("repo", name).Msg("Failed to create user repository metadata")
-
-				continue
-			}
-
-			metainfos = append(metainfos, metainfo)
-		}
-	default:
-		return nil, fmt.Errorf("unknown repository type: %T", repos)
+		metainfos = append(metainfos, metainfo)
 	}
 
-	return metainfos, nil
+	return metainfos
 }
 
 // Validate checks if the given repository name is valid.
@@ -249,7 +225,7 @@ func NewGitHubClient(ctx context.Context, option model.GitProviderClientOption) 
 
 	var err error
 
-	if option.Token != "" {
+	if len(option.Token) > 0 {
 		client, err = github.NewClient(gitprovider.WithOAuth2Token(option.Token), clientOpts)
 	} else {
 		client, err = github.NewClient(clientOpts)

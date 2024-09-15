@@ -7,6 +7,8 @@ package configuration
 import (
 	"errors"
 	"fmt"
+	"itiquette/git-provider-sync/internal/model"
+	"os"
 	"slices"
 	"strings"
 )
@@ -14,6 +16,7 @@ import (
 // Define error variables for various configuration validation scenarios.
 var (
 	ErrUnsupportedProvider          = errors.New("unsupported provider")
+	ErrUnsupportedProtocolType      = errors.New("unsupported protocol type")
 	ErrUnsupportedProviderURL       = errors.New("unsupported Git provider URL")
 	ErrNoTargetProviders            = errors.New("no target provider/s configured")
 	ErrUnsupportedArchiveProvider   = errors.New("source provider: does not support reading from archive")
@@ -31,13 +34,15 @@ var (
 	ErrHasNoHTTPPrefix              = errors.New("target provider currently only supports http/s")
 	ErrTargetURLValidFormat         = errors.New("target url must be a Git provider URL")
 	ErrNoTargetToken                = errors.New("no target token set")
+	ErrInvalidSSHKeyPath            = errors.New("ssh key path invalid")
 )
 
-// ValidGitProviders is a slice of supported Git providers.
 var ValidGitProviders = []string{GITHUB, GITLAB, ARCHIVE, GITEA, DIRECTORY}
 
-// ValidateConfiguration checks the entire ProvidersConfig for validity.
-func ValidateConfiguration(providersConfig ProvidersConfig) error {
+var ValidProtocolTypes = []string{"", model.HTTPS, model.SSHAGENT, model.SSHKEY}
+
+// validateConfiguration checks the entire ProvidersConfig for validity.
+func validateConfiguration(providersConfig ProvidersConfig) error {
 	if err := validateSourceProvider(providersConfig.SourceProvider); err != nil {
 		return err
 	}
@@ -74,6 +79,10 @@ func validateSourceProvider(provider ProviderConfig) error {
 	}
 
 	if err := validateGroupAndUser(provider); err != nil {
+		return err
+	}
+
+	if err := validateGitInfo(provider); err != nil {
 		return err
 	}
 
@@ -128,6 +137,26 @@ func validateGroupAndUser(config ProviderConfig) error {
 
 	if len(config.Group) > 0 && len(config.User) > 0 {
 		return ErrBothGroupAndUser
+	}
+
+	return nil
+}
+
+// validateGitInfo checks the validity of the protocol setting.
+func validateGitInfo(config ProviderConfig) error {
+	if !slices.Contains(ValidProtocolTypes, config.GitInfo.Type) {
+		return fmt.Errorf("gitinfo type: must be one of %v: %w", ValidProtocolTypes, ErrUnsupportedProtocolType)
+	}
+
+	if strings.EqualFold(config.GitInfo.Type, model.SSHKEY) {
+		if len(config.GitInfo.SSHPrivateKeyPath) == 0 {
+			return fmt.Errorf("gitinfo type was sshkey, but sshprivatekeypath was empty. err: %w", ErrInvalidSSHKeyPath)
+		}
+
+		_, err := os.Stat(config.GitInfo.SSHPrivateKeyPath)
+		if err != nil {
+			return fmt.Errorf("gitinfo type was sshkey, but keyfile: %s could not be read. err: %w", config.GitInfo.SSHPrivateKeyPath, ErrInvalidSSHKeyPath)
+		}
 	}
 
 	return nil
