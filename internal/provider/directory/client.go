@@ -9,8 +9,6 @@ import (
 
 	"itiquette/git-provider-sync/internal/configuration"
 	"itiquette/git-provider-sync/internal/model"
-
-	"github.com/fluxcd/go-git-providers/gitprovider"
 )
 
 type Client struct{}
@@ -29,8 +27,4 @@ func (Client) IsValidRepositoryName(_ context.Context, _ string) bool {
 
 func (Client) Metainfos(_ context.Context, _ configuration.ProviderConfig, _ bool) ([]model.RepositoryMetainfo, error) {
 	return nil, nil
-}
-
-func (Client) Client() gitprovider.Client {
-	return nil
 }

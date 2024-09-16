@@ -15,26 +15,23 @@ package github
 
 import (
 	"context"
-	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"itiquette/git-provider-sync/internal/configuration"
-	"itiquette/git-provider-sync/internal/interfaces"
 	"itiquette/git-provider-sync/internal/log"
 	"itiquette/git-provider-sync/internal/model"
 
-	"github.com/fluxcd/go-git-providers/github"
-	"github.com/fluxcd/go-git-providers/gitprovider"
-	gogithub "github.com/google/go-github/v64/github"
+	"github.com/google/go-github/v64/github"
 )
 
 // Client represents a GitHub client with associated operations.
 // It wraps the go-git-providers GitHub client and provides additional
 // functionality specific to this application.
 type Client struct {
-	gitProviderClient gitprovider.Client
-	filter            Filter
+	rawClient *github.Client
+	filter    Filter
 }
 
 // Create creates a new repository on GitHub.
@@ -51,44 +48,28 @@ func (ghc Client) Create(ctx context.Context, config configuration.ProviderConfi
 	logger.Trace().Msg("Entering GitHub:Create:")
 	config.DebugLog(logger).Msg("GitHub:Create:")
 
-	repoInfo := gitprovider.RepositoryInfo{
-		Visibility:  gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibility(option.Visibility)),
-		Description: &option.Description,
-	}
-
 	var (
-		resp any
-		err  error
+		err error
 	)
 
-	if config.IsGroup() {
-		resp, err = ghc.gitProviderClient.OrgRepositories().Create(
-			ctx,
-			model.NewOrgRepositoryRef(config.Domain, config.Group, option.RepositoryName),
-			repoInfo,
-			&gitprovider.RepositoryCreateOptions{},
-		)
-	} else {
-		resp, err = ghc.gitProviderClient.UserRepositories().Create(
-			ctx,
-			model.NewUserRepositoryRef(config.Domain, config.User, option.RepositoryName),
-			repoInfo,
-			&gitprovider.RepositoryCreateOptions{},
-		)
+	isPrivate := false
+	if strings.EqualFold(option.Visibility, "private") {
+		isPrivate = true
 	}
+
+	groupName := ""
+	if config.IsGroup() {
+		groupName = config.Group
+	}
+
+	rep := &github.Repository{Name: &option.RepositoryName, Private: &isPrivate, Description: &option.Description}
+	_, _, err = ghc.rawClient.Repositories.Create(ctx, groupName, rep)
 
 	if err != nil {
 		return fmt.Errorf("create: failed to create %s: %w", option.RepositoryName, err)
 	}
 
-	switch resp.(type) {
-	case gitprovider.OrgRepository:
-		logger.Trace().Msg("Organization repository created successfully")
-	case gitprovider.UserRepository:
-		logger.Trace().Msg("User repository created successfully")
-	default:
-		logger.Trace().Msg("Unknown repository type created")
-	}
+	logger.Trace().Msg("User repository created successfully")
 
 	return nil
 }
@@ -107,25 +88,21 @@ func (ghc Client) Metainfos(ctx context.Context, config configuration.ProviderCo
 
 	var metainfos []model.RepositoryMetainfo
 
-	var repos []*gogithub.Repository
+	var repos []*github.Repository
 
 	var err error
 
-	//TODO - the go-git provider lib will go, these is a nec fugly workaround for a bug, until we ca
-	// fully remove it
-	rawClient := gogithub.NewClient(nil).WithAuthToken(config.Token)
-
 	if config.IsGroup() {
-		opt := &gogithub.RepositoryListByOrgOptions{Type: "all"}
+		opt := &github.RepositoryListByOrgOptions{Type: "all"}
 
-		repos, _, err = rawClient.Repositories.ListByOrg(ctx, config.Group, opt)
+		repos, _, err = ghc.rawClient.Repositories.ListByOrg(ctx, config.Group, opt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to fetch org repositories: %w", err)
 		}
 	} else {
-		opt := &gogithub.RepositoryListByAuthenticatedUserOptions{Type: "all"}
+		opt := &github.RepositoryListByAuthenticatedUserOptions{Type: "all"}
 
-		repos, _, err = rawClient.Repositories.ListByAuthenticatedUser(ctx, opt)
+		repos, _, err = ghc.rawClient.Repositories.ListByAuthenticatedUser(ctx, opt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to fetch user repositories: %w", err)
 		}
@@ -142,14 +119,14 @@ func (ghc Client) Metainfos(ctx context.Context, config configuration.ProviderCo
 
 // processRepositories is a helper function to process a list of repositories (either Org or User)
 // and convert them into RepositoryMetainfo slices.
-func (ghc Client) processRepositories(ctx context.Context, config configuration.ProviderConfig, repos []*gogithub.Repository) []model.RepositoryMetainfo {
+func (ghc *Client) processRepositories(ctx context.Context, config configuration.ProviderConfig, repos []*github.Repository) []model.RepositoryMetainfo {
 	var metainfos []model.RepositoryMetainfo //nolint:prealloc
 
 	logger := log.Logger(ctx)
 
 	for _, repo := range repos {
 		name := repo.GetName()
-		metainfo, err := newRepositoryMeta(ctx, config, ghc, name)
+		metainfo, err := newRepositoryMeta(ctx, config, ghc.rawClient, name)
 
 		if err != nil {
 			logger.Warn().Err(err).Str("repo", name).Msg("Failed to create organization repository metadata")
@@ -171,7 +148,7 @@ func (ghc Client) processRepositories(ctx context.Context, config configuration.
 //   - name: The repository name to validate.
 //
 // Returns true if the repository name is valid, false otherwise.
-func (ghc Client) Validate(ctx context.Context, name string) bool {
+func (ghc *Client) Validate(ctx context.Context, name string) bool {
 	return ghc.IsValidRepositoryName(ctx, name)
 }
 
@@ -198,13 +175,6 @@ func (ghc Client) IsValidRepositoryName(ctx context.Context, name string) bool {
 	return true
 }
 
-// Client returns the underlying gitprovider.Client.
-// This method allows access to the raw GitHub client for operations
-// not covered by this wrapper.
-func (ghc Client) Client() gitprovider.Client {
-	return ghc.gitProviderClient
-}
-
 // NewGitHubClient creates a new GitHub client.
 // It sets up the client with the provided options, including authentication if a token is provided.
 //
@@ -217,25 +187,22 @@ func NewGitHubClient(ctx context.Context, option model.GitProviderClientOption) 
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering NewGitHubClient:")
 
-	clientOpts := &gitprovider.ClientOptions{
-		CommonClientOptions: gitprovider.CommonClientOptions{Domain: &option.Domain},
-	}
-
-	var client gitprovider.Client
+	var client *github.Client
 
 	var err error
 
+	//to do custom domain
 	if len(option.Token) > 0 {
-		client, err = github.NewClient(gitprovider.WithOAuth2Token(option.Token), clientOpts)
+		client = github.NewClient(nil).WithAuthToken(option.Token)
 	} else {
-		client, err = github.NewClient(clientOpts)
+		client = github.NewClient(nil)
 	}
 
 	if err != nil {
 		return Client{}, fmt.Errorf("failed to create a new GitHub client: %w", err)
 	}
 
-	return Client{gitProviderClient: client}, nil
+	return Client{rawClient: client}, nil
 }
 
 // newRepositoryMeta creates a new RepositoryMetainfo struct from a GitHub repository.
@@ -249,22 +216,17 @@ func NewGitHubClient(ctx context.Context, option model.GitProviderClientOption) 
 //   - name: The name of the repository.
 //
 // Returns a RepositoryMetainfo and an error if the operation fails.
-func newRepositoryMeta(ctx context.Context, config configuration.ProviderConfig, gitClient interfaces.GitClient, name string) (model.RepositoryMetainfo, error) {
+func newRepositoryMeta(ctx context.Context, config configuration.ProviderConfig, gitClient *github.Client, name string) (model.RepositoryMetainfo, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering newRepositoryMeta:")
 	logger.Debug().Str("usr", config.User).Str("name", name).Str("provider", config.Provider).Str("domain", config.Domain).Msg("newRepositoryMeta:")
-
-	rawClient, ok := gitClient.Client().Raw().(*gogithub.Client)
-	if !ok {
-		return model.RepositoryMetainfo{}, errors.New("failed getting raw client include by activity time")
-	}
 
 	owner := config.Group
 	if !config.IsGroup() {
 		owner = config.User
 	}
 
-	gitHubProject, _, err := rawClient.Repositories.Get(ctx, owner, name)
+	gitHubProject, _, err := gitClient.Repositories.Get(ctx, owner, name)
 	if err != nil {
 		return model.RepositoryMetainfo{}, fmt.Errorf("failed to get projectinfo for %s: %w", name, err)
 	}
@@ -292,7 +254,7 @@ func getValueOrEmpty(s *string) string {
 
 // getTimeOrNil is a helper function that converts a GitHub Timestamp to a standard time.Time pointer,
 // or returns nil if the input is nil.
-func getTimeOrNil(t *gogithub.Timestamp) *time.Time {
+func getTimeOrNil(t *github.Timestamp) *time.Time {
 	if t != nil {
 		return &t.Time
 	}
