@@ -34,6 +34,16 @@ func (gpo GitProviderClientOption) String() string {
 		gpo.Provider, maskToken(gpo.Token), gpo.Domain)
 }
 
+func (gpo GitProviderClientOption) DomainWithScheme() string {
+	prefix := "https://"
+
+	if !strings.HasPrefix(gpo.Domain, prefix) {
+		return prefix + gpo.Domain
+	}
+
+	return gpo.Domain
+}
+
 // maskToken is a helper function that masks all but the last 4 characters of a token.
 // If the token is 4 characters or less, it masks all characters.
 func maskToken(token string) string {
