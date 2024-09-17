@@ -21,5 +21,6 @@ func (p GitInfo) String() string {
 const (
 	SSHAGENT string = "sshagent"
 	HTTPS    string = "https"
+	HTTP     string = "http"
 	SSHKEY   string = "sshkey"
 )

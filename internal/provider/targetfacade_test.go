@@ -261,41 +261,6 @@ func TestGetProjectPath(t *testing.T) {
 	}
 }
 
-func TestBuildTargetURL(t *testing.T) {
-	tests := map[string]struct {
-		trimmedProviderConfigURL string
-		projectPath              string
-		plainHTTP                bool
-		expected                 string
-	}{
-		"https url": {
-			trimmedProviderConfigURL: "gitlab.com",
-			projectPath:              "group/repo",
-			plainHTTP:                false,
-			expected:                 "https://gitlab.com/group/repo",
-		},
-		"http url": {
-			trimmedProviderConfigURL: "gitlab.com",
-			projectPath:              "user/repo",
-			plainHTTP:                true,
-			expected:                 "http://gitlab.com/user/repo",
-		},
-		"with existing scheme": {
-			trimmedProviderConfigURL: "https://github.com",
-			projectPath:              "group/repo",
-			plainHTTP:                false,
-			expected:                 "https://https://github.com/group/repo",
-		},
-	}
-
-	for name, tabletest := range tests {
-		t.Run(name, func(t *testing.T) {
-			result := buildTargetURL(tabletest.trimmedProviderConfigURL, tabletest.projectPath, tabletest.plainHTTP)
-			require.Equal(t, tabletest.expected, result)
-		})
-	}
-}
-
 func mockRepositoryWithName(name string) *mocks.GitRepository {
 	r := new(mocks.GitRepository)
 	r.EXPECT().Metainfo().Return(model.RepositoryMetainfo{OriginalName: name})

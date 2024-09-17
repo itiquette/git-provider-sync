@@ -190,7 +190,7 @@ func NewGitLabClient(ctx context.Context, option model.GitProviderClientOption) 
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering NewGitLabClient:")
 
-	client, err := gitlab.NewClient(option.Token, gitlab.WithBaseURL(option.DomainWithScheme()))
+	client, err := gitlab.NewClient(option.Token, gitlab.WithBaseURL(option.DomainWithScheme(option.Scheme)))
 	if err != nil {
 		return Client{}, fmt.Errorf("failed to create a new gitlab client: %w", err)
 	}

@@ -69,7 +69,7 @@ func getPushOption(ctx context.Context, config configuration.ProviderConfig, rep
 	case configuration.DIRECTORY:
 		return model.NewPushOption(config.DirectoryTargetDir(), false, false)
 	default:
-		return model.NewPushOption(toGitURLWithToken(ctx, config, repository), false, forcePush)
+		return model.NewPushOption(toGitURL(ctx, config, repository), false, forcePush)
 	}
 }
 
@@ -87,11 +87,6 @@ func create(ctx context.Context, config configuration.ProviderConfig, provider i
 
 	description := buildDescription(gpsUpstreamRemote, repository)
 	name := repository.Metainfo().Name(ctx)
-
-	cliOption := model.CLIOptions(ctx)
-	if cliOption.PlainHTTP && !strings.EqualFold(provider.Name(), configuration.GITLAB) {
-		config.Domain = "http://" + config.Domain
-	}
 
 	option := model.NewCreateOption(name, repository.Metainfo().Visibility, description, repository.Metainfo().DefaultBranch)
 
@@ -196,21 +191,23 @@ func SetGPSUpstreamRemoteFromOrigin(ctx context.Context, remote interfaces.GitRe
 	return nil
 }
 
-// toGitURLWithToken constructs a Git URL with an embedded authentication token.
+// toGitURL constructs a Git provider URL.
 // This URL can be used for authenticated Git operations.
-func toGitURLWithToken(ctx context.Context, config configuration.ProviderConfig, repository interfaces.GitRepository) string {
+func toGitURL(ctx context.Context, config configuration.ProviderConfig, repository interfaces.GitRepository) string {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering toGitURLWithToken:")
+	logger.Trace().Msg("Entering toGitURL:")
 
-	cliOption := model.CLIOptions(ctx)
 	repositoryName := repository.Metainfo().Name(ctx)
 
 	trimmedProviderConfigURL := strings.TrimRight(config.Domain, "/")
 	projectPath := getProjectPath(config, repositoryName)
 
-	targetProviderConfigURLWithProjectPath := buildTargetURL(trimmedProviderConfigURL, projectPath, cliOption.PlainHTTP)
+	scheme := config.Scheme
+	if len(scheme) > 0 {
+		return fmt.Sprintf("%s://%s/%s", scheme, trimmedProviderConfigURL, projectPath)
+	}
 
-	return targetProviderConfigURLWithProjectPath
+	return fmt.Sprintf("https://%s/%s", trimmedProviderConfigURL, projectPath)
 }
 
 // getProjectPath constructs the project path based on whether it's a group or user repository.
@@ -220,15 +217,4 @@ func getProjectPath(config configuration.ProviderConfig, repositoryName string) 
 	}
 
 	return fmt.Sprintf("%s/%s", config.User, repositoryName)
-}
-
-// buildTargetURL constructs the target URL, handling both HTTP and HTTPS protocols.
-func buildTargetURL(trimmedProviderConfigURL, projectPath string, plainHTTP bool) string {
-	if plainHTTP {
-		trimmedProviderConfigURL = strings.TrimLeft(trimmedProviderConfigURL, "htp:/")
-
-		return fmt.Sprintf("http://%s/%s", trimmedProviderConfigURL, projectPath)
-	}
-
-	return fmt.Sprintf("https://%s/%s", trimmedProviderConfigURL, projectPath)
 }

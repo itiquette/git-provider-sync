@@ -14,6 +14,7 @@ import (
 	"itiquette/git-provider-sync/internal/model"
 	"itiquette/git-provider-sync/internal/provider/archive"
 	"itiquette/git-provider-sync/internal/provider/directory"
+	"itiquette/git-provider-sync/internal/provider/gitea"
 	"itiquette/git-provider-sync/internal/provider/github"
 	"itiquette/git-provider-sync/internal/provider/gitlab"
 )
@@ -27,8 +28,8 @@ func NewGitProviderClient(ctx context.Context, option model.GitProviderClientOpt
 	var err error
 
 	switch option.Provider {
-	// case configuration.GITEA:
-	// 	provider, err = gitea.NewGiteaClient(ctx, option)
+	case configuration.GITEA:
+		provider, err = gitea.NewGiteaClient(ctx, option)
 	case configuration.GITHUB:
 		provider, err = github.NewGitHubClient(ctx, option)
 	case configuration.GITLAB:

@@ -25,12 +25,13 @@ func TestProviderConfig_String(t *testing.T) {
 				Domain:           "github.com",
 				Token:            "secret",
 				User:             "user1",
+				Scheme:           "https",
 				Group:            "group1",
 				Exclude:          map[string]string{"repo": "excluded"},
 				Include:          map[string]string{"repo": "included"},
 				Providerspecific: map[string]string{"key": "value"},
 			},
-			expected: "ProviderConfig: Provider: github, Domain: github.com, Token: <****>, User: user1, GitInfo: GitInfo: Type: , SSHPrivateKeyPath: , SSHPrivateKeyPW: ****,  Group: group1, Exclude: map[repo:excluded], Include: map[repo:included], ProviderSpecific: map[key:value]",
+			expected: "ProviderConfig: Provider: github, Domain: github.com, Token: <****>, User: user1, Scheme: https, GitInfo: GitInfo: Type: , SSHPrivateKeyPath: , SSHPrivateKeyPW: ****,  Group: group1, Exclude: map[repo:excluded], Include: map[repo:included], ProviderSpecific: map[key:value]",
 		},
 		{
 			name: "Minimal config",
@@ -38,7 +39,7 @@ func TestProviderConfig_String(t *testing.T) {
 				Provider: "gitlab",
 				Domain:   "gitlab.com",
 			},
-			expected: "ProviderConfig: Provider: gitlab, Domain: gitlab.com, Token: <****>, User: , GitInfo: GitInfo: Type: , SSHPrivateKeyPath: , SSHPrivateKeyPW: ****,  Group: , Exclude: map[], Include: map[], ProviderSpecific: map[]",
+			expected: "ProviderConfig: Provider: gitlab, Domain: gitlab.com, Token: <****>, User: , Scheme: , GitInfo: GitInfo: Type: , SSHPrivateKeyPath: , SSHPrivateKeyPW: ****,  Group: , Exclude: map[], Include: map[], ProviderSpecific: map[]",
 		},
 		{
 			name: "Config with empty token",
@@ -47,7 +48,7 @@ func TestProviderConfig_String(t *testing.T) {
 				Domain:   "bitbucket.org",
 				Token:    "",
 			},
-			expected: "ProviderConfig: Provider: bitbucket, Domain: bitbucket.org, Token: <****>, User: , GitInfo: GitInfo: Type: , SSHPrivateKeyPath: , SSHPrivateKeyPW: ****,  Group: , Exclude: map[], Include: map[], ProviderSpecific: map[]",
+			expected: "ProviderConfig: Provider: bitbucket, Domain: bitbucket.org, Token: <****>, User: , Scheme: , GitInfo: GitInfo: Type: , SSHPrivateKeyPath: , SSHPrivateKeyPW: ****,  Group: , Exclude: map[], Include: map[], ProviderSpecific: map[]",
 		},
 	}
 

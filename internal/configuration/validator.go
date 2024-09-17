@@ -15,6 +15,7 @@ import (
 
 // Define error variables for various configuration validation scenarios.
 var (
+	ErrUnsupportedScheme            = errors.New("unsupported scheme")
 	ErrUnsupportedProvider          = errors.New("unsupported provider")
 	ErrUnsupportedProtocolType      = errors.New("unsupported protocol type")
 	ErrUnsupportedProviderURL       = errors.New("unsupported Git provider URL")
@@ -40,6 +41,8 @@ var (
 var ValidGitProviders = []string{GITHUB, GITLAB, ARCHIVE, GITEA, DIRECTORY}
 
 var ValidProtocolTypes = []string{"", model.HTTPS, model.SSHAGENT, model.SSHKEY}
+
+var ValidSchemeTypes = []string{"", model.HTTPS, model.HTTP}
 
 // validateConfiguration checks the entire ProvidersConfig for validity.
 func validateConfiguration(providersConfig ProvidersConfig) error {
@@ -112,6 +115,10 @@ func validateTargetProvider(config ProviderConfig) error {
 func validateStandardProvider(config ProviderConfig) error {
 	if len(config.Domain) == 0 {
 		return ErrNoTargetDomain
+	}
+
+	if !slices.Contains(ValidSchemeTypes, config.Scheme) {
+		return fmt.Errorf("source provider: must be one of %v: %w", ValidSchemeTypes, ErrUnsupportedScheme)
 	}
 
 	if err := validateGroupAndUser(config); err != nil {
