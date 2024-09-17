@@ -22,6 +22,9 @@ type GitProviderClientOption struct {
 
 	// Domain is the domain of the git provider service (e.g., "github.com", "gitlab.com").
 	Domain string
+
+	// Scheme is the scheme of the git provider service (e.g., "https", "http". Default if empty is https).
+	Scheme string
 }
 
 // String provides a string representation of GitProviderClientOption.
@@ -30,15 +33,22 @@ type GitProviderClientOption struct {
 // Returns:
 //   - A string representation of the GitProviderClientOption instance.
 func (gpo GitProviderClientOption) String() string {
-	return fmt.Sprintf("GitProviderClientOption{Provider: %s, Token: %s, Domain: %s}",
-		gpo.Provider, maskToken(gpo.Token), gpo.Domain)
+	return fmt.Sprintf("GitProviderClientOption{Provider: %s, Token: %s, Domain: %s, Scheme: %s}",
+		gpo.Provider, maskToken(gpo.Token), gpo.Domain, gpo.Scheme)
 }
 
-func (gpo GitProviderClientOption) DomainWithScheme() string {
-	prefix := "https://"
+func (gpo GitProviderClientOption) DomainWithScheme(scheme string) string {
+	fmt.Println("ASFASDF")
+	fmt.Println(scheme)
 
-	if !strings.HasPrefix(gpo.Domain, prefix) {
-		return prefix + gpo.Domain
+	if len(scheme) > 0 {
+		return scheme + "://" + gpo.Domain
+	}
+
+	httpsPrefix := "https://"
+
+	if !strings.HasPrefix(gpo.Domain, httpsPrefix) {
+		return httpsPrefix + gpo.Domain
 	}
 
 	return gpo.Domain

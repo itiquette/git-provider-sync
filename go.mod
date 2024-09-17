@@ -7,6 +7,7 @@ module itiquette/git-provider-sync
 go 1.23.1
 
 require (
+	code.gitea.io/sdk/gitea v0.19.0
 	github.com/go-git/go-git/v5 v5.12.0
 	github.com/google/go-github/v64 v64.0.0
 	github.com/hashicorp/go-retryablehttp v0.7.7
@@ -23,6 +24,9 @@ require (
 )
 
 require (
+	github.com/davidmz/go-pageant v1.0.2 // indirect
+	github.com/go-fed/httpsig v1.1.0 // indirect
+	github.com/hashicorp/go-version v1.6.0 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/muesli/mango v0.2.0 // indirect
 	github.com/muesli/mango-pflag v0.1.0 // indirect

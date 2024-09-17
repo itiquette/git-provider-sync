@@ -37,7 +37,6 @@ It allows for various options to control the synchronization process.`,
 	cmd.Flags().Bool("ignore-invalid-name", false, "Ignore repositories with invalid names")
 	cmd.Flags().Bool("cleanup-name", false, "Remove non-alphanumeric characters from repository names")
 	cmd.Flags().String("active-from-limit", "", "A negative time duration (e.g., '-1h') to consider repositories active from")
-	cmd.Flags().Bool("plain-http", false, "Use HTTP scheme for Git provider (for development)")
 	cmd.Flags().Bool("dry-run", false, "Simulate sync run without performing clone and push actions")
 
 	return cmd
@@ -82,9 +81,6 @@ func addInputOptionsToContext(ctx context.Context, cmd *cobra.Command) context.C
 	dryRun, err := cmd.Flags().GetBool("dry-run")
 	model.HandleError(ctx, err)
 
-	plainHTTP, err := cmd.Flags().GetBool("plain-http")
-	model.HandleError(ctx, err)
-
 	cliOption := model.CLIOptions(ctx)
 
 	cliOption.ForcePush = forcePush
@@ -92,7 +88,6 @@ func addInputOptionsToContext(ctx context.Context, cmd *cobra.Command) context.C
 	cliOption.CleanupName = cleanupName
 	cliOption.DryRun = dryRun
 	cliOption.ActiveFromLimit = activeFromLimit
-	cliOption.PlainHTTP = plainHTTP
 
 	return model.WithCLIOption(ctx, cliOption)
 }
@@ -336,6 +331,7 @@ func createProviderClient(ctx context.Context, providerConfig configuration.Prov
 		Provider: providerConfig.Provider,
 		Token:    providerConfig.Token,
 		Domain:   providerConfig.Domain,
+		Scheme:   providerConfig.Scheme,
 	}
 
 	client, err := provider.NewGitProviderClient(ctx, option)

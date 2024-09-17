@@ -22,7 +22,6 @@ type CLIOption struct {
 	DryRun              bool   // Whether to perform a dry run without making changes
 	ConfigFilePath      string // Path to the configuration file
 	ConfigFileOnly      bool   // Whether to use only the configuration file
-	PlainHTTP           bool   // Whether to use plain HTTP instead of HTTPS
 	Quiet               bool   // Whether to suppress non-essential output
 	VerbosityWithCaller bool   // Whether to add caller information to log output
 	OutputFormat        string // Output format for log
@@ -66,9 +65,9 @@ func WithCLIOption(ctx context.Context, option CLIOption) context.Context {
 func (c CLIOption) String() string {
 	return fmt.Sprintf("CLIOption{ForcePush: %v, IgnoreInvalidName: %v, CleanupName: %v, "+
 		"ActiveFromLimit: %s, DryRun: %v, ConfigFilePath: %s, ConfigFileOnly: %v, "+
-		"PlainHTTP: %v, Quiet: %v, OutputFormat: %v}",
+		"Quiet: %v, OutputFormat: %v}",
 		c.ForcePush, c.IgnoreInvalidName, c.CleanupName, c.ActiveFromLimit,
-		c.DryRun, c.ConfigFilePath, c.ConfigFileOnly, c.PlainHTTP, c.Quiet, c.OutputFormat)
+		c.DryRun, c.ConfigFilePath, c.ConfigFileOnly, c.Quiet, c.OutputFormat)
 }
 
 // Example usage:

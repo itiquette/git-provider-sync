@@ -18,6 +18,7 @@ type ProviderConfig struct {
 	Domain           string            `koanf:"domain"`
 	Token            string            `koanf:"token"`
 	User             string            `koanf:"user"`
+	Scheme           string            `koanf:"scheme"`
 	Group            string            `koanf:"group"`
 	GitInfo          model.GitInfo     `koanf:"gitoption"`
 	Exclude          map[string]string `koanf:"exclude"`
@@ -27,8 +28,8 @@ type ProviderConfig struct {
 
 // String returns a string representation of ProviderConfig, masking the token.
 func (p ProviderConfig) String() string {
-	return fmt.Sprintf("ProviderConfig: Provider: %s, Domain: %s, Token: <****>, User: %s, GitInfo: %v,  Group: %s, Exclude: %v, Include: %v, ProviderSpecific: %v",
-		p.Provider, p.Domain, p.User, p.GitInfo, p.Group, p.Exclude, p.Include, p.Providerspecific)
+	return fmt.Sprintf("ProviderConfig: Provider: %s, Domain: %s, Token: <****>, User: %s, Scheme: %s, GitInfo: %v,  Group: %s, Exclude: %v, Include: %v, ProviderSpecific: %v",
+		p.Provider, p.Domain, p.User, p.Scheme, p.GitInfo, p.Group, p.Exclude, p.Include, p.Providerspecific)
 }
 
 // DebugLog logs the ProviderConfig details at debug level.

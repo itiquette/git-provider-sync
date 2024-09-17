@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: read
+  security-events: write
 
 env:
   MEGALINTER_CONFIG: /development/megalinter.yml
@@ -39,3 +40,9 @@ jobs:
           path: |
             megalinter-reports
           retention-days: 5
+
+      - name: Upload MegaLinter scan results to GitHub Security tab
+        if: success() || failure()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: "megalinter-reports/megalinter-report.sarif"
