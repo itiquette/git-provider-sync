@@ -152,7 +152,14 @@ func isArchiveOrDirectory(provider string) bool {
 
 // repositoryExists checks if a repository with the given name exists on the provider.
 func repositoryExists(ctx context.Context, config configuration.ProviderConfig, provider interfaces.GitProvider, repositoryName string) bool {
-	metainfos, _ := provider.Metainfos(ctx, config, false)
+	logger := log.Logger(ctx)
+	metainfos, err := provider.Metainfos(ctx, config, false)
+
+	if err != nil {
+		logger.Error().Msgf("failed to get repository meta information. Aborting run. err: %s", err.Error())
+		panic(2)
+	}
+
 	for _, metainfo := range metainfos {
 		if strings.EqualFold(repositoryName, metainfo.OriginalName) {
 			return true
