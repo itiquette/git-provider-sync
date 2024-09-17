@@ -59,7 +59,6 @@ updates:
       vcs-dependencies:
         patterns:
           - "code.gitea.io/sdk/gitea"
-          - "github.com/fluxcd/go-git-providers"
           - "github.com/go-git/go-git/v5"
           - "github.com/google/go-github/v64"
           - "github.com/xanzy/go-gitlab"

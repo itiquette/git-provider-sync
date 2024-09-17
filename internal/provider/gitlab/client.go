@@ -15,26 +15,21 @@ package gitlab
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"path/filepath"
 	"strings"
 
 	"itiquette/git-provider-sync/internal/configuration"
-	"itiquette/git-provider-sync/internal/interfaces"
 	"itiquette/git-provider-sync/internal/log"
 	"itiquette/git-provider-sync/internal/model"
 	"itiquette/git-provider-sync/internal/provider/targetfilter"
 
-	"github.com/fluxcd/go-git-providers/gitlab"
-	"github.com/fluxcd/go-git-providers/gitprovider"
-	gogitlab "github.com/xanzy/go-gitlab"
+	"github.com/xanzy/go-gitlab"
 )
 
 // Client represents a GitLab client.
 type Client struct {
-	providerClient gitprovider.Client
-	filter         Filter
+	rawClient *gitlab.Client
+	filter    Filter
 }
 
 // Create creates a new repository in GitLab.
@@ -43,28 +38,13 @@ func (glc Client) Create(ctx context.Context, config configuration.ProviderConfi
 	logger.Trace().Msg("Entering GitLab:Create:")
 	config.DebugLog(logger).Msg("GitLab:Create:")
 
-	repoInfo := gitprovider.RepositoryInfo{
-		Visibility:  gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibility(option.Visibility)),
-		Description: &option.Description,
+	ops := &gitlab.CreateProjectOptions{
+		Name:        gitlab.Ptr(option.RepositoryName),
+		Description: gitlab.Ptr(option.Description),
+		Visibility:  gitlab.Ptr(toVisibility(option.Visibility)),
 	}
 
-	var err error
-
-	if config.IsGroup() {
-		_, err = glc.providerClient.OrgRepositories().Create(
-			ctx,
-			model.NewOrgRepositoryRef(config.Domain, config.Group, option.RepositoryName),
-			repoInfo,
-			&gitprovider.RepositoryCreateOptions{},
-		)
-	} else {
-		_, err = glc.providerClient.UserRepositories().Create(
-			ctx,
-			model.NewUserRepositoryRef(config.Domain, config.User, option.RepositoryName),
-			repoInfo,
-			&gitprovider.RepositoryCreateOptions{},
-		)
-	}
+	_, _, err := glc.rawClient.Projects.CreateProject(ops)
 
 	if err != nil {
 		return fmt.Errorf("create: failed to create %s: %w", option.RepositoryName, err)
@@ -86,12 +66,7 @@ func (glc Client) Metainfos(ctx context.Context, config configuration.ProviderCo
 
 	var err error
 
-	if config.IsGroup() {
-		metainfos, err = glc.getGroupRepositories(ctx, config)
-	} else {
-		metainfos, err = glc.getUserRepositories(ctx, config)
-	}
-
+	metainfos, err = glc.getRepositoryMetaInfos(ctx, config)
 	if err != nil {
 		return nil, err
 	}
@@ -103,34 +78,17 @@ func (glc Client) Metainfos(ctx context.Context, config configuration.ProviderCo
 	return metainfos, nil
 }
 
-func (glc Client) getGroupRepositories(ctx context.Context, config configuration.ProviderConfig) ([]model.RepositoryMetainfo, error) {
-	orgRef := model.NewOrgRef(config.Domain, config.Group)
+func (glc Client) getRepositoryMetaInfos(ctx context.Context, config configuration.ProviderConfig) ([]model.RepositoryMetainfo, error) {
+	var repositories []*gitlab.Project
 
-	repositories, err := glc.providerClient.OrgRepositories().List(ctx, orgRef)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch group repository URLs: %w", err)
+	var err error
+
+	if config.IsGroup() {
+		repositories, _, err = glc.rawClient.Groups.ListGroupProjects(config.Group, &gitlab.ListGroupProjectsOptions{})
+	} else {
+		repositories, _, err = glc.rawClient.Projects.ListUserProjects(config.User, &gitlab.ListProjectsOptions{})
 	}
 
-	metainfos := make([]model.RepositoryMetainfo, 0, len(repositories))
-
-	for _, repo := range repositories {
-		name := repo.Repository().GetRepository()
-
-		rm, err := newRepositoryMetainfo(ctx, config, glc, name)
-		if err != nil {
-			return nil, fmt.Errorf("failed to init repository meta: %w", err)
-		}
-
-		metainfos = append(metainfos, rm)
-	}
-
-	return metainfos, nil
-}
-
-func (glc Client) getUserRepositories(ctx context.Context, config configuration.ProviderConfig) ([]model.RepositoryMetainfo, error) {
-	userRef := model.NewUserRef(config.Domain, config.User)
-
-	repositories, err := glc.providerClient.UserRepositories().List(ctx, userRef)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch user repository URLs: %w", err)
 	}
@@ -138,12 +96,7 @@ func (glc Client) getUserRepositories(ctx context.Context, config configuration.
 	metainfos := make([]model.RepositoryMetainfo, 0, len(repositories))
 
 	for _, repo := range repositories {
-		// a project name and clone url might differ. A bug in flux cd always give the clone url with NAME instead of the real url
-		// https://github.com/fluxcd/go-git-providers/issues/267 - which means it can handle these currently
-		cloneURL := repo.Repository().GetCloneURL(gitprovider.TransportTypeHTTPS)
-		name := strings.TrimSuffix(filepath.Base(cloneURL), ".git")
-
-		rm, err := newRepositoryMetainfo(ctx, config, glc, name)
+		rm, err := newRepositoryMetainfo(ctx, config, glc.rawClient, repo.Path)
 		if err != nil {
 			return nil, fmt.Errorf("failed to init repository meta: %w", err)
 		}
@@ -171,19 +124,14 @@ func (glc Client) IsValidRepositoryName(ctx context.Context, name string) bool {
 }
 
 // newRepositoryMetainfo creates a new RepositoryMetainfo instance.
-func newRepositoryMetainfo(ctx context.Context, config configuration.ProviderConfig, gitClient interfaces.GitClient, name string) (model.RepositoryMetainfo, error) {
+func newRepositoryMetainfo(ctx context.Context, config configuration.ProviderConfig, gitClient *gitlab.Client, name string) (model.RepositoryMetainfo, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering newRepositoryMeta:")
 	logger.Debug().Str("name", name).Msg("newRepositoryMeta:")
 
-	rawClient, ok := gitClient.Client().Raw().(*gogitlab.Client)
-	if !ok {
-		return model.RepositoryMetainfo{}, errors.New("failed getting the raw GitLab client")
-	}
-
 	projectPath := getProjectPath(config, name)
 
-	gitlabProject, _, err := rawClient.Projects.GetProject(projectPath, nil)
+	gitlabProject, _, err := gitClient.Projects.GetProject(projectPath, nil)
 	if err != nil {
 		if strings.Contains(err.Error(), "404 Not Found") {
 			logger.Warn().Str("name", name).Msg("404 - repository not found. Ignoring.")
@@ -208,22 +156,33 @@ func newRepositoryMetainfo(ctx context.Context, config configuration.ProviderCon
 // getVisibility returns the visibility of a GitLab project.
 // If a public project is fetched from GitLab API without token, this field will be empty
 // and is therefore set to public.
-func getVisibility(vis gogitlab.VisibilityValue) string {
+func getVisibility(vis gitlab.VisibilityValue) string {
 	switch vis {
-	case gogitlab.PublicVisibility:
-		return "public"
-	case gogitlab.PrivateVisibility:
+	case gitlab.PublicVisibility:
+		return "public" //nolint:goconst
+	case gitlab.PrivateVisibility:
 		return "private"
-	case gogitlab.InternalVisibility:
+	case gitlab.InternalVisibility:
 		return "internal"
 	default:
 		return "public"
 	}
 }
 
-//nolint:ireturn
-func (glc Client) Client() gitprovider.Client {
-	return glc.providerClient
+// toVisibilty returns the visibility of a GitLab project.
+// If a public project is fetched from GitLab API without token, this field will be empty
+// and is therefore set to public.
+func toVisibility(vis string) gitlab.VisibilityValue {
+	switch vis {
+	case "public":
+		return gitlab.PublicVisibility
+	case "private":
+		return gitlab.PrivateVisibility
+	case "internal":
+		return gitlab.InternalVisibility
+	default:
+		return gitlab.PublicVisibility
+	}
 }
 
 // NewGitLabClient creates a new GitLab client.
@@ -231,17 +190,16 @@ func NewGitLabClient(ctx context.Context, option model.GitProviderClientOption) 
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering NewGitLabClient:")
 
-	client, err := gitlab.NewClient(option.Token, "any", &gitprovider.ClientOptions{
-		CommonClientOptions: gitprovider.CommonClientOptions{Domain: &option.Domain},
-	})
+	withHTTPSScheme := "https://"
+	gitlab.WithBaseURL(withHTTPSScheme + option.Domain)
+
+	client, err := gitlab.NewClient(option.Token)
 	if err != nil {
 		return Client{}, fmt.Errorf("failed to create a new gitlab client: %w", err)
 	}
 
-	return Client{providerClient: client}, nil
+	return Client{rawClient: client}, nil
 }
-
-// Helper function
 
 func getProjectPath(config configuration.ProviderConfig, name string) string {
 	if config.IsGroup() {

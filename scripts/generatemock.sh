@@ -48,10 +48,6 @@ run_mockery() {
 
 echo -e "${BLUE}Starting mock generation...${NC}"
 
-# Generate mocks for gitprovider
-echo -e "${YELLOW}Generating mocks for gitprovider...${NC}"
-run_mockery --all --srcpkg=github.com/fluxcd/go-git-providers/gitprovider --output "${OUTPUT_DIR}"/mockgitprovider
-
 # Generate mocks for internal interfaces
 echo -e "${YELLOW}Generating mocks for internal interfaces...${NC}"
 INTERNAL_INTERFACES=(
@@ -59,7 +55,6 @@ INTERNAL_INTERFACES=(
   "GitRemote"
   "SourceReader"
   "TargetWriter"
-  "GitClient"
   "GitProvider"
   "GitInterface"
 )
