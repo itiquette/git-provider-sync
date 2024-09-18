@@ -8,7 +8,7 @@ on:
 
 permissions: 
     contents: read
-    security-events: write
+    security-events: read
     
 env:
   MEGALINTER_CONFIG: /development/megalinter.yml
@@ -17,6 +17,9 @@ jobs:
   megalinter:
     name: Megalinter analysis
     runs-on: ubuntu-latest
+    permissions: 
+        contents: read
+        security-events: write
     steps:
       - name: Harden GitHub runner
         uses: step-security/harden-runner@91182cccc01eb5e619899d80e4e971d6181294a7 #v2.10.1
