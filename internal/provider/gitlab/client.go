@@ -84,9 +84,25 @@ func (glc Client) getRepositoryMetaInfos(ctx context.Context, config configurati
 	var err error
 
 	if config.IsGroup() {
-		repositories, _, err = glc.rawClient.Groups.ListGroupProjects(config.Group, &gitlab.ListGroupProjectsOptions{})
+		opt := &gitlab.ListGroupProjectsOptions{
+			OrderBy: gitlab.Ptr("name"),
+			Sort:    gitlab.Ptr("asc"),
+			ListOptions: gitlab.ListOptions{
+				PerPage: 100,
+				Page:    1,
+			},
+		}
+		repositories, _, err = glc.rawClient.Groups.ListGroupProjects(config.Group, opt)
 	} else {
-		repositories, _, err = glc.rawClient.Projects.ListUserProjects(config.User, &gitlab.ListProjectsOptions{})
+		opt := &gitlab.ListProjectsOptions{
+			Owned:   gitlab.Ptr(true),
+			OrderBy: gitlab.Ptr("name"),
+			Sort:    gitlab.Ptr("asc"),
+			ListOptions: gitlab.ListOptions{
+				PerPage: 100,
+				Page:    1,
+			}}
+		repositories, _, err = glc.rawClient.Projects.ListUserProjects(config.User, opt)
 	}
 
 	if err != nil {
@@ -96,6 +112,10 @@ func (glc Client) getRepositoryMetaInfos(ctx context.Context, config configurati
 	metainfos := make([]model.RepositoryMetainfo, 0, len(repositories))
 
 	for _, repo := range repositories {
+		if !config.GitInfo.IncludeForks && repo.ForkedFromProject != nil {
+			continue
+		}
+
 		rm, err := newRepositoryMetainfo(ctx, config, glc.rawClient, repo.Path)
 		if err != nil {
 			return nil, fmt.Errorf("failed to init repository meta: %w", err)

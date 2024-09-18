@@ -6,10 +6,6 @@ name: MegaLinter
 on:
   workflow_call: # yamllint disable-line rule:truthy
 
-permissions:
-  contents: read
-  security-events: write
-
 env:
   MEGALINTER_CONFIG: /development/megalinter.yml
 

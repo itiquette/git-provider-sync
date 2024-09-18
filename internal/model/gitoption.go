@@ -10,6 +10,7 @@ type GitInfo struct {
 	Type              string `koanf:"type"`
 	SSHPrivateKeyPath string `koanf:"sshprivatekeypath"`
 	SSHPrivateKeyPW   string `koanf:"sshprivatekeypw"`
+	IncludeForks      bool   `koanf:"includeforks"`
 	ProviderToken     string
 }
 

@@ -92,15 +92,24 @@ func (ghc Client) Metainfos(ctx context.Context, config configuration.ProviderCo
 
 	var err error
 
+	listType := "all"
+	if config.GitInfo.IncludeForks {
+		listType = "public,private,forks"
+	}
+
 	if config.IsGroup() {
-		opt := &github.RepositoryListByOrgOptions{Type: "all"}
+		opt := &github.RepositoryListByOrgOptions{Type: listType, Sort: "full_name", ListOptions: github.ListOptions{PerPage: 300}}
 
 		repos, _, err = ghc.rawClient.Repositories.ListByOrg(ctx, config.Group, opt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to fetch org repositories: %w", err)
 		}
 	} else {
-		opt := &github.RepositoryListByAuthenticatedUserOptions{Type: "all"}
+		opt := &github.RepositoryListByAuthenticatedUserOptions{
+			Visibility:  "all",
+			Affiliation: "owner",
+			Sort:        "full_name",
+			ListOptions: github.ListOptions{PerPage: 300}}
 
 		repos, _, err = ghc.rawClient.Repositories.ListByAuthenticatedUser(ctx, opt)
 		if err != nil {
@@ -125,6 +134,10 @@ func (ghc *Client) processRepositories(ctx context.Context, config configuration
 	logger := log.Logger(ctx)
 
 	for _, repo := range repos {
+		if !config.GitInfo.IncludeForks && repo.Fork != nil && *repo.Fork {
+			continue
+		}
+
 		name := repo.GetName()
 		metainfo, err := newRepositoryMeta(ctx, config, ghc.rawClient, name)
 
