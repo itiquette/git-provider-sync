@@ -6,6 +6,9 @@
 name: Commit Lint
 on: [workflow_call] # yamllint disable-line rule:truthy
 
+permissions: 
+    contents: read
+    
 jobs:
   conform:
     name: Commit (conform) analysis
