@@ -6,10 +6,8 @@
 name: Golang Lint
 on: [workflow_call] # yamllint disable-line rule:truthy
 
-
-permissions: 
-    contents: read
-    
+permissions:
+  contents: read
 
 jobs:
   golangci:

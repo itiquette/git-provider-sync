@@ -16,6 +16,8 @@ package github
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -198,22 +200,28 @@ func (ghc Client) IsValidRepositoryName(ctx context.Context, name string) bool {
 // Returns a new Client and an error if the client creation fails.
 func NewGitHubClient(ctx context.Context, option model.GitProviderClientOption) (Client, error) {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering NewGitHubClient:")
+	logger.Trace().Msg("Entering NewGitHubClient")
 
-	var client *github.Client
+	httpClient := &http.Client{}
 
-	var err error
+	if option.ProxyURL != "" {
+		proxyURL, err := url.Parse(option.ProxyURL)
+		if err != nil {
+			return Client{}, fmt.Errorf("error parsing proxy URL: %w", err)
+		}
 
-	//to do custom domain
-	if len(option.Token) > 0 {
-		client = github.NewClient(nil).WithAuthToken(option.Token)
-	} else {
-		client = github.NewClient(nil)
+		httpClient.Transport = &http.Transport{
+			Proxy: http.ProxyURL(proxyURL),
+		}
 	}
 
-	if err != nil {
-		return Client{}, fmt.Errorf("failed to create a new GitHub client: %w", err)
+	client := github.NewClient(httpClient)
+
+	if option.Token != "" {
+		client = client.WithAuthToken(option.Token)
 	}
+
+	// TODO: Implement custom domain support for GitHub Enterprise
 
 	return Client{rawClient: client}, nil
 }
