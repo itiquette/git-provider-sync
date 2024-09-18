@@ -7,6 +7,10 @@ name: REUSE Compliance
 
 on: [workflow_call] # yamllint disable-line rule:truthy
 
+permissions: 
+    contents: read
+
+
 jobs:
   reuse:
     name: License (REUSE) analysis
