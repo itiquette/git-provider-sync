@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"itiquette/git-provider-sync/internal/model"
+	"net/url"
 	"os"
 	"slices"
 	"strings"
@@ -129,6 +130,10 @@ func validateStandardProvider(config ProviderConfig) error {
 		return err
 	}
 
+	if err := validateGitInfo(config); err != nil {
+		return err
+	}
+
 	if len(config.Token) == 0 {
 		return ErrNoTargetToken
 	}
@@ -163,6 +168,13 @@ func validateGitInfo(config ProviderConfig) error {
 		_, err := os.Stat(config.GitInfo.SSHPrivateKeyPath)
 		if err != nil {
 			return fmt.Errorf("gitinfo type was sshkey, but keyfile: %s could not be read. err: %w", config.GitInfo.SSHPrivateKeyPath, ErrInvalidSSHKeyPath)
+		}
+	}
+
+	if config.GitInfo.ProxyURL != "" {
+		_, err := url.Parse(config.GitInfo.ProxyURL)
+		if err != nil {
+			return fmt.Errorf("gitinfo proxyurl is set but an invalid url: %w", err)
 		}
 	}
 

@@ -16,6 +16,8 @@ package gitlab
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"net/url"
 	"strings"
 
 	"itiquette/git-provider-sync/internal/configuration"
@@ -208,11 +210,32 @@ func toVisibility(vis string) gitlab.VisibilityValue {
 // NewGitLabClient creates a new GitLab client.
 func NewGitLabClient(ctx context.Context, option model.GitProviderClientOption) (Client, error) {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering NewGitLabClient:")
+	logger.Trace().Msg("Entering NewGitLabClient")
 
-	client, err := gitlab.NewClient(option.Token, gitlab.WithBaseURL(option.DomainWithScheme(option.Scheme)))
+	clientOptions := []gitlab.ClientOptionFunc{
+		gitlab.WithBaseURL(option.DomainWithScheme(option.Scheme)),
+	}
+
+	fmt.Println(option.ProxyURL)
+	fmt.Println("asdfsadf")
+
+	if option.ProxyURL != "" {
+		proxyURL, err := url.Parse(option.ProxyURL)
+		if err != nil {
+			return Client{}, fmt.Errorf("error parsing proxy URL: %w", err)
+		}
+
+		httpClient := &http.Client{
+			Transport: &http.Transport{
+				Proxy: http.ProxyURL(proxyURL),
+			},
+		}
+		clientOptions = append(clientOptions, gitlab.WithHTTPClient(httpClient))
+	}
+
+	client, err := gitlab.NewClient(option.Token, clientOptions...)
 	if err != nil {
-		return Client{}, fmt.Errorf("failed to create a new gitlab client: %w", err)
+		return Client{}, fmt.Errorf("failed to create a new GitLab client: %w", err)
 	}
 
 	return Client{rawClient: client}, nil

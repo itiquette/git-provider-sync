@@ -25,6 +25,9 @@ type GitProviderClientOption struct {
 
 	// Scheme is the scheme of the git provider service (e.g., "https", "http". Default if empty is https).
 	Scheme string
+
+	// ProxyURL is the url to a proxy for the client
+	ProxyURL string
 }
 
 // String provides a string representation of GitProviderClientOption.

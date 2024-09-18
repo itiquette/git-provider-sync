@@ -15,33 +15,33 @@ on:
     branches:
       - main
 
-permissions: 
+permissions:
   contents: read
 
 jobs:
   commitlint:
-    permissions: 
+    permissions:
       contents: read
     uses: ./.github/workflows/commitlint.yml
   dependencyreviewlint:
-    permissions: 
+    permissions:
       contents: read
     uses: ./.github/workflows/dependencyreview.yml
   licenselint:
-    permissions: 
+    permissions:
       contents: read
     uses: ./.github/workflows/licenselint.yml
   golint:
-    permissions: 
+    permissions:
       contents: read
     uses: ./.github/workflows/golint.yml
   misclint:
-    permissions: 
+    permissions:
       contents: read
       security-events: write
     uses: ./.github/workflows/misclint.yml
   test:
-    permissions: 
+    permissions:
       contents: read
     if: ${{ !failure() }}
     needs: [licenselint, golint, misclint] #TO-DO enable commitlint, dependencyreview when public
