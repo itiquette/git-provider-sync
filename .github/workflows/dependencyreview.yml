@@ -5,9 +5,6 @@
 name: "Dependency Review"
 on: [workflow_call] # yamllint disable-line rule:truthy
 
-permissions:
-  contents: read
-
 jobs:
   dependency-review:
     name: Dependency Review analysis

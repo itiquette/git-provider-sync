@@ -85,9 +85,11 @@ func printGitProtocol(writer io.Writer, config ProviderConfig) {
 
 	if len(config.GitInfo.Type) == 0 {
 		fmt.Fprintf(writer, "  Type: %s\n", model.HTTPS)
+		fmt.Fprintf(writer, "  IncludeForks: %t\n", config.GitInfo.IncludeForks)
 	} else {
 		fmt.Fprintf(writer, "  Type: %s\n", config.GitInfo.Type)
 		fmt.Fprintf(writer, "  SSHPrivateKeyPath: %s\n", config.GitInfo.SSHPrivateKeyPath)
+		fmt.Fprintf(writer, "  IncludeForks: %t\n", config.GitInfo.IncludeForks)
 
 		if len(config.GitInfo.SSHPrivateKeyPW) == 0 {
 			fmt.Fprintln(writer, "  SSHPrivateKeyPW not specified")

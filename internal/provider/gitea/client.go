@@ -106,6 +106,10 @@ func (c Client) Metainfos(ctx context.Context, config configuration.ProviderConf
 	var metainfos []model.RepositoryMetainfo //nolint:prealloc
 
 	for _, repo := range repositories {
+		if !config.GitInfo.IncludeForks && repo.Fork {
+			continue
+		}
+
 		rm, _ := newRepositoryMeta(ctx, config, c.giteaClient, repo.Name)
 		metainfos = append(metainfos, rm)
 	}
@@ -150,9 +154,9 @@ func NewGiteaClient(ctx context.Context, option model.GitProviderClientOption) (
 	)
 
 	if option.Token == "" {
-		client, err = gitea.NewClient(option.DomainWithScheme(option.Scheme), gitea.SetToken(option.Token))
-	} else {
 		client, err = gitea.NewClient(option.DomainWithScheme(option.Scheme))
+	} else {
+		client, err = gitea.NewClient(option.DomainWithScheme(option.Scheme), gitea.SetToken(option.Token))
 	}
 
 	if err != nil {

@@ -38,9 +38,6 @@ func (gpo GitProviderClientOption) String() string {
 }
 
 func (gpo GitProviderClientOption) DomainWithScheme(scheme string) string {
-	fmt.Println("ASFASDF")
-	fmt.Println(scheme)
-
 	if len(scheme) > 0 {
 		return scheme + "://" + gpo.Domain
 	}

@@ -7,9 +7,6 @@ name: Golang Test
 
 on: [workflow_call] # yamllint disable-line rule:truthy
 
-permissions:
-  contents: read
-
 jobs:
   test:
     name: Test
