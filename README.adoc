@@ -33,62 +33,67 @@ ifndef::env-github[]
 image::gpsgopher.png[logo, 350, align=center]
 endif::[]
 
-== About
+== What can this tool do for you?
 
-A CLI tool to:
+Git Provider Sync is a CLI tool that helps you:
 
-- *Mirror Repositories* between Git Providers.
+1. **Mirror Repositories**: Copy your repos between different Git providers.
+2. **Batch Clone Repositories**: Grab multiple repos and save them where you want.
+3. **Archive Repositories**: Pack your repos into compressed files for safekeeping.
 
-- *Batch Clone Repositories* directly to a specified target directory.
+== Where can you use it?
 
-- *Archive Repositories* into a compressed archive format (tar.gz) for easy storage.
+Initially with support for these Git providers:
 
-=== Supported Git Providers
+* GitHub
+* GitLab
+* Gitea
 
-- GitHub
-- GitLab
-- Gitea
+And you can save your work to:
 
-=== Supported Targets
+* Any of the above Git providers
+* A compressed archive file (tar.gz)
+* A directory on your computer
 
-- GitHub
-- GitLab
-- Gitea
-- Compressed Archive file (tar.gz)
-- Directory
+== Getting Started
 
-== Installation and Usage
+1. Check out the link:docs/usage.adoc[Usage Guide] for a quick start.
+2. The link:INSTALL.adoc[Installation Guide] will get you up and running.
 
-Quick Start and usage notes can be found in link:docs/usage.adoc[the usage guide].
+== Make Git Provider Sync better?
 
-Installation notes can be found in link:INSTALL.adoc[the Installation guide].
+Here's how you can contribute:
 
-== Contributing
+* Found a bug or have a great idea? Let us know in our https://github.com/itiquette/git-provider-sync/issues[Issue Tracker]
+* Want to contribute code? Check out our link:CONTRIBUTING.md[Contribution Guide] to get started.
 
-If you have questions, concerns, bug reports, etc, please file an issue in the repository’s Issue Tracker.
-Also, please also see link:CONTRIBUTING.md[the contribution guide].
+== For developers
 
-== Development
+If you're interested in how it works, see the link:DEVELOPMENT.adoc[Development Guide].
 
-Development instructions can be found in the link:DEVELOPMENT.adoc[the development guide].
+== What's next?
 
-== Roadmap
+Check out our https://github.com/itiquette/git-provider-sync/issues[Issues page].
 
-It’s not dead yet Jim! In fact, there are future plans.
-See "Issues" for planned future enhancements.
-When they are done, I'll release a 0.1.0-version, and will think about the next milestone.
+== A friendly reminder
 
+**Please Note**: Git Provider Sync is currently in Alpha. This means:
 
-IMPORTANT: This project is currently in Beta status - expect break in both configuration and flags -> I'm happy to take issues and improvement suggestions - about documentation, code, system flow or something else. Just keep-it-simple.:)
-This app takes no responsibility for data-loss. Use "as-is". Make sure that tokens you use have *limited write access* - dont give them root-like permissions - but that is what you always do,right.
-With that said, a health best effort is done to test the application with unit/integration tests and real life tests.
+* Things might change in breaking ways.
+* Feel free to share ideas on how we can make it better.
+* When using Git Provider Sync, it's a good idea to:
+  * Use tokens with limited write access (never give full permissions).
+  * Keep backups of important data, just in case.
 
-== License
+Git Provider Sync is slowly getting stable and reliable.
+But as with any tool, it's always good to be careful!
 
-This project is licensed under the EUPL 1.2 License - see the link:LICENSE[LICENSE] file for details.
+== Legal Stuff
 
-Most non code assets are under Creative Commons CC0-1.0.
+Git Provider Sync is licensed under the EUPL 1.2 License.
 
-For detailed license information, please refer to the file headers.
+Most of the non-code bits are under Creative Commons CC0-1.0.
 
-'''''
+For all the details, check out our link:LICENSE[LICENSE] file and the headers in each file.
+
+---
