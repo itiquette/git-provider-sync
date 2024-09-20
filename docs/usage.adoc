@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: CC0-1.0
 
-= Usage
+= Git Provider Sync: Usage Guide
 :toc: preamble
 :toc-title: 
 :revdate: {docdatetime}
@@ -18,227 +18,213 @@ ifdef::env-github[]
 :warning-caption: :warning:
 endif::[]
 
-It's simple.:)
-You configure one or more source Git Providers.
-Every configured source provider can be configured to have have one or more targets. 
-The targets can be another Git Provider user or organisation, an archive or a directory.
+
+== Overview
+
+Git Provider Sync allows you to:
+
+1. Configure one or more source Git Providers.
+2. Set up one or more targets for each source provider, which can be:
+   * Another Git Provider user or organization
+   * An archive
+   * A directory
 
 == Quick Start
 
-You will need to:
+1. Install Git Provider Sync
+   * Use a pre-offered package OR build it yourself
+   * See the link:../INSTALL.adoc[installation guide] for options
 
-[arabic]
-. Install a pre offered package OR build `Git Provider Sync`.
-  Installation options can be found under link:../INSTALL.adoc[the installation guide].
-. Create a configuration with at least one source provider and target provider - link:../examples/gitprovidersync.exampleconf.yaml[see a commented example]
+2. Create a configuration file
+   * Set up at least one source provider and target provider
+   * See link:../examples/gitprovidersync.exampleconf.yaml[example configuration]
 
-. Verify your configuration visually
+3. Verify your configuration
 +
-[source,console,indent=4]
+[source,console]
 ----
 gitprovidersync print
 ----
+
+4. Start syncing
 +
-. Start syncing
-+
-[source,console,indent=4]
+[source,console]
 ----
 gitprovidersync sync
 ----
 
-=== Options
+== Command Line Options
 
-.List available options
+* List available options:
++
 [source,console]
 ----
 gitprovidersync --help
 ----
 
-.Read the man page (only if installed as package - deb, rpm, apk)
+* Read the man page (only if installed as package - deb, rpm, apk):
++
 [source,console]
 ----
 man gitprovidersync
 ----
 
-TO-DO: ADD HELP IMAGE
+NOTE: The `--from` option should be in https://pkg.go.dev/time#ParseDuration[Go duration string form].
 
-NOTE: The option `--from` should be in https://pkg.go.dev/time#ParseDuration[Go duration string form].
+== Usage Examples
 
-== Examples
+=== Print Current Configuration
 
-=== Example: print out the current configuration (non default configuration file location)
+To print the current configuration with a non-default configuration file location:
 
 [source,console]
 ----
 gitprovidersync print --config-file /path/to/a/conffilem.yaml
 ----
 
-=== Example: sync 
+=== Sync with Advanced Options
 
-.With options to:
-- Force push existing target repositories
-- Fetch source repositories updated at most three hours ago
-- Cleanup repository names
-- Using a configuration file at a custom location
+To sync with options to force push, fetch recent updates, clean up names, and use a custom config file:
 
 [source,console]
 ----
- gitprovidersync --force-push --from='-3h' --cleanup-name --config-file /usr/bin/gitprovidersync.yaml
+gitprovidersync --force-push --from='-3h' --cleanup-name --config-file /usr/bin/gitprovidersync.yaml
 ----
 
 == Configuration
 
-The default configuration file name is `gitprovidersync.yaml`.
-This file will, by default be searched for in the binary run directory, or under the `$XDG_CONFIG_HOME/gitprovidersync` directory.
+=== File Locations
 
-It is possible to add a path to a configuration file via the `--config-file` option.
-Configuration can also/and given by environment variables and a .env-file.
+1. Default filename: `gitprovidersync.yaml`
+2. Default search locations:
+   * Binary run directory
+   * `$XDG_CONFIG_HOME/gitprovidersync` directory
+3. Custom location: Use `--config-file` option
 
-The configuration is read in the following priority order, and does it best to aggregate the configurations.
+=== Configuration Methods
 
-[arabic]
-.Priority order
-. Environment variable
-. .env file
-. default configurationfile 
-. XDG_CONFIG_HOME
+Configuration can be provided through:
 
-For some funky override inspirations you can have a look in the
-link:../internal/config/[configuration reading unit tests]
+1. Environment variables
+2. .env file
+3. Configuration file
+4. XDG_CONFIG_HOME
 
-[NOTE]
-====
-.Configuration notes
-- Environment variable: MUST start with `GPS_` and be in upper case with underscore separation.
-  Example: GPS_CONFIGURATIONS_SOURCE_PROVIDER=envconfprovider.
-- .env file: MUST be in upper case with underscore separation. Example: CONFIGURATIONS_SOURCE_PROVIDER=dotenvprovider.
-====
+Priority order: 1 > 2 > 3 > 4
 
-Configuration and usage should be pretty straight forward.
-Have a look in the link:../examples/gitprovidersync.exampleconf.yaml[commented
-example configuration to get an idea of the various configuration options].
+=== Configuration Notes
 
-== Provider Notes
+* Environment variables:
+  ** Must start with `GPS_`
+  ** Use uppercase with underscore separation
+  ** Example: `GPS_CONFIGURATIONS_SOURCE_PROVIDER=envconfprovider`
 
-=== Auth
+* .env file:
+  ** Use uppercase with underscore separation
+  ** Example: `CONFIGURATIONS_SOURCE_PROVIDER=dotenvprovider`
 
-Default is to use Basic Auth to the providers. For that, you will have to provide a token in configuration "Token".
+TIP: For configuration examples, see link:../examples/gitprovidersync.exampleconf.yaml[the example configuration file].
 
-You can also use ssh by configuring the gitinfo.type (https,sshagen,sshkey) and providing a path to a key and a pw.
+== Provider-Specific Notes
+
+=== Authentication
+
+* Default: Basic Auth (requires token in configuration)
+* Alternative: SSH (configure `gitinfo.type` as https, sshagen, or sshkey)
 
 === GitHub
 
-=== GitHub API Authentication
+* API rate limits apply to unauthenticated requests
+* Use a token to avoid hitting limits quickly
 
-GitHub imposes
-https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api[api
-rate limits] on unauthenticated requests.
-Use a token, or you will reach those limits quickly.
-
-== Target Notes
 
 === Gitea
 
-.How to generate an access token for a Gitea user, with rights to create.
+To generate an access token for a Gitea user with creation rights:
+
 [source,yaml]
 ----
 curl -H "Content-Type: application/json" -d '{"name":"<tokenname>","scopes":["write:organization","write:repository","read:user","write:user"]}' -u user:password https://<giteahost>/api/v1/users/<username>/tokens
 ----
 
+== Target-Specific Notes
+
 === Directory Target
 
-A directory target is a directory containing the working copy repositories from the source. 
-Default is to check out all remote branches locally and to keep the original origin remote.
+* Contains working copy repositories from the source
+* Default: Check out all remote branches locally and keep original origin remote
 
-==== Configure
+Configuration example:
 
-.Example: configuring directory target dir
 [source,yaml]
 ----
-      localtar:
-        provider: directory
-        providerspecific:
-          directorytargetdir: <full/path/to/directory/where/repositories/go>
+localtar:
+  provider: directory
+  providerspecific:
+    directorytargetdir: <full/path/to/directory/where/repositories/go>
 ----
 
 === Compressed Archive (tar.gz) Target
 
-A compressed archive target is a directory containing tar.gz-files of the bare repositories.
-The archives will add the prefix <timeadfsadf> to the file, so multiple re-runs should be possible with the same target.
-See further notes below for examples of how to get a working copy from a bare repository.
+* Contains tar.gz files of bare repositories
+* Adds a timestamp prefix to allow multiple re-runs
 
-==== Configure
+Configuration example:
 
-.Example: configuring tar archive target dir
 [source,yaml]
 ----
-      localtar:
-        provider: archive
-        providerspecific:
-          archivetargetdir: <full/path/to/directory/where/tar/archives/go>
+localtar:
+  provider: archive
+  providerspecific:
+    archivetargetdir: <full/path/to/directory/where/tar/archives/go>
 ----
 
-==== Unpack and restore a working copy repository from a compressed archive
+==== Advanced: Working with Compressed Archives
 
-* Unpack the tar.gz file. Options in [] are optional (target directory).
-
+1. Unpack the tar.gz file:
++
 [source,console]
 ----
 tar -xvzf <path/to/tar.gz-archive> [-C /path/to/target/dir]
 ----
 
-* You will now have a bare Git Repository. 
-You will have to Git Clone the bare repository to get back a working copy.
-
+2. Clone the bare repository to get a working copy:
++
 [source,console]
 ----
 git clone <path/to/unpacked-bare-git-repository> [/path/to/clone-target/dir]
 ----
 
-NOTE: https://duckduckgo.com/?hps=1&q=bare+repository&atb=v297-2&ia=web[What is a bare Git Repository?]
-
-==== Check out all branches in the working copy (optional).
-
-.Standing in the working directory, check out all branches. Ignore the fatal warning you most likely will get for the main or master branch - it already exists.
+3. (Optional) Check out all branches:
++
 [source,console]
 ----
 for b in `git branch -r | grep -v -- '->'`; do git branch --track ${b##origin/} $b; done
 ----
 
-.Verify
+4. (Optional) Change the "origin" of your working copy:
+   a. Show current remote origin:
++
 [source,console]
 ----
-git branch -a # all branches
-git branch -l # local
-git branch -r # remote
+git remote -v
 ----
 
-==== Change the "origin" of your working copy to point to another origin than the default bare repository (optional).
-
-NOTE: In this example, we change it to point to the remote "origin" it was synced from, but this could of course be another git repository hosted somewhere else.
-
-.From the working directory, show the remote origin. 
+   b. Print original remote origin:
++
 [source,console]
 ----
-git remote -v #gives origin <path/to/unpacked-bare-git-repository> if you haven't changed anything yet.
+(cd <path/to/unpacked-bare-git-repository>; git remote -v)
 ----
 
-.Print out the remote origin the repository was synced from.
+   c. Set new remote origin:
++
 [source,console]
 ----
-# Temporarily cd into the uncompressed bare repository and print out the original remote origin
-(cd <path/to/unpacked-bare-git-repository>; git remote -v) 
+git remote set-url origin <the origin url shown above>
 ----
 
-.In your working copy, set the new remote origin 
-[source,console]
-----
-git remote set-url origin <the origin url show above>
-# verify
-git remote -v # shows the new remote origin 
-----
-NOTE: If remote origin is in https format, https://docs.github.com/en/get-started/getting-started-with-git/about-remote-repositories[you might want to set it to ssh-format instead]
-
+NOTE: For HTTPS remote origins, consider using SSH format instead.
 
 == CI/CD examples
 
@@ -451,8 +437,14 @@ jobs:
 
 === Tekton CI
 
-Tekton doesn’t have native support for scheduled triggers or manual dispatch in the same way GitHub Actions or GitLab does.
-You can achieve similar results using Tekton Triggers and CronJobs.
+NOTE: Tekton doesn't have native support for scheduled triggers or manual dispatch. Use Tekton Triggers and CronJobs for similar functionality.
+
+Tekton examples include:
+
+1. Pipeline definition
+2. Task definition
+3. Scheduled run using Kubernetes CronJob
+4. Manual trigger example
 
 .A Tekton Pipeline Example
 [source,yaml]
@@ -678,5 +670,3 @@ spec:
       value: "token"
     - name: ACTIVE_FROM_LIMIT
       value: "-30000h"
-
-----

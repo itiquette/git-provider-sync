@@ -38,7 +38,7 @@ NC='\033[0m' # No Color
 
 # Define Go tools to install
 GO_TOOLS=(
-  "github.com/vektra/mockery/v2@v2.44.1"
+  "github.com/vektra/mockery/v2@v2.46.0"
   "github.com/golangci/golangci-lint/cmd/golangci-lint@v1.61.0"
   "github.com/goreleaser/goreleaser/v2@latest"
   "github.com/bombsimon/wsl/v4/cmd/wsl@master"

@@ -4,71 +4,60 @@
 
 = Installation Guide for Git Provider Sync
 :toc: left
-:toc-title: Table of Contents
-:doctype: article
-:revdate: {docdatetime}
-:imagesdir: assets
-:icons: font
-:source-highlighter: rouge
+:toclevels: 3
+:sectnums:
 
 == Introduction
+This guide will help you install Git Provider Sync on your computer. We'll explain each step in simple terms and include information about security features.
 
-This guide provides instructions for installing Git Provider Sync.
-You can download pre-built binaries or packages for your platform from the https://github.com/itiquette/git-provider-sync/releases[Releases page].
+== Downloading Git Provider Sync
+1. Go to the https://github.com/itiquette/git-provider-sync/releases[Releases page] on GitHub.
+2. Look for the latest version.
+3. Download the file that matches your computer type (we'll help you choose in the next section).
 
-== GitHub Releases Overview
+== Installation Methods
 
-=== Linux Packages
+=== For Linux Users
+Choose the option that matches your Linux system:
 
-`apk`, `deb`, and `rpm` packages exists for the following architectures:
+1. *Using package managers (easier method)*:
+   - For Ubuntu or Debian-like systems: Download the `.deb` file and install it with:
++
+[source,console]
+----
+sudo apt install ./path-to-downloaded-file.deb
+----
+   - For Fedora or Red Hat-like systems: Download the `.rpm` file and install it with:
++
+[source,console]
+----
+sudo dnf install ./path-to-downloaded-file.rpm
+----
+   - For Alpine Linux: Download the `.apk` file and install it with:
++
+[source,console]
+----
+apk add --allow-untrusted ./path-to-downloaded-file.apk
+----
 
-* x86_64/amd64
-* arm64/aarch64
-* ppc64le
-* riscv64
+2. *Using pre-compiled binaries*:
+   - Download the `.tar.gz` file that ends with `linux_amd64.tar.gz` for most computers, or `linux_arm64.tar.gz` for some newer or smaller computers.
+   - Extract the file and run the program from there.
 
-.Installing Local Linux Packages
-[cols="1,2", options="header"]
-|===
-|Package Type |Installation Command
-|deb |`sudo apt install <path_to_deb_file>`
-|rpm |`sudo dnf install <path_to_rpm_file>`
-|apk |`apk add --allow-untrusted <path_to_apk_file>`
-|===
+=== For Mac Users
+- Download the file ending with `darwin_amd64.tar.gz` for older Macs, or `darwin_arm64.tar.gz` for newer Macs with M1 or M2 chips.
+- Extract the file and run the program from there.
 
-TIP: For how-to regarding installation methods, refer to:
-https://itsfoss.com/install-deb-files-ubuntu/[Installing DEB files] or
-https://itsfoss.com/install-rpm-files-fedora/[Installing RPM files]
+=== For BSD Users
+- Choose the file that matches your BSD variant (DragonFly, Free, Net, or Open) and computer type (usually `amd64` or `arm64`).
+- Download and extract the file, then run the program from there.
 
-=== Binaries (tar.gz)
+=== Windows Users
+Git Provider Sync is not planned to be released for Windows.
+If you need to use it on a Windows computer, you can use the Windows Subsystem for Linux (WSL) and follow the Linux installation steps.
 
-Pre-compiled binaries can be found for various operating systems and architectures:
-
-.Linux
-* `..._linux_ppc64le.tar.gz`
-* `..._linux_riscv64.tar.gz`
-* `..._linux_arm64.tar.gz`
-* `..._linux_amd64.tar.gz`
-
-.Darwin (macOS)
-* `..._darwin_amd64.tar.gz`
-* `..._darwin_arm64.tar.gz`
-
-.BSD Variants
-* DragonFly BSD: `..._dragonfly_amd64.tar.gz`
-* FreeBSD: `..._freebsd_arm64.tar.gz`, `..._freebsd_amd64.tar.gz`
-* NetBSD: `..._netbsd_amd64.tar.gz`, `..._netbsd_arm64.tar.gz`
-* OpenBSD: `..._openbsd_amd64.tar.gz`, `..._openbsd_arm64.tar.gz`
-
-=== Source Code Assets
-
-For those who prefer to build from source:
-
-* `...-src.tar.gz`
-* Source code (zip) (automatically added to Release Assets by GitHub)
-* Source code (tar.gz) (automatically added to Release Assets by GitHub)
-
-== Docker/Podman Installation
+=== Using Docker or Podman
+If you're familiar with Docker or Podman, you can run Git Provider Sync without installing it directly:
 
 [source,console]
 ----
@@ -78,39 +67,108 @@ podman run --rm -it \
   --config-file /usr/bin/gitprovidersync.yaml
 ----
 
-== Windows Support
+=== Build it yourself
 
-[NOTE]
-====
-Windows builds are not supported or tested, and there are not plans for it. If you need to use Git Provider Sync on Windows, consider using Windows Subsystem for Linux (WSL).
-====
+For those who prefer to build from source:
 
-== Security Assets Overview
+* `...-src.tar.gz`
+* Source code (zip) (automatically added to Release Assets by GitHub)
+* Source code (tar.gz) (automatically added to Release Assets by GitHub)
+Replace `<version>` with the version number you want to use.
 
-The project provide several security-related assets to ensure the integrity and authenticity of the releases:
 
-=== SBOM (Software Bill of Materials)
+== Verifying Your Download
+To make sure your download is safe and hasn't been tampered with:
 
-Each release includes SBOM files in JSON format:
+1. Download the `gitprovidersync_checksums_sha256.txt` file.
+2. Use a checksum tool to verify that the file you downloaded matches the checksum in this file.
 
-* `gitprovidersync<version>_<arch>.sbom.json`
+== Advanced Build and Release Security Assurance
 
-=== Checksums and Signatures
+NOTE: You don't need to understand or read this part, it is intended for someone with a special interest in Security.
 
-* `gitprovidersync_checksums_sha256.txt`: SHA256 checksums for all release assets
-* `gitprovidersync_checksums_sha256.txt.pem`: Public PEM certificate for verification
-* `gitprovidersync_checksums_sha256.txt.sig`: Signature file for Cosign verification
+Git Provider Sync includes several security features to ensure the integrity and authenticity of your download. 
 
-=== SLSA Level 3 Attestation
+1. *SBOM (Software Bill of Materials)*: Each release includes SBOM files in JSON format (e.g., `gitprovidersync<version>_<arch>.sbom.json`). These files list all the components and dependencies used in the software.
 
-* `multiple.intoto.jsonl`: Signed provenance for attestation
+2. *Checksums and Signatures*:
+   - `gitprovidersync_checksums_sha256.txt`: Contains SHA256 checksums for all release files.
+   - `gitprovidersync_checksums_sha256.txt.pem`: A public certificate for verifying the signature.
+   - `gitprovidersync_checksums_sha256.txt.sig`: A signature file for Cosign verification.
 
-These security assets allow you to:
+3. *SLSA Level 3 Attestation*: 
+   - `multiple.intoto.jsonl`: This file provides signed provenance for attestation, which helps verify the build process.
 
-* Verify the integrity of downloaded artifacts
-* Confirm that builds are reproducible
-* Validate dependencies and content using the provided SBOMs
+These features allow you to:
 
-== Conclusion
+- Check the integrity of your download
+- Confirm that the build is reproducible
+- Validate the software's dependencies
 
-If you encounter any issues or have questions, please refer to our project's issue tracker or documentation.
+=== Detailed Explanation
+Git Provider Sync includes several features to ensure the integrity, authenticity, and transparency of your download. Let's explore these in more detail:
+
+==== SBOM (Software Bill of Materials)
+*What it is*:: An SBOM is like a detailed ingredient list for software. It lists all components, libraries, and dependencies used in Git Provider Sync.
+*File format*:: `gitprovidersync<version>_<arch>.sbom.json`
+*Why it's important*:: 
+- Transparency: You can see exactly what's in the software.
+- Security: Helps identify if any components have known vulnerabilities.
+- Compliance: Useful for organizations that need to track software components.
+*How to use it*:: You can review the SBOM using tools like SPDX or CycloneDX viewers. This is especially useful for security teams or curious users who want to know more about the software's composition.
+
+==== Checksums and Signatures
+*Checksums file*:: `gitprovidersync_checksums_sha256.txt`
+- Contains SHA256 checksums for all release files.
+- Use it to verify the integrity of your download.
+*Public certificate*:: `gitprovidersync_checksums_sha256.txt.pem`
+- Used to verify the signature of the checksums file.
+*Signature file*:: `gitprovidersync_checksums_sha256.txt.sig`
+- Used with Cosign for advanced verification.
+*Why they're important*:: 
+- Integrity: Ensures your download hasn't been tampered with.
+- Authenticity: Confirms the software comes from the legitimate source.
+*How to use them*::
+1. Calculate the SHA256 checksum of your downloaded file.
+2. Compare it with the corresponding checksum in the `.txt` file.
+3. For advanced users: Use Cosign to verify the signature, ensuring the checksums file itself is authentic.
+
+==== SLSA (Supply-chain Levels for Software Artifacts) Level 3 Attestation
+*What it is*:: SLSA is a security framework to prevent tampering, improve integrity, and secure packages and infrastructure in your projects, businesses or enterprises.
+*File*:: `multiple.intoto.jsonl`
+*Why it's important*::
+- Build Integrity: Ensures the software was built in a secure and controlled environment.
+- Tamper Protection: Makes it extremely difficult for attackers to insert malicious code during the build process.
+- Traceability: Provides a verifiable record of how, when, and where the software was built.
+*What Level 3 means*:: 
+- The build process is fully scripted/automated and hermetic.
+- The source is version controlled and checked for reviews.
+- The build generates provenance explaining how the artifact was created.
+*How to use it*:: 
+- Advanced users can use SLSA verification tools to check the provenance and ensure it meets Level 3 requirements.
+- This is particularly important for enterprise environments or security-conscious users.
+
+==== Understanding the Security Build And Release Possibilities
+While these security features might seem complex, they work together to provide several layers of protection:
+
+1. *Transparency*: The SBOM lets you see what's in the software.
+2. *Integrity*: Checksums ensure your download matches the original file.
+3. *Authenticity*: Signatures prove the software comes from the legitimate source.
+4. *Build Security*: SLSA attestation confirms the software was built securely.
+
+For most users, simply checking the checksum is a good start. For those with higher security requirements, utilizing all these features provides a comprehensive security approach.
+
+=== Verifying Your Download
+For a basic check:
+
+1. Download the `gitprovidersync_checksums_sha256.txt` file.
+2. Use a checksum tool to calculate the SHA256 hash of your downloaded Git Provider Sync file.
+3. Compare your calculated hash with the one in the checksums file. They should match exactly.
+
+For advanced verification:
+
+1. Use Cosign to verify the signature of the checksums file.
+2. Use SLSA verification tools to check the build provenance.
+3. Review the SBOM to understand all components included in the software.
+
+Remember, You don't need to understand or use all these features.

@@ -30,7 +30,7 @@ jobs:
 
       - name: Generate mocks
         run: |
-          go install github.com/vektra/mockery/v2@v2.44.1
+          go install github.com/vektra/mockery/v2@v2.46.0
           go mod tidy
           ./scripts/generatemock.sh
 
