@@ -42,13 +42,13 @@ func printProviderConfig(header string, config ProviderConfig, writer io.Writer)
 		fmt.Fprintf(writer, "%s:\n", header)
 	}
 
-	fmt.Fprintf(writer, " Provider: %s\n", config.Provider)
+	fmt.Fprintf(writer, " ProviderType: %s\n", config.ProviderType)
 
-	if !isLocalProvider(config.Provider) {
+	if !isLocalProvider(config.ProviderType) {
 		printRemoteProviderDetails(config, writer)
 	}
 
-	printStringMap(" Providerspecific", config.Providerspecific, writer)
+	printStringMap(" Additional", config.Additional, writer)
 	fmt.Fprintln(writer)
 }
 
@@ -61,10 +61,14 @@ func isLocalProvider(provider string) bool {
 func printRemoteProviderDetails(config ProviderConfig, writer io.Writer) {
 	fmt.Fprintf(writer, " Domain: %s\n", config.Domain)
 
-	if len(config.Token) == 0 {
+	if len(config.HTTPClient.Token) == 0 {
 		fmt.Fprintln(writer, " Token not specified")
 	} else {
-		fmt.Fprintln(writer, " Token: <*****>")
+		fmt.Fprintln(writer, " HttpClient.Token: <*****>")
+	}
+
+	if len(config.HTTPClient.ProxyURL) > 0 {
+		fmt.Fprintf(writer, "  HTTPClient.ProxyURL: %s\n", config.HTTPClient.ProxyURL)
 	}
 
 	if len(config.User) == 0 {
@@ -76,24 +80,22 @@ func printRemoteProviderDetails(config ProviderConfig, writer io.Writer) {
 	// Protocol
 	printGitProtocol(writer, config)
 
-	printStringMap(" Include", config.Include, writer)
-	printStringMap(" Exclude", config.Exclude, writer)
+	printStringMap(" Include", config.Repositories.Include, writer)
+	printStringMap(" Exclude", config.Repositories.Exclude, writer)
 }
 
 func printGitProtocol(writer io.Writer, config ProviderConfig) {
-	fmt.Fprint(writer, " GitInfo:\n")
+	fmt.Fprint(writer, " Git:\n")
 
-	if len(config.GitInfo.Type) == 0 {
+	if len(config.Git.Type) == 0 {
 		fmt.Fprintf(writer, "  Type: %s\n", model.HTTPS)
-		fmt.Fprintf(writer, "  IncludeForks: %t\n", config.GitInfo.IncludeForks)
-		fmt.Fprintf(writer, "  ProxyURL: %s\n", config.GitInfo.ProxyURL)
+		fmt.Fprintf(writer, "  IncludeForks: %t\n", config.Git.IncludeForks)
 	} else {
-		fmt.Fprintf(writer, "  Type: %s\n", config.GitInfo.Type)
-		fmt.Fprintf(writer, "  SSHPrivateKeyPath: %s\n", config.GitInfo.SSHPrivateKeyPath)
-		fmt.Fprintf(writer, "  IncludeForks: %t\n", config.GitInfo.IncludeForks)
-		fmt.Fprintf(writer, "  ProxyURL: %s\n", config.GitInfo.ProxyURL)
+		fmt.Fprintf(writer, "  Type: %s\n", config.Git.Type)
+		fmt.Fprintf(writer, "  SSHPrivateKeyPath: %s\n", config.Git.SSHPrivateKeyPath)
+		fmt.Fprintf(writer, "  IncludeForks: %t\n", config.Git.IncludeForks)
 
-		if len(config.GitInfo.SSHPrivateKeyPW) == 0 {
+		if len(config.Git.SSHPrivateKeyPW) == 0 {
 			fmt.Fprintln(writer, "  SSHPrivateKeyPW not specified")
 		} else {
 			fmt.Fprintln(writer, "  SSHPrivateKeyPW: <*****>")

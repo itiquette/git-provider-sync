@@ -69,9 +69,9 @@ func TestPush(t *testing.T) {
 			mockRepo := new(mocks.GitRepository)
 			tabletest.mockSetup(mockClient, mockRepo)
 
-			sourceGitInfo := model.GitInfo{}
+			sourceGitOption := model.GitOption{}
 
-			err := Push(ctx, tabletest.config, mockClient, mockGitCore{}, mockRepo, sourceGitInfo)
+			err := Push(ctx, tabletest.config, mockClient, mockGitCore{}, mockRepo, sourceGitOption)
 
 			if tabletest.wantErr {
 				require.Error(err)
@@ -94,36 +94,36 @@ func TestGetPushOption(t *testing.T) {
 	}{
 		"archive provider": {
 			config: configuration.ProviderConfig{
-				Provider: configuration.ARCHIVE,
-				Providerspecific: map[string]string{
+				ProviderType: configuration.ARCHIVE,
+				Additional: map[string]string{
 					"archivetargetdir": "/archive",
 				},
 			},
 			repository: mockRepositoryWithName("repo"),
 			forcePush:  false,
-			expected:   model.NewPushOption("/archive/repo.tar.gz", false, false),
+			expected:   model.NewPushOption("/archive/repo.tar.gz", false, false, model.HTTPClientOption{}),
 		},
 		"directory provider": {
 			config: configuration.ProviderConfig{
-				Provider: configuration.DIRECTORY,
-				Providerspecific: map[string]string{
+				ProviderType: configuration.DIRECTORY,
+				Additional: map[string]string{
 					"directorytargetdir": "/target",
 				},
 			},
 			repository: mockRepositoryWithName("repo"),
 			forcePush:  false,
-			expected:   model.NewPushOption("/target", false, false),
+			expected:   model.NewPushOption("/target", false, false, model.HTTPClientOption{}),
 		},
 		"git provider with force push": {
 			config: configuration.ProviderConfig{
-				Provider: "gitlab",
-				Domain:   "gitlab.com",
-				Token:    "token",
-				User:     "user",
+				ProviderType: "gitlab",
+				Domain:       "gitlab.com",
+				HTTPClient:   model.HTTPClientOption{Token: "token"},
+				User:         "user",
 			},
 			repository: mockRepositoryWithName("repo"),
 			forcePush:  true,
-			expected:   model.NewPushOption("https://gitlab.com/user/repo", false, true),
+			expected:   model.NewPushOption("https://gitlab.com/user/repo", false, true, model.HTTPClientOption{}),
 		},
 	}
 
@@ -282,7 +282,7 @@ func testContext() context.Context {
 	return model.WithCLIOption(ctx, input)
 }
 func targetProviderConfig() configuration.ProviderConfig {
-	return configuration.ProviderConfig{Group: "d", Domain: "https://a.gitprovider.com", Provider: "gitlab", Token: "s"}
+	return configuration.ProviderConfig{Group: "d", Domain: "https://a.gitprovider.com", ProviderType: "gitlab", HTTPClient: model.HTTPClientOption{Token: "s"}}
 }
 
 type mockGitCore struct{}
@@ -291,7 +291,7 @@ func (mockGitCore) Clone(_ context.Context, _ model.CloneOption) (model.Reposito
 	return model.Repository{}, nil
 }
 
-func (mockGitCore) Push(_ context.Context, _ model.PushOption, _ model.GitInfo, _ model.GitInfo) error {
+func (mockGitCore) Push(_ context.Context, _ model.PushOption, _ model.GitOption, _ model.GitOption) error {
 	return nil
 }
 

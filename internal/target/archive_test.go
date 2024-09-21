@@ -61,27 +61,27 @@ func TestArchivePush(t *testing.T) {
 	for name, tableTest := range tests {
 		t.Run(name, func(_ *testing.T) {
 			tarClient := target.Archive{}
-			sourceGitInfo := model.GitInfo{}
-			targetGitInfo := model.GitInfo{}
+			sourceGitOption := model.GitOption{}
+			targetGitOption := model.GitOption{}
 
 			if tableTest.wantErrNotExist {
 				ctxErr := context.WithValue(ctx, model.TmpDirKey{}, "notavalidtmp")
-				option := model.NewPushOption(filepath.Join(tmpDirPath, tableTest.args.archive), false, false)
-				err := tarClient.Push(ctxErr, option, sourceGitInfo, targetGitInfo)
+				option := model.NewPushOption(filepath.Join(tmpDirPath, tableTest.args.archive), false, false, model.HTTPClientOption{})
+				err := tarClient.Push(ctxErr, option, sourceGitOption, targetGitOption)
 				require.ErrorContains(err, "does not exist")
 			} else if tableTest.wantErrEmptySourceDir {
 				ctxEmptySourceDir, _ := model.CreateTmpDir(ctx, "", "tarclienttestempty")
 				tmpDirPath, _ := model.GetTmpDirPath(ctxEmptySourceDir)
 
-				option := model.NewPushOption(filepath.Join(tmpDirPath, tableTest.args.archive), false, false)
-				err := tarClient.Push(ctxEmptySourceDir, option, sourceGitInfo, targetGitInfo)
+				option := model.NewPushOption(filepath.Join(tmpDirPath, tableTest.args.archive), false, false, model.HTTPClientOption{})
+				err := tarClient.Push(ctxEmptySourceDir, option, sourceGitOption, targetGitOption)
 				require.ErrorContains(err, "no files found to archive")
 
 				_ = model.DeleteTmpDir(ctx)
 			} else {
 				tmpDirPath, _ := model.GetTmpDirPath(ctx)
-				option := model.NewPushOption(filepath.Join(tmpDirPath, tableTest.args.archive), false, false)
-				_ = tarClient.Push(ctx, option, sourceGitInfo, targetGitInfo)
+				option := model.NewPushOption(filepath.Join(tmpDirPath, tableTest.args.archive), false, false, model.HTTPClientOption{})
+				_ = tarClient.Push(ctx, option, sourceGitOption, targetGitOption)
 
 				if _, err := os.Stat(filepath.Join(tmpDirPath, tableTest.args.archive)); os.IsNotExist(err) {
 					panic(1)

@@ -108,7 +108,7 @@ func (c Client) Metainfos(ctx context.Context, config configuration.ProviderConf
 	var metainfos []model.RepositoryMetainfo //nolint:prealloc
 
 	for _, repo := range repositories {
-		if !config.GitInfo.IncludeForks && repo.Fork {
+		if !config.Git.IncludeForks && repo.Fork {
 			continue
 		}
 
@@ -151,11 +151,11 @@ func NewGiteaClient(ctx context.Context, option model.GitProviderClientOption) (
 	logger.Trace().Msg("Entering NewGiteaClient")
 
 	clientOptions := []gitea.ClientOption{
-		gitea.SetToken(option.Token),
+		gitea.SetToken(option.HTTPClient.Token),
 	}
 
-	if option.ProxyURL != "" {
-		proxyURL, err := url.Parse(option.ProxyURL)
+	if option.HTTPClient.ProxyURL != "" {
+		proxyURL, err := url.Parse(option.HTTPClient.ProxyURL)
 		if err != nil {
 			return Client{}, fmt.Errorf("error parsing proxy URL: %w", err)
 		}

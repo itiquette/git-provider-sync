@@ -36,7 +36,7 @@ var (
 //   - repository: The Git repository interface
 //
 // Returns an error if any step in the process fails.
-func Push(ctx context.Context, config configuration.ProviderConfig, provider interfaces.GitProvider, writer interfaces.TargetWriter, repository interfaces.GitRepository, sourceGitInfo model.GitInfo) error {
+func Push(ctx context.Context, config configuration.ProviderConfig, provider interfaces.GitProvider, writer interfaces.TargetWriter, repository interfaces.GitRepository, sourceGitOption model.GitOption) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Push:")
 	config.DebugLog(logger).Msg("Push:")
@@ -48,10 +48,8 @@ func Push(ctx context.Context, config configuration.ProviderConfig, provider int
 	cliOptions := model.CLIOptions(ctx)
 
 	pushOption := getPushOption(ctx, config, repository, cliOptions.ForcePush)
-	gitInfo := config.GitInfo //TODO: next iteration
-	gitInfo.ProviderToken = config.Token
 
-	if err := writer.Push(ctx, pushOption, sourceGitInfo, gitInfo); err != nil {
+	if err := writer.Push(ctx, pushOption, sourceGitOption, config.Git); err != nil {
 		return fmt.Errorf("%w: %w", ErrPushChanges, err)
 	}
 
@@ -61,15 +59,15 @@ func Push(ctx context.Context, config configuration.ProviderConfig, provider int
 // getPushOption determines the appropriate PushOption based on the provider configuration.
 // It handles different scenarios for archive, directory, and remote Git providers.
 func getPushOption(ctx context.Context, config configuration.ProviderConfig, repository interfaces.GitRepository, forcePush bool) model.PushOption {
-	switch strings.ToLower(config.Provider) {
+	switch strings.ToLower(config.ProviderType) {
 	case configuration.ARCHIVE:
 		name := repository.Metainfo().Name(ctx)
 
-		return model.NewPushOption(target.ArchiveTargetPath(name, config.ArchiveTargetDir()), false, false)
+		return model.NewPushOption(target.ArchiveTargetPath(name, config.ArchiveTargetDir()), false, false, model.HTTPClientOption{})
 	case configuration.DIRECTORY:
-		return model.NewPushOption(config.DirectoryTargetDir(), false, false)
+		return model.NewPushOption(config.DirectoryTargetDir(), false, false, model.HTTPClientOption{})
 	default:
-		return model.NewPushOption(toGitURL(ctx, config, repository), false, forcePush)
+		return model.NewPushOption(toGitURL(ctx, config, repository), false, forcePush, config.HTTPClient)
 	}
 }
 
@@ -114,7 +112,7 @@ func exists(ctx context.Context, config configuration.ProviderConfig, provider i
 	logger.Trace().Msg("Entering exists:")
 	config.DebugLog(logger).Msg("exists:")
 
-	if isArchiveOrDirectory(config.Provider) {
+	if isArchiveOrDirectory(config.ProviderType) {
 		return false, ctx, nil
 	}
 

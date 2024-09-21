@@ -95,7 +95,7 @@ func (ghc Client) Metainfos(ctx context.Context, config configuration.ProviderCo
 	var err error
 
 	listType := "all"
-	if config.GitInfo.IncludeForks {
+	if config.Git.IncludeForks {
 		listType = "public,private,forks"
 	}
 
@@ -136,7 +136,7 @@ func (ghc *Client) processRepositories(ctx context.Context, config configuration
 	logger := log.Logger(ctx)
 
 	for _, repo := range repos {
-		if !config.GitInfo.IncludeForks && repo.Fork != nil && *repo.Fork {
+		if !config.Git.IncludeForks && repo.Fork != nil && *repo.Fork {
 			continue
 		}
 
@@ -204,8 +204,8 @@ func NewGitHubClient(ctx context.Context, option model.GitProviderClientOption) 
 
 	httpClient := &http.Client{}
 
-	if option.ProxyURL != "" {
-		proxyURL, err := url.Parse(option.ProxyURL)
+	if option.HTTPClient.ProxyURL != "" {
+		proxyURL, err := url.Parse(option.HTTPClient.ProxyURL)
 		if err != nil {
 			return Client{}, fmt.Errorf("error parsing proxy URL: %w", err)
 		}
@@ -217,8 +217,8 @@ func NewGitHubClient(ctx context.Context, option model.GitProviderClientOption) 
 
 	client := github.NewClient(httpClient)
 
-	if option.Token != "" {
-		client = client.WithAuthToken(option.Token)
+	if option.HTTPClient.Token != "" {
+		client = client.WithAuthToken(option.HTTPClient.Token)
 	}
 
 	// TODO: Implement custom domain support for GitHub Enterprise
@@ -240,7 +240,7 @@ func NewGitHubClient(ctx context.Context, option model.GitProviderClientOption) 
 func newRepositoryMeta(ctx context.Context, config configuration.ProviderConfig, gitClient *github.Client, name string) (model.RepositoryMetainfo, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering newRepositoryMeta:")
-	logger.Debug().Str("usr", config.User).Str("name", name).Str("provider", config.Provider).Str("domain", config.Domain).Msg("newRepositoryMeta:")
+	logger.Debug().Str("usr", config.User).Str("name", name).Str("provider", config.ProviderType).Str("domain", config.Domain).Msg("newRepositoryMeta:")
 
 	owner := config.Group
 	if !config.IsGroup() {

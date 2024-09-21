@@ -67,8 +67,8 @@ func FilterIncludedExcludedGen() func(context.Context, configuration.ProviderCon
 		logger := log.Logger(ctx)
 		logger.Trace().Msg("Entering Filtering repositories based on inclusion/exclusion lists")
 
-		included := config.IncludedRepositories()
-		excluded := config.ExcludedRepositories()
+		included := config.Repositories.IncludedRepositories()
+		excluded := config.Repositories.ExcludedRepositories()
 
 		// Use slices.DeleteFunc to efficiently filter the metainfos slice
 		return slices.DeleteFunc(metainfos, func(m model.RepositoryMetainfo) bool {

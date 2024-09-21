@@ -5,14 +5,15 @@
 configurations:
   conf1:
     source:
-      provider: gitlab
+      providertype: gitlab
       domain: conf1domain
       user: user
-      include:
-        repositories: aproject
+      repositories:
+        include:
+          repositories: aproject
 
     targets:
       tar:
-        provider: archive
-        providerspecific:
+        providertype: archive
+        additional:
           archivetargetdir: /tmp/mytest

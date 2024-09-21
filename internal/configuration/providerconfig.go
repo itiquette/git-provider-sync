@@ -14,32 +14,31 @@ import (
 
 // ProviderConfig represents the configuration for a single provider.
 type ProviderConfig struct {
-	Provider         string            `koanf:"provider"`
-	Domain           string            `koanf:"domain"`
-	Token            string            `koanf:"token"`
-	User             string            `koanf:"user"`
-	Scheme           string            `koanf:"scheme"`
-	Group            string            `koanf:"group"`
-	GitInfo          model.GitInfo     `koanf:"gitoption"`
-	Exclude          map[string]string `koanf:"exclude"`
-	Include          map[string]string `koanf:"include"`
-	Providerspecific map[string]string `koanf:"providerspecific"`
+	ProviderType string                   `koanf:"providertype"`
+	Domain       string                   `koanf:"domain"`
+	Group        string                   `koanf:"group"`
+	User         string                   `koanf:"user"`
+	Repositories model.RepositoriesOption `koanf:"repositories"`
+	Git          model.GitOption          `koanf:"git"`
+	HTTPClient   model.HTTPClientOption   `koanf:"httpclient"`
+	Scheme       string                   `koanf:"scheme"`
+	Additional   map[string]string        `koanf:"additional"`
 }
 
 // String returns a string representation of ProviderConfig, masking the token.
 func (p ProviderConfig) String() string {
-	return fmt.Sprintf("ProviderConfig: Provider: %s, Domain: %s, Token: <****>, User: %s, Scheme: %s, GitInfo: %v,  Group: %s, Exclude: %v, Include: %v, ProviderSpecific: %v",
-		p.Provider, p.Domain, p.User, p.Scheme, p.GitInfo, p.Group, p.Exclude, p.Include, p.Providerspecific)
+	return fmt.Sprintf("ProviderConfig: ProviderType: %s, Domain: %s, User: %s, Group: %s, Repository: %v, Git: %v,   HTTPClient: %v, Scheme: %v, Extras: %v",
+		p.ProviderType, p.Domain, p.User, p.Group, p.Repositories, p.Git, p.HTTPClient, p.Scheme, p.Additional)
 }
 
 // DebugLog logs the ProviderConfig details at debug level.
 func (p ProviderConfig) DebugLog(logger *zerolog.Logger) *zerolog.Event {
 	event := logger.Debug(). //nolint:zerologlint
-					Str("provider", p.Provider).
-					Fields(p.Exclude).
-					Fields(p.Include)
+					Str("provider", p.ProviderType).
+					Fields(p.Repositories.Exclude).
+					Fields(p.Repositories.Include)
 
-	switch strings.ToLower(p.Provider) {
+	switch strings.ToLower(p.ProviderType) {
 	case DIRECTORY:
 		event.Str("target directory", p.DirectoryTargetDir())
 	case ARCHIVE:
@@ -65,27 +64,17 @@ type AppConfiguration struct {
 
 // ArchiveTargetDir returns the archive target directory.
 func (p ProviderConfig) ArchiveTargetDir() string {
-	return p.Providerspecific["archivetargetdir"]
+	return p.Additional["archivetargetdir"]
 }
 
 // DirectoryTargetDir returns the directory target directory.
 func (p ProviderConfig) DirectoryTargetDir() string {
-	return p.Providerspecific["directorytargetdir"]
+	return p.Additional["directorytargetdir"]
 }
 
 // IsGroup returns true if the configuration is for a group.
 func (p ProviderConfig) IsGroup() bool {
 	return p.Group != ""
-}
-
-// IncludedRepositories returns a slice of included repository names.
-func (p ProviderConfig) IncludedRepositories() []string {
-	return splitAndTrim(p.Include["repositories"])
-}
-
-// ExcludedRepositories returns a slice of excluded repository names.
-func (p ProviderConfig) ExcludedRepositories() []string {
-	return splitAndTrim(p.Exclude["repositories"])
 }
 
 // DebugLog logs the AppConfiguration details at debug level.

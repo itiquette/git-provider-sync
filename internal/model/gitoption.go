@@ -6,17 +6,15 @@ package model
 
 import "fmt"
 
-type GitInfo struct {
+type GitOption struct {
 	Type              string `koanf:"type"`
 	SSHPrivateKeyPath string `koanf:"sshprivatekeypath"`
 	SSHPrivateKeyPW   string `koanf:"sshprivatekeypw"`
 	IncludeForks      bool   `koanf:"includeforks"`
-	ProxyURL          string `koanf:"proxyurl"`
-	ProviderToken     string
 }
 
-func (p GitInfo) String() string {
-	return fmt.Sprintf("GitInfo: Type: %s, SSHPrivateKeyPath: %s, SSHPrivateKeyPW: %s",
+func (p GitOption) String() string {
+	return fmt.Sprintf("GitOption: Type: %s, SSHPrivateKeyPath: %s, SSHPrivateKeyPW: %s",
 		p.Type, p.SSHPrivateKeyPath, "****")
 }
 

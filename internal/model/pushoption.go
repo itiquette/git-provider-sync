@@ -14,10 +14,11 @@ import (
 // It encapsulates the target repository, reference specifications,
 // and flags for pruning and force pushing.
 type PushOption struct {
-	Target   string   // The URL of the target repository
-	RefSpecs []string // The reference specifications to push
-	Prune    bool     // Whether to prune remote branches that no longer exist locally
-	Force    bool     // Whether to force push (overwrite remote history)
+	Target     string   // The URL of the target repository
+	RefSpecs   []string // The reference specifications to push
+	Prune      bool     // Whether to prune remote branches that no longer exist locally
+	Force      bool     // Whether to force push (overwrite remote history)
+	HTTPClient HTTPClientOption
 }
 
 // String provides a string representation of PushOption.
@@ -51,7 +52,7 @@ func (po PushOption) DebugLog(logger *zerolog.Logger) *zerolog.Event {
 //
 // Returns:
 //   - A new PushOption struct configured with the provided options.
-func NewPushOption(target string, prune, force bool) PushOption {
+func NewPushOption(target string, prune, force bool, httpClient HTTPClientOption) PushOption {
 	refSpecs := []string{"refs/heads/*:refs/heads/*", "refs/tags/*:refs/tags/*"}
 	if force {
 		for i, spec := range refSpecs {
@@ -60,9 +61,10 @@ func NewPushOption(target string, prune, force bool) PushOption {
 	}
 
 	return PushOption{
-		Target:   target,
-		RefSpecs: refSpecs,
-		Prune:    prune,
-		Force:    force,
+		Target:     target,
+		RefSpecs:   refSpecs,
+		Prune:      prune,
+		Force:      force,
+		HTTPClient: httpClient,
 	}
 }
