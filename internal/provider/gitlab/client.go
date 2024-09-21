@@ -114,7 +114,7 @@ func (glc Client) getRepositoryMetaInfos(ctx context.Context, config configurati
 	metainfos := make([]model.RepositoryMetainfo, 0, len(repositories))
 
 	for _, repo := range repositories {
-		if !config.GitInfo.IncludeForks && repo.ForkedFromProject != nil {
+		if !config.Git.IncludeForks && repo.ForkedFromProject != nil {
 			continue
 		}
 
@@ -216,11 +216,11 @@ func NewGitLabClient(ctx context.Context, option model.GitProviderClientOption) 
 		gitlab.WithBaseURL(option.DomainWithScheme(option.Scheme)),
 	}
 
-	fmt.Println(option.ProxyURL)
+	fmt.Println(option.HTTPClient.ProxyURL)
 	fmt.Println("asdfsadf")
 
-	if option.ProxyURL != "" {
-		proxyURL, err := url.Parse(option.ProxyURL)
+	if option.HTTPClient.ProxyURL != "" {
+		proxyURL, err := url.Parse(option.HTTPClient.ProxyURL)
 		if err != nil {
 			return Client{}, fmt.Errorf("error parsing proxy URL: %w", err)
 		}
@@ -233,7 +233,7 @@ func NewGitLabClient(ctx context.Context, option model.GitProviderClientOption) 
 		clientOptions = append(clientOptions, gitlab.WithHTTPClient(httpClient))
 	}
 
-	client, err := gitlab.NewClient(option.Token, clientOptions...)
+	client, err := gitlab.NewClient(option.HTTPClient.Token, clientOptions...)
 	if err != nil {
 		return Client{}, fmt.Errorf("failed to create a new GitLab client: %w", err)
 	}

@@ -78,9 +78,9 @@ func TestDirectoryPush(t *testing.T) {
 			}
 
 			dirTarget := target.NewDirectory(rep, repoName)
-			option := model.NewPushOption(filepath.Join(tmpDirPath, tabletest.targetDirectory), false, false)
+			option := model.NewPushOption(filepath.Join(tmpDirPath, tabletest.targetDirectory), false, false, model.HTTPClientOption{})
 
-			err := dirTarget.Push(ctxTest, option, model.GitInfo{}, model.GitInfo{})
+			err := dirTarget.Push(ctxTest, option, model.GitOption{}, model.GitOption{})
 
 			if tabletest.expectedErrorContains != "" {
 				require.ErrorContains(err, tabletest.expectedErrorContains)

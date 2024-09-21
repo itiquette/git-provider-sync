@@ -19,7 +19,8 @@ type CloneOption struct {
 	URL         string // The URL of the repository to clone
 	Mirror      bool   // Whether to create a mirror clone
 	TargetPath  string // The path where the repository will be cloned
-	GitInfo     GitInfo
+	Git         GitOption
+	HTTPClient  HTTPClientOption
 }
 
 // NewCloneOption creates a new CloneOption.
@@ -31,7 +32,7 @@ type CloneOption struct {
 //
 // Returns:
 //   - A new CloneOption struct configured with the provided options.
-func NewCloneOption(ctx context.Context, info RepositoryMetainfo, mirror bool, targetPath string, gitInfo GitInfo) CloneOption {
+func NewCloneOption(ctx context.Context, info RepositoryMetainfo, mirror bool, targetPath string, gitInfo GitOption, httpClient HTTPClientOption) CloneOption {
 	logger := log.Logger(ctx)
 
 	var cloneURL string
@@ -46,15 +47,15 @@ func NewCloneOption(ctx context.Context, info RepositoryMetainfo, mirror bool, t
 		Str("target", targetPath).
 		Msg("Cloning repository")
 
-	return CloneOption{URL: cloneURL, Mirror: mirror, TargetPath: targetPath, GitInfo: gitInfo}
+	return CloneOption{URL: cloneURL, Mirror: mirror, TargetPath: targetPath, Git: gitInfo, HTTPClient: httpClient}
 }
 
 // String provides a string representation of CloneOption.
 func (co CloneOption) String() string {
-	return fmt.Sprintf("CloneOption{CleanupName: %v, URL: %q, Mirror: %v, TargetPath: %q, GitInfo: %+v}",
+	return fmt.Sprintf("CloneOption{CleanupName: %v, URL: %q, Mirror: %v, TargetPath: %q, GitOption: %+v}",
 		co.CleanupName,
 		co.URL,
 		co.Mirror,
 		co.TargetPath,
-		co.GitInfo)
+		co.Git)
 }

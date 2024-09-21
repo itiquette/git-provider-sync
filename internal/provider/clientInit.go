@@ -27,7 +27,7 @@ func NewGitProviderClient(ctx context.Context, option model.GitProviderClientOpt
 
 	var err error
 
-	switch option.Provider {
+	switch option.ProviderType {
 	case configuration.GITEA:
 		provider, err = gitea.NewGiteaClient(ctx, option)
 	case configuration.GITHUB:

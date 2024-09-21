@@ -5,34 +5,39 @@
 configurations:
   conf1:
     source:
-      provider: gitlab
+      providertype: gitlab
       domain: gitlab.com
       user: user
-      include:
-        repositories: a-dummy-project, anotother
+      repositories:
+        include:
+          repositories: a-dummy-project, anotother
 
     targets:
       atarget:
-        provider: gitea
+        providertype: gitea
         domain: gitea.com
-        token: atoken
+        httpclient:
+          token: atoken
         group: agroup
       anothertarget:
-        provider: github
+        providertype: github
         domain: github.com
-        token: anothertoken
+        httpclient:
+          token: anothertoken
         group: anothergroup
   conf2:
     source:
-      provider: gitea
+      providertype: gitea
       domain: gitea.com
       user: user
-      include:
-        repositories: a-dummy-project, anotother
+      repositories:
+        include:
+          repositories: a-dummy-project, anotother
 
     targets:
       atarget:
-        provider: gitea
+        providertype: gitea
         domain: gitea.com
-        token: atoken
+        httpclient:
+          token: atoken
         group: agroup

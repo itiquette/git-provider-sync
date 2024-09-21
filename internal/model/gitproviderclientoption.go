@@ -13,21 +13,16 @@ import (
 // It encapsulates essential information needed to connect to and interact with
 // a specific git provider service.
 type GitProviderClientOption struct {
-	// Provider is the name or identifier of the git provider service (e.g., "github", "gitlab").
-	Provider string
+	// ProviderType is the name or identifier of the git provider service (e.g., "github", "gitlab").
+	ProviderType string
 
-	// Token is the authentication token used to access the git provider's API.
-	// This field is sensitive and should be handled securely.
-	Token string
+	HTTPClient HTTPClientOption
 
 	// Domain is the domain of the git provider service (e.g., "github.com", "gitlab.com").
 	Domain string
 
 	// Scheme is the scheme of the git provider service (e.g., "https", "http". Default if empty is https).
 	Scheme string
-
-	// ProxyURL is the url to a proxy for the client
-	ProxyURL string
 }
 
 // String provides a string representation of GitProviderClientOption.
@@ -36,8 +31,8 @@ type GitProviderClientOption struct {
 // Returns:
 //   - A string representation of the GitProviderClientOption instance.
 func (gpo GitProviderClientOption) String() string {
-	return fmt.Sprintf("GitProviderClientOption{Provider: %s, Token: %s, Domain: %s, Scheme: %s}",
-		gpo.Provider, maskToken(gpo.Token), gpo.Domain, gpo.Scheme)
+	return fmt.Sprintf("GitProviderClientOption{ProviderType: %s, HTTPClient: %+v, Domain: %s, Scheme: %s}",
+		gpo.ProviderType, gpo.HTTPClient, gpo.Domain, gpo.Scheme)
 }
 
 func (gpo GitProviderClientOption) DomainWithScheme(scheme string) string {
@@ -73,11 +68,11 @@ func maskToken(token string) string {
 //
 // Returns:
 //   - A new GitProviderClientOption instance.
-func NewGitProviderClientOption(provider, token, domain string) GitProviderClientOption {
+func NewGitProviderClientOption(providerType string, httpClient HTTPClientOption, domain string) GitProviderClientOption {
 	return GitProviderClientOption{
-		Provider: provider,
-		Token:    token,
-		Domain:   domain,
+		ProviderType: providerType,
+		HTTPClient:   httpClient,
+		Domain:       domain,
 	}
 }
 

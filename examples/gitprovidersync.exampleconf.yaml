@@ -5,35 +5,38 @@
 configurations: # a list of project configurations. Mandatory - at least one.
   myexampleconfiguration: # a project configuration name: Mandatory - at least one. Free naming,letters and digits only
     source: # a source configuration. Mandatory - only one source
-      provider: gitlab # Git provider. Mandatory - A supported name (gitlab,github,gitea)
+      providertype: gitlab # Git provider. Mandatory - A supported name (gitlab,github,gitea)
       domain: gitlab.com # Git instance domain. Mandatory.
       user: user # Git provider repositories owner. Mandatory (if no group given).Mutually exclusive with group
       group: group # Git provider group/organization owner. Mandatory (if no user given).  Mutually exclusive with user
-      token: git provider token. Optional but recommended to avoid GitHub-api limits, private repositories etc.
-      gitoption: # https,sshagent,sshkey (default if empty is https)
+      httpclient:
+        token: git provider token. Optional but recommended to avoid GitHub-api limits, private repositories etc.
+      git: # https,sshagent,sshkey (default if empty is https)
         type: sshkey
         sshprivatekeypath: /key/path # Only applicable if sshkey was sethhhhhhhhh
         sshprivatekeypw: #dont use saved pws here other htan for test
-      include: # Git provider repositories to include. Optional (if empty, all are mirrored))
-        repositories: a-dummy-project, another-dummy-project # a list of user/group repositories to include
-      exclude: # Git provider repositories to exclude. Optional (if empty, none are excluded)
-        repositories: a-dummy-project, another-dummy-project # a list of user/group repositories to exclude
-      providerspecific: # Gitprovider specific settings. Optional (see documentation)
+      repositories:
+        include: # Git provider repositories to include. Optional (if empty, all are mirrored))
+          repositories: a-dummy-project, another-dummy-project # a list of user/group repositories to include
+        exclude: # Git provider repositories to exclude. Optional (if empty, none are excluded)
+          repositories: a-dummy-project, another-dummy-project # a list of user/group repositories to exclude
+      additional: # Gitprovider specific settings. Optional (see documentation)
         a_provider_specific_prop: ....
 
     targets: # target configurations. Mandatory - minimum one target configuration
       gitlabtargetexample: # target configuration. Free naming, letters and digits only.
-        provider: gitea # Git provider. Mandatory - A valid name (gitlab,github,gitea.tar)
+        providertype: gitea # Git provider. Mandatory - A valid name (gitlab,github,gitea.tar)
         domain: gitea.com # Git instance domain. Mandatory.
         user: user # Git provider repositories owner. Mandatory (if no group given). Mutually exclusive with group
         group: group # Git provider group/organization owner. Mandatory (if no user given). Mutually exclusive with user
-        token: # Git provider token. Mandatory.
+        httpclient:
+          token: # Git provider token. Mandatory.
       gitlabtargetexample2: # another target configuration
       # ....
       # ...
       # ..
       tartargetexample: # target configuration. Free naming, letters and digits only.
-        provider: archive # provider. Mandatory - A valid name (gitlab,github,gitea,tar)
-        providerspecific: # Gitprovider specific settings. Optional (see documentation)
+        providertype: archive # provider. Mandatory - A valid name (gitlab,github,gitea,tar)
+        additional: # Gitprovider specific settings. Optional (see documentation)
           archivetargetdir: /where/the/tarfiles/go # path to dir where tar backups will go
 

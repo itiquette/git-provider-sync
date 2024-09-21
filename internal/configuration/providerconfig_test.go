@@ -6,6 +6,7 @@ package configuration
 
 import (
 	"bytes"
+	"itiquette/git-provider-sync/internal/model"
 	"testing"
 
 	"github.com/rs/zerolog"
@@ -21,34 +22,33 @@ func TestProviderConfig_String(t *testing.T) {
 		{
 			name: "Complete config",
 			config: ProviderConfig{
-				Provider:         "github",
-				Domain:           "github.com",
-				Token:            "secret",
-				User:             "user1",
-				Scheme:           "https",
-				Group:            "group1",
-				Exclude:          map[string]string{"repo": "excluded"},
-				Include:          map[string]string{"repo": "included"},
-				Providerspecific: map[string]string{"key": "value"},
+				ProviderType: "github",
+				Domain:       "github.com",
+				HTTPClient:   model.HTTPClientOption{Token: "secret"},
+				User:         "user1",
+				Scheme:       "https",
+				Group:        "group1",
+				Repositories: model.RepositoriesOption{Exclude: map[string]string{"repo": "excluded"}, Include: map[string]string{"repo": "included"}},
+				Additional:   map[string]string{"key": "value"},
 			},
-			expected: "ProviderConfig: Provider: github, Domain: github.com, Token: <****>, User: user1, Scheme: https, GitInfo: GitInfo: Type: , SSHPrivateKeyPath: , SSHPrivateKeyPW: ****,  Group: group1, Exclude: map[repo:excluded], Include: map[repo:included], ProviderSpecific: map[key:value]",
+			expected: "ProviderConfig: ProviderType: github, Domain: github.com, User: user1, Group: group1, Repository: RepositoryOption: Exclude map[repo:excluded], Include: map[repo:included], Git: GitOption: Type: , SSHPrivateKeyPath: , SSHPrivateKeyPW: ****,   HTTPClient: HTTPClientOption: ProxyURL , Token: **cret, Scheme: https, Extras: map[key:value]",
 		},
 		{
 			name: "Minimal config",
 			config: ProviderConfig{
-				Provider: "gitlab",
-				Domain:   "gitlab.com",
+				ProviderType: "gitlab",
+				Domain:       "gitlab.com",
 			},
-			expected: "ProviderConfig: Provider: gitlab, Domain: gitlab.com, Token: <****>, User: , Scheme: , GitInfo: GitInfo: Type: , SSHPrivateKeyPath: , SSHPrivateKeyPW: ****,  Group: , Exclude: map[], Include: map[], ProviderSpecific: map[]",
+			expected: "ProviderConfig: ProviderType: gitlab, Domain: gitlab.com, User: , Group: , Repository: RepositoryOption: Exclude map[], Include: map[], Git: GitOption: Type: , SSHPrivateKeyPath: , SSHPrivateKeyPW: ****,   HTTPClient: HTTPClientOption: ProxyURL , Token: , Scheme: , Extras: map[]",
 		},
 		{
 			name: "Config with empty token",
 			config: ProviderConfig{
-				Provider: "bitbucket",
-				Domain:   "bitbucket.org",
-				Token:    "",
+				ProviderType: "bitbucket",
+				Domain:       "bitbucket.org",
+				HTTPClient:   model.HTTPClientOption{Token: ""},
 			},
-			expected: "ProviderConfig: Provider: bitbucket, Domain: bitbucket.org, Token: <****>, User: , Scheme: , GitInfo: GitInfo: Type: , SSHPrivateKeyPath: , SSHPrivateKeyPW: ****,  Group: , Exclude: map[], Include: map[], ProviderSpecific: map[]",
+			expected: "ProviderConfig: ProviderType: bitbucket, Domain: bitbucket.org, User: , Group: , Repository: RepositoryOption: Exclude map[], Include: map[], Git: GitOption: Type: , SSHPrivateKeyPath: , SSHPrivateKeyPW: ****,   HTTPClient: HTTPClientOption: ProxyURL , Token: , Scheme: , Extras: map[]",
 		},
 	}
 
@@ -59,7 +59,6 @@ func TestProviderConfig_String(t *testing.T) {
 		})
 	}
 }
-
 func TestProviderConfig_DebugLog(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -69,26 +68,26 @@ func TestProviderConfig_DebugLog(t *testing.T) {
 		{
 			name: "GitHub config",
 			config: ProviderConfig{
-				Provider: "github",
-				Domain:   "github.com",
-				User:     "user1",
-				Group:    "group1",
+				ProviderType: "github",
+				Domain:       "github.com",
+				User:         "user1",
+				Group:        "group1",
 			},
 			expected: []string{"provider", "github", "domain", "github.com", "user,group", "user1", "group1"},
 		},
 		{
 			name: "Directory config",
 			config: ProviderConfig{
-				Provider:         DIRECTORY,
-				Providerspecific: map[string]string{"directorytargetdir": "/path/to/dir"},
+				ProviderType: DIRECTORY,
+				Additional:   map[string]string{"directorytargetdir": "/path/to/dir"},
 			},
 			expected: []string{"provider", DIRECTORY, "target directory", "/path/to/dir"},
 		},
 		{
 			name: "Archive config",
 			config: ProviderConfig{
-				Provider:         ARCHIVE,
-				Providerspecific: map[string]string{"archivetargetdir": "/path/to/archive"},
+				ProviderType: ARCHIVE,
+				Additional:   map[string]string{"archivetargetdir": "/path/to/archive"},
 			},
 			expected: []string{"provider", ARCHIVE, "target directory", "/path/to/archive"},
 		},
@@ -110,13 +109,12 @@ func TestProviderConfig_DebugLog(t *testing.T) {
 
 func TestProviderConfig_Methods(t *testing.T) {
 	config := ProviderConfig{
-		Provider: "github",
-		Domain:   "github.com",
-		User:     "user1",
-		Group:    "group1",
-		Include:  map[string]string{"repositories": "repo1, repo2, repo3"},
-		Exclude:  map[string]string{"repositories": "excluded1, excluded2"},
-		Providerspecific: map[string]string{
+		ProviderType: "github",
+		Domain:       "github.com",
+		User:         "user1",
+		Group:        "group1",
+		Repositories: model.RepositoriesOption{Include: map[string]string{"repositories": "repo1,repo2,repo3"}, Exclude: map[string]string{"repositories": "excluded1,excluded2"}},
+		Additional: map[string]string{
 			"archivetargetdir":   "/path/to/archive",
 			"directorytargetdir": "/path/to/directory",
 		},
@@ -129,12 +127,12 @@ func TestProviderConfig_Methods(t *testing.T) {
 	})
 
 	t.Run("IncludedRepositories", func(t *testing.T) {
-		repos := config.IncludedRepositories()
+		repos := config.Repositories.IncludedRepositories()
 		require.Equal(t, []string{"repo1", "repo2", "repo3"}, repos)
 	})
 
 	t.Run("ExcludedRepositories", func(t *testing.T) {
-		repos := config.ExcludedRepositories()
+		repos := config.Repositories.ExcludedRepositories()
 		require.Equal(t, []string{"excluded1", "excluded2"}, repos)
 	})
 
@@ -154,17 +152,17 @@ func TestAppConfiguration_DebugLog(t *testing.T) {
 		Configurations: map[string]ProvidersConfig{
 			"test": {
 				SourceProvider: ProviderConfig{
-					Provider: "github",
-					Domain:   "github.com",
+					ProviderType: "github",
+					Domain:       "github.com",
 				},
 				ProviderTargets: map[string]ProviderConfig{
 					"target1": {
-						Provider: "gitlab",
-						Domain:   "gitlab.com",
+						ProviderType: "gitlab",
+						Domain:       "gitlab.com",
 					},
 					"target2": {
-						Provider:         DIRECTORY,
-						Providerspecific: map[string]string{"directorytargetdir": "/path/to/dir"},
+						ProviderType: DIRECTORY,
+						Additional:   map[string]string{"directorytargetdir": "/path/to/dir"},
 					},
 				},
 			},

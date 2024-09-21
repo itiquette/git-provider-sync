@@ -5,47 +5,49 @@
 configurations:
   conf1:
     source:
-      provider: gitlab
+      providertype: gitlab
       domain: conf1domain
       include:
         repositories: aproject, anotherproject
 
     targets:
       atarget:
-        provider: gitea
+        providertype: gitea
         domain: gitea.com
         token: atoken
         group: agroup
       anothertarget:
-        provider: github
+        providertype: github
         domain: github.com
         token: anothertoken
         group: anothergroup
   conf2:
     source:
-      provider: gitea
+      providertype: gitea
       domain: conf2domain
       user: user
-      exclude:
-        repositories: aproject, anotherproject
+      repositories:
+        exclude:
+          repositories: aproject, anotherproject
 
     targets:
       atarget:
-        provider: gitea
+        providertype: gitea
         domain: gitea.com
         token: atoken
         group: agroup
   conflocal:
     source:
-      provider: localconfprovider
+      providertype: localconfprovider
       domain: localconfdomain
       user: localconfuser
-      exclude:
-        repositories: localconfrepo, localconfrepo2
+      repositories:
+        exclude:
+          repositories: localconfrepo, localconfrepo2
 
     targets:
       localtarget:
-        provider: localconfprovider
+        providertype: localconfprovider
         domain: localconfdomain
         token: localconftoken
         group: localconfgroup

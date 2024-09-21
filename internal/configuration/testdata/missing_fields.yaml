@@ -8,4 +8,4 @@ configurations:
 
     targets:
       atarget:
-        provider: gitea
+        providertype: gitea

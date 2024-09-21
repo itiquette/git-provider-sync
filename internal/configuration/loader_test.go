@@ -23,11 +23,11 @@ func TestReadConfigFileMergedOptionsInOrderXDGLocalDotEnvEnvVarSuccess(t *testin
 	t.Setenv("GPS_CONFIGURATIONS_CONFXDG_TARGETS_ATARGET_GROUP", "envgroup")
 	t.Setenv("GPS_CONFIGURATIONS_CONF1_TARGETS_ANOTHERTARGET_DOMAIN", "envdomain")
 
-	t.Setenv("GPS_CONFIGURATIONS_CONFENV_SOURCE_PROVIDER", "envconfprovider")
+	t.Setenv("GPS_CONFIGURATIONS_CONFENV_SOURCE_PROVIDERTYPE", "envconfprovider")
 	t.Setenv("GPS_CONFIGURATIONS_CONFENV_SOURCE_DOMAIN", "confenvdomain")
 	t.Setenv("GPS_CONFIGURATIONS_CONFENV_SOURCE_USER", "envconfuser")
-	t.Setenv("GPS_CONFIGURATIONS_CONFENV_SOURCE_INCLUDE_REPOSITORIES", "envconfrepo")
-	t.Setenv("GPS_CONFIGURATIONS_CONFENV_TARGETS_ATARGET_PROVIDER", "envconftarget")
+	t.Setenv("GPS_CONFIGURATIONS_CONFENV_SOURCE_REPOSITORIES_INCLUDE_REPOSITORIES", "envconfrepo")
+	t.Setenv("GPS_CONFIGURATIONS_CONFENV_TARGETS_ATARGET_PROVIDERTYPE", "envconftarget")
 	t.Setenv("GPS_CONFIGURATIONS_CONFENV_TARGETS_ATARGET_DOMAIN", "envconfdomain")
 	t.Setenv("GPS_CONFIGURATIONS_CONFENV_TARGETS_ATARGET_GROUP", "envconfgroup")
 
@@ -54,10 +54,10 @@ func TestReadConfigFileMergedOptionsInOrderXDGLocalDotEnvEnvVarSuccess(t *testin
 	// local confile prop without overriding
 	// local conffile, which overrides a xdg prop
 	require.Equal("conf1domain", appConfiguration.Configurations["conf1"].SourceProvider.Domain)
-	require.Equal("gitea", appConfiguration.Configurations["conf2"].SourceProvider.Provider)
+	require.Equal("gitea", appConfiguration.Configurations["conf2"].SourceProvider.ProviderType)
 
 	// a prop was overridden from xdg to local then by .env file
-	require.Equal("dotenvprovider", appConfiguration.Configurations["conf1"].ProviderTargets["atarget"].Provider)
+	require.Equal("dotenvprovider", appConfiguration.Configurations["conf1"].ProviderTargets["atarget"].ProviderType)
 
 	// a prop was overridden from xdg to local then by .env then by env var
 	require.Equal("envdomain", appConfiguration.Configurations["conf1"].ProviderTargets["anothertarget"].Domain)
