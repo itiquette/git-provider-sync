@@ -80,8 +80,8 @@ func printRemoteProviderDetails(config ProviderConfig, writer io.Writer) {
 	// Protocol
 	printGitProtocol(writer, config)
 
-	printStringMap(" Include", config.Repositories.Include, writer)
-	printStringMap(" Exclude", config.Repositories.Exclude, writer)
+	fmt.Fprintf(writer, " Include: %s", config.Repositories.Include)
+	fmt.Fprintf(writer, " Exclude: %s", config.Repositories.Exclude)
 }
 
 func printGitProtocol(writer io.Writer, config ProviderConfig) {

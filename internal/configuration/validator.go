@@ -94,7 +94,7 @@ func validateSourceProvider(provider ProviderConfig) error {
 		return err
 	}
 
-	return validateadditional(provider.ProviderType, provider.Additional)
+	return validateAdditional(provider.ProviderType, provider.Additional)
 }
 
 // validateTargetProvider checks the validity of a target provider configuration.
@@ -109,7 +109,7 @@ func validateTargetProvider(config ProviderConfig) error {
 		}
 	}
 
-	return validateadditional(config.ProviderType, config.Additional)
+	return validateAdditional(config.ProviderType, config.Additional)
 }
 
 // validateStandardProvider checks the validity of standard (non-archive, non-directory) providers.
@@ -187,6 +187,12 @@ func validateHTTPInfo(config ProviderConfig) error {
 		}
 	}
 
+	if config.HTTPClient.CertDirPath != "" {
+		if _, err := os.Stat(config.HTTPClient.CertDirPath); os.IsNotExist(err) {
+			return fmt.Errorf("CertDirPath is set but is not accessible: %w", err)
+		}
+	}
+
 	return nil
 }
 
@@ -203,20 +209,20 @@ func validateRepositoryLists(config ProviderConfig) error {
 	return nil
 }
 
-// validateadditional checks provider-specific configuration.
-func validateadditional(name string, additional map[string]string) error {
+// validateAdditional checks provider-specific configuration.
+func validateAdditional(name string, additional map[string]string) error {
 	switch name {
 	case ARCHIVE:
-		return ValidateArchiveadditional(additional)
+		return ValidateArchiveAdditional(additional)
 	case DIRECTORY:
-		return ValidateDirectoryadditional(additional)
+		return ValidateDirectoryAdditional(additional)
 	default:
 		return nil
 	}
 }
 
-// ValidateArchiveadditional checks the configuration specific to archive providers.
-func ValidateArchiveadditional(configuration map[string]string) error {
+// ValidateArchiveAdditional checks the configuration specific to archive providers.
+func ValidateArchiveAdditional(configuration map[string]string) error {
 	if len(configuration["archivetargetdir"]) == 0 {
 		return ErrArchiveMissingTargetPath
 	}
@@ -224,8 +230,8 @@ func ValidateArchiveadditional(configuration map[string]string) error {
 	return nil
 }
 
-// ValidateDirectoryadditional checks the configuration specific to directory providers.
-func ValidateDirectoryadditional(configuration map[string]string) error {
+// ValidateDirectoryAdditional checks the configuration specific to directory providers.
+func ValidateDirectoryAdditional(configuration map[string]string) error {
 	if len(configuration["directorytargetdir"]) == 0 {
 		return ErrDirectoryMissingTargetPath
 	}

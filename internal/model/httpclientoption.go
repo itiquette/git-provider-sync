@@ -4,11 +4,14 @@
 
 package model
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type HTTPClientOption struct {
-	ProxyURL string `koanf:"proxyurl"`
-	Token    string `koanf:"token"`
+	ProxyURL    string `koanf:"proxyurl"`
+	Token       string `koanf:"token"`
+	CertDirPath string `koanf:"certdirpath"`
 }
 
 func (p HTTPClientOption) String() string {

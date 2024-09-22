@@ -16,10 +16,8 @@ configurations: # a list of project configurations. Mandatory - at least one.
         sshprivatekeypath: /key/path # Only applicable if sshkey was sethhhhhhhhh
         sshprivatekeypw: #dont use saved pws here other htan for test
       repositories:
-        include: # Git provider repositories to include. Optional (if empty, all are mirrored))
-          repositories: a-dummy-project, another-dummy-project # a list of user/group repositories to include
-        exclude: # Git provider repositories to exclude. Optional (if empty, none are excluded)
-          repositories: a-dummy-project, another-dummy-project # a list of user/group repositories to exclude
+        include: a-dummy-project, another-dummy-project # Git provider repositories to include. Optional (if empty, all are mirrored))
+        exclude: a-dummy-project, another-dummy-project # Git provider repositories to exclude. Optional (if empty, none are excluded)
       additional: # Gitprovider specific settings. Optional (see documentation)
         a_provider_specific_prop: ....
 
