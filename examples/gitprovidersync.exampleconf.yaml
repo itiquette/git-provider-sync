@@ -35,6 +35,8 @@ configurations: # a list of project configurations. Mandatory - at least one.
       # ..
       tartargetexample: # target configuration. Free naming, letters and digits only.
         providertype: archive # provider. Mandatory - A valid name (gitlab,github,gitea,tar)
+        repositories:
+          description: An non default description
         additional: # Gitprovider specific settings. Optional (see documentation)
           archivetargetdir: /where/the/tarfiles/go # path to dir where tar backups will go
 

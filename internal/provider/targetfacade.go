@@ -83,7 +83,7 @@ func create(ctx context.Context, config configuration.ProviderConfig, provider i
 		return fmt.Errorf("failed to get gpsupstream remote: %w", err)
 	}
 
-	description := buildDescription(gpsUpstreamRemote, repository)
+	description := buildDescription(gpsUpstreamRemote, repository, config.Repositories.Description)
 	name := repository.Metainfo().Name(ctx)
 
 	option := model.NewCreateOption(name, repository.Metainfo().Visibility, description, repository.Metainfo().DefaultBranch)
@@ -96,10 +96,16 @@ func create(ctx context.Context, config configuration.ProviderConfig, provider i
 }
 
 // buildDescription creates a description for the repository, combining the upstream URL and existing description.
-func buildDescription(gpsUpstreamRemote model.Remote, repository interfaces.GitRepository) string {
-	description := "Git Provider Sync cloned this from: " + gpsUpstreamRemote.URL
+func buildDescription(gpsUpstreamRemote model.Remote, repository interfaces.GitRepository, userDescription *string) string {
+	var description string
+	if userDescription != nil {
+		description = *userDescription
+	} else {
+		description = "Git Provider Sync cloned this from: " + gpsUpstreamRemote.URL + ": "
+	}
+
 	if repository.Metainfo().Description != "" {
-		description += ": " + repository.Metainfo().Description
+		description += repository.Metainfo().Description
 	}
 
 	return stringconvert.RemoveLinebreaks(description)
