@@ -160,13 +160,13 @@ func TestBuildDescription(t *testing.T) {
 
 				return r
 			}(),
-			expected: "Git Provider Sync cloned this from: https://example.com/repo.git",
+			expected: "Git Provider Sync cloned this from: https://example.com/repo.git: ",
 		},
 	}
 
 	for name, tabletest := range tests {
 		t.Run(name, func(t *testing.T) {
-			result := buildDescription(tabletest.remote, tabletest.repository)
+			result := buildDescription(tabletest.remote, tabletest.repository, nil)
 			require.Equal(t, tabletest.expected, result)
 		})
 	}

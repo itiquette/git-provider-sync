@@ -326,6 +326,7 @@ func createProviderClient(ctx context.Context, providerConfig configuration.Prov
 		HTTPClient:   model.HTTPClientOption{Token: providerConfig.HTTPClient.Token, ProxyURL: providerConfig.HTTPClient.ProxyURL, CertDirPath: providerConfig.HTTPClient.CertDirPath},
 		Domain:       providerConfig.Domain,
 		Scheme:       providerConfig.Scheme,
+		Repositories: providerConfig.Repositories,
 	}
 
 	client, err := provider.NewGitProviderClient(ctx, option)

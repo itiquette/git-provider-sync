@@ -23,6 +23,8 @@ type GitProviderClientOption struct {
 
 	// Scheme is the scheme of the git provider service (e.g., "https", "http". Default if empty is https).
 	Scheme string
+
+	Repositories RepositoriesOption
 }
 
 // String provides a string representation of GitProviderClientOption.
