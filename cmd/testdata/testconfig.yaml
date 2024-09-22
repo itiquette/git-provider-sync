@@ -9,8 +9,7 @@ configurations:
       domain: gitlab.com
       user: user
       repositories:
-        include:
-          repositories: a-dummy-project, anotother
+        include: a-dummy-project, anotother
 
     targets:
       atarget:
@@ -31,8 +30,7 @@ configurations:
       domain: gitea.com
       user: user
       repositories:
-        include:
-          repositories: a-dummy-project, anotother
+        include: a-dummy-project, anotother
 
     targets:
       atarget:

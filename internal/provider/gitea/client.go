@@ -17,7 +17,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"net/url"
 
 	"itiquette/git-provider-sync/internal/configuration"
 	"itiquette/git-provider-sync/internal/log"
@@ -146,7 +145,7 @@ func (c Client) IsValidRepositoryName(ctx context.Context, name string) bool {
 // - option: Options for creating the client, including domain and authentication token.
 //
 // Returns a new Client and an error if the creation fails.
-func NewGiteaClient(ctx context.Context, option model.GitProviderClientOption) (Client, error) {
+func NewGiteaClient(ctx context.Context, option model.GitProviderClientOption, httpClient *http.Client) (Client, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering NewGiteaClient")
 
@@ -154,19 +153,7 @@ func NewGiteaClient(ctx context.Context, option model.GitProviderClientOption) (
 		gitea.SetToken(option.HTTPClient.Token),
 	}
 
-	if option.HTTPClient.ProxyURL != "" {
-		proxyURL, err := url.Parse(option.HTTPClient.ProxyURL)
-		if err != nil {
-			return Client{}, fmt.Errorf("error parsing proxy URL: %w", err)
-		}
-
-		httpClient := &http.Client{
-			Transport: &http.Transport{
-				Proxy: http.ProxyURL(proxyURL),
-			},
-		}
-		clientOptions = append(clientOptions, gitea.SetHTTPClient(httpClient))
-	}
+	clientOptions = append(clientOptions, gitea.SetHTTPClient(httpClient))
 
 	client, err := gitea.NewClient(
 		option.DomainWithScheme(option.Scheme),

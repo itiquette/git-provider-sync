@@ -17,7 +17,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"net/url"
 	"strings"
 	"time"
 
@@ -198,22 +197,9 @@ func (ghc Client) IsValidRepositoryName(ctx context.Context, name string) bool {
 //   - option: Options for creating the client, including the domain and authentication token.
 //
 // Returns a new Client and an error if the client creation fails.
-func NewGitHubClient(ctx context.Context, option model.GitProviderClientOption) (Client, error) {
+func NewGitHubClient(ctx context.Context, option model.GitProviderClientOption, httpClient *http.Client) (Client, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering NewGitHubClient")
-
-	httpClient := &http.Client{}
-
-	if option.HTTPClient.ProxyURL != "" {
-		proxyURL, err := url.Parse(option.HTTPClient.ProxyURL)
-		if err != nil {
-			return Client{}, fmt.Errorf("error parsing proxy URL: %w", err)
-		}
-
-		httpClient.Transport = &http.Transport{
-			Proxy: http.ProxyURL(proxyURL),
-		}
-	}
 
 	client := github.NewClient(httpClient)
 

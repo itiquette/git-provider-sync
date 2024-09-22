@@ -28,10 +28,10 @@ func TestProviderConfig_String(t *testing.T) {
 				User:         "user1",
 				Scheme:       "https",
 				Group:        "group1",
-				Repositories: model.RepositoriesOption{Exclude: map[string]string{"repo": "excluded"}, Include: map[string]string{"repo": "included"}},
+				Repositories: model.RepositoriesOption{Exclude: "excluded", Include: "included"},
 				Additional:   map[string]string{"key": "value"},
 			},
-			expected: "ProviderConfig: ProviderType: github, Domain: github.com, User: user1, Group: group1, Repository: RepositoryOption: Exclude map[repo:excluded], Include: map[repo:included], Git: GitOption: Type: , SSHPrivateKeyPath: , SSHPrivateKeyPW: ****,   HTTPClient: HTTPClientOption: ProxyURL , Token: **cret, Scheme: https, Extras: map[key:value]",
+			expected: "ProviderConfig: ProviderType: github, Domain: github.com, User: user1, Group: group1, Repository: RepositoryOption: Exclude excluded, Include: included, Git: GitOption: Type: , SSHPrivateKeyPath: , SSHPrivateKeyPW: ****,   HTTPClient: HTTPClientOption: ProxyURL , Token: **cret, Scheme: https, Extras: map[key:value]",
 		},
 		{
 			name: "Minimal config",
@@ -39,7 +39,7 @@ func TestProviderConfig_String(t *testing.T) {
 				ProviderType: "gitlab",
 				Domain:       "gitlab.com",
 			},
-			expected: "ProviderConfig: ProviderType: gitlab, Domain: gitlab.com, User: , Group: , Repository: RepositoryOption: Exclude map[], Include: map[], Git: GitOption: Type: , SSHPrivateKeyPath: , SSHPrivateKeyPW: ****,   HTTPClient: HTTPClientOption: ProxyURL , Token: , Scheme: , Extras: map[]",
+			expected: "ProviderConfig: ProviderType: gitlab, Domain: gitlab.com, User: , Group: , Repository: RepositoryOption: Exclude , Include: , Git: GitOption: Type: , SSHPrivateKeyPath: , SSHPrivateKeyPW: ****,   HTTPClient: HTTPClientOption: ProxyURL , Token: , Scheme: , Extras: map[]",
 		},
 		{
 			name: "Config with empty token",
@@ -48,7 +48,7 @@ func TestProviderConfig_String(t *testing.T) {
 				Domain:       "bitbucket.org",
 				HTTPClient:   model.HTTPClientOption{Token: ""},
 			},
-			expected: "ProviderConfig: ProviderType: bitbucket, Domain: bitbucket.org, User: , Group: , Repository: RepositoryOption: Exclude map[], Include: map[], Git: GitOption: Type: , SSHPrivateKeyPath: , SSHPrivateKeyPW: ****,   HTTPClient: HTTPClientOption: ProxyURL , Token: , Scheme: , Extras: map[]",
+			expected: "ProviderConfig: ProviderType: bitbucket, Domain: bitbucket.org, User: , Group: , Repository: RepositoryOption: Exclude , Include: , Git: GitOption: Type: , SSHPrivateKeyPath: , SSHPrivateKeyPW: ****,   HTTPClient: HTTPClientOption: ProxyURL , Token: , Scheme: , Extras: map[]",
 		},
 	}
 
@@ -113,7 +113,7 @@ func TestProviderConfig_Methods(t *testing.T) {
 		Domain:       "github.com",
 		User:         "user1",
 		Group:        "group1",
-		Repositories: model.RepositoriesOption{Include: map[string]string{"repositories": "repo1,repo2,repo3"}, Exclude: map[string]string{"repositories": "excluded1,excluded2"}},
+		Repositories: model.RepositoriesOption{Include: "repo1,repo2,repo3", Exclude: "excluded1,excluded2"},
 		Additional: map[string]string{
 			"archivetargetdir":   "/path/to/archive",
 			"directorytargetdir": "/path/to/directory",

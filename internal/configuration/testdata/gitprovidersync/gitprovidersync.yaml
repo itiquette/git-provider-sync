@@ -8,8 +8,7 @@ configurations:
       providertype: xdgprovider1
       user: xdguser1
       repositories:
-        include:
-          repositories: xdgrepo1, xdgrepo2
+        include: xdgrepo1, xdgrepo2
 
     targets:
       atarget:
@@ -24,8 +23,7 @@ configurations:
       domain: xdgconfdomain
       user: xdgconfuser
       repositories:
-        include:
-          repositories: xdgconfrepo
+        include: xdgconfrepo
 
     targets:
       atarget:

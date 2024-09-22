@@ -7,8 +7,8 @@ configurations:
     source:
       providertype: gitlab
       domain: conf1domain
-      include:
-        repositories: aproject, anotherproject
+      repositories:
+        include: aproject, anotherproject
 
     targets:
       atarget:
@@ -27,8 +27,7 @@ configurations:
       domain: conf2domain
       user: user
       repositories:
-        exclude:
-          repositories: aproject, anotherproject
+        exclude: aproject, anotherproject
 
     targets:
       atarget:
@@ -42,8 +41,7 @@ configurations:
       domain: localconfdomain
       user: localconfuser
       repositories:
-        exclude:
-          repositories: localconfrepo, localconfrepo2
+        exclude: localconfrepo, localconfrepo2
 
     targets:
       localtarget:

@@ -323,7 +323,7 @@ func summary(ctx context.Context, sourceProvider configuration.ProviderConfig) {
 func createProviderClient(ctx context.Context, providerConfig configuration.ProviderConfig) (interfaces.GitProvider, error) {
 	option := model.GitProviderClientOption{
 		ProviderType: providerConfig.ProviderType,
-		HTTPClient:   model.HTTPClientOption{Token: providerConfig.HTTPClient.Token, ProxyURL: providerConfig.HTTPClient.ProxyURL},
+		HTTPClient:   model.HTTPClientOption{Token: providerConfig.HTTPClient.Token, ProxyURL: providerConfig.HTTPClient.ProxyURL, CertDirPath: providerConfig.HTTPClient.CertDirPath},
 		Domain:       providerConfig.Domain,
 		Scheme:       providerConfig.Scheme,
 	}
