@@ -17,6 +17,7 @@ import (
 
 	"github.com/go-git/go-git/v5"
 	gogitconfig "github.com/go-git/go-git/v5/config"
+	"github.com/go-git/go-git/v5/storage/memory"
 
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
@@ -44,7 +45,7 @@ type Git struct {
 func (g Git) Clone(ctx context.Context, option model.CloneOption) (model.Repository, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Git:Clone")
-	logger.Debug().Str("url", option.URL).Str("target", option.TargetPath).Msg("Git:Clone")
+	logger.Debug().Str("url", option.URL).Str("target", option.TargetPath).Bool("InMem", option.InMem).Msg("Git:Clone")
 
 	var gitGoCloneOptions git.CloneOptions
 
@@ -65,7 +66,15 @@ func (g Git) Clone(ctx context.Context, option model.CloneOption) (model.Reposit
 
 	gitGoCloneOptions = newGitGoCloneOption(option.URL, option.Mirror, auth)
 
-	cloneRepository, err := git.PlainClone(option.TargetPath, false, &gitGoCloneOptions)
+	var cloneRepository *git.Repository
+
+	if option.InMem {
+		storage := memory.NewStorage()
+		cloneRepository, err = git.Clone(storage, nil, &gitGoCloneOptions)
+	} else {
+		cloneRepository, err = git.PlainClone(option.TargetPath, false, &gitGoCloneOptions)
+	}
+
 	if err != nil {
 		return model.Repository{}, fmt.Errorf("failed to clone repository: %w", err)
 	}
@@ -86,15 +95,10 @@ func (g Git) Clone(ctx context.Context, option model.CloneOption) (model.Reposit
 // - option: The PullOption containing details about the pull operation, including the target path.
 //
 // Returns an error if the pull operation fails or if the workspace is unclean.
-func (g Git) Pull(ctx context.Context, option model.PullOption) error {
+func (g Git) Pull(ctx context.Context, targetRepository *git.Repository, option model.PullOption) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Git:Pull")
 	option.DebugLog(logger).Msg("Git:Pull")
-
-	targetRepository, err := git.PlainOpen(option.TargetPath)
-	if err != nil {
-		return fmt.Errorf("failed to open repository directory %s: %w", option.TargetPath, err)
-	}
 
 	worktree, err := targetRepository.Worktree()
 	if err != nil {

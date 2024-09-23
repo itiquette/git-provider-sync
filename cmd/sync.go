@@ -153,7 +153,7 @@ func sourceRepositories(ctx context.Context, config configuration.ProviderConfig
 		return nil, nil
 	}
 
-	repositories, err := provider.Clone(ctx, target.Git{}, config.Git, metainfos, config.HTTPClient)
+	repositories, err := provider.Clone(ctx, target.Git{}, config.Git, metainfos, config.HTTPClient, config.Repositories)
 	if err != nil {
 		return nil, fmt.Errorf("failed to clone source git-provider repositories: %w", err)
 	}

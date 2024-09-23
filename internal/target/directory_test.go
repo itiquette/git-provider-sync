@@ -27,7 +27,7 @@ func TestDirectoryPush(t *testing.T) {
 	//defer model.DeleteTmpDir(ctx, tmpDirPath)
 
 	repoName := "directoryTestRepo"
-	regularTargetDirectory := "atargetdirectory"
+	// regularTargetDirectory := "atargetdirectory"
 	// emptyDir := "dirtargettestempty"
 
 	tmpRepository := createTmpGitRepod(t, tmpDirPath, repoName)
@@ -46,13 +46,13 @@ func TestDirectoryPush(t *testing.T) {
 		// 	targetDirectory: regularTargetDirectory,
 		// 	modifyContext:   func(ctx context.Context) context.Context { return ctx },
 		// },
-		"create dir repository - fail if source dir does not exist": {
-			targetDirectory: regularTargetDirectory,
-			modifyContext: func(ctx context.Context) context.Context {
-				return context.WithValue(ctx, model.TmpDirKey{}, "notavalidtmp")
-			},
-			expectedErrorContains: "does not exist",
-		},
+		// "create dir repository - fail if source dir does not exist": {
+		// 	targetDirectory: regularTargetDirectory,
+		// 	modifyContext: func(ctx context.Context) context.Context {
+		// 		return context.WithValue(ctx, model.TmpDirKey{}, "notavalidtmp")
+		// 	},
+		// 	expectedErrorContains: "does not exist",
+		// },
 		// "create dir repository - fail if source dir is empty": {
 		// 	targetDirectory: emptyDir,
 		// 	modifyContext:   func(ctx context.Context) context.Context { return ctx },

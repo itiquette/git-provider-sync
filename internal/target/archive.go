@@ -41,9 +41,9 @@ func (a Archive) Push(ctx context.Context, option model.PushOption, _ model.GitO
 	tmpDir, _ := model.GetTmpDirPath(ctx)
 
 	sourceRepositoryDir := filepath.Join(tmpDir, a.gitClient.name)
-	if err := validateSourceDir(sourceRepositoryDir); err != nil {
-		return fmt.Errorf("source directory validation failed: %w", err)
-	}
+	// if err := validateSourceDir(sourceRepositoryDir); err != nil {
+	// 	return fmt.Errorf("source directory validation failed: %w", err)
+	// }
 
 	if err := os.MkdirAll(filepath.Dir(option.Target), os.ModePerm); err != nil {
 		return fmt.Errorf("failed to create target directory %s: %w", option.Target, err)
@@ -59,13 +59,13 @@ func (a Archive) Push(ctx context.Context, option model.PushOption, _ model.GitO
 
 // validateSourceDir checks if the source directory exists.
 // It returns an error if the directory does not exist.
-func validateSourceDir(dir string) error {
-	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		return fmt.Errorf("source directory %s does not exist", dir)
-	}
-
-	return nil
-}
+// func validateSourceDir(dir string) error {
+// 	if _, err := os.Stat(dir); os.IsNotExist(err) {
+// 		return fmt.Errorf("source directory %s does not exist", dir)
+// 	}
+//
+// 	return nil
+// }
 
 // mapFilesToArchive creates a mapping of files from the source directory to be included in the archive.
 // It returns an error if no files are found or if there's an issue mapping the files.

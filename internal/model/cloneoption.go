@@ -21,6 +21,7 @@ type CloneOption struct {
 	TargetPath  string // The path where the repository will be cloned
 	Git         GitOption
 	HTTPClient  HTTPClientOption
+	InMem       bool
 }
 
 // NewCloneOption creates a new CloneOption.
@@ -32,7 +33,7 @@ type CloneOption struct {
 //
 // Returns:
 //   - A new CloneOption struct configured with the provided options.
-func NewCloneOption(ctx context.Context, info RepositoryMetainfo, mirror bool, targetPath string, gitInfo GitOption, httpClient HTTPClientOption) CloneOption {
+func NewCloneOption(ctx context.Context, info RepositoryMetainfo, mirror bool, targetPath string, gitInfo GitOption, httpClient HTTPClientOption, inMem bool) CloneOption {
 	logger := log.Logger(ctx)
 
 	var cloneURL string
@@ -47,7 +48,7 @@ func NewCloneOption(ctx context.Context, info RepositoryMetainfo, mirror bool, t
 		Str("target", targetPath).
 		Msg("Cloning repository")
 
-	return CloneOption{URL: cloneURL, Mirror: mirror, TargetPath: targetPath, Git: gitInfo, HTTPClient: httpClient}
+	return CloneOption{URL: cloneURL, Mirror: mirror, TargetPath: targetPath, Git: gitInfo, HTTPClient: httpClient, InMem: inMem}
 }
 
 // String provides a string representation of CloneOption.

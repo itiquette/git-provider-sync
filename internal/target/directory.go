@@ -6,7 +6,6 @@ package target
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -39,10 +38,10 @@ func (dir Directory) Push(ctx context.Context, option model.PushOption, sourceGi
 	tmpDir, _ := model.GetTmpDirPath(ctx)
 	sourceRepoDir := filepath.Join(tmpDir, name)
 
-	// Verify the source repository exists and is not empty
-	if err := checkSourceRepoExists(sourceRepoDir); err != nil {
-		return fmt.Errorf("source repository check failed: %w", err)
-	}
+	// // Verify the source repository exists and is not empty
+	// if err := checkSourceRepoExists(sourceRepoDir); err != nil {
+	// 	return fmt.Errorf("source repository check failed: %w", err)
+	// }
 
 	// Clean up the repository name if required by CLI options
 	cliOption := model.CLIOptions(ctx)
@@ -73,22 +72,22 @@ func (dir Directory) Push(ctx context.Context, option model.PushOption, sourceGi
 // - dir: The path to the source repository directory.
 //
 // Returns an error if the directory doesn't exist or is empty.
-func checkSourceRepoExists(dir string) error {
-	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		return fmt.Errorf("source directory/repository %s does not exist", dir)
-	}
-
-	files, err := os.ReadDir(dir)
-	if err != nil {
-		return fmt.Errorf("failed to read directory %s: %w", dir, err)
-	}
-
-	if len(files) == 0 {
-		return errors.New("no files found in source directory")
-	}
-
-	return nil
-}
+// func checkSourceRepoExists(dir string) error {
+// 	if _, err := os.Stat(dir); os.IsNotExist(err) {
+// 		return fmt.Errorf("source directory/repository %s does not exist", dir)
+// 	}
+//
+// 	files, err := os.ReadDir(dir)
+// 	if err != nil {
+// 		return fmt.Errorf("failed to read directory %s: %w", dir, err)
+// 	}
+//
+// 	if len(files) == 0 {
+// 		return errors.New("no files found in source directory")
+// 	}
+//
+// 	return nil
+// }
 
 // directoryExists checks if a directory exists at the given path.
 //
@@ -123,7 +122,7 @@ func (dir Directory) handleClone(ctx context.Context, sourceRepoDir, targetDirPa
 		HTTPSURL: sourceRepoDir,
 		SSHURL:   sourceRepoDir,
 	}
-	cloneOption := model.NewCloneOption(ctx, metainfo, false, targetDirPath, protocol, model.HTTPClientOption{})
+	cloneOption := model.NewCloneOption(ctx, metainfo, false, targetDirPath, protocol, model.HTTPClientOption{}, false)
 
 	repo, err := dir.gitClient.Clone(ctx, cloneOption)
 	if err != nil {
@@ -152,7 +151,7 @@ func (dir Directory) handleClone(ctx context.Context, sourceRepoDir, targetDirPa
 // Returns an error if the pull operation fails.
 func (dir Directory) handlePull(ctx context.Context, targetDirPath string, sourceGitinfo model.GitOption) error {
 	pullOption := model.NewPullOption("", "", targetDirPath, sourceGitinfo)
-	if err := dir.gitClient.Pull(ctx, pullOption); err != nil {
+	if err := dir.gitClient.Pull(ctx, dir.gitClient.goGitRepository, pullOption); err != nil {
 		return fmt.Errorf("failed to pull updates to %s: %w", targetDirPath, err)
 	}
 

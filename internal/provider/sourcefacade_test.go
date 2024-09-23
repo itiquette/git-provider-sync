@@ -63,7 +63,7 @@ func TestClone(t *testing.T) {
 			mockReader := new(mocks.SourceReader)
 			tabletest.mockSetup(mockReader)
 
-			repos, err := Clone(ctx, mockReader, protocol, tabletest.metainfos, model.HTTPClientOption{})
+			repos, err := Clone(ctx, mockReader, protocol, tabletest.metainfos, model.HTTPClientOption{}, model.RepositoriesOption{})
 
 			if tabletest.wantErr {
 				require.Error(err)

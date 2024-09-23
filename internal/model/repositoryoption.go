@@ -13,6 +13,7 @@ type RepositoriesOption struct {
 	Exclude     string  `koanf:"exclude"`
 	Include     string  `koanf:"include"`
 	Description *string `koanf:"description"`
+	InMem       bool    `koanf:"inmem"`
 }
 
 func (r RepositoriesOption) String() string {

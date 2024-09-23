@@ -20,7 +20,7 @@ import (
 // It takes a context, a SourceReader interface for cloning operations,
 // and a slice of RepositoryMetainfo containing information about the repositories to clone.
 // It returns a slice of GitRepository interfaces representing the cloned repositories and any error encountered.
-func Clone(ctx context.Context, reader interfaces.SourceReader, gitInfo model.GitOption, metainfos []model.RepositoryMetainfo, httpClient model.HTTPClientOption) ([]interfaces.GitRepository, error) {
+func Clone(ctx context.Context, reader interfaces.SourceReader, gitInfo model.GitOption, metainfos []model.RepositoryMetainfo, httpClient model.HTTPClientOption, repos model.RepositoriesOption) ([]interfaces.GitRepository, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Cloning repositories")
 
@@ -34,7 +34,7 @@ func Clone(ctx context.Context, reader interfaces.SourceReader, gitInfo model.Gi
 	for _, metainfo := range metainfos {
 		targetPath := filepath.Join(tmpDirPath, metainfo.OriginalName)
 
-		option := model.NewCloneOption(ctx, metainfo, true, targetPath, gitInfo, httpClient)
+		option := model.NewCloneOption(ctx, metainfo, true, targetPath, gitInfo, httpClient, repos.InMem)
 
 		resultRepo, err := reader.Clone(ctx, option)
 		if err != nil {
