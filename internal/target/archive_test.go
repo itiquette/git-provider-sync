@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"itiquette/git-provider-sync/internal/configuration"
 	"itiquette/git-provider-sync/internal/model"
+	config "itiquette/git-provider-sync/internal/model/configuration"
 	"itiquette/git-provider-sync/internal/target"
 
 	"github.com/go-git/go-git/v5"
@@ -61,26 +61,26 @@ func TestArchivePush(t *testing.T) {
 	for name, tableTest := range tests {
 		t.Run(name, func(_ *testing.T) {
 			tarClient := target.Archive{}
-			sourceGitOption := model.GitOption{}
-			targetGitOption := model.GitOption{}
+			sourceGitOption := config.GitOption{}
+			targetGitOption := config.GitOption{}
 
 			if tableTest.wantErrNotExist {
 				ctxErr := context.WithValue(ctx, model.TmpDirKey{}, "notavalidtmp")
-				option := model.NewPushOption(filepath.Join(tmpDirPath, tableTest.args.archive), false, false, model.HTTPClientOption{})
+				option := model.NewPushOption(filepath.Join(tmpDirPath, tableTest.args.archive), false, false, config.HTTPClientOption{})
 				err := tarClient.Push(ctxErr, option, sourceGitOption, targetGitOption)
 				require.ErrorContains(err, "does not exist")
 			} else if tableTest.wantErrEmptySourceDir {
 				ctxEmptySourceDir, _ := model.CreateTmpDir(ctx, "", "tarclienttestempty")
 				tmpDirPath, _ := model.GetTmpDirPath(ctxEmptySourceDir)
 
-				option := model.NewPushOption(filepath.Join(tmpDirPath, tableTest.args.archive), false, false, model.HTTPClientOption{})
+				option := model.NewPushOption(filepath.Join(tmpDirPath, tableTest.args.archive), false, false, config.HTTPClientOption{})
 				err := tarClient.Push(ctxEmptySourceDir, option, sourceGitOption, targetGitOption)
 				require.ErrorContains(err, "no files found to archive")
 
 				_ = model.DeleteTmpDir(ctx)
 			} else {
 				tmpDirPath, _ := model.GetTmpDirPath(ctx)
-				option := model.NewPushOption(filepath.Join(tmpDirPath, tableTest.args.archive), false, false, model.HTTPClientOption{})
+				option := model.NewPushOption(filepath.Join(tmpDirPath, tableTest.args.archive), false, false, config.HTTPClientOption{})
 				_ = tarClient.Push(ctx, option, sourceGitOption, targetGitOption)
 
 				if _, err := os.Stat(filepath.Join(tmpDirPath, tableTest.args.archive)); os.IsNotExist(err) {
@@ -100,11 +100,11 @@ func createTmpGitRepo(tmpDir string, tmpRepo string) *git.Repository {
 	rep, _ := git.PlainInit(path, false)
 
 	_, _ = rep.CreateRemote(&gogitconfig.RemoteConfig{
-		Name: configuration.ORIGIN,
+		Name: config.ORIGIN,
 		URLs: []string{"https://origin.dot/" + tmpRepo + ".git"},
 	})
 	_, _ = rep.CreateRemote(&gogitconfig.RemoteConfig{
-		Name: configuration.GPSUPSTREAM,
+		Name: config.GPSUPSTREAM,
 		URLs: []string{"http://gpsupstream.dot/anotherrepo.git"},
 	})
 

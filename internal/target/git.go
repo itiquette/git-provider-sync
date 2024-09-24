@@ -10,10 +10,10 @@ import (
 	"fmt"
 	"strings"
 
-	"itiquette/git-provider-sync/internal/configuration"
 	"itiquette/git-provider-sync/internal/interfaces"
 	"itiquette/git-provider-sync/internal/log"
 	"itiquette/git-provider-sync/internal/model"
+	config "itiquette/git-provider-sync/internal/model/configuration"
 
 	"github.com/go-git/go-git/v5"
 	gogitconfig "github.com/go-git/go-git/v5/config"
@@ -53,14 +53,14 @@ func (g Git) Clone(ctx context.Context, option model.CloneOption) (model.Reposit
 
 	var auth transport.AuthMethod
 
-	if strings.EqualFold(option.Git.Type, model.SSHKEY) {
+	if strings.EqualFold(option.Git.Type, config.SSHKEY) {
 		auth, err = ssh.NewPublicKeysFromFile("git", option.Git.SSHPrivateKeyPath, option.Git.SSHPrivateKeyPW)
 		if err != nil {
 			return model.Repository{}, fmt.Errorf("generate publickeys failed: %w", err)
 		}
 	}
 
-	if strings.EqualFold(option.Git.Type, model.HTTPS) || len(option.Git.Type) == 0 {
+	if strings.EqualFold(option.Git.Type, config.HTTPS) || len(option.Git.Type) == 0 {
 		auth = &http.BasicAuth{Username: "anyUser", Password: option.HTTPClient.Token}
 	}
 
@@ -113,18 +113,18 @@ func (g Git) Pull(ctx context.Context, targetRepository *git.Repository, option 
 
 	var auth transport.AuthMethod
 
-	if strings.EqualFold(option.GitOption.Type, model.SSHKEY) {
+	if strings.EqualFold(option.GitOption.Type, config.SSHKEY) {
 		auth, err = ssh.NewPublicKeysFromFile("git", option.GitOption.SSHPrivateKeyPath, option.GitOption.SSHPrivateKeyPW)
 		if err != nil {
 			return fmt.Errorf("generate publickeys failed: %w", err)
 		}
 	}
 
-	if strings.EqualFold(option.GitOption.Type, model.HTTPS) || len(option.GitOption.Type) == 0 {
+	if strings.EqualFold(option.GitOption.Type, config.HTTPS) || len(option.GitOption.Type) == 0 {
 		auth = &http.BasicAuth{Username: "anyUser", Password: option.HTTPClientOption.Token}
 	}
 
-	gitPullOptions = newGitGoPullOption(configuration.ORIGIN, "", auth)
+	gitPullOptions = newGitGoPullOption(config.ORIGIN, "", auth)
 
 	if err := worktree.Pull(&gitPullOptions); err != nil {
 		if errors.Is(err, git.NoErrAlreadyUpToDate) {
@@ -152,7 +152,7 @@ func (g Git) Pull(ctx context.Context, targetRepository *git.Repository, option 
 // - option: The PushOption containing details about the push operation, including the target and RefSpecs.
 //
 // Returns an error if the push operation fails.
-func (g Git) Push(ctx context.Context, option model.PushOption, _ model.GitOption, targetGitOption model.GitOption) error {
+func (g Git) Push(ctx context.Context, option model.PushOption, _ config.GitOption, targetGitOption config.GitOption) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Git:Push")
 	option.DebugLog(logger).Msg("Git:Push")
@@ -163,14 +163,14 @@ func (g Git) Push(ctx context.Context, option model.PushOption, _ model.GitOptio
 
 	var err error
 
-	if strings.EqualFold(targetGitOption.Type, model.SSHKEY) {
+	if strings.EqualFold(targetGitOption.Type, config.SSHKEY) {
 		auth, err = ssh.NewPublicKeysFromFile("git", targetGitOption.SSHPrivateKeyPath, targetGitOption.SSHPrivateKeyPW)
 		if err != nil {
 			return fmt.Errorf("generate publickeys failed: %w", err)
 		}
 	}
 
-	if strings.EqualFold(targetGitOption.Type, model.HTTPS) || len(targetGitOption.Type) == 0 {
+	if strings.EqualFold(targetGitOption.Type, config.HTTPS) || len(targetGitOption.Type) == 0 {
 		auth = &http.BasicAuth{Username: "anyUser", Password: option.HTTPClient.Token}
 	}
 

@@ -9,12 +9,12 @@ package configuration
 import (
 	"fmt"
 	"io"
-	"itiquette/git-provider-sync/internal/model"
+	config "itiquette/git-provider-sync/internal/model/configuration"
 	"strings"
 )
 
 // PrintConfiguration writes the entire AppConfiguration to the provided writer.
-func PrintConfiguration(config AppConfiguration, writer io.Writer) {
+func PrintConfiguration(config config.AppConfiguration, writer io.Writer) {
 	fmt.Fprintln(writer, "\n----------------------------")
 	fmt.Fprintln(writer, "Git Provider Sync")
 	fmt.Fprintln(writer, "----------------------------")
@@ -25,7 +25,7 @@ func PrintConfiguration(config AppConfiguration, writer io.Writer) {
 }
 
 // printConfigurationSection writes a single configuration section to the provided writer.
-func printConfigurationSection(name string, sourceConfig ProviderConfig, targetConfigs map[string]ProviderConfig, writer io.Writer) {
+func printConfigurationSection(name string, sourceConfig config.ProviderConfig, targetConfigs map[string]config.ProviderConfig, writer io.Writer) {
 	fmt.Fprintf(writer, "\nConfiguration Name: %s\n\n", name)
 	printProviderConfig("Source Provider", sourceConfig, writer)
 
@@ -37,7 +37,7 @@ func printConfigurationSection(name string, sourceConfig ProviderConfig, targetC
 }
 
 // printProviderConfig writes the details of a single ProviderConfig to the provided writer.
-func printProviderConfig(header string, config ProviderConfig, writer io.Writer) {
+func printProviderConfig(header string, config config.ProviderConfig, writer io.Writer) {
 	if header != "" {
 		fmt.Fprintf(writer, "%s:\n", header)
 	}
@@ -54,11 +54,11 @@ func printProviderConfig(header string, config ProviderConfig, writer io.Writer)
 
 // isLocalProvider checks if the provider is a local type (ARCHIVE or DIRECTORY).
 func isLocalProvider(provider string) bool {
-	return strings.EqualFold(provider, ARCHIVE) || strings.EqualFold(provider, DIRECTORY)
+	return strings.EqualFold(provider, config.ARCHIVE) || strings.EqualFold(provider, config.DIRECTORY)
 }
 
 // printRemoteProviderDetails writes the details specific to remote providers.
-func printRemoteProviderDetails(config ProviderConfig, writer io.Writer) {
+func printRemoteProviderDetails(config config.ProviderConfig, writer io.Writer) {
 	fmt.Fprintf(writer, " Domain: %s\n", config.Domain)
 
 	if len(config.HTTPClient.Token) == 0 {
@@ -84,18 +84,18 @@ func printRemoteProviderDetails(config ProviderConfig, writer io.Writer) {
 	fmt.Fprintf(writer, " Exclude: %s", config.Repositories.Exclude)
 }
 
-func printGitProtocol(writer io.Writer, config ProviderConfig) {
+func printGitProtocol(writer io.Writer, providerConfig config.ProviderConfig) {
 	fmt.Fprint(writer, " Git:\n")
 
-	if len(config.Git.Type) == 0 {
-		fmt.Fprintf(writer, "  Type: %s\n", model.HTTPS)
-		fmt.Fprintf(writer, "  IncludeForks: %t\n", config.Git.IncludeForks)
+	if len(providerConfig.Git.Type) == 0 {
+		fmt.Fprintf(writer, "  Type: %s\n", config.HTTPS)
+		fmt.Fprintf(writer, "  IncludeForks: %t\n", providerConfig.Git.IncludeForks)
 	} else {
-		fmt.Fprintf(writer, "  Type: %s\n", config.Git.Type)
-		fmt.Fprintf(writer, "  SSHPrivateKeyPath: %s\n", config.Git.SSHPrivateKeyPath)
-		fmt.Fprintf(writer, "  IncludeForks: %t\n", config.Git.IncludeForks)
+		fmt.Fprintf(writer, "  Type: %s\n", providerConfig.Git.Type)
+		fmt.Fprintf(writer, "  SSHPrivateKeyPath: %s\n", providerConfig.Git.SSHPrivateKeyPath)
+		fmt.Fprintf(writer, "  IncludeForks: %t\n", providerConfig.Git.IncludeForks)
 
-		if len(config.Git.SSHPrivateKeyPW) == 0 {
+		if len(providerConfig.Git.SSHPrivateKeyPW) == 0 {
 			fmt.Fprintln(writer, "  SSHPrivateKeyPW not specified")
 		} else {
 			fmt.Fprintln(writer, "  SSHPrivateKeyPW: <*****>")

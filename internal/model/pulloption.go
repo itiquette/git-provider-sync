@@ -6,6 +6,7 @@ package model
 
 import (
 	"fmt"
+	model "itiquette/git-provider-sync/internal/model/configuration"
 
 	"github.com/rs/zerolog"
 )
@@ -13,11 +14,11 @@ import (
 // PullOption represents options for a git pull operation.
 // It includes the name of the remote, its URL, and the local target path.
 type PullOption struct {
-	Name             string           // The name of the remote (e.g., "origin")
-	URL              string           // The URL of the remote repository
-	TargetPath       string           // The local path where the repository will be pulled
-	GitOption        GitOption        // GitOption options
-	HTTPClientOption HTTPClientOption // GitOption options
+	Name             string                 // The name of the remote (e.g., "origin")
+	URL              string                 // The URL of the remote repository
+	TargetPath       string                 // The local path where the repository will be pulled
+	GitOption        model.GitOption        // GitOption options
+	HTTPClientOption model.HTTPClientOption // GitOption options
 }
 
 // DebugLog creates a debug log event with repository metadata.
@@ -38,7 +39,7 @@ func (po PullOption) DebugLog(logger *zerolog.Logger) *zerolog.Event {
 //
 // Returns:
 //   - A new PullOption struct configured with the provided options.
-func NewPullOption(name, url, targetPath string, gitInfo GitOption) PullOption {
+func NewPullOption(name, url, targetPath string, gitInfo model.GitOption) PullOption {
 	return PullOption{Name: name, URL: url, TargetPath: targetPath, GitOption: gitInfo}
 }
 

@@ -11,9 +11,9 @@ import (
 	"testing"
 
 	mocks "itiquette/git-provider-sync/generated/mocks/mockgogit"
-	"itiquette/git-provider-sync/internal/configuration"
 	"itiquette/git-provider-sync/internal/log"
 	"itiquette/git-provider-sync/internal/model"
+	config "itiquette/git-provider-sync/internal/model/configuration"
 
 	"github.com/spf13/pflag"
 	"github.com/stretchr/testify/mock"
@@ -109,10 +109,10 @@ type MockConfigLoader struct {
 	mock.Mock
 }
 
-func (m *MockConfigLoader) LoadConfiguration(ctx context.Context) (*configuration.AppConfiguration, error) {
+func (m *MockConfigLoader) LoadConfiguration(ctx context.Context) (*config.AppConfiguration, error) {
 	args := m.Called(ctx)
 	//nolint:wrapcheck
-	return args.Get(0).(*configuration.AppConfiguration), args.Error(1) //nolint:forcetypeassert
+	return args.Get(0).(*config.AppConfiguration), args.Error(1) //nolint:forcetypeassert
 }
 
 // func TestRunSync(t *testing.T) { TO-Do mock client to test
@@ -186,12 +186,12 @@ func TestIsValidRepository(t *testing.T) {
 // }
 //
 // // Create implements interfaces.GitProvider.
-// func (m *mockGitProvider) Create(_ context.Context, _ configuration.ProviderConfig, _ model.CreateOption) error {
+// func (m *mockGitProvider) Create(_ context.Context, _ model.ProviderConfig, _ model.CreateOption) error {
 // 	panic("unimplemented")
 // }
 //
 // // Metainfos implements interfaces.GitProvider.
-// func (m *mockGitProvider) Metainfos(_ context.Context, _ configuration.ProviderConfig, _ bool) ([]model.RepositoryMetainfo, error) {
+// func (m *mockGitProvider) Metainfos(_ context.Context, _ model.ProviderConfig, _ bool) ([]model.RepositoryMetainfo, error) {
 // 	panic("unimplementedb")
 // }
 //

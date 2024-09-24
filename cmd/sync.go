@@ -14,6 +14,7 @@ import (
 	"itiquette/git-provider-sync/internal/interfaces"
 	"itiquette/git-provider-sync/internal/log"
 	"itiquette/git-provider-sync/internal/model"
+	config "itiquette/git-provider-sync/internal/model/configuration"
 	"itiquette/git-provider-sync/internal/provider"
 	"itiquette/git-provider-sync/internal/target"
 
@@ -93,7 +94,7 @@ func addInputOptionsToContext(ctx context.Context, cmd *cobra.Command) context.C
 }
 
 // sync performs the main synchronization process.
-func sync(ctx context.Context, conf *configuration.AppConfiguration) error {
+func sync(ctx context.Context, conf *config.AppConfiguration) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering sync:")
 	conf.DebugLog(logger)
@@ -123,7 +124,7 @@ func sync(ctx context.Context, conf *configuration.AppConfiguration) error {
 }
 
 // sourceRepositories fetches repositories from the source provider.
-func sourceRepositories(ctx context.Context, config configuration.ProviderConfig) ([]interfaces.GitRepository, error) {
+func sourceRepositories(ctx context.Context, config config.ProviderConfig) ([]interfaces.GitRepository, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering sourceRepositories:")
 	config.DebugLog(logger).Msg("sourceRepositories:")
@@ -153,7 +154,7 @@ func sourceRepositories(ctx context.Context, config configuration.ProviderConfig
 		return nil, nil
 	}
 
-	repositories, err := provider.Clone(ctx, target.Git{}, config.Git, metainfos, config.HTTPClient, config.Repositories)
+	repositories, err := provider.Clone(ctx, target.Git{}, config, metainfos)
 	if err != nil {
 		return nil, fmt.Errorf("failed to clone source git-provider repositories: %w", err)
 	}
@@ -162,7 +163,7 @@ func sourceRepositories(ctx context.Context, config configuration.ProviderConfig
 }
 
 // toTarget synchronizes repositories to the target provider.
-func toTarget(ctx context.Context, sourceProvider, targetProvider configuration.ProviderConfig, repositories []interfaces.GitRepository) error {
+func toTarget(ctx context.Context, sourceProvider, targetProvider config.ProviderConfig, repositories []interfaces.GitRepository) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering toTarget:")
 	targetProvider.DebugLog(logger).Msg("toTarget:")
@@ -186,7 +187,7 @@ func toTarget(ctx context.Context, sourceProvider, targetProvider configuration.
 }
 
 // processRepository handles the synchronization of a single repository.
-func processRepository(ctx context.Context, targetProvider configuration.ProviderConfig, providerClient interfaces.GitProvider, repository interfaces.GitRepository, sourceGitOption model.GitOption) error {
+func processRepository(ctx context.Context, targetProvider config.ProviderConfig, providerClient interfaces.GitProvider, repository interfaces.GitRepository, sourceGitOption config.GitOption) error {
 	logger := log.Logger(ctx)
 	repository.Metainfo().DebugLog(logger).Msg("processRepository:")
 
@@ -214,8 +215,8 @@ func processRepository(ctx context.Context, targetProvider configuration.Provide
 }
 
 // setupRepository prepares the repository for synchronization.
-func setupRepository(ctx context.Context, targetProvider configuration.ProviderConfig, repository interfaces.GitRepository) error {
-	if targetProvider.ProviderType != configuration.ARCHIVE {
+func setupRepository(ctx context.Context, targetProvider config.ProviderConfig, repository interfaces.GitRepository) error {
+	if targetProvider.ProviderType != config.ARCHIVE {
 		if err := provider.SetGPSUpstreamRemoteFromOrigin(ctx, repository); err != nil {
 			return fmt.Errorf("failed to create gpsupstream remote for archive target: %w", err)
 		}
@@ -225,19 +226,19 @@ func setupRepository(ctx context.Context, targetProvider configuration.ProviderC
 }
 
 // pushRepository pushes the repository to the target provider.
-func pushRepository(ctx context.Context, sourceGitOption model.GitOption, targetProvider configuration.ProviderConfig, providerClient interfaces.GitProvider, repository interfaces.GitRepository) error {
-	var targett interfaces.TargetWriter
+func pushRepository(ctx context.Context, sourceGitOption config.GitOption, targetProvider config.ProviderConfig, providerClient interfaces.GitProvider, repository interfaces.GitRepository) error {
+	var targetWriter interfaces.TargetWriter
 
 	switch strings.ToLower(targetProvider.ProviderType) {
-	case configuration.ARCHIVE:
-		targett = target.NewArchive(repository, repository.Metainfo().OriginalName)
-	case configuration.DIRECTORY:
-		targett = target.NewDirectory(repository, repository.Metainfo().OriginalName)
+	case config.ARCHIVE:
+		targetWriter = target.NewArchive(repository)
+	case config.DIRECTORY:
+		targetWriter = target.NewDirectory(repository)
 	default:
-		targett = target.NewGit(repository, repository.Metainfo().Name(ctx))
+		targetWriter = target.NewGit(repository, repository.Metainfo().Name(ctx))
 	}
 
-	if err := provider.Push(ctx, targetProvider, providerClient, targett, repository, sourceGitOption); err != nil {
+	if err := provider.Push(ctx, targetProvider, providerClient, targetWriter, repository, sourceGitOption); err != nil {
 		return fmt.Errorf("failed to push to target repositories: %w", err)
 	}
 
@@ -268,7 +269,7 @@ func isValidRepository(ctx context.Context, provider interfaces.GitProvider, rep
 }
 
 // initTargetSync initializes the synchronization process for a target.
-func initTargetSync(ctx context.Context, sourceProvider configuration.ProviderConfig, targetProvider configuration.ProviderConfig, repositories []interfaces.GitRepository) context.Context {
+func initTargetSync(ctx context.Context, sourceProvider config.ProviderConfig, targetProvider config.ProviderConfig, repositories []interfaces.GitRepository) context.Context {
 	logger := log.Logger(ctx)
 
 	syncRunMeta := model.NewSyncRunMetainfo(0, sourceProvider.Domain, targetProvider.ProviderType, len(repositories))
@@ -278,9 +279,9 @@ func initTargetSync(ctx context.Context, sourceProvider configuration.ProviderCo
 	logger.Info().Str("domain", sourceProvider.Domain).Str("usr/group", userGrpString).Msg("Syncing from")
 
 	switch strings.ToLower(targetProvider.ProviderType) {
-	case strings.ToLower(configuration.DIRECTORY):
+	case strings.ToLower(config.DIRECTORY):
 		logger.Info().Str("directory", targetProvider.DirectoryTargetDir()).Msg("Targeting")
-	case strings.ToLower(configuration.ARCHIVE):
+	case strings.ToLower(config.ARCHIVE):
 		logger.Info().Str("archive directory", targetProvider.ArchiveTargetDir()).Msg("Targeting")
 	default:
 		logger.Info().
@@ -294,7 +295,7 @@ func initTargetSync(ctx context.Context, sourceProvider configuration.ProviderCo
 }
 
 // summary logs a summary of the synchronization process.
-func summary(ctx context.Context, sourceProvider configuration.ProviderConfig) {
+func summary(ctx context.Context, sourceProvider config.ProviderConfig) {
 	logger := log.Logger(ctx)
 	userGrpString := strings.Join([]string{sourceProvider.User, sourceProvider.Group}, "/")
 
@@ -320,10 +321,10 @@ func summary(ctx context.Context, sourceProvider configuration.ProviderConfig) {
 }
 
 // createProviderClient creates a new Git provider client.
-func createProviderClient(ctx context.Context, providerConfig configuration.ProviderConfig) (interfaces.GitProvider, error) {
+func createProviderClient(ctx context.Context, providerConfig config.ProviderConfig) (interfaces.GitProvider, error) {
 	option := model.GitProviderClientOption{
 		ProviderType: providerConfig.ProviderType,
-		HTTPClient:   model.HTTPClientOption{Token: providerConfig.HTTPClient.Token, ProxyURL: providerConfig.HTTPClient.ProxyURL, CertDirPath: providerConfig.HTTPClient.CertDirPath},
+		HTTPClient:   providerConfig.HTTPClient,
 		Domain:       providerConfig.Domain,
 		Scheme:       providerConfig.Scheme,
 		Repositories: providerConfig.Repositories,

@@ -20,9 +20,9 @@ import (
 	"strings"
 	"time"
 
-	"itiquette/git-provider-sync/internal/configuration"
 	"itiquette/git-provider-sync/internal/log"
 	"itiquette/git-provider-sync/internal/model"
+	config "itiquette/git-provider-sync/internal/model/configuration"
 
 	"github.com/google/go-github/v65/github"
 )
@@ -44,7 +44,7 @@ type Client struct {
 //   - option: Options for creating the repository, including name, visibility, and description.
 //
 // Returns an error if the repository creation fails.
-func (ghc Client) Create(ctx context.Context, config configuration.ProviderConfig, option model.CreateOption) error {
+func (ghc Client) Create(ctx context.Context, config config.ProviderConfig, option model.CreateOption) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitHub:Create:")
 	config.DebugLog(logger).Msg("GitHub:Create:")
@@ -78,12 +78,12 @@ func (ghc Client) Create(ctx context.Context, config configuration.ProviderConfi
 // Name returns the name of the client, which is always "github".
 // This method is used to identify the type of git provider being used.
 func (ghc Client) Name() string {
-	return configuration.GITHUB
+	return config.GITHUB
 }
 
 // Metainfos retrieves metadata for repositories.
 // It can list repositories for both users and organizations, and optionally apply filtering.
-func (ghc Client) Metainfos(ctx context.Context, config configuration.ProviderConfig, filtering bool) ([]model.RepositoryMetainfo, error) {
+func (ghc Client) Metainfos(ctx context.Context, config config.ProviderConfig, filtering bool) ([]model.RepositoryMetainfo, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitHub:Metainfos:")
 
@@ -129,7 +129,7 @@ func (ghc Client) Metainfos(ctx context.Context, config configuration.ProviderCo
 
 // processRepositories is a helper function to process a list of repositories (either Org or User)
 // and convert them into RepositoryMetainfo slices.
-func (ghc *Client) processRepositories(ctx context.Context, config configuration.ProviderConfig, repos []*github.Repository) []model.RepositoryMetainfo {
+func (ghc *Client) processRepositories(ctx context.Context, config config.ProviderConfig, repos []*github.Repository) []model.RepositoryMetainfo {
 	var metainfos []model.RepositoryMetainfo //nolint:prealloc
 
 	logger := log.Logger(ctx)
@@ -223,7 +223,7 @@ func NewGitHubClient(ctx context.Context, option model.GitProviderClientOption, 
 //   - name: The name of the repository.
 //
 // Returns a RepositoryMetainfo and an error if the operation fails.
-func newRepositoryMeta(ctx context.Context, config configuration.ProviderConfig, gitClient *github.Client, name string) (model.RepositoryMetainfo, error) {
+func newRepositoryMeta(ctx context.Context, config config.ProviderConfig, gitClient *github.Client, name string) (model.RepositoryMetainfo, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering newRepositoryMeta:")
 	logger.Debug().Str("usr", config.User).Str("name", name).Str("provider", config.ProviderType).Str("domain", config.Domain).Msg("newRepositoryMeta:")

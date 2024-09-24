@@ -13,10 +13,10 @@ import (
 	"strings"
 	"time"
 
-	"itiquette/git-provider-sync/internal/configuration"
 	"itiquette/git-provider-sync/internal/interfaces"
 	"itiquette/git-provider-sync/internal/log"
 	"itiquette/git-provider-sync/internal/model"
+	config "itiquette/git-provider-sync/internal/model/configuration"
 	"itiquette/git-provider-sync/internal/provider/stringconvert"
 )
 
@@ -29,7 +29,7 @@ type Directory struct {
 
 // Push writes an existing repository to a target directory according to the given push options.
 // It handles the process of cloning a new repository or updating an existing one.
-func (dir Directory) Push(ctx context.Context, option model.PushOption, sourceGitOption model.GitOption, _ model.GitOption) error {
+func (dir Directory) Push(ctx context.Context, option model.PushOption, sourceGitOption config.GitOption, _ config.GitOption) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Directory: Push")
 	option.DebugLog(logger).Msg("Directory: Push")
@@ -59,7 +59,7 @@ func (dir Directory) Push(ctx context.Context, option model.PushOption, sourceGi
 
 	// Determine whether to clone or pull based on CLI options and directory existence
 	if cliOption.ForcePush || !directoryExists(targetDirPath) {
-		return dir.handleClone(ctx, sourceRepoDir, targetDirPath, model.GitOption{})
+		return dir.handleClone(ctx, sourceRepoDir, targetDirPath)
 	}
 
 	return dir.handlePull(ctx, targetDirPath, sourceGitOption)
@@ -111,7 +111,7 @@ func directoryExists(dir string) bool {
 // - targetDirPath: The path where the repository should be cloned.
 //
 // Returns an error if any step of the cloning process fails.
-func (dir Directory) handleClone(ctx context.Context, sourceRepoDir, targetDirPath string, protocol model.GitOption) error {
+func (dir Directory) handleClone(ctx context.Context, sourceRepoDir, targetDirPath string) error {
 	logger := log.Logger(ctx)
 
 	if err := moveDirToTmp(ctx, targetDirPath); err != nil {
@@ -122,7 +122,10 @@ func (dir Directory) handleClone(ctx context.Context, sourceRepoDir, targetDirPa
 		HTTPSURL: sourceRepoDir,
 		SSHURL:   sourceRepoDir,
 	}
-	cloneOption := model.NewCloneOption(ctx, metainfo, false, targetDirPath, protocol, model.HTTPClientOption{}, false)
+	cloneOption := model.NewCloneOption(ctx, metainfo, false, targetDirPath, config.ProviderConfig{})
+
+	fmt.Println("asdfsdafas")
+	fmt.Println(cloneOption)
 
 	repo, err := dir.gitClient.Clone(ctx, cloneOption)
 	if err != nil {
@@ -149,7 +152,7 @@ func (dir Directory) handleClone(ctx context.Context, sourceRepoDir, targetDirPa
 // - targetDirPath: The path to the existing repository.
 //
 // Returns an error if the pull operation fails.
-func (dir Directory) handlePull(ctx context.Context, targetDirPath string, sourceGitinfo model.GitOption) error {
+func (dir Directory) handlePull(ctx context.Context, targetDirPath string, sourceGitinfo config.GitOption) error {
 	pullOption := model.NewPullOption("", "", targetDirPath, sourceGitinfo)
 	if err := dir.gitClient.Pull(ctx, dir.gitClient.goGitRepository, pullOption); err != nil {
 		return fmt.Errorf("failed to pull updates to %s: %w", targetDirPath, err)
@@ -172,17 +175,17 @@ func (dir Directory) setupRemote(_ context.Context, repo interfaces.GitRepositor
 		return fmt.Errorf("failed to create repository abstraction: %w", err)
 	}
 
-	remote, err := repository.Remote(configuration.GPSUPSTREAM)
+	remote, err := repository.Remote(config.GPSUPSTREAM)
 	if err != nil {
-		return fmt.Errorf("failed to get remote %s: %w", configuration.GPSUPSTREAM, err)
+		return fmt.Errorf("failed to get remote %s: %w", config.GPSUPSTREAM, err)
 	}
 
-	if err := repo.DeleteRemote(configuration.ORIGIN); err != nil {
-		return fmt.Errorf("failed to delete remote %s: %w", configuration.ORIGIN, err)
+	if err := repo.DeleteRemote(config.ORIGIN); err != nil {
+		return fmt.Errorf("failed to delete remote %s: %w", config.ORIGIN, err)
 	}
 
-	if err := repo.CreateRemote(configuration.ORIGIN, remote.URL, true); err != nil {
-		return fmt.Errorf("failed to create remote %s: %w", configuration.ORIGIN, err)
+	if err := repo.CreateRemote(config.ORIGIN, remote.URL, true); err != nil {
+		return fmt.Errorf("failed to create remote %s: %w", config.ORIGIN, err)
 	}
 
 	return nil
@@ -252,6 +255,6 @@ func isDirectory(path string) (bool, error) {
 // - repositoryName: The name of the repository.
 //
 // Returns a new Directory instance.
-func NewDirectory(repository interfaces.GitRepository, repositoryName string) Directory {
-	return Directory{gitClient: NewGit(repository, repositoryName)}
+func NewDirectory(repository interfaces.GitRepository) Directory {
+	return Directory{gitClient: NewGit(repository, repository.Metainfo().OriginalName)}
 }

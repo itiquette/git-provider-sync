@@ -16,6 +16,7 @@ import (
 	"itiquette/git-provider-sync/internal/interfaces"
 	"itiquette/git-provider-sync/internal/log"
 	"itiquette/git-provider-sync/internal/model"
+	config "itiquette/git-provider-sync/internal/model/configuration"
 )
 
 // Archive represents operations for a compressed archive repository.
@@ -33,7 +34,7 @@ type Archive struct {
 //
 // Returns an error if any step of the process fails, including source directory validation,
 // target directory creation, file mapping, or archive creation.
-func (a Archive) Push(ctx context.Context, option model.PushOption, _ model.GitOption, _ model.GitOption) error {
+func (a Archive) Push(ctx context.Context, option model.PushOption, _ config.GitOption, _ config.GitOption) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Archive:Push")
 	option.DebugLog(logger).Msg("Archive:Push")
@@ -143,8 +144,8 @@ func nowString() string {
 // - repositoryName: The name of the repository.
 //
 // Returns a new Archive instance.
-func NewArchive(repository interfaces.GitRepository, repositoryName string) Archive {
-	gitClient := NewGit(repository, repositoryName)
+func NewArchive(repository interfaces.GitRepository) Archive {
+	gitClient := NewGit(repository, repository.Metainfo().OriginalName)
 
 	return Archive{gitClient: gitClient}
 }

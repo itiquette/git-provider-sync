@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"itiquette/git-provider-sync/internal/log"
+	model "itiquette/git-provider-sync/internal/model/configuration"
 	"strings"
 )
 
@@ -19,8 +20,8 @@ type CloneOption struct {
 	URL         string // The URL of the repository to clone
 	Mirror      bool   // Whether to create a mirror clone
 	TargetPath  string // The path where the repository will be cloned
-	Git         GitOption
-	HTTPClient  HTTPClientOption
+	Git         model.GitOption
+	HTTPClient  model.HTTPClientOption
 	InMem       bool
 }
 
@@ -33,11 +34,11 @@ type CloneOption struct {
 //
 // Returns:
 //   - A new CloneOption struct configured with the provided options.
-func NewCloneOption(ctx context.Context, info RepositoryMetainfo, mirror bool, targetPath string, gitInfo GitOption, httpClient HTTPClientOption, inMem bool) CloneOption {
+func NewCloneOption(ctx context.Context, info RepositoryMetainfo, mirror bool, targetPath string, config model.ProviderConfig) CloneOption {
 	logger := log.Logger(ctx)
 
 	var cloneURL string
-	if strings.EqualFold(gitInfo.Type, SSHAGENT) || strings.EqualFold(gitInfo.Type, SSHKEY) {
+	if strings.EqualFold(config.Git.Type, model.SSHAGENT) || strings.EqualFold(config.Git.Type, model.SSHKEY) {
 		cloneURL = info.SSHURL
 	} else {
 		cloneURL = info.HTTPSURL
@@ -48,7 +49,7 @@ func NewCloneOption(ctx context.Context, info RepositoryMetainfo, mirror bool, t
 		Str("target", targetPath).
 		Msg("Cloning repository")
 
-	return CloneOption{URL: cloneURL, Mirror: mirror, TargetPath: targetPath, Git: gitInfo, HTTPClient: httpClient, InMem: inMem}
+	return CloneOption{URL: cloneURL, Mirror: mirror, TargetPath: targetPath, Git: config.Git, HTTPClient: config.HTTPClient, InMem: config.Repositories.InMem}
 }
 
 // String provides a string representation of CloneOption.

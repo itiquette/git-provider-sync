@@ -19,9 +19,9 @@ import (
 	"net/http"
 	"strings"
 
-	"itiquette/git-provider-sync/internal/configuration"
 	"itiquette/git-provider-sync/internal/log"
 	"itiquette/git-provider-sync/internal/model"
+	config "itiquette/git-provider-sync/internal/model/configuration"
 	"itiquette/git-provider-sync/internal/provider/targetfilter"
 
 	"github.com/xanzy/go-gitlab"
@@ -34,7 +34,7 @@ type Client struct {
 }
 
 // Create creates a new repository in GitLab.
-func (glc Client) Create(ctx context.Context, config configuration.ProviderConfig, option model.CreateOption) error {
+func (glc Client) Create(ctx context.Context, config config.ProviderConfig, option model.CreateOption) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitLab:Create:")
 	config.DebugLog(logger).Msg("GitLab:Create:")
@@ -58,11 +58,11 @@ func (glc Client) Create(ctx context.Context, config configuration.ProviderConfi
 
 // Name returns the name of the client.
 func (glc Client) Name() string {
-	return configuration.GITLAB
+	return config.GITLAB
 }
 
 // Metainfos retrieves metadata information for repositories.
-func (glc Client) Metainfos(ctx context.Context, config configuration.ProviderConfig, filtering bool) ([]model.RepositoryMetainfo, error) {
+func (glc Client) Metainfos(ctx context.Context, config config.ProviderConfig, filtering bool) ([]model.RepositoryMetainfo, error) {
 	var metainfos []model.RepositoryMetainfo
 
 	var err error
@@ -79,7 +79,7 @@ func (glc Client) Metainfos(ctx context.Context, config configuration.ProviderCo
 	return metainfos, nil
 }
 
-func (glc Client) getRepositoryMetaInfos(ctx context.Context, config configuration.ProviderConfig) ([]model.RepositoryMetainfo, error) {
+func (glc Client) getRepositoryMetaInfos(ctx context.Context, config config.ProviderConfig) ([]model.RepositoryMetainfo, error) {
 	var repositories []*gitlab.Project
 
 	var err error
@@ -145,7 +145,7 @@ func (glc Client) IsValidRepositoryName(ctx context.Context, name string) bool {
 }
 
 // newRepositoryMetainfo creates a new RepositoryMetainfo instance.
-func newRepositoryMetainfo(ctx context.Context, config configuration.ProviderConfig, gitClient *gitlab.Client, name string) (model.RepositoryMetainfo, error) {
+func newRepositoryMetainfo(ctx context.Context, config config.ProviderConfig, gitClient *gitlab.Client, name string) (model.RepositoryMetainfo, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering newRepositoryMeta:")
 	logger.Debug().Str("name", name).Msg("newRepositoryMeta:")
@@ -225,7 +225,7 @@ func NewGitLabClient(ctx context.Context, option model.GitProviderClientOption, 
 	return Client{rawClient: client}, nil
 }
 
-func getProjectPath(config configuration.ProviderConfig, name string) string {
+func getProjectPath(config config.ProviderConfig, name string) string {
 	if config.IsGroup() {
 		return config.Group + "/" + name
 	}

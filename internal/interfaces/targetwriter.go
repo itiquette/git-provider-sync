@@ -7,6 +7,7 @@ package interfaces
 import (
 	"context"
 	"itiquette/git-provider-sync/internal/model"
+	config "itiquette/git-provider-sync/internal/model/configuration"
 )
 
 // TargetWriter defines the interface for pushing data to a target git provider.
@@ -29,7 +30,7 @@ type TargetWriter interface {
 	//   2. Prepare the data to be pushed based on the PushOption.
 	//   3. Perform the actual push operation.
 	//   4. Handle any errors or conflicts that may arise during the push.
-	Push(ctx context.Context, option model.PushOption, sourceGitOption model.GitOption, targetGitOption model.GitOption) error
+	Push(ctx context.Context, option model.PushOption, sourceGitOption config.GitOption, targetGitOption config.GitOption) error
 }
 
 // Example usage:

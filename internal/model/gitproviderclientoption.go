@@ -6,6 +6,7 @@ package model
 
 import (
 	"fmt"
+	model "itiquette/git-provider-sync/internal/model/configuration"
 	"strings"
 )
 
@@ -16,7 +17,7 @@ type GitProviderClientOption struct {
 	// ProviderType is the name or identifier of the git provider service (e.g., "github", "gitlab").
 	ProviderType string
 
-	HTTPClient HTTPClientOption
+	HTTPClient model.HTTPClientOption
 
 	// Domain is the domain of the git provider service (e.g., "github.com", "gitlab.com").
 	Domain string
@@ -24,7 +25,7 @@ type GitProviderClientOption struct {
 	// Scheme is the scheme of the git provider service (e.g., "https", "http". Default if empty is https).
 	Scheme string
 
-	Repositories RepositoriesOption
+	Repositories model.RepositoriesOption
 }
 
 // String provides a string representation of GitProviderClientOption.
@@ -51,16 +52,6 @@ func (gpo GitProviderClientOption) DomainWithScheme(scheme string) string {
 	return gpo.Domain
 }
 
-// maskToken is a helper function that masks all but the last 4 characters of a token.
-// If the token is 4 characters or less, it masks all characters.
-func maskToken(token string) string {
-	if len(token) <= 4 {
-		return strings.Repeat("*", len(token))
-	}
-
-	return strings.Repeat("*", len(token)-4) + token[len(token)-4:]
-}
-
 // NewGitProviderClientOption creates a new GitProviderClientOption instance.
 //
 // Parameters:
@@ -70,7 +61,7 @@ func maskToken(token string) string {
 //
 // Returns:
 //   - A new GitProviderClientOption instance.
-func NewGitProviderClientOption(providerType string, httpClient HTTPClientOption, domain string) GitProviderClientOption {
+func NewGitProviderClientOption(providerType string, httpClient model.HTTPClientOption, domain string) GitProviderClientOption {
 	return GitProviderClientOption{
 		ProviderType: providerType,
 		HTTPClient:   httpClient,

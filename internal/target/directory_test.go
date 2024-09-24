@@ -15,8 +15,8 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/stretchr/testify/require"
 
-	"itiquette/git-provider-sync/internal/configuration"
 	"itiquette/git-provider-sync/internal/model"
+	configuration "itiquette/git-provider-sync/internal/model/configuration"
 	"itiquette/git-provider-sync/internal/target"
 )
 
@@ -77,10 +77,10 @@ func TestDirectoryPush(t *testing.T) {
 				require.NoError(tabletest.modifySourceDir(t, tmpDirPath))
 			}
 
-			dirTarget := target.NewDirectory(rep, repoName)
-			option := model.NewPushOption(filepath.Join(tmpDirPath, tabletest.targetDirectory), false, false, model.HTTPClientOption{})
+			dirTarget := target.NewDirectory(rep)
+			option := model.NewPushOption(filepath.Join(tmpDirPath, tabletest.targetDirectory), false, false, configuration.HTTPClientOption{})
 
-			err := dirTarget.Push(ctxTest, option, model.GitOption{}, model.GitOption{})
+			err := dirTarget.Push(ctxTest, option, configuration.GitOption{}, configuration.GitOption{})
 
 			if tabletest.expectedErrorContains != "" {
 				require.ErrorContains(err, tabletest.expectedErrorContains)

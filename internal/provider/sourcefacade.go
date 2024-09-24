@@ -10,17 +10,17 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"itiquette/git-provider-sync/internal/configuration"
 	"itiquette/git-provider-sync/internal/interfaces"
 	"itiquette/git-provider-sync/internal/log"
 	"itiquette/git-provider-sync/internal/model"
+	config "itiquette/git-provider-sync/internal/model/configuration"
 )
 
 // Clone clones multiple repositories based on their metadata.
 // It takes a context, a SourceReader interface for cloning operations,
 // and a slice of RepositoryMetainfo containing information about the repositories to clone.
 // It returns a slice of GitRepository interfaces representing the cloned repositories and any error encountered.
-func Clone(ctx context.Context, reader interfaces.SourceReader, gitInfo model.GitOption, metainfos []model.RepositoryMetainfo, httpClient model.HTTPClientOption, repos model.RepositoriesOption) ([]interfaces.GitRepository, error) {
+func Clone(ctx context.Context, reader interfaces.SourceReader, providerConfig config.ProviderConfig, metainfos []model.RepositoryMetainfo) ([]interfaces.GitRepository, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Cloning repositories")
 
@@ -34,7 +34,7 @@ func Clone(ctx context.Context, reader interfaces.SourceReader, gitInfo model.Gi
 	for _, metainfo := range metainfos {
 		targetPath := filepath.Join(tmpDirPath, metainfo.OriginalName)
 
-		option := model.NewCloneOption(ctx, metainfo, true, targetPath, gitInfo, httpClient, repos.InMem)
+		option := model.NewCloneOption(ctx, metainfo, true, targetPath, providerConfig)
 
 		resultRepo, err := reader.Clone(ctx, option)
 		if err != nil {
@@ -51,7 +51,7 @@ func Clone(ctx context.Context, reader interfaces.SourceReader, gitInfo model.Gi
 // FetchMetainfo retrieves metadata information for repositories from a Git provider.
 // It takes a context, provider configuration, and a GitProvider interface.
 // It returns a slice of RepositoryMetainfo containing the fetched metadata and any error encountered.
-func FetchMetainfo(ctx context.Context, config configuration.ProviderConfig, gitProvider interfaces.GitProvider) ([]model.RepositoryMetainfo, error) {
+func FetchMetainfo(ctx context.Context, config config.ProviderConfig, gitProvider interfaces.GitProvider) ([]model.RepositoryMetainfo, error) {
 	logger := log.Logger(ctx)
 
 	// Log the metadata fetching operation
