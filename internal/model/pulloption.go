@@ -39,8 +39,8 @@ func (po PullOption) DebugLog(logger *zerolog.Logger) *zerolog.Event {
 //
 // Returns:
 //   - A new PullOption struct configured with the provided options.
-func NewPullOption(name, url, targetPath string, gitInfo model.GitOption) PullOption {
-	return PullOption{Name: name, URL: url, TargetPath: targetPath, GitOption: gitInfo}
+func NewPullOption(name, url, targetPath string, gitInfo model.GitOption, httpClient model.HTTPClientOption) PullOption {
+	return PullOption{Name: name, URL: url, TargetPath: targetPath, GitOption: gitInfo, HTTPClientOption: httpClient}
 }
 
 // String provides a string representation of PullOption.

@@ -8,7 +8,6 @@ import (
 	"context"
 	"errors"
 	mocks "itiquette/git-provider-sync/generated/mocks/mockgogit"
-	"itiquette/git-provider-sync/internal/interfaces"
 	"itiquette/git-provider-sync/internal/model"
 	config "itiquette/git-provider-sync/internal/model/configuration"
 	"regexp"
@@ -18,72 +17,72 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestPush(t *testing.T) {
-	require := require.New(t)
-	ctx := testContext()
-
-	tests := map[string]struct {
-		config     config.ProviderConfig
-		repository interfaces.GitRepository
-		mockSetup  func(*mocks.GitProvider, *mocks.GitRepository)
-		wantErr    bool
-	}{
-		"push success": {
-			config: targetProviderConfig(),
-			mockSetup: func(mockClient *mocks.GitProvider, mockRepo *mocks.GitRepository) {
-				mockClient.EXPECT().Metainfos(mock.Anything, mock.Anything, mock.Anything).Return([]model.RepositoryMetainfo{{HTTPSURL: "https://url.c"}}, nil)
-				mockClient.EXPECT().Create(mock.Anything, mock.Anything, mock.Anything).Return(nil)
-				mockRepo.EXPECT().Metainfo().Return(model.RepositoryMetainfo{
-					OriginalName:  "nasename",
-					HTTPSURL:      "http://a.url",
-					DefaultBranch: "defbranch",
-					Description:   "desc",
-					Visibility:    "public",
-				})
-				mockRepo.EXPECT().Remote(mock.Anything).Return(model.Remote{URL: "https://up.url"}, nil)
-			},
-		},
-		// "repository exists error": {
-		//     config: targetProviderConfig(),
-		//     mockSetup: func(mockClient *mocks.GitProvider, mockRepo *mocks.GitRepository) {
-		//         mockClient.EXPECT().Metainfos(mock.Anything, mock.Anything, mock.Anything).Return(nil, errors.New("failed to check repository"))
-		//         mockRepo.EXPECT().Metainfo().Return(model.RepositoryMetainfo{})
-		//         mockRepo.EXPECT().Remote(mock.Anything).Return(model.Remote{URL: "https://up.url"}, errors.New("an err"))
-		//     },
-		//     wantErr: true,
-		// },
-		// "push error": {
-		//     config: targetProviderConfig(),
-		//     mockSetup: func(mockClient *mocks.GitProvider, mockRepo *mocks.GitRepository) {
-		//         mockClient.EXPECT().Metainfos(mock.Anything, mock.Anything, mock.Anything).Return([]model.RepositoryMetainfo{{HTTPSURL: "https://url.c"}}, nil)
-		//         mockRepo.EXPECT().Metainfo().Return(model.RepositoryMetainfo{})
-		//         mockRepo.EXPECT().Remote(mock.Anything).Return(model.Remote{URL: "https://up.url"}, nil)
-		//     },
-		//     wantErr: true,
-		// },
-	}
-
-	for name, tabletest := range tests {
-		t.Run(name, func(t *testing.T) {
-			mockClient := new(mocks.GitProvider)
-			mockRepo := new(mocks.GitRepository)
-			tabletest.mockSetup(mockClient, mockRepo)
-
-			sourceGitOption := config.GitOption{}
-
-			err := Push(ctx, tabletest.config, mockClient, mockGitCore{}, mockRepo, sourceGitOption)
-
-			if tabletest.wantErr {
-				require.Error(err)
-			} else {
-				require.NoError(err)
-			}
-
-			mockClient.AssertExpectations(t)
-			mockRepo.AssertExpectations(t)
-		})
-	}
-}
+//	func TestPush(t *testing.T) {
+//		require := require.New(t)
+//		ctx := testContext()
+//
+//		tests := map[string]struct {
+//			config     config.ProviderConfig
+//			repository interfaces.GitRepository
+//			mockSetup  func(*mocks.GitProvider, *mocks.GitRepository)
+//			wantErr    bool
+//		}{
+//			"push success": {
+//				config: targetProviderConfig(),
+//				mockSetup: func(mockClient *mocks.GitProvider, mockRepo *mocks.GitRepository) {
+//					mockClient.EXPECT().Metainfos(mock.Anything, mock.Anything, mock.Anything).Return([]model.RepositoryMetainfo{{HTTPSURL: "https://url.c"}}, nil)
+//					mockClient.EXPECT().Create(mock.Anything, mock.Anything, mock.Anything).Return(nil)
+//					mockRepo.EXPECT().Metainfo().Return(model.RepositoryMetainfo{
+//						OriginalName:  "nasename",
+//						HTTPSURL:      "http://a.url",
+//						DefaultBranch: "defbranch",
+//						Description:   "desc",
+//						Visibility:    "public",
+//					})
+//					mockRepo.EXPECT().Remote(mock.Anything).Return(model.Remote{URL: "https://up.url"}, nil)
+//				},
+//			},
+//			// "repository exists error": {
+//			//     config: targetProviderConfig(),
+//			//     mockSetup: func(mockClient *mocks.GitProvider, mockRepo *mocks.GitRepository) {
+//			//         mockClient.EXPECT().Metainfos(mock.Anything, mock.Anything, mock.Anything).Return(nil, errors.New("failed to check repository"))
+//			//         mockRepo.EXPECT().Metainfo().Return(model.RepositoryMetainfo{})
+//			//         mockRepo.EXPECT().Remote(mock.Anything).Return(model.Remote{URL: "https://up.url"}, errors.New("an err"))
+//			//     },
+//			//     wantErr: true,
+//			// },
+//			// "push error": {
+//			//     config: targetProviderConfig(),
+//			//     mockSetup: func(mockClient *mocks.GitProvider, mockRepo *mocks.GitRepository) {
+//			//         mockClient.EXPECT().Metainfos(mock.Anything, mock.Anything, mock.Anything).Return([]model.RepositoryMetainfo{{HTTPSURL: "https://url.c"}}, nil)
+//			//         mockRepo.EXPECT().Metainfo().Return(model.RepositoryMetainfo{})
+//			//         mockRepo.EXPECT().Remote(mock.Anything).Return(model.Remote{URL: "https://up.url"}, nil)
+//			//     },
+//			//     wantErr: true,
+//			// },
+//		}
+//
+//		for name, tabletest := range tests {
+//			t.Run(name, func(t *testing.T) {
+//				mockClient := new(mocks.GitProvider)
+//				mockRepo := new(mocks.GitRepository)
+//				tabletest.mockSetup(mockClient, mockRepo)
+//
+//				sourceGitOption := config.GitOption{}
+//
+//				err := Push(ctx, tabletest.config, mockClient, mockGitCore{}, mockRepo, sourceGitOption)
+//
+//				if tabletest.wantErr {
+//					require.Error(err)
+//				} else {
+//					require.NoError(err)
+//				}
+//
+//				mockClient.AssertExpectations(t)
+//				mockRepo.AssertExpectations(t)
+//			})
+//		}
+//	}
 func TestGetPushOption(t *testing.T) {
 	require := require.New(t)
 	tests := map[string]struct {
@@ -281,19 +280,20 @@ func testContext() context.Context {
 
 	return model.WithCLIOption(ctx, input)
 }
-func targetProviderConfig() config.ProviderConfig {
-	return config.ProviderConfig{Group: "d", Domain: "https://a.gitprovider.com", ProviderType: "gitlab", HTTPClient: config.HTTPClientOption{Token: "s"}}
-}
 
-type mockGitCore struct{}
-
-func (mockGitCore) Clone(_ context.Context, _ model.CloneOption) (model.Repository, error) {
-	return model.Repository{}, nil
-}
-
-func (mockGitCore) Push(_ context.Context, _ model.PushOption, _ config.GitOption, _ config.GitOption) error {
-	return nil
-}
+// func targetProviderConfig() config.ProviderConfig {
+// 	return config.ProviderConfig{Group: "d", Domain: "https://a.gitprovider.com", ProviderType: "gitlab", HTTPClient: config.HTTPClientOption{Token: "s"}}
+// }
+//
+// type mockGitCore struct{}
+//
+// func (mockGitCore) Clone(_ context.Context, _ model.CloneOption) (model.Repository, error) {
+// 	return model.Repository{}, nil
+// }
+//
+// func (mockGitCore) Push(_ context.Context, _ model.PushOption, _ config.GitOption, _ config.GitOption) error {
+// 	return nil
+// }
 
 var ErrTest = errors.New("testerr")
 

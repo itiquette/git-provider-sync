@@ -8,7 +8,6 @@ package provider
 import (
 	"context"
 	"fmt"
-	"path/filepath"
 
 	"itiquette/git-provider-sync/internal/interfaces"
 	"itiquette/git-provider-sync/internal/log"
@@ -20,28 +19,21 @@ import (
 // It takes a context, a SourceReader interface for cloning operations,
 // and a slice of RepositoryMetainfo containing information about the repositories to clone.
 // It returns a slice of GitRepository interfaces representing the cloned repositories and any error encountered.
-func Clone(ctx context.Context, reader interfaces.SourceReader, providerConfig config.ProviderConfig, metainfos []model.RepositoryMetainfo) ([]interfaces.GitRepository, error) {
+func Clone(ctx context.Context, reader interfaces.SourceReader, sourceProviderConfig config.ProviderConfig, metainfos []model.RepositoryMetainfo) ([]interfaces.GitRepository, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Cloning repositories")
 
 	repositories := make([]interfaces.GitRepository, 0, len(metainfos))
-	tmpDirPath, err := model.GetTmpDirPath(ctx)
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to clone, could not get tmp dir path: %s %w", tmpDirPath, err)
-	}
 
 	for _, metainfo := range metainfos {
-		targetPath := filepath.Join(tmpDirPath, metainfo.OriginalName)
-
-		option := model.NewCloneOption(ctx, metainfo, true, targetPath, providerConfig)
+		option := model.NewCloneOption(ctx, metainfo, true, sourceProviderConfig)
 
 		resultRepo, err := reader.Clone(ctx, option)
 		if err != nil {
 			return nil, fmt.Errorf("failed to clone repository %s: %w", metainfo.OriginalName, err)
 		}
-
 		resultRepo.Meta = metainfo
+
 		repositories = append(repositories, resultRepo)
 	}
 

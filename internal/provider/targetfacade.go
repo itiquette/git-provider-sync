@@ -36,20 +36,22 @@ var (
 //   - repository: The Git repository interface
 //
 // Returns an error if any step in the process fails.
-func Push(ctx context.Context, providerConfig config.ProviderConfig, provider interfaces.GitProvider, writer interfaces.TargetWriter, repository interfaces.GitRepository, sourceGitOption config.GitOption) error {
+func Push(ctx context.Context, targetProviderConfig config.ProviderConfig, provider interfaces.GitProvider, writer interfaces.TargetWriter, repository interfaces.GitRepository, sourceProviderConfig config.ProviderConfig) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Push:")
-	providerConfig.DebugLog(logger).Msg("Push:")
+	targetProviderConfig.DebugLog(logger).Msg("Push:")
 
-	if _, _, err := exists(ctx, providerConfig, provider, repository); err != nil {
+	if _, _, err := exists(ctx, targetProviderConfig, provider, repository); err != nil {
 		return fmt.Errorf("failed to check if the repository exists at provider: %w", err)
 	}
 
 	cliOptions := model.CLIOptions(ctx)
 
-	pushOption := getPushOption(ctx, providerConfig, repository, cliOptions.ForcePush)
+	pushOption := getPushOption(ctx, targetProviderConfig, repository, cliOptions.ForcePush)
 
-	if err := writer.Push(ctx, pushOption, sourceGitOption, providerConfig.Git); err != nil {
+	fmt.Println(repository.GoGitRepository().Branch("main"))
+
+	if err := writer.Push(ctx, repository, pushOption, sourceProviderConfig, targetProviderConfig.Git); err != nil {
 		return fmt.Errorf("%w: %w", ErrPushChanges, err)
 	}
 

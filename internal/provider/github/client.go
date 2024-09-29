@@ -141,6 +141,8 @@ func (ghc *Client) processRepositories(ctx context.Context, config config.Provid
 
 		name := repo.GetName()
 		metainfo, err := newRepositoryMeta(ctx, config, ghc.rawClient, name)
+		fmt.Printf("mata %s\n", metainfo.OriginalName)
+		fmt.Printf("mata %s\n", metainfo.SSHURL)
 
 		if err != nil {
 			logger.Warn().Err(err).Str("repo", name).Msg("Failed to create organization repository metadata")
@@ -256,7 +258,7 @@ func getValueOrEmpty(s *string) string {
 		return *s
 	}
 
-	return ""
+	return "N/A"
 }
 
 // getTimeOrNil is a helper function that converts a GitHub Timestamp to a standard time.Time pointer,

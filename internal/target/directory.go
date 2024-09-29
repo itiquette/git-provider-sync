@@ -1,208 +1,105 @@
 // SPDX-FileCopyrightText: 2024 Josef Andersson
 //
 // SPDX-License-Identifier: EUPL-1.2
-
 package target
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"os"
-	"path/filepath"
-	"strconv"
-	"strings"
-	"time"
-
 	"itiquette/git-provider-sync/internal/interfaces"
 	"itiquette/git-provider-sync/internal/log"
 	"itiquette/git-provider-sync/internal/model"
-	config "itiquette/git-provider-sync/internal/model/configuration"
 	"itiquette/git-provider-sync/internal/provider/stringconvert"
+	"os"
+	"path/filepath"
+	"strconv"
+	"time"
+
+	gpsconfig "itiquette/git-provider-sync/internal/model/configuration"
+
+	"github.com/go-git/go-billy/v5/osfs"
+	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/config"
+	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/go-git/go-git/v5/plumbing/storer"
+	"github.com/go-git/go-git/v5/storage/filesystem"
 )
 
-// Directory represents a directory target for git repositories.
-// It manages the storage and synchronization of git repositories in a local directory structure.
-// By default, it clones repositories to a working copy and fetches all branches locally.
 type Directory struct {
-	gitClient Git // gitClient is the interface for interacting with git operations
+	gitClient Git
 }
 
-// Push writes an existing repository to a target directory according to the given push options.
-// It handles the process of cloning a new repository or updating an existing one.
-func (dir Directory) Push(ctx context.Context, option model.PushOption, sourceGitOption config.GitOption, _ config.GitOption) error {
+func NewDirectory(repository interfaces.GitRepository) Directory {
+	return Directory{gitClient: NewGit(repository, repository.Metainfo().OriginalName)}
+}
+
+func (dir Directory) Push(ctx context.Context, repository interfaces.GitRepository, option model.PushOption, sourceGitOption gpsconfig.ProviderConfig, _ gpsconfig.GitOption) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Directory: Push")
 	option.DebugLog(logger).Msg("Directory: Push")
 
-	name := dir.gitClient.name
-	tmpDir, _ := model.GetTmpDirPath(ctx)
-	sourceRepoDir := filepath.Join(tmpDir, name)
-
-	// // Verify the source repository exists and is not empty
-	// if err := checkSourceRepoExists(sourceRepoDir); err != nil {
-	// 	return fmt.Errorf("source repository check failed: %w", err)
-	// }
-
-	// Clean up the repository name if required by CLI options
-	cliOption := model.CLIOptions(ctx)
-	if cliOption.CleanupName {
-		name = stringconvert.RemoveNonAlphaNumericChars(ctx, name)
-	}
-
+	name := dir.getRepositoryName(ctx)
 	targetDirPath := filepath.Join(option.Target, name)
 	logger.Debug().Str("path", targetDirPath).Msg("Targeting directory")
 
-	// Ensure the target directory exists
 	if err := os.MkdirAll(option.Target, os.ModePerm); err != nil {
 		return fmt.Errorf("failed to create directory at %s: %w", option.Target, err)
 	}
 
-	// Determine whether to clone or pull based on CLI options and directory existence
+	cliOption := model.CLIOptions(ctx)
 	if cliOption.ForcePush || !directoryExists(targetDirPath) {
-		return dir.handleClone(ctx, sourceRepoDir, targetDirPath)
+		return dir.handleClone(ctx, repository, targetDirPath)
 	}
 
 	return dir.handlePull(ctx, targetDirPath, sourceGitOption)
 }
 
-// checkSourceRepoExists verifies the existence of the source repository directory and checks for files.
-// It ensures that the directory exists and is not empty.
-//
-// Parameters:
-// - dir: The path to the source repository directory.
-//
-// Returns an error if the directory doesn't exist or is empty.
-// func checkSourceRepoExists(dir string) error {
-// 	if _, err := os.Stat(dir); os.IsNotExist(err) {
-// 		return fmt.Errorf("source directory/repository %s does not exist", dir)
-// 	}
-//
-// 	files, err := os.ReadDir(dir)
-// 	if err != nil {
-// 		return fmt.Errorf("failed to read directory %s: %w", dir, err)
-// 	}
-//
-// 	if len(files) == 0 {
-// 		return errors.New("no files found in source directory")
-// 	}
-//
-// 	return nil
-// }
+func (dir Directory) getRepositoryName(ctx context.Context) string {
+	name := dir.gitClient.name
+	cliOption := model.CLIOptions(ctx)
 
-// directoryExists checks if a directory exists at the given path.
-//
-// Parameters:
-// - dir: The path to check for existence.
-//
-// Returns true if the directory exists, false otherwise.
+	if cliOption.CleanupName {
+		name = stringconvert.RemoveNonAlphaNumericChars(ctx, name)
+	}
+
+	return name
+}
+
 func directoryExists(dir string) bool {
 	_, err := os.Stat(dir)
 
 	return !os.IsNotExist(err)
 }
 
-// handleClone manages the process of cloning a repository to the target directory.
-// It moves any existing directory to a temporary location, clones the repository,
-// fetches branches, and sets up the remote.
-//
-// Parameters:
-// - ctx: The context for the operation.
-// - sourceRepoDir: The path to the source repository.
-// - targetDirPath: The path where the repository should be cloned.
-//
-// Returns an error if any step of the cloning process fails.
-func (dir Directory) handleClone(ctx context.Context, sourceRepoDir, targetDirPath string) error {
-	logger := log.Logger(ctx)
-
+func (dir Directory) handleClone(ctx context.Context, repository interfaces.GitRepository, targetDirPath string) error {
 	if err := moveDirToTmp(ctx, targetDirPath); err != nil {
 		return fmt.Errorf("failed to move directory to tmp: %w", err)
 	}
 
-	metainfo := model.RepositoryMetainfo{
-		HTTPSURL: sourceRepoDir,
-		SSHURL:   sourceRepoDir,
-	}
-	cloneOption := model.NewCloneOption(ctx, metainfo, false, targetDirPath, config.ProviderConfig{})
-
-	fmt.Println("asdfsdafas")
-	fmt.Println(cloneOption)
-
-	repo, err := dir.gitClient.Clone(ctx, cloneOption)
+	err := writeInMemRepoToDisk(repository.GoGitRepository(), targetDirPath, false)
 	if err != nil {
-		if strings.Contains(err.Error(), "repository is empty") {
-			logger.Info().Str("Repository", dir.gitClient.name).Msg("No content in Repository, ignoring Clone")
-
-			return nil
-		}
-
-		return fmt.Errorf("failed to clone repository to %s: %w", targetDirPath, err)
+		return fmt.Errorf("failed to write in-memory repo to disk: %w", err)
 	}
 
-	if err := dir.gitClient.Fetch(ctx, repo); err != nil && !strings.Contains(err.Error(), "already up-to-date") {
-		return fmt.Errorf("failed to fetch branches: %w", err)
-	}
-
-	return dir.setupRemote(ctx, repo)
+	return nil
 }
 
-// handlePull manages the process of pulling updates for an existing repository.
-//
-// Parameters:
-// - ctx: The context for the operation.
-// - targetDirPath: The path to the existing repository.
-//
-// Returns an error if the pull operation fails.
-func (dir Directory) handlePull(ctx context.Context, targetDirPath string, sourceGitinfo config.GitOption) error {
-	pullOption := model.NewPullOption("", "", targetDirPath, sourceGitinfo)
-	if err := dir.gitClient.Pull(ctx, dir.gitClient.goGitRepository, pullOption); err != nil {
+func (dir Directory) handlePull(ctx context.Context, targetDirPath string, sourceGitinfo gpsconfig.ProviderConfig) error {
+	pullOption := model.NewPullOption("", "", targetDirPath, sourceGitinfo.Git, sourceGitinfo.HTTPClient)
+
+	if err := dir.gitClient.Pull(ctx, targetDirPath, pullOption); err != nil {
 		return fmt.Errorf("failed to pull updates to %s: %w", targetDirPath, err)
 	}
 
 	return nil
 }
 
-// setupRemote configures the remote for a repository.
-// It creates a new 'origin' remote based on the 'gpsupstream' remote URL.
-//
-// Parameters:
-// - ctx: The context for the operation.
-// - repo: The git repository interface.
-//
-// Returns an error if setting up the remote fails.
-func (dir Directory) setupRemote(_ context.Context, repo interfaces.GitRepository) error {
-	repository, err := model.NewRepository(dir.gitClient.goGitRepository)
-	if err != nil {
-		return fmt.Errorf("failed to create repository abstraction: %w", err)
-	}
-
-	remote, err := repository.Remote(config.GPSUPSTREAM)
-	if err != nil {
-		return fmt.Errorf("failed to get remote %s: %w", config.GPSUPSTREAM, err)
-	}
-
-	if err := repo.DeleteRemote(config.ORIGIN); err != nil {
-		return fmt.Errorf("failed to delete remote %s: %w", config.ORIGIN, err)
-	}
-
-	if err := repo.CreateRemote(config.ORIGIN, remote.URL, true); err != nil {
-		return fmt.Errorf("failed to create remote %s: %w", config.ORIGIN, err)
-	}
-
-	return nil
-}
-
-// moveDirToTmp moves an existing directory to a temporary location.
-// This is typically used to backup an existing directory before performing operations that might modify it.
-//
-// Parameters:
-// - ctx: The context for the operation.
-// - dirPath: The path of the directory to move.
-//
-// Returns an error if moving the directory fails.
 func moveDirToTmp(ctx context.Context, dirPath string) error {
 	logger := log.Logger(ctx)
 
-	if _, err := os.Stat(dirPath); os.IsNotExist(err) {
+	if !directoryExists(dirPath) {
 		logger.Debug().Str("dirPath", dirPath).Msg("Directory does not exist")
 
 		return nil
@@ -232,12 +129,6 @@ func moveDirToTmp(ctx context.Context, dirPath string) error {
 	return nil
 }
 
-// isDirectory checks if the given path is a directory.
-//
-// Parameters:
-// - path: The file system path to check.
-//
-// Returns true if the path is a directory, false otherwise. An error is returned if the path cannot be accessed.
 func isDirectory(path string) (bool, error) {
 	fileInfo, err := os.Stat(path)
 	if err != nil {
@@ -247,14 +138,274 @@ func isDirectory(path string) (bool, error) {
 	return fileInfo.IsDir(), nil
 }
 
-// NewDirectory creates a new Directory instance.
-// This is the constructor for the Directory type.
-//
-// Parameters:
-// - repository: The git repository interface.
-// - repositoryName: The name of the repository.
-//
-// Returns a new Directory instance.
-func NewDirectory(repository interfaces.GitRepository) Directory {
-	return Directory{gitClient: NewGit(repository, repository.Metainfo().OriginalName)}
+func writeInMemRepoToDisk(inMemRepo *git.Repository, targetPath string, makeBare bool) error {
+	fileSystemRepo, err := initializeRepository(targetPath, makeBare)
+	if err != nil {
+		return err
+	}
+
+	if err := setupRemote(inMemRepo, fileSystemRepo); err != nil {
+		return err
+	}
+
+	if err := copyObjects(inMemRepo, fileSystemRepo); err != nil {
+		return err
+	}
+
+	if err := copyRefsAndBranches(inMemRepo, fileSystemRepo); err != nil {
+		return err
+	}
+
+	if err := setDefaultBranch(inMemRepo, fileSystemRepo); err != nil {
+		return err
+	}
+
+	if !makeBare {
+		if err := checkoutDefaultBranch(fileSystemRepo); err != nil {
+			return err
+		}
+	}
+
+	if err := fetchRemoteBranches(fileSystemRepo); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func initializeRepository(targetPath string, makeBare bool) (*git.Repository, error) {
+	if err := os.MkdirAll(targetPath, 0755); err != nil {
+		return nil, fmt.Errorf("error creating target directory: %w", err)
+	}
+
+	var fileSystemRepo *git.Repository
+
+	var err error
+
+	if makeBare {
+		fs := osfs.New(targetPath)
+		storage := filesystem.NewStorage(fs, nil)
+
+		fileSystemRepo, err = git.Init(storage, nil)
+		if err != nil {
+			return nil, fmt.Errorf("error initializing bare repository: %w", err)
+		}
+
+		targetRepositoryConfig, _ := fileSystemRepo.Config()
+		targetRepositoryConfig.Core.IsBare = true
+		_ = fileSystemRepo.SetConfig(targetRepositoryConfig)
+	} else {
+		fileSystemRepo, err = git.PlainInit(targetPath, false)
+		if err != nil {
+			return nil, fmt.Errorf("error initializing non-bare repository: %w", err)
+		}
+	}
+
+	return fileSystemRepo, nil
+}
+
+func setupRemote(src, dst *git.Repository) error {
+	remotes, err := src.Remotes()
+	if err != nil {
+		return fmt.Errorf("error getting remotes: %w", err)
+	}
+
+	for _, remote := range remotes {
+		_, err = dst.CreateRemote(&config.RemoteConfig{
+			Name: remote.Config().Name,
+			URLs: remote.Config().URLs,
+		})
+		if err != nil && !errors.Is(err, git.ErrRemoteExists) {
+			return fmt.Errorf("error creating remote %s: %w", remote.Config().Name, err)
+		}
+	}
+
+	return nil
+}
+
+func copyObjects(src, dst *git.Repository) error {
+	srcObjects, err := src.Objects()
+	if err != nil {
+		return fmt.Errorf("failed to get objects from Git source Repository. err: %w", err)
+	}
+
+	dstStorer := dst.Storer
+
+	err = srcObjects.ForEach(func(obj object.Object) error {
+		encodedObj, err := src.Storer.EncodedObject(obj.Type(), obj.ID())
+		if err != nil {
+			return fmt.Errorf("error encoding object %s: %w", obj.ID(), err)
+		}
+
+		_, err = dstStorer.SetEncodedObject(encodedObj)
+		if err != nil {
+			return fmt.Errorf("failed to encode Git Object while copying. err: %w", err)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("failed while iterating Git object for copy. Err: %w", err)
+	}
+
+	return nil
+}
+
+func copyRefsAndBranches(src, dst *git.Repository) error {
+	refs, err := src.References()
+	if err != nil {
+		return fmt.Errorf("error getting references from source repository: %w", err)
+	}
+
+	if err := copyReferences(refs, dst); err != nil {
+		return fmt.Errorf("failed while iterating Git reference for copy. Err: %w", err)
+	}
+
+	if err := setupBranchTracking(src, dst); err != nil {
+		return fmt.Errorf("failed while setting up branch tracking. Err: %w", err)
+	}
+
+	return nil
+}
+
+func copyReferences(refs storer.ReferenceIter, dst *git.Repository) error {
+	err := refs.ForEach(func(ref *plumbing.Reference) error {
+		if ref.Type() != plumbing.HashReference {
+			return nil // Skip symbolic references
+		}
+
+		return dst.Storer.SetReference(ref)
+	})
+	if err != nil {
+		return fmt.Errorf("failed while iterating Git references for copy. Err: %w", err)
+	}
+
+	return nil
+}
+
+func setupBranchTracking(src, dst *git.Repository) error {
+	branches, err := src.Branches()
+	if err != nil {
+		return fmt.Errorf("error getting branches: %w", err)
+	}
+
+	err = branches.ForEach(func(branch *plumbing.Reference) error {
+		branchName := branch.Name().Short()
+
+		if err := createRemoteTrackingBranch(dst, branchName, branch.Hash()); err != nil {
+			return fmt.Errorf("failed while creating remote tracking branch. Err: %w", err)
+		}
+
+		if err := setupTrackingConfig(dst, branchName); err != nil {
+			return fmt.Errorf("failed while setting up tracking. Err: %w", err)
+		}
+
+		if err := createLocalBranch(dst, branchName, branch.Hash()); err != nil {
+			return fmt.Errorf("failed while creating local branch. Err: %w", err)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("failed while setting up branch tracking. Err: %w", err)
+	}
+
+	return nil
+}
+
+func createRemoteTrackingBranch(repo *git.Repository, branchName string, hash plumbing.Hash) error {
+	remoteRef := plumbing.NewHashReference(
+		plumbing.ReferenceName("refs/remotes/origin/"+branchName),
+		hash,
+	)
+
+	err := repo.Storer.SetReference(remoteRef)
+	if err != nil {
+		return fmt.Errorf("failed while setting reference. Err: %w", err)
+	}
+
+	return nil
+}
+
+func setupTrackingConfig(repo *git.Repository, branchName string) error {
+	cfg, err := repo.Config()
+	if err != nil {
+		return fmt.Errorf("error getting config: %w", err)
+	}
+
+	cfg.Branches[branchName] = &config.Branch{
+		Name:   branchName,
+		Remote: "origin",
+		Merge:  plumbing.ReferenceName("refs/heads/" + branchName),
+	}
+
+	err = repo.SetConfig(cfg)
+	if err != nil {
+		return fmt.Errorf("failed while setting  config. Err: %w", err)
+	}
+
+	return nil
+}
+
+func createLocalBranch(repo *git.Repository, branchName string, hash plumbing.Hash) error {
+	localRef := plumbing.NewHashReference(
+		plumbing.ReferenceName("refs/heads/"+branchName),
+		hash,
+	)
+
+	err := repo.Storer.SetReference(localRef)
+	if err != nil {
+		return fmt.Errorf("error setting reference: %w", err)
+	}
+
+	return nil
+}
+
+func setDefaultBranch(src, dst *git.Repository) error {
+	headRef, err := src.Head()
+	if err != nil {
+		return fmt.Errorf("error getting HEAD reference: %w", err)
+	}
+
+	err = dst.Storer.SetReference(plumbing.NewSymbolicReference(plumbing.HEAD, headRef.Name()))
+	if err != nil {
+		return fmt.Errorf("error setting HEAD reference: %w", err)
+	}
+
+	return nil
+}
+
+func checkoutDefaultBranch(repo *git.Repository) error {
+	worktree, err := repo.Worktree()
+	if err != nil {
+		return fmt.Errorf("error getting worktree: %w", err)
+	}
+
+	headRef, err := repo.Head()
+	if err != nil {
+		return fmt.Errorf("error getting HEAD reference: %w", err)
+	}
+
+	err = worktree.Checkout(&git.CheckoutOptions{
+		Branch: headRef.Name(),
+		Force:  true,
+	})
+	if err != nil {
+		return fmt.Errorf("error checking out default branch: %w", err)
+	}
+
+	return nil
+}
+
+func fetchRemoteBranches(repo *git.Repository) error {
+	err := repo.Fetch(&git.FetchOptions{
+		RemoteName: "origin",
+		RefSpecs:   []config.RefSpec{"+refs/heads/*:refs/remotes/origin/*"},
+		Force:      true,
+	})
+	if err != nil && errors.Is(err, git.NoErrAlreadyUpToDate) {
+		return fmt.Errorf("error fetching from origin: %w", err)
+	}
+
+	return nil
 }

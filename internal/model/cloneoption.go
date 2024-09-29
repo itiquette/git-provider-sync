@@ -19,10 +19,8 @@ type CloneOption struct {
 	CleanupName bool   // Whether to clean up the repository name
 	URL         string // The URL of the repository to clone
 	Mirror      bool   // Whether to create a mirror clone
-	TargetPath  string // The path where the repository will be cloned
 	Git         model.GitOption
 	HTTPClient  model.HTTPClientOption
-	InMem       bool
 }
 
 // NewCloneOption creates a new CloneOption.
@@ -34,30 +32,28 @@ type CloneOption struct {
 //
 // Returns:
 //   - A new CloneOption struct configured with the provided options.
-func NewCloneOption(ctx context.Context, info RepositoryMetainfo, mirror bool, targetPath string, config model.ProviderConfig) CloneOption {
+func NewCloneOption(ctx context.Context, metainfo RepositoryMetainfo, mirror bool, providerConfig model.ProviderConfig) CloneOption {
 	logger := log.Logger(ctx)
 
 	var cloneURL string
-	if strings.EqualFold(config.Git.Type, model.SSHAGENT) || strings.EqualFold(config.Git.Type, model.SSHKEY) {
-		cloneURL = info.SSHURL
+	if strings.EqualFold(providerConfig.Git.Type, model.SSHAGENT) || strings.EqualFold(providerConfig.Git.Type, model.SSHKEY) {
+		cloneURL = metainfo.SSHURL
 	} else {
-		cloneURL = info.HTTPSURL
+		cloneURL = metainfo.HTTPSURL
 	}
 
 	logger.Info().
 		Str("url", cloneURL).
-		Str("target", targetPath).
 		Msg("Cloning repository")
 
-	return CloneOption{URL: cloneURL, Mirror: mirror, TargetPath: targetPath, Git: config.Git, HTTPClient: config.HTTPClient, InMem: config.Repositories.InMem}
+	return CloneOption{URL: cloneURL, Mirror: mirror, Git: providerConfig.Git, HTTPClient: providerConfig.HTTPClient}
 }
 
 // String provides a string representation of CloneOption.
 func (co CloneOption) String() string {
-	return fmt.Sprintf("CloneOption{CleanupName: %v, URL: %q, Mirror: %v, TargetPath: %q, GitOption: %+v}",
+	return fmt.Sprintf("CloneOption{CleanupName: %v, URL: %q, Mirror: %v, GitOption: %+v}",
 		co.CleanupName,
 		co.URL,
 		co.Mirror,
-		co.TargetPath,
 		co.Git)
 }
