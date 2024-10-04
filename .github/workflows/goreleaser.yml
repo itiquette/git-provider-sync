@@ -34,7 +34,7 @@ jobs:
           egress-policy: audit
 
       - name: Checkout repository
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 #v4.1.7
+        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 #v4.2.0
         with:
           fetch-depth: 0
 
@@ -49,7 +49,7 @@ jobs:
       #     GITHUB_API_TOKEN: ${{ secrets.GH_API_TOKEN }}
       #   run: git config --global url."https://x:${GITHUB_API_TOKEN}@github.com".insteadOf "https://github.com"
 
-      - uses: sigstore/cosign-installer@4959ce089c160fddf62f7b42464195ba1a56d382 #v3.6.0
+      - uses: sigstore/cosign-installer@dc72c7d5c4d10cd6bcb8cf6e3fd625a9e5e537da #v3.7.0
       - uses: anchore/sbom-action/download-syft@61119d458adab75f756bc0b9e4bde25725f86a7a #v0.17.2
       - uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 #v3.3.0
         with:
@@ -160,7 +160,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install Cosign
-        uses: sigstore/cosign-installer@4959ce089c160fddf62f7b42464195ba1a56d382 #v3.6.0
+        uses: sigstore/cosign-installer@dc72c7d5c4d10cd6bcb8cf6e3fd625a9e5e537da #v3.7.0
 
       - name: Verify image
         env:
