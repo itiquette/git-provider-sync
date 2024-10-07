@@ -10,7 +10,6 @@ require (
 	code.gitea.io/sdk/gitea v0.19.0
 	github.com/go-git/go-git/v5 v5.12.0
 	github.com/google/go-github/v65 v65.0.0
-	github.com/hashicorp/go-retryablehttp v0.7.7
 	github.com/knadh/koanf/parsers/dotenv v1.0.0
 	github.com/knadh/koanf/parsers/yaml v0.1.0
 	github.com/knadh/koanf/providers/env v0.1.0
@@ -20,12 +19,13 @@ require (
 	github.com/rs/zerolog v1.33.0
 	github.com/spf13/cobra v1.8.1
 	github.com/stretchr/testify v1.9.0
-	github.com/xanzy/go-gitlab v0.109.0
+	github.com/xanzy/go-gitlab v0.110.0
 )
 
 require (
 	github.com/davidmz/go-pageant v1.0.2 // indirect
 	github.com/go-fed/httpsig v1.1.0 // indirect
+	github.com/hashicorp/go-retryablehttp v0.7.7 // indirect
 	github.com/hashicorp/go-version v1.7.0 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/muesli/mango v0.2.0 // indirect
