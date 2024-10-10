@@ -276,7 +276,7 @@ func removeTimestamp(input string) string {
 func testContext() context.Context {
 	ctx := context.Background()
 	input := model.CLIOption{CleanupName: true}
-	ctx, _ = model.CreateTmpDir(ctx, "", "testadir")
+	//ctx, _ = model.CreateTmpDir(ctx, "", "testadir")
 
 	return model.WithCLIOption(ctx, input)
 }

@@ -106,8 +106,6 @@ func (g Git) Pull(ctx context.Context, targetDirPath string, option model.PullOp
 		}
 	}
 
-	fmt.Println(option.HTTPClientOption.Token)
-
 	if strings.EqualFold(option.GitOption.Type, config.HTTPS) || len(option.GitOption.Type) == 0 {
 		auth = &http.BasicAuth{Username: "anyUser", Password: option.HTTPClientOption.Token}
 	}

@@ -54,7 +54,7 @@ func (po PushOption) DebugLog(logger *zerolog.Logger) *zerolog.Event {
 // Returns:
 //   - A new PushOption struct configured with the provided options.
 func NewPushOption(target string, prune, force bool, httpClient model.HTTPClientOption) PushOption {
-	refSpecs := []string{"refs/heads/*:refs/heads/*", "refs/tags/*:refs/tags/*"}
+	refSpecs := []string{"refs/heads/*:refs/heads/*", "refs/tags/*:refs/tags/*", "^refs/pull/*:refs/pull/*"}
 	if force {
 		for i, spec := range refSpecs {
 			refSpecs[i] = "+" + spec

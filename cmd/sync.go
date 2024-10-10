@@ -188,8 +188,8 @@ func processRepository(ctx context.Context, targetProviderConfig gpsconfig.Provi
 
 	if repository.Metainfo().OriginalName == "" {
 		return errors.New("failed read metainfo, seems empty, aborting")
-
 	}
+
 	if !isValidRepository(ctx, providerClient, repository) {
 		cliOption := model.CLIOptions(ctx)
 		name := repository.Metainfo().OriginalName

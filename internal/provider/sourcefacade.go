@@ -32,6 +32,7 @@ func Clone(ctx context.Context, reader interfaces.SourceReader, sourceProviderCo
 		if err != nil {
 			return nil, fmt.Errorf("failed to clone repository %s: %w", metainfo.OriginalName, err)
 		}
+
 		resultRepo.Meta = metainfo
 
 		repositories = append(repositories, resultRepo)

@@ -49,8 +49,6 @@ func Push(ctx context.Context, targetProviderConfig config.ProviderConfig, provi
 
 	pushOption := getPushOption(ctx, targetProviderConfig, repository, cliOptions.ForcePush)
 
-	fmt.Println(repository.GoGitRepository().Branch("main"))
-
 	if err := writer.Push(ctx, repository, pushOption, sourceProviderConfig, targetProviderConfig.Git); err != nil {
 		return fmt.Errorf("%w: %w", ErrPushChanges, err)
 	}

@@ -116,8 +116,6 @@ func loadCertsFromDir(dirPath string) (*tls.Config, error) {
 		return nil, fmt.Errorf("failed to read dir path. %w", err)
 	}
 
-	fmt.Println(files)
-
 	for _, file := range files {
 		if filepath.Ext(file.Name()) == ".crt" || filepath.Ext(file.Name()) == ".pem" {
 			certPath := filepath.Join(dirPath, file.Name())
