@@ -8,10 +8,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"itiquette/git-provider-sync/internal/configuration"
 	"itiquette/git-provider-sync/internal/functiondefinition"
 	"itiquette/git-provider-sync/internal/log"
 	"itiquette/git-provider-sync/internal/model"
+	config "itiquette/git-provider-sync/internal/model/configuration"
 	"itiquette/git-provider-sync/internal/provider/targetfilter"
 )
 
@@ -30,7 +30,7 @@ type Filter struct{}
 // Returns:
 //   - []model.RepositoryMetainfo: A slice of filtered repository metadata.
 //   - error: An error if the filtering process fails.
-func (f Filter) FilterMetainfo(ctx context.Context, config configuration.ProviderConfig, metainfos []model.RepositoryMetainfo) ([]model.RepositoryMetainfo, error) {
+func (f Filter) FilterMetainfo(ctx context.Context, config config.ProviderConfig, metainfos []model.RepositoryMetainfo) ([]model.RepositoryMetainfo, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering FilterMetainfo: starting")
 
@@ -49,7 +49,7 @@ func (f Filter) FilterMetainfo(ctx context.Context, config configuration.Provide
 // Returns:
 //   - []model.RepositoryMetainfo: The filtered repository metadata.
 //   - error: An error if any part of the filtering process fails.
-func filter(ctx context.Context, config configuration.ProviderConfig, metainfos []model.RepositoryMetainfo, filterExcludedIncludedFunc functiondefinition.FilterIncludedExcludedFunc) ([]model.RepositoryMetainfo, error) {
+func filter(ctx context.Context, config config.ProviderConfig, metainfos []model.RepositoryMetainfo, filterExcludedIncludedFunc functiondefinition.FilterIncludedExcludedFunc) ([]model.RepositoryMetainfo, error) {
 	filteredByRules, err := filterExcludedIncludedFunc(ctx, config, metainfos)
 	if err != nil {
 		return nil, fmt.Errorf("failed to filter repositories by inclusion/exclusion rules: %w", err)

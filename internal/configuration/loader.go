@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"itiquette/git-provider-sync/internal/model"
+	config "itiquette/git-provider-sync/internal/model/configuration"
 	"os"
 	"path/filepath"
 	"strings"
@@ -20,15 +21,15 @@ import (
 )
 
 type ConfigLoader interface {
-	LoadConfiguration(ctx context.Context) (*AppConfiguration, error)
+	LoadConfiguration(ctx context.Context) (*config.AppConfiguration, error)
 }
 
 type DefaultConfigLoader struct{}
 
 // LoadConfiguration loads the application configuration from various sources.
-func (DefaultConfigLoader) LoadConfiguration(ctx context.Context) (*AppConfiguration, error) {
+func (DefaultConfigLoader) LoadConfiguration(ctx context.Context) (*config.AppConfiguration, error) {
 	cliOption := model.CLIOptions(ctx)
-	appConfig := &AppConfiguration{}
+	appConfig := &config.AppConfiguration{}
 
 	if err := ReadConfigurationFile(appConfig, cliOption.ConfigFilePath, cliOption.ConfigFileOnly); err != nil {
 		return nil, fmt.Errorf("failed to read configuration file: %w", err)
@@ -43,7 +44,7 @@ func (DefaultConfigLoader) LoadConfiguration(ctx context.Context) (*AppConfigura
 	return appConfig, nil
 }
 
-func ReadConfigurationFile(appConfiguration *AppConfiguration, configfile string, configfileOnly bool) error {
+func ReadConfigurationFile(appConfiguration *config.AppConfiguration, configfile string, configfileOnly bool) error {
 	const (
 		xdgConfigHomeEnv        = "XDG_CONFIG_HOME"
 		xdgConfigHomeConfigPath = "/gitprovidersync/" + "gitprovidersync.yaml"

@@ -1,55 +1,65 @@
 // SPDX-FileCopyrightText: 2024 Josef Andersson
 //
 // SPDX-License-Identifier: EUPL-1.2
-
 package target
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"os"
-	"path/filepath"
-	"time"
-
-	"github.com/mholt/archiver/v4"
-
 	"itiquette/git-provider-sync/internal/interfaces"
 	"itiquette/git-provider-sync/internal/log"
 	"itiquette/git-provider-sync/internal/model"
+	gpsconfig "itiquette/git-provider-sync/internal/model/configuration"
+	"os"
+	"path/filepath"
+	"strings"
+	"time"
+
+	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/config"
+	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/mholt/archiver/v4"
 )
 
-// Archive represents operations for a compressed archive repository.
-// It encapsulates a Git client for performing git-related operations.
+// Custom error types.
+var (
+	ErrDirectoryCreation  = errors.New("failed to create target directory")
+	ErrRepoInitialization = errors.New("failed to initialize target repository")
+	ErrRepoPush           = errors.New("failed to push to target repository")
+	ErrRepoOpen           = errors.New("failed to open repository")
+	ErrRemoteCreation     = errors.New("failed to set remote in target repository")
+	ErrBranchCheckout     = errors.New("failed to checkout branch")
+	ErrHeadSet            = errors.New("failed to set HEAD reference")
+	ErrNoFilesToArchive   = errors.New("no files found to archive")
+	ErrArchiveCreation    = errors.New("failed to create archive file")
+	ErrArchiveCompression = errors.New("failed to compress archive")
+)
+
+// Archive represents a structure capable of pushing Git repositories to archive files.
 type Archive struct {
 	gitClient Git
 }
 
-// Push writes an existing repository to a tar archive directory according to given push options.
-// It creates a compressed tar archive (.tar.gz) of the specified repository.
-//
-// Parameters:
-// - ctx: The context for the operation, which can be used for cancellation and passing values.
-// - option: The PushOption containing details about the push operation, including the target directory.
-//
-// Returns an error if any step of the process fails, including source directory validation,
-// target directory creation, file mapping, or archive creation.
-func (a Archive) Push(ctx context.Context, option model.PushOption, _ model.GitOption, _ model.GitOption) error {
+func (a Archive) Push(ctx context.Context, repository interfaces.GitRepository, option model.PushOption, _ gpsconfig.ProviderConfig, _ gpsconfig.GitOption) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Archive:Push")
 	option.DebugLog(logger).Msg("Archive:Push")
 
-	tmpDir, _ := model.GetTmpDirPath(ctx)
-
-	sourceRepositoryDir := filepath.Join(tmpDir, a.gitClient.name)
-	if err := validateSourceDir(sourceRepositoryDir); err != nil {
-		return fmt.Errorf("source directory validation failed: %w", err)
+	sourceDirPath := strings.TrimSuffix(option.Target, ".tar.gz")
+	if err := os.MkdirAll(filepath.Dir(sourceDirPath), os.ModePerm); err != nil {
+		return fmt.Errorf("%w: %s: %w", ErrDirectoryCreation, filepath.Dir(sourceDirPath), err)
 	}
 
-	if err := os.MkdirAll(filepath.Dir(option.Target), os.ModePerm); err != nil {
-		return fmt.Errorf("failed to create target directory %s: %w", option.Target, err)
+	if err := a.initializeAndPushRepo(repository, sourceDirPath); err != nil {
+		return err
 	}
 
-	files, err := mapFilesToArchive(sourceRepositoryDir)
+	if err := a.setRemoteAndBranch(repository, sourceDirPath); err != nil {
+		return err
+	}
+
+	files, err := mapFilesToArchive(sourceDirPath, repository.Metainfo().Name(ctx))
 	if err != nil {
 		return err
 	}
@@ -57,40 +67,89 @@ func (a Archive) Push(ctx context.Context, option model.PushOption, _ model.GitO
 	return createArchive(ctx, option.Target, files)
 }
 
-// validateSourceDir checks if the source directory exists.
-// It returns an error if the directory does not exist.
-func validateSourceDir(dir string) error {
-	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		return fmt.Errorf("source directory %s does not exist", dir)
+func (a Archive) initializeAndPushRepo(repository interfaces.GitRepository, sourceDirPath string) error {
+	if _, err := git.PlainInit(sourceDirPath, false); err != nil {
+		return fmt.Errorf("%w: %w", ErrRepoInitialization, err)
+	}
+
+	pushOptions := git.PushOptions{
+		RemoteURL: sourceDirPath,
+		RefSpecs:  []config.RefSpec{"+refs/*:refs/*"},
+	}
+
+	if err := repository.GoGitRepository().Push(&pushOptions); err != nil {
+		return fmt.Errorf("%w: %w", ErrRepoPush, err)
 	}
 
 	return nil
 }
 
-// mapFilesToArchive creates a mapping of files from the source directory to be included in the archive.
-// It returns an error if no files are found or if there's an issue mapping the files.
-func mapFilesToArchive(sourceDir string) ([]archiver.File, error) {
+func (a Archive) setRemoteAndBranch(repository interfaces.GitRepository, sourceDirPath string) error {
+	targetRepo, err := git.PlainOpen(sourceDirPath)
+	if err != nil {
+		return fmt.Errorf("%w: %s: %w", ErrRepoOpen, sourceDirPath, err)
+	}
+
+	remote, err := repository.GoGitRepository().Remote("origin")
+	if err == nil {
+		if _, err := targetRepo.CreateRemote(&config.RemoteConfig{
+			Name: "origin",
+			URLs: remote.Config().URLs,
+		}); err != nil {
+			return fmt.Errorf("%w: %w", ErrRemoteCreation, err)
+		}
+	}
+
+	return setArcDefaultBranch(sourceDirPath, repository.Metainfo().DefaultBranch)
+}
+
+func setArcDefaultBranch(repoPath, branchName string) error {
+	repo, err := git.PlainOpen(repoPath)
+	if err != nil {
+		return fmt.Errorf("%w: %s: %w", ErrRepoOpen, repoPath, err)
+	}
+
+	branchRef := plumbing.NewBranchReferenceName(branchName)
+
+	worktree, err := repo.Worktree()
+	if err != nil {
+		return fmt.Errorf("failed to get worktree: %w", err)
+	}
+
+	if err := worktree.Checkout(&git.CheckoutOptions{
+		Branch: branchRef,
+		Force:  true,
+	}); err != nil {
+		return fmt.Errorf("%w: %s: %w", ErrBranchCheckout, branchName, err)
+	}
+
+	headRef := plumbing.NewSymbolicReference(plumbing.HEAD, branchRef)
+	if err := repo.Storer.SetReference(headRef); err != nil {
+		return fmt.Errorf("%w: %w", ErrHeadSet, err)
+	}
+
+	return nil
+}
+
+func mapFilesToArchive(sourceDir string, targetName string) ([]archiver.File, error) {
 	files, err := archiver.FilesFromDisk(nil, map[string]string{
-		sourceDir: "", // contents added recursively
+		sourceDir: targetName,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to map files at %s to tar archive: %w", sourceDir, err)
 	}
 
 	if len(files) <= 1 {
-		return nil, fmt.Errorf("no files found to archive at %s", sourceDir)
+		return nil, fmt.Errorf("%w: %s", ErrNoFilesToArchive, sourceDir)
 	}
 
 	return files, nil
 }
 
-// createArchive creates a compressed tar archive (.tar.gz) at the specified target path,
-// including all the provided files.
-// It returns an error if there's an issue creating the file, setting permissions, or compressing the archive.
 func createArchive(ctx context.Context, targetPath string, files []archiver.File) error {
 	file, err := os.Create(targetPath)
 	if err != nil {
-		return fmt.Errorf("failed to create archive file %s: %w", targetPath, err)
+		return fmt.Errorf("%w: %s: %w", ErrArchiveCreation, targetPath, err)
 	}
 	defer file.Close()
 
@@ -104,20 +163,18 @@ func createArchive(ctx context.Context, targetPath string, files []archiver.File
 	}
 
 	if err := format.Archive(ctx, file, files); err != nil {
-		return fmt.Errorf("failed to compress archive: %w", err)
+		return fmt.Errorf("%w: %w", ErrArchiveCompression, err)
 	}
 
 	return nil
 }
 
-// ArchiveTargetPath generates the target path for the archive file.
-// It combines the provided name, target directory, and a timestamp to create a unique file name.
-//
-// Parameters:
-// - name: The base name for the archive file.
-// - targetDir: The directory where the archive will be created.
-//
-// Returns the full path to the target archive file.
+func NewArchive(repository interfaces.GitRepository) Archive {
+	gitClient := NewGit(repository, repository.Metainfo().OriginalName)
+
+	return Archive{gitClient: gitClient}
+}
+
 func ArchiveTargetPath(name, targetDir string) string {
 	tarArchive := fmt.Sprintf("%s%s.tar.gz", name, nowString())
 
@@ -133,18 +190,4 @@ func nowString() string {
 	return fmt.Sprintf("_%d%02d%02d_%02d%02d%02d_%d",
 		currentTime.Year(), currentTime.Month(), currentTime.Day(),
 		currentTime.Hour(), currentTime.Minute(), currentTime.Second(), currentTime.UnixMilli())
-}
-
-// NewArchive creates a new Archive instance.
-// It initializes the Archive with a new Git client using the provided repository and name.
-//
-// Parameters:
-// - repository: The GitRepository interface for interacting with the git repository.
-// - repositoryName: The name of the repository.
-//
-// Returns a new Archive instance.
-func NewArchive(repository interfaces.GitRepository, repositoryName string) Archive {
-	gitClient := NewGit(repository, repositoryName)
-
-	return Archive{gitClient: gitClient}
 }

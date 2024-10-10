@@ -7,7 +7,7 @@ package configuration
 import (
 	"errors"
 	"fmt"
-	"itiquette/git-provider-sync/internal/model"
+	config "itiquette/git-provider-sync/internal/model/configuration"
 	"net/url"
 	"os"
 	"slices"
@@ -39,14 +39,14 @@ var (
 	ErrInvalidSSHKeyPath            = errors.New("ssh key path invalid")
 )
 
-var ValidGitProviders = []string{GITHUB, GITLAB, ARCHIVE, GITEA, DIRECTORY}
+var ValidGitProviders = []string{config.GITHUB, config.GITLAB, config.ARCHIVE, config.GITEA, config.DIRECTORY}
 
-var ValidProtocolTypes = []string{"", model.HTTPS, model.SSHAGENT, model.SSHKEY}
+var ValidProtocolTypes = []string{"", config.HTTPS, config.SSHAGENT, config.SSHKEY}
 
-var ValidSchemeTypes = []string{"", model.HTTPS, model.HTTP}
+var ValidSchemeTypes = []string{"", config.HTTPS, config.HTTP}
 
 // validateConfiguration checks the entire ProvidersConfig for validity.
-func validateConfiguration(providersConfig ProvidersConfig) error {
+func validateConfiguration(providersConfig config.ProvidersConfig) error {
 	if err := validateSourceProvider(providersConfig.SourceProvider); err != nil {
 		return err
 	}
@@ -65,16 +65,16 @@ func validateConfiguration(providersConfig ProvidersConfig) error {
 }
 
 // validateSourceProvider checks the validity of the source provider configuration.
-func validateSourceProvider(provider ProviderConfig) error {
+func validateSourceProvider(provider config.ProviderConfig) error {
 	if !slices.Contains(ValidGitProviders, provider.ProviderType) {
 		return fmt.Errorf("source provider: must be one of %v: %w", ValidGitProviders, ErrUnsupportedProvider)
 	}
 
-	if strings.EqualFold(provider.ProviderType, ARCHIVE) {
+	if strings.EqualFold(provider.ProviderType, config.ARCHIVE) {
 		return ErrUnsupportedArchiveProvider
 	}
 
-	if strings.EqualFold(provider.ProviderType, DIRECTORY) {
+	if strings.EqualFold(provider.ProviderType, config.DIRECTORY) {
 		return ErrUnsupportedDirectoryProvider
 	}
 
@@ -98,22 +98,22 @@ func validateSourceProvider(provider ProviderConfig) error {
 }
 
 // validateTargetProvider checks the validity of a target provider configuration.
-func validateTargetProvider(config ProviderConfig) error {
-	if len(config.ProviderType) == 0 || !slices.Contains(ValidGitProviders, config.ProviderType) {
+func validateTargetProvider(providerConfig config.ProviderConfig) error {
+	if len(providerConfig.ProviderType) == 0 || !slices.Contains(ValidGitProviders, providerConfig.ProviderType) {
 		return fmt.Errorf("target provider: must be one of %v: %w", ValidGitProviders, ErrUnsupportedProvider)
 	}
 
-	if !strings.EqualFold(config.ProviderType, ARCHIVE) && !strings.EqualFold(config.ProviderType, DIRECTORY) {
-		if err := validateStandardProvider(config); err != nil {
+	if !strings.EqualFold(providerConfig.ProviderType, config.ARCHIVE) && !strings.EqualFold(providerConfig.ProviderType, config.DIRECTORY) {
+		if err := validateStandardProvider(providerConfig); err != nil {
 			return err
 		}
 	}
 
-	return validateAdditional(config.ProviderType, config.Additional)
+	return validateAdditional(providerConfig.ProviderType, providerConfig.Additional)
 }
 
 // validateStandardProvider checks the validity of standard (non-archive, non-directory) providers.
-func validateStandardProvider(config ProviderConfig) error {
+func validateStandardProvider(config config.ProviderConfig) error {
 	if len(config.Domain) == 0 {
 		return ErrNoTargetDomain
 	}
@@ -142,7 +142,7 @@ func validateStandardProvider(config ProviderConfig) error {
 }
 
 // validateGroupAndUser checks the validity of group and user settings.
-func validateGroupAndUser(config ProviderConfig) error {
+func validateGroupAndUser(config config.ProviderConfig) error {
 	if len(config.Group) == 0 && len(config.User) == 0 {
 		return ErrNoSourceGroupOrUser
 	}
@@ -155,19 +155,19 @@ func validateGroupAndUser(config ProviderConfig) error {
 }
 
 // validateGitOption checks the validity of the protocol setting.
-func validateGitOption(config ProviderConfig) error {
-	if !slices.Contains(ValidProtocolTypes, config.Git.Type) {
+func validateGitOption(providerConfig config.ProviderConfig) error {
+	if !slices.Contains(ValidProtocolTypes, providerConfig.Git.Type) {
 		return fmt.Errorf("gitinfo type: must be one of %v: %w", ValidProtocolTypes, ErrUnsupportedProtocolType)
 	}
 
-	if strings.EqualFold(config.Git.Type, model.SSHKEY) {
-		if len(config.Git.SSHPrivateKeyPath) == 0 {
+	if strings.EqualFold(providerConfig.Git.Type, config.SSHKEY) {
+		if len(providerConfig.Git.SSHPrivateKeyPath) == 0 {
 			return fmt.Errorf("gitinfo type was sshkey, but sshprivatekeypath was empty. err: %w", ErrInvalidSSHKeyPath)
 		}
 
-		_, err := os.Stat(config.Git.SSHPrivateKeyPath)
+		_, err := os.Stat(providerConfig.Git.SSHPrivateKeyPath)
 		if err != nil {
-			return fmt.Errorf("gitinfo type was sshkey, but keyfile: %s could not be read. err: %w", config.Git.SSHPrivateKeyPath, ErrInvalidSSHKeyPath)
+			return fmt.Errorf("gitinfo type was sshkey, but keyfile: %s could not be read. err: %w", providerConfig.Git.SSHPrivateKeyPath, ErrInvalidSSHKeyPath)
 		}
 	}
 
@@ -175,7 +175,7 @@ func validateGitOption(config ProviderConfig) error {
 }
 
 // validateHTTP checks the validity of the http setting.
-func validateHTTPInfo(config ProviderConfig) error {
+func validateHTTPInfo(config config.ProviderConfig) error {
 	if len(config.HTTPClient.Token) == 0 {
 		return ErrNoTargetToken
 	}
@@ -197,7 +197,7 @@ func validateHTTPInfo(config ProviderConfig) error {
 }
 
 // validateRepositoryLists checks the validity of include and exclude repository lists.
-func validateRepositoryLists(config ProviderConfig) error {
+func validateRepositoryLists(config config.ProviderConfig) error {
 	if len(config.Repositories.Exclude) > 0 && len(config.Repositories.ExcludedRepositories()) < 1 {
 		return ErrExcludeIsConfiguredButEmpty
 	}
@@ -212,9 +212,9 @@ func validateRepositoryLists(config ProviderConfig) error {
 // validateAdditional checks provider-specific configuration.
 func validateAdditional(name string, additional map[string]string) error {
 	switch name {
-	case ARCHIVE:
+	case config.ARCHIVE:
 		return ValidateArchiveAdditional(additional)
-	case DIRECTORY:
+	case config.DIRECTORY:
 		return ValidateDirectoryAdditional(additional)
 	default:
 		return nil

@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"itiquette/git-provider-sync/internal/model"
+	config "itiquette/git-provider-sync/internal/model/configuration"
 
 	"github.com/stretchr/testify/require"
 )
@@ -31,7 +32,7 @@ func TestReadConfigFileMergedOptionsInOrderXDGLocalDotEnvEnvVarSuccess(t *testin
 	t.Setenv("GPS_CONFIGURATIONS_CONFENV_TARGETS_ATARGET_DOMAIN", "envconfdomain")
 	t.Setenv("GPS_CONFIGURATIONS_CONFENV_TARGETS_ATARGET_GROUP", "envconfgroup")
 
-	appConfiguration := &AppConfiguration{}
+	appConfiguration := &config.AppConfiguration{}
 	_ = ReadConfigurationFile(appConfiguration, "testdata/testconfig.yaml", false)
 
 	require.Len(appConfiguration.Configurations, 6)
@@ -111,7 +112,7 @@ func TestSplitAndTrim(t *testing.T) {
 	}
 }
 func TestReadConfigurationFile_NoConfigurations(t *testing.T) {
-	appConfig := &AppConfiguration{}
+	appConfig := &config.AppConfiguration{}
 
 	require.Panics(t, func() {
 		_ = ReadConfigurationFile(appConfig, "testdata/empty_config.yaml", true)

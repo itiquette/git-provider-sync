@@ -13,9 +13,9 @@ import (
 	"slices"
 	"time"
 
-	"itiquette/git-provider-sync/internal/configuration"
 	"itiquette/git-provider-sync/internal/log"
 	"itiquette/git-provider-sync/internal/model"
+	config "itiquette/git-provider-sync/internal/model/configuration"
 )
 
 // IsInInterval checks if the given updatedAt time is within the specified interval.
@@ -62,8 +62,8 @@ func IsInInterval(ctx context.Context, updatedAt time.Time) (bool, error) {
 // Returns:
 //   - A function that takes a context, provider configuration, and a slice of RepositoryMetainfo,
 //     and returns a filtered slice of RepositoryMetainfo and any error encountered.
-func FilterIncludedExcludedGen() func(context.Context, configuration.ProviderConfig, []model.RepositoryMetainfo) ([]model.RepositoryMetainfo, error) {
-	return func(ctx context.Context, config configuration.ProviderConfig, metainfos []model.RepositoryMetainfo) ([]model.RepositoryMetainfo, error) {
+func FilterIncludedExcludedGen() func(context.Context, config.ProviderConfig, []model.RepositoryMetainfo) ([]model.RepositoryMetainfo, error) {
+	return func(ctx context.Context, config config.ProviderConfig, metainfos []model.RepositoryMetainfo) ([]model.RepositoryMetainfo, error) {
 		logger := log.Logger(ctx)
 		logger.Trace().Msg("Entering Filtering repositories based on inclusion/exclusion lists")
 

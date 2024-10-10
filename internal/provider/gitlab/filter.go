@@ -9,10 +9,10 @@ import (
 	"fmt"
 	"time"
 
-	"itiquette/git-provider-sync/internal/configuration"
 	"itiquette/git-provider-sync/internal/functiondefinition"
 	"itiquette/git-provider-sync/internal/log"
 	"itiquette/git-provider-sync/internal/model"
+	config "itiquette/git-provider-sync/internal/model/configuration"
 	"itiquette/git-provider-sync/internal/provider/targetfilter"
 )
 
@@ -30,7 +30,7 @@ func NewFilter(isInInterval IsInIntervalFunc) *Filter {
 	return &Filter{isInInterval: isInInterval}
 }
 
-func (Filter) FilterMetainfo(ctx context.Context, config configuration.ProviderConfig, metainfos []model.RepositoryMetainfo, filterExcludedIncludedFunc functiondefinition.FilterIncludedExcludedFunc, isInInterval IsInIntervalFunc) ([]model.RepositoryMetainfo, error) {
+func (Filter) FilterMetainfo(ctx context.Context, config config.ProviderConfig, metainfos []model.RepositoryMetainfo, filterExcludedIncludedFunc functiondefinition.FilterIncludedExcludedFunc, isInInterval IsInIntervalFunc) ([]model.RepositoryMetainfo, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering FilterMetainfo: starting")
 

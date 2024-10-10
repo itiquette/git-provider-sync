@@ -18,9 +18,9 @@ import (
 	"fmt"
 	"net/http"
 
-	"itiquette/git-provider-sync/internal/configuration"
 	"itiquette/git-provider-sync/internal/log"
 	"itiquette/git-provider-sync/internal/model"
+	config "itiquette/git-provider-sync/internal/model/configuration"
 
 	"code.gitea.io/sdk/gitea"
 )
@@ -41,7 +41,7 @@ type Client struct {
 // - option: Options for creating the repository, including name, visibility, and description.
 //
 // Returns an error if the creation fails.
-func (c Client) Create(ctx context.Context, config configuration.ProviderConfig, option model.CreateOption) error {
+func (c Client) Create(ctx context.Context, config config.ProviderConfig, option model.CreateOption) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Gitea:Create:")
 	config.DebugLog(logger).Msg("Gitea:Create:")
@@ -63,7 +63,7 @@ func (c Client) Create(ctx context.Context, config configuration.ProviderConfig,
 
 // Name returns the name of the provider, which is "GITEA".
 func (c Client) Name() string {
-	return configuration.GITEA
+	return config.GITEA
 }
 
 // Metainfos retrieves metadata information for repositories.
@@ -75,7 +75,7 @@ func (c Client) Name() string {
 // - filtering: If true, applies additional filtering to the results.
 //
 // Returns a slice of RepositoryMetainfo and an error if the operation fails.
-func (c Client) Metainfos(ctx context.Context, config configuration.ProviderConfig, filtering bool) ([]model.RepositoryMetainfo, error) {
+func (c Client) Metainfos(ctx context.Context, config config.ProviderConfig, filtering bool) ([]model.RepositoryMetainfo, error) {
 	var (
 		repositories []*gitea.Repository
 		err          error
@@ -176,7 +176,7 @@ func NewGiteaClient(ctx context.Context, option model.GitProviderClientOption, h
 // - repositoryName: The name of the repository to fetch information for.
 //
 // Returns a RepositoryMetainfo and an error if the operation fails.
-func newRepositoryMeta(ctx context.Context, config configuration.ProviderConfig, rawClient *gitea.Client, repositoryName string) (model.RepositoryMetainfo, error) {
+func newRepositoryMeta(ctx context.Context, config config.ProviderConfig, rawClient *gitea.Client, repositoryName string) (model.RepositoryMetainfo, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering newRepositoryMeta:")
 

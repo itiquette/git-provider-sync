@@ -2,11 +2,10 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-package configuration
+package model
 
 import (
 	"fmt"
-	"itiquette/git-provider-sync/internal/model"
 	"strings"
 
 	"github.com/rs/zerolog"
@@ -14,15 +13,15 @@ import (
 
 // ProviderConfig represents the configuration for a single provider.
 type ProviderConfig struct {
-	ProviderType string                   `koanf:"providertype"`
-	Domain       string                   `koanf:"domain"`
-	Group        string                   `koanf:"group"`
-	User         string                   `koanf:"user"`
-	Repositories model.RepositoriesOption `koanf:"repositories"`
-	Git          model.GitOption          `koanf:"git"`
-	HTTPClient   model.HTTPClientOption   `koanf:"httpclient"`
-	Scheme       string                   `koanf:"scheme"`
-	Additional   map[string]string        `koanf:"additional"`
+	ProviderType string             `koanf:"providertype"`
+	Domain       string             `koanf:"domain"`
+	Group        string             `koanf:"group"`
+	User         string             `koanf:"user"`
+	Repositories RepositoriesOption `koanf:"repositories"`
+	Git          GitOption          `koanf:"git"`
+	HTTPClient   HTTPClientOption   `koanf:"httpclient"`
+	Scheme       string             `koanf:"scheme"`
+	Additional   map[string]string  `koanf:"additional"`
 }
 
 // String returns a string representation of ProviderConfig, masking the token.

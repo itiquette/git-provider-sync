@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"itiquette/git-provider-sync/internal/configuration"
 	"itiquette/git-provider-sync/internal/model"
+	config "itiquette/git-provider-sync/internal/model/configuration"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -23,7 +23,7 @@ type MockFilterIncludedExcluded struct {
 	mock.Mock
 }
 
-func (m *MockFilterIncludedExcluded) FilterIncludedExcluded(ctx context.Context, config configuration.ProviderConfig, metainfos []model.RepositoryMetainfo) ([]model.RepositoryMetainfo, error) {
+func (m *MockFilterIncludedExcluded) FilterIncludedExcluded(ctx context.Context, config config.ProviderConfig, metainfos []model.RepositoryMetainfo) ([]model.RepositoryMetainfo, error) {
 	args := m.Called(ctx, config, metainfos)
 
 	//nolint:forcetypeassert
@@ -38,7 +38,7 @@ func TestFilter_FilterMetainfo(t *testing.T) {
 
 	tests := []struct {
 		name             string
-		config           configuration.ProviderConfig
+		config           config.ProviderConfig
 		inputMetainfos   []model.RepositoryMetainfo
 		mockFilterResult []model.RepositoryMetainfo
 		mockFilterErr    error
@@ -48,7 +48,7 @@ func TestFilter_FilterMetainfo(t *testing.T) {
 	}{
 		{
 			name:   "Success - All repositories included",
-			config: configuration.ProviderConfig{},
+			config: config.ProviderConfig{},
 			inputMetainfos: []model.RepositoryMetainfo{
 				{HTTPSURL: "https://example.com/repo1", LastActivityAt: &now},
 				{HTTPSURL: "https://example.com/repo2", LastActivityAt: &now},
@@ -69,7 +69,7 @@ func TestFilter_FilterMetainfo(t *testing.T) {
 		},
 		{
 			name:   "Success - Some repositories filtered out",
-			config: configuration.ProviderConfig{},
+			config: config.ProviderConfig{},
 			inputMetainfos: []model.RepositoryMetainfo{
 				{HTTPSURL: "https://example.com/repo1", LastActivityAt: &now},
 				{HTTPSURL: "https://example.com/repo2", LastActivityAt: &oldTime},
@@ -89,7 +89,7 @@ func TestFilter_FilterMetainfo(t *testing.T) {
 		},
 		{
 			name:             "Error - Filter function fails",
-			config:           configuration.ProviderConfig{},
+			config:           config.ProviderConfig{},
 			inputMetainfos:   []model.RepositoryMetainfo{{HTTPSURL: "https://example.com/repo1"}},
 			mockFilterResult: nil,
 			mockFilterErr:    errors.New("mock error"),
@@ -101,7 +101,7 @@ func TestFilter_FilterMetainfo(t *testing.T) {
 		},
 		{
 			name:             "Edge Case - Empty input",
-			config:           configuration.ProviderConfig{},
+			config:           config.ProviderConfig{},
 			inputMetainfos:   []model.RepositoryMetainfo{},
 			mockFilterResult: []model.RepositoryMetainfo{},
 			mockFilterErr:    nil,
@@ -113,7 +113,7 @@ func TestFilter_FilterMetainfo(t *testing.T) {
 		},
 		{
 			name:   "Edge Case - Nil LastActivityAt",
-			config: configuration.ProviderConfig{},
+			config: config.ProviderConfig{},
 			inputMetainfos: []model.RepositoryMetainfo{
 				{HTTPSURL: "https://example.com/repo1", LastActivityAt: nil},
 			},
@@ -129,7 +129,7 @@ func TestFilter_FilterMetainfo(t *testing.T) {
 		},
 		{
 			name:   "Edge Case - IsInInterval returns error",
-			config: configuration.ProviderConfig{},
+			config: config.ProviderConfig{},
 			inputMetainfos: []model.RepositoryMetainfo{
 				{HTTPSURL: "https://example.com/repo1", LastActivityAt: &now},
 			},
