@@ -72,7 +72,7 @@ MEGALINTER_DEF_WORKSPACE ?= /repo
 ## quality/megalint: quality control check with MegaLinter
 .PHONY: quality/megalint
 quality/megalint: clean
-	podman run --rm --volume $$(pwd):/repo -e MEGALINTER_CONFIG='development/megalinter.yml' -e REPORT_OUTPUT_FOLDER=$(DIR)/megalinter-reports -e DEFAULT_WORKSPACE=${MEGALINTER_DEF_WORKSPACE} -e LOG_LEVEL=INFO ghcr.io/oxsecurity/megalinter-go:v8.0.0
+	podman run --rm --volume $$(pwd):/repo -e MEGALINTER_CONFIG='development/megalinter.yml' -e REPORT_OUTPUT_FOLDER=$(DIR)/megalinter-reports -e DEFAULT_WORKSPACE=${MEGALINTER_DEF_WORKSPACE} -e LOG_LEVEL=INFO ghcr.io/oxsecurity/megalinter-go:v8.1.0
 
 
 ## quality/golangcilint: quality control check with golangci-lint

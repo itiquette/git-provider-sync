@@ -8,7 +8,6 @@ on:
 
 permissions:
   contents: read
-  security-events: write
 
 env:
   MEGALINTER_CONFIG: /development/megalinter.yml
@@ -17,6 +16,9 @@ jobs:
   megalinter:
     name: Megalinter analysis
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
     steps:
       - name: Harden GitHub runner
         uses: step-security/harden-runner@91182cccc01eb5e619899d80e4e971d6181294a7 #v2.10.1
@@ -30,7 +32,7 @@ jobs:
 
       - name: MegaLinter lint
         id: ml
-        uses: oxsecurity/megalinter@c217fe8f7bc9207062a084e989bd97efd56e7b9a #v8.0.0
+        uses: oxsecurity/megalinter@b38cdf1f0cbe056fad4112cb7cd99c2b574c9617 #v8.1.0
 
       - name: Archive MegaLinter artifacts
         if: always()
