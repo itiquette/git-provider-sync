@@ -20,6 +20,7 @@ image:https://img.shields.io/github/v/tag/itiquette/git-provider-sync?style=for-
 link:LICENSE[image:https://img.shields.io/badge/EUPL-European%20Union%20Public%20Licence%201.2-librarygreen?style=for-the-badge[EUPL 1.2]]
 image:https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fapi.reuse.software%2Fstatus%2Fgithub.com%2Fitiquette%2Fgit-provider-sync&query=status&style=for-the-badge&label=REUSE[REUSE,link=https://api.reuse.software/info/github.com/itiquette/git-provider-sync]
 https://scorecard.dev/viewer/?uri=github.com/itiquette/git-provider-sync[image:https://api.scorecard.dev/projects/github.com/itiquette/git-provider-sync/badge?style=for-the-badge[OpenSSF Scorecard]]
+image:https://img.shields.io/cii/level/9434?style=for-the-badge&label=OPENSSF%20BEST%20PRACTICES[OPEN SSF BEST PRACTICES,link=https://www.bestpractices.dev/projects/9434]
 
 ifdef::env-github[]
 ++++
