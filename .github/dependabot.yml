@@ -59,8 +59,8 @@ updates:
       vcs-dependencies:
         patterns:
           - "code.gitea.io/sdk/gitea"
-          - "github.com/go-git/go-git/v5"
-          - "github.com/google/go-github/v65"
+          - "github.com/go-git/go-git"
+          - "github.com/google/go-github"
           - "github.com/xanzy/go-gitlab"
         # Only group minor and patch updates
         update-types:
@@ -79,7 +79,7 @@ updates:
       utility-dependencies:
         patterns:
           - "github.com/hashicorp/go-retryablehttp"
-          - "github.com/mholt/archiver/v4"
+          - "github.com/mholt/archiver"
           - "github.com/pkg/errors"
           - "github.com/rs/zerolog"
         update-types:

@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go-version: ["1.23.0"]
+        go-version: ["1.23.2"]
         os: [ubuntu-latest, macos-latest]
 
     steps:
@@ -36,7 +36,7 @@ jobs:
 
       - name: Go test run
         run: |
-          go install github.com/vektra/mockery/v2@v2.46.0
+          go install github.com/vektra/mockery/v2@v2.46.2
           go mod tidy
           ./scripts/generatemock.sh
           # shellcheck disable=SC2046
