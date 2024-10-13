@@ -2,95 +2,92 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+// Package target handles operations related to archiving git repositories.
 package target
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
+	"github.com/go-git/go-git/v5"
 	"github.com/mholt/archiver/v4"
 
 	"itiquette/git-provider-sync/internal/interfaces"
 	"itiquette/git-provider-sync/internal/log"
 	"itiquette/git-provider-sync/internal/model"
+	gpsconfig "itiquette/git-provider-sync/internal/model/configuration"
 )
 
-// Archive represents operations for a compressed archive repository.
-// It encapsulates a Git client for performing git-related operations.
+var (
+	ErrArchiveCompression = errors.New("failed to compress archive")
+	ErrArchiveCreation    = errors.New("failed to create archive file")
+	ErrDirectoryCreation  = errors.New("failed to create target directory")
+	ErrNoFilesToArchive   = errors.New("no files found to archive")
+)
+
+// Archive represents a structure capable of pushing Git repositories to archive files.
 type Archive struct {
 	gitClient Git
 }
 
-// Push writes an existing repository to a tar archive directory according to given push options.
-// It creates a compressed tar archive (.tar.gz) of the specified repository.
-//
-// Parameters:
-// - ctx: The context for the operation, which can be used for cancellation and passing values.
-// - option: The PushOption containing details about the push operation, including the target directory.
-//
-// Returns an error if any step of the process fails, including source directory validation,
-// target directory creation, file mapping, or archive creation.
-func (a Archive) Push(ctx context.Context, option model.PushOption, _ model.GitOption, _ model.GitOption) error {
+// Push initializes a target repository and creates an archive of it.
+func (a *Archive) Push(ctx context.Context, repo interfaces.GitRepository, opt model.PushOption, _ gpsconfig.ProviderConfig, _ gpsconfig.GitOption) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Archive:Push")
-	option.DebugLog(logger).Msg("Archive:Push")
+	opt.DebugLog(logger).Msg("Archive:Push")
 
-	tmpDir, _ := model.GetTmpDirPath(ctx)
-
-	sourceRepositoryDir := filepath.Join(tmpDir, a.gitClient.name)
-	if err := validateSourceDir(sourceRepositoryDir); err != nil {
-		return fmt.Errorf("source directory validation failed: %w", err)
+	sourceDir, err := a.initializeTargetRepository(ctx, repo, opt)
+	if err != nil {
+		return fmt.Errorf("failed to initialize target repository: %w", err)
 	}
 
-	if err := os.MkdirAll(filepath.Dir(option.Target), os.ModePerm); err != nil {
-		return fmt.Errorf("failed to create target directory %s: %w", option.Target, err)
+	return createArchive(ctx, sourceDir, opt.Target, repo.Metainfo().Name(ctx))
+}
+
+func (a *Archive) initializeTargetRepository(ctx context.Context, repo interfaces.GitRepository, opt model.PushOption) (string, error) {
+	sourceDir, err := getSourceDirPath(opt)
+	if err != nil {
+		return "", err
 	}
 
-	files, err := mapFilesToArchive(sourceRepositoryDir)
+	if _, err := git.PlainInit(sourceDir, false); err != nil {
+		return "", fmt.Errorf("%w: %w", ErrRepoInitialization, err)
+	}
+
+	pushOpt := model.NewPushOption(sourceDir, false, true, gpsconfig.HTTPClientOption{})
+	if err := a.gitClient.Push(ctx, repo, pushOpt, gpsconfig.ProviderConfig{}, gpsconfig.GitOption{}); err != nil {
+		return "", fmt.Errorf("%w: %w", ErrRepoPush, err)
+	}
+
+	if err := setRemoteAndBranch(repo, sourceDir); err != nil {
+		return "", err
+	}
+
+	if err := setDefaultBranch(sourceDir, repo.Metainfo().DefaultBranch); err != nil {
+		return "", err
+	}
+
+	return sourceDir, nil
+}
+
+func createArchive(ctx context.Context, sourceDir, targetArchive, name string) error {
+	files, err := mapFilesToArchive(sourceDir, name)
 	if err != nil {
 		return err
 	}
 
-	return createArchive(ctx, option.Target, files)
+	return compress(ctx, targetArchive, files)
 }
 
-// validateSourceDir checks if the source directory exists.
-// It returns an error if the directory does not exist.
-func validateSourceDir(dir string) error {
-	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		return fmt.Errorf("source directory %s does not exist", dir)
-	}
-
-	return nil
-}
-
-// mapFilesToArchive creates a mapping of files from the source directory to be included in the archive.
-// It returns an error if no files are found or if there's an issue mapping the files.
-func mapFilesToArchive(sourceDir string) ([]archiver.File, error) {
-	files, err := archiver.FilesFromDisk(nil, map[string]string{
-		sourceDir: "", // contents added recursively
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to map files at %s to tar archive: %w", sourceDir, err)
-	}
-
-	if len(files) <= 1 {
-		return nil, fmt.Errorf("no files found to archive at %s", sourceDir)
-	}
-
-	return files, nil
-}
-
-// createArchive creates a compressed tar archive (.tar.gz) at the specified target path,
-// including all the provided files.
-// It returns an error if there's an issue creating the file, setting permissions, or compressing the archive.
-func createArchive(ctx context.Context, targetPath string, files []archiver.File) error {
+func compress(ctx context.Context, targetPath string, files []archiver.File) error {
 	file, err := os.Create(targetPath)
 	if err != nil {
-		return fmt.Errorf("failed to create archive file %s: %w", targetPath, err)
+		return fmt.Errorf("%w: %s: %w", ErrArchiveCreation, targetPath, err)
 	}
 	defer file.Close()
 
@@ -104,20 +101,42 @@ func createArchive(ctx context.Context, targetPath string, files []archiver.File
 	}
 
 	if err := format.Archive(ctx, file, files); err != nil {
-		return fmt.Errorf("failed to compress archive: %w", err)
+		return fmt.Errorf("%w: %w", ErrArchiveCompression, err)
 	}
 
 	return nil
 }
 
-// ArchiveTargetPath generates the target path for the archive file.
-// It combines the provided name, target directory, and a timestamp to create a unique file name.
-//
-// Parameters:
-// - name: The base name for the archive file.
-// - targetDir: The directory where the archive will be created.
-//
-// Returns the full path to the target archive file.
+func mapFilesToArchive(sourceDir, targetName string) ([]archiver.File, error) {
+	files, err := archiver.FilesFromDisk(nil, map[string]string{
+		sourceDir: targetName,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to map files at %s to tar archive: %w", sourceDir, err)
+	}
+
+	if len(files) <= 1 {
+		return nil, fmt.Errorf("%w: %s", ErrNoFilesToArchive, sourceDir)
+	}
+
+	return files, nil
+}
+
+// NewArchive creates a new Archive instance.
+func NewArchive(ctx context.Context, repo interfaces.GitRepository) *Archive {
+	return &Archive{gitClient: NewGit(repo, repo.Metainfo().Name(ctx))}
+}
+
+func getSourceDirPath(opt model.PushOption) (string, error) {
+	sourceDir := strings.TrimSuffix(opt.Target, ".tar.gz")
+	if err := os.MkdirAll(filepath.Dir(sourceDir), os.ModePerm); err != nil {
+		return "", fmt.Errorf("%w: %s: %w", ErrDirectoryCreation, filepath.Dir(sourceDir), err)
+	}
+
+	return sourceDir, nil
+}
+
+// ArchiveTargetPath generates the full path for the target archive file.
 func ArchiveTargetPath(name, targetDir string) string {
 	tarArchive := fmt.Sprintf("%s%s.tar.gz", name, nowString())
 
@@ -125,26 +144,12 @@ func ArchiveTargetPath(name, targetDir string) string {
 }
 
 // nowString returns a string representation of the current time.
-// The format is *yearmonthday*hourminutesecondunixmilli.
+// The format is _yearmonthday_hourminutesecond_unixmilli.
 // This is used to create unique timestamps for archive file names.
 func nowString() string {
-	currentTime := time.Now()
+	now := time.Now()
 
 	return fmt.Sprintf("_%d%02d%02d_%02d%02d%02d_%d",
-		currentTime.Year(), currentTime.Month(), currentTime.Day(),
-		currentTime.Hour(), currentTime.Minute(), currentTime.Second(), currentTime.UnixMilli())
-}
-
-// NewArchive creates a new Archive instance.
-// It initializes the Archive with a new Git client using the provided repository and name.
-//
-// Parameters:
-// - repository: The GitRepository interface for interacting with the git repository.
-// - repositoryName: The name of the repository.
-//
-// Returns a new Archive instance.
-func NewArchive(repository interfaces.GitRepository, repositoryName string) Archive {
-	gitClient := NewGit(repository, repositoryName)
-
-	return Archive{gitClient: gitClient}
+		now.Year(), now.Month(), now.Day(),
+		now.Hour(), now.Minute(), now.Second(), now.UnixMilli())
 }

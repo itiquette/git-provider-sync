@@ -25,7 +25,6 @@ var (
 type Repository struct {
 	goGitRepository *git.Repository
 	Meta            RepositoryMetainfo
-	CleanupName     bool
 }
 
 // NewGitGoRemoteOption creates a new RemoteConfig for go-git.

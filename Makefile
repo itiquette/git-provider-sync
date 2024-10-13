@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: CC0-1.0
 
-CC 		= go build
+CC 		= go build 
 CFLAGS		= -trimpath
 LDFLAGS		= all=-w -s -X main.version=$$(git describe --tags --abbrev=0 2>/dev/null || echo 'v0.0.0' | tr -d '\n') -X main.commit=$$(git rev-parse HEAD) -X main.date=$$(date -u +'%Y-%m-%dT%H:%M:%SZ')
 GCFLAGS 	= all=
@@ -180,5 +180,6 @@ clean/gocache:
 ## clean: remove local tmp dirs from previous runs 
 .PHONY: clean
 clean:
+	go clean --cache
 	rm -rf $(DIR)
 	mkdir -p $(DIR)/megalinter-reports/sarif

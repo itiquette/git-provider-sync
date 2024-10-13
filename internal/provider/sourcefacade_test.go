@@ -8,8 +8,8 @@ import (
 	"errors"
 	"testing"
 
-	"itiquette/git-provider-sync/internal/configuration"
 	"itiquette/git-provider-sync/internal/model"
+	config "itiquette/git-provider-sync/internal/model/configuration"
 
 	mocks "itiquette/git-provider-sync/generated/mocks/mockgogit"
 
@@ -57,13 +57,11 @@ func TestClone(t *testing.T) {
 	}
 
 	for _, tabletest := range tests {
-		protocol := model.GitOption{}
-
 		t.Run(tabletest.name, func(t *testing.T) {
 			mockReader := new(mocks.SourceReader)
 			tabletest.mockSetup(mockReader)
 
-			repos, err := Clone(ctx, mockReader, protocol, tabletest.metainfos, model.HTTPClientOption{})
+			repos, err := Clone(ctx, mockReader, config.ProviderConfig{}, tabletest.metainfos)
 
 			if tabletest.wantErr {
 				require.Error(err)
@@ -82,19 +80,19 @@ func TestFetchMetainfo(t *testing.T) {
 
 	tests := []struct {
 		name       string
-		config     configuration.ProviderConfig
+		config     config.ProviderConfig
 		mockSetup  func(*mocks.GitProvider)
 		wantLength int
 		wantErr    bool
 	}{
 		{
 			name: "Successful fetch of metainfo",
-			config: configuration.ProviderConfig{
+			config: config.ProviderConfig{
 				Domain: "https://github.com",
 			},
 			mockSetup: func(m *mocks.GitProvider) {
 				m.On("Name").Return("GitHub")
-				m.On("Metainfos", mock.Anything, mock.AnythingOfType("configuration.ProviderConfig"), true).
+				m.On("Metainfos", mock.Anything, mock.AnythingOfType("model.ProviderConfig"), true).
 					Return([]model.RepositoryMetainfo{
 						{OriginalName: "repo1"},
 						{OriginalName: "repo2"},
@@ -105,12 +103,12 @@ func TestFetchMetainfo(t *testing.T) {
 		},
 		{
 			name: "Failure to fetch metainfo",
-			config: configuration.ProviderConfig{
+			config: config.ProviderConfig{
 				Domain: "https://gitlab.com",
 			},
 			mockSetup: func(m *mocks.GitProvider) {
 				m.On("Name").Return("GitLab")
-				m.On("Metainfos", mock.Anything, mock.AnythingOfType("configuration.ProviderConfig"), true).
+				m.On("Metainfos", mock.Anything, mock.AnythingOfType("model.ProviderConfig"), true).
 					Return(nil, errors.New("failed to fetch metainfo"))
 			},
 			wantLength: 0,

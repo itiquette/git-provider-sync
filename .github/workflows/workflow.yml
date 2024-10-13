@@ -44,5 +44,5 @@ jobs:
     permissions:
       contents: read
     if: ${{ !failure() }}
-    needs: [licenselint, golint, misclint] #TO-DO enable commitlint, dependencyreview when public
+    needs: [licenselint, commitlint, dependencyreviewlint, golint, misclint]
     uses: ./.github/workflows/test.yml

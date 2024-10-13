@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"itiquette/git-provider-sync/internal/log"
+	model "itiquette/git-provider-sync/internal/model/configuration"
 	"strings"
 )
 
@@ -18,9 +19,9 @@ type CloneOption struct {
 	CleanupName bool   // Whether to clean up the repository name
 	URL         string // The URL of the repository to clone
 	Mirror      bool   // Whether to create a mirror clone
-	TargetPath  string // The path where the repository will be cloned
-	Git         GitOption
-	HTTPClient  HTTPClientOption
+	Git         model.GitOption
+	HTTPClient  model.HTTPClientOption
+	PlainRepo   bool
 }
 
 // NewCloneOption creates a new CloneOption.
@@ -32,30 +33,28 @@ type CloneOption struct {
 //
 // Returns:
 //   - A new CloneOption struct configured with the provided options.
-func NewCloneOption(ctx context.Context, info RepositoryMetainfo, mirror bool, targetPath string, gitInfo GitOption, httpClient HTTPClientOption) CloneOption {
+func NewCloneOption(ctx context.Context, metainfo RepositoryMetainfo, mirror bool, providerConfig model.ProviderConfig) CloneOption {
 	logger := log.Logger(ctx)
 
 	var cloneURL string
-	if strings.EqualFold(gitInfo.Type, SSHAGENT) || strings.EqualFold(gitInfo.Type, SSHKEY) {
-		cloneURL = info.SSHURL
+	if strings.EqualFold(providerConfig.Git.Type, model.SSHAGENT) || strings.EqualFold(providerConfig.Git.Type, model.SSHKEY) {
+		cloneURL = metainfo.SSHURL
 	} else {
-		cloneURL = info.HTTPSURL
+		cloneURL = metainfo.HTTPSURL
 	}
 
 	logger.Info().
 		Str("url", cloneURL).
-		Str("target", targetPath).
 		Msg("Cloning repository")
 
-	return CloneOption{URL: cloneURL, Mirror: mirror, TargetPath: targetPath, Git: gitInfo, HTTPClient: httpClient}
+	return CloneOption{URL: cloneURL, Mirror: mirror, Git: providerConfig.Git, HTTPClient: providerConfig.HTTPClient}
 }
 
 // String provides a string representation of CloneOption.
 func (co CloneOption) String() string {
-	return fmt.Sprintf("CloneOption{CleanupName: %v, URL: %q, Mirror: %v, TargetPath: %q, GitOption: %+v}",
+	return fmt.Sprintf("CloneOption{CleanupName: %v, URL: %q, Mirror: %v, GitOption: %+v}",
 		co.CleanupName,
 		co.URL,
 		co.Mirror,
-		co.TargetPath,
 		co.Git)
 }

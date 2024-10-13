@@ -2,11 +2,10 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-package configuration
+package model
 
 import (
 	"bytes"
-	"itiquette/git-provider-sync/internal/model"
 	"testing"
 
 	"github.com/rs/zerolog"
@@ -24,11 +23,11 @@ func TestProviderConfig_String(t *testing.T) {
 			config: ProviderConfig{
 				ProviderType: "github",
 				Domain:       "github.com",
-				HTTPClient:   model.HTTPClientOption{Token: "secret"},
+				HTTPClient:   HTTPClientOption{Token: "secret"},
 				User:         "user1",
 				Scheme:       "https",
 				Group:        "group1",
-				Repositories: model.RepositoriesOption{Exclude: "excluded", Include: "included"},
+				Repositories: RepositoriesOption{Exclude: "excluded", Include: "included"},
 				Additional:   map[string]string{"key": "value"},
 			},
 			expected: "ProviderConfig: ProviderType: github, Domain: github.com, User: user1, Group: group1, Repository: RepositoryOption: Exclude excluded, Include: included, Git: GitOption: Type: , SSHPrivateKeyPath: , SSHPrivateKeyPW: ****,   HTTPClient: HTTPClientOption: ProxyURL , Token: **cret, Scheme: https, Extras: map[key:value]",
@@ -46,7 +45,7 @@ func TestProviderConfig_String(t *testing.T) {
 			config: ProviderConfig{
 				ProviderType: "bitbucket",
 				Domain:       "bitbucket.org",
-				HTTPClient:   model.HTTPClientOption{Token: ""},
+				HTTPClient:   HTTPClientOption{Token: ""},
 			},
 			expected: "ProviderConfig: ProviderType: bitbucket, Domain: bitbucket.org, User: , Group: , Repository: RepositoryOption: Exclude , Include: , Git: GitOption: Type: , SSHPrivateKeyPath: , SSHPrivateKeyPW: ****,   HTTPClient: HTTPClientOption: ProxyURL , Token: , Scheme: , Extras: map[]",
 		},
@@ -113,7 +112,7 @@ func TestProviderConfig_Methods(t *testing.T) {
 		Domain:       "github.com",
 		User:         "user1",
 		Group:        "group1",
-		Repositories: model.RepositoriesOption{Include: "repo1,repo2,repo3", Exclude: "excluded1,excluded2"},
+		Repositories: RepositoriesOption{Include: "repo1,repo2,repo3", Exclude: "excluded1,excluded2"},
 		Additional: map[string]string{
 			"archivetargetdir":   "/path/to/archive",
 			"directorytargetdir": "/path/to/directory",

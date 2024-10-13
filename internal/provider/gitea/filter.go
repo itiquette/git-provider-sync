@@ -8,9 +8,9 @@ import (
 	"context"
 	"fmt"
 
-	"itiquette/git-provider-sync/internal/configuration"
 	"itiquette/git-provider-sync/internal/log"
 	"itiquette/git-provider-sync/internal/model"
+	config "itiquette/git-provider-sync/internal/model/configuration"
 	"itiquette/git-provider-sync/internal/provider/targetfilter"
 )
 
@@ -29,7 +29,7 @@ type Filter struct{}
 // Returns:
 // - A slice of filtered RepositoryMetainfo.
 // - An error if any part of the filtering process fails.
-func (Filter) FilterMetainfo(ctx context.Context, config configuration.ProviderConfig, metainfos []model.RepositoryMetainfo) ([]model.RepositoryMetainfo, error) {
+func (Filter) FilterMetainfo(ctx context.Context, config config.ProviderConfig, metainfos []model.RepositoryMetainfo) ([]model.RepositoryMetainfo, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering FilterMetainfo: Starting repository filtering process")
 
@@ -55,7 +55,7 @@ func (Filter) FilterMetainfo(ctx context.Context, config configuration.ProviderC
 // Returns:
 // - A slice of RepositoryMetainfo that passed the date filter.
 // - An error if the filtering process fails for any repository.
-func filterByDate(ctx context.Context, config configuration.ProviderConfig, metainfos []model.RepositoryMetainfo) ([]model.RepositoryMetainfo, error) {
+func filterByDate(ctx context.Context, config config.ProviderConfig, metainfos []model.RepositoryMetainfo) ([]model.RepositoryMetainfo, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering filterByDate: Filtering repositories by last activity date")
 
@@ -89,7 +89,7 @@ func filterByDate(ctx context.Context, config configuration.ProviderConfig, meta
 // Returns:
 // - A boolean indicating whether the repository should be included based on its activity time.
 // - An error if the check fails, e.g., if the last activity time is nil.
-func includeByActivityTime(ctx context.Context, config configuration.ProviderConfig, metainfo model.RepositoryMetainfo) (bool, error) {
+func includeByActivityTime(ctx context.Context, config config.ProviderConfig, metainfo model.RepositoryMetainfo) (bool, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering includeByActivityTime: Checking repository activity time")
 	config.DebugLog(logger).Msg("includeByActivityTime: Using configuration")

@@ -6,8 +6,8 @@ package interfaces
 
 import (
 	"context"
-	"itiquette/git-provider-sync/internal/configuration"
 	"itiquette/git-provider-sync/internal/model"
+	config "itiquette/git-provider-sync/internal/model/configuration"
 )
 
 // GitProvider defines the interface for interacting with a Git hosting service.
@@ -29,7 +29,7 @@ type GitProvider interface {
 	//   - Validating the creation options.
 	//   - Creating the repository with the specified settings.
 	//   - Handling any provider-specific requirements or limitations.
-	Create(ctx context.Context, config configuration.ProviderConfig, option model.CreateOption) error
+	Create(ctx context.Context, config config.ProviderConfig, option model.CreateOption) error
 
 	// Metainfos retrieves metadata for repositories from the Git provider.
 	//
@@ -47,7 +47,7 @@ type GitProvider interface {
 	//   - Fetching repository information, potentially paginating through results.
 	//   - Applying any specified filtering.
 	//   - Translating provider-specific data into the RepositoryMetainfo model.
-	Metainfos(ctx context.Context, config configuration.ProviderConfig, filtering bool) ([]model.RepositoryMetainfo, error)
+	Metainfos(ctx context.Context, config config.ProviderConfig, filtering bool) ([]model.RepositoryMetainfo, error)
 
 	// Name returns the name of the Git provider.
 	//
@@ -76,7 +76,7 @@ type GitProvider interface {
 //		client *github.Client
 //	}
 //
-//	func (g *GitHubProvider) Create(ctx context.Context, config configuration.ProviderConfig, option model.CreateOption) error {
+//	func (g *GitHubProvider) Create(ctx context.Context, config model.ProviderConfig, option model.CreateOption) error {
 //		// Implementation for creating a repository on GitHub
 //		_, _, err := g.client.Repositories.Create(ctx, "", &github.Repository{
 //			Name:        github.String(option.RepositoryName),
@@ -86,7 +86,7 @@ type GitProvider interface {
 //		return err
 //	}
 //
-//	func (g *GitHubProvider) Metainfos(ctx context.Context, config configuration.ProviderConfig, filtering bool) ([]model.RepositoryMetainfo, error) {
+//	func (g *GitHubProvider) Metainfos(ctx context.Context, config model.ProviderConfig, filtering bool) ([]model.RepositoryMetainfo, error) {
 //		// Implementation for fetching repository metadata from GitHub
 //		// ...
 //	}
@@ -100,7 +100,7 @@ type GitProvider interface {
 //		// ...
 //	}
 //
-//	func SyncRepositories(ctx context.Context, provider GitProvider, config configuration.ProviderConfig) error {
+//	func SyncRepositories(ctx context.Context, provider GitProvider, config model.ProviderConfig) error {
 //		// Create a new repository
 //		err := provider.Create(ctx, config, model.CreateOption{
 //			RepositoryName: "new-repo",

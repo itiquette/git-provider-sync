@@ -10,10 +10,10 @@ import (
 	"fmt"
 	"strings"
 
-	"itiquette/git-provider-sync/internal/configuration"
 	"itiquette/git-provider-sync/internal/interfaces"
 	"itiquette/git-provider-sync/internal/log"
 	"itiquette/git-provider-sync/internal/model"
+	config "itiquette/git-provider-sync/internal/model/configuration"
 	"itiquette/git-provider-sync/internal/provider/stringconvert"
 	"itiquette/git-provider-sync/internal/target"
 )
@@ -36,20 +36,20 @@ var (
 //   - repository: The Git repository interface
 //
 // Returns an error if any step in the process fails.
-func Push(ctx context.Context, config configuration.ProviderConfig, provider interfaces.GitProvider, writer interfaces.TargetWriter, repository interfaces.GitRepository, sourceGitOption model.GitOption) error {
+func Push(ctx context.Context, targetProviderConfig config.ProviderConfig, provider interfaces.GitProvider, writer interfaces.TargetWriter, repository interfaces.GitRepository, sourceProviderConfig config.ProviderConfig) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Push:")
-	config.DebugLog(logger).Msg("Push:")
+	targetProviderConfig.DebugLog(logger).Msg("Push:")
 
-	if _, _, err := exists(ctx, config, provider, repository); err != nil {
+	if _, _, err := exists(ctx, targetProviderConfig, provider, repository); err != nil {
 		return fmt.Errorf("failed to check if the repository exists at provider: %w", err)
 	}
 
 	cliOptions := model.CLIOptions(ctx)
 
-	pushOption := getPushOption(ctx, config, repository, cliOptions.ForcePush)
+	pushOption := getPushOption(ctx, targetProviderConfig, repository, cliOptions.ForcePush)
 
-	if err := writer.Push(ctx, pushOption, sourceGitOption, config.Git); err != nil {
+	if err := writer.Push(ctx, repository, pushOption, sourceProviderConfig, targetProviderConfig.Git); err != nil {
 		return fmt.Errorf("%w: %w", ErrPushChanges, err)
 	}
 
@@ -58,37 +58,37 @@ func Push(ctx context.Context, config configuration.ProviderConfig, provider int
 
 // getPushOption determines the appropriate PushOption based on the provider configuration.
 // It handles different scenarios for archive, directory, and remote Git providers.
-func getPushOption(ctx context.Context, config configuration.ProviderConfig, repository interfaces.GitRepository, forcePush bool) model.PushOption {
-	switch strings.ToLower(config.ProviderType) {
-	case configuration.ARCHIVE:
+func getPushOption(ctx context.Context, providerConfig config.ProviderConfig, repository interfaces.GitRepository, forcePush bool) model.PushOption {
+	switch strings.ToLower(providerConfig.ProviderType) {
+	case config.ARCHIVE:
 		name := repository.Metainfo().Name(ctx)
 
-		return model.NewPushOption(target.ArchiveTargetPath(name, config.ArchiveTargetDir()), false, false, model.HTTPClientOption{})
-	case configuration.DIRECTORY:
-		return model.NewPushOption(config.DirectoryTargetDir(), false, false, model.HTTPClientOption{})
+		return model.NewPushOption(target.ArchiveTargetPath(name, providerConfig.ArchiveTargetDir()), false, false, config.HTTPClientOption{})
+	case config.DIRECTORY:
+		return model.NewPushOption(providerConfig.DirectoryTargetDir(), false, false, config.HTTPClientOption{})
 	default:
-		return model.NewPushOption(toGitURL(ctx, config, repository), false, forcePush, config.HTTPClient)
+		return model.NewPushOption(toGitURL(ctx, providerConfig, repository), false, forcePush, providerConfig.HTTPClient)
 	}
 }
 
 // create attempts to create a new repository on the Git provider.
 // It builds the repository description and uses the provider's Create method.
-func create(ctx context.Context, config configuration.ProviderConfig, provider interfaces.GitProvider, repository interfaces.GitRepository) error {
+func create(ctx context.Context, providerConfig config.ProviderConfig, provider interfaces.GitProvider, repository interfaces.GitRepository) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering create:")
-	config.DebugLog(logger).Msg("create:")
+	providerConfig.DebugLog(logger).Msg("create:")
 
-	gpsUpstreamRemote, err := repository.Remote(configuration.GPSUPSTREAM)
+	gpsUpstreamRemote, err := repository.Remote(config.GPSUPSTREAM)
 	if err != nil || gpsUpstreamRemote.URL == "" {
 		return fmt.Errorf("failed to get gpsupstream remote: %w", err)
 	}
 
-	description := buildDescription(gpsUpstreamRemote, repository, config.Repositories.Description)
+	description := buildDescription(gpsUpstreamRemote, repository, providerConfig.Repositories.Description)
 	name := repository.Metainfo().Name(ctx)
 
 	option := model.NewCreateOption(name, repository.Metainfo().Visibility, description, repository.Metainfo().DefaultBranch)
 
-	if err := provider.Create(ctx, config, option); err != nil {
+	if err := provider.Create(ctx, providerConfig, option); err != nil {
 		return fmt.Errorf("%w: %s. err: %w", ErrCreateRepository, name, err)
 	}
 
@@ -113,7 +113,7 @@ func buildDescription(gpsUpstreamRemote model.Remote, repository interfaces.GitR
 
 // exists checks if a repository already exists on the Git provider.
 // If it doesn't exist, it attempts to create it.
-func exists(ctx context.Context, config configuration.ProviderConfig, provider interfaces.GitProvider, repository interfaces.GitRepository) (bool, context.Context, error) {
+func exists(ctx context.Context, config config.ProviderConfig, provider interfaces.GitProvider, repository interfaces.GitRepository) (bool, context.Context, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering exists:")
 	config.DebugLog(logger).Msg("exists:")
@@ -146,11 +146,11 @@ func exists(ctx context.Context, config configuration.ProviderConfig, provider i
 
 // isArchiveOrDirectory checks if the provider is of type ARCHIVE or DIRECTORY.
 func isArchiveOrDirectory(provider string) bool {
-	return strings.EqualFold(provider, configuration.ARCHIVE) || strings.EqualFold(provider, configuration.DIRECTORY)
+	return strings.EqualFold(provider, config.ARCHIVE) || strings.EqualFold(provider, config.DIRECTORY)
 }
 
 // repositoryExists checks if a repository with the given name exists on the provider.
-func repositoryExists(ctx context.Context, config configuration.ProviderConfig, provider interfaces.GitProvider, repositoryName string) bool {
+func repositoryExists(ctx context.Context, config config.ProviderConfig, provider interfaces.GitProvider, repositoryName string) bool {
 	logger := log.Logger(ctx)
 	metainfos, err := provider.Metainfos(ctx, config, false)
 
@@ -174,20 +174,20 @@ func SetGPSUpstreamRemoteFromOrigin(ctx context.Context, remote interfaces.GitRe
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering SetGPSUpstreamRemoteFromOrigin")
 
-	originRemote, err := remote.Remote(configuration.ORIGIN)
+	originRemote, err := remote.Remote(config.ORIGIN)
 	if err != nil {
 		return fmt.Errorf("failed to get origin remote: %w", err)
 	}
 
-	if err := remote.DeleteRemote(configuration.GPSUPSTREAM); err != nil {
+	if err := remote.DeleteRemote(config.GPSUPSTREAM); err != nil {
 		return fmt.Errorf("failed to delete gpsupstream remote: %w", err)
 	}
 
-	if err := remote.CreateRemote(configuration.GPSUPSTREAM, originRemote.URL, true); err != nil {
+	if err := remote.CreateRemote(config.GPSUPSTREAM, originRemote.URL, true); err != nil {
 		return fmt.Errorf("failed to create gpsupstream remote: %w", err)
 	}
 
-	gpsUpstreamRemote, _ := remote.Remote(configuration.GPSUPSTREAM)
+	gpsUpstreamRemote, _ := remote.Remote(config.GPSUPSTREAM)
 	if gpsUpstreamRemote.URL != originRemote.URL {
 		return errors.New("mismatch in gpsupstream vs origin remote")
 	}
@@ -197,7 +197,7 @@ func SetGPSUpstreamRemoteFromOrigin(ctx context.Context, remote interfaces.GitRe
 
 // toGitURL constructs a Git provider URL.
 // This URL can be used for authenticated Git operations.
-func toGitURL(ctx context.Context, config configuration.ProviderConfig, repository interfaces.GitRepository) string {
+func toGitURL(ctx context.Context, config config.ProviderConfig, repository interfaces.GitRepository) string {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering toGitURL:")
 
@@ -215,7 +215,7 @@ func toGitURL(ctx context.Context, config configuration.ProviderConfig, reposito
 }
 
 // getProjectPath constructs the project path based on whether it's a group or user repository.
-func getProjectPath(config configuration.ProviderConfig, repositoryName string) string {
+func getProjectPath(config config.ProviderConfig, repositoryName string) string {
 	if config.IsGroup() {
 		return fmt.Sprintf("%s/%s", config.Group, repositoryName)
 	}

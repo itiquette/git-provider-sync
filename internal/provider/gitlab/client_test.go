@@ -179,7 +179,7 @@ package gitlab
 // func TestCreate(t *testing.T) {
 // 	tests := []struct {
 // 		name        string
-// 		config      configuration.ProviderConfig
+// 		config      model.ProviderConfig
 // 		option      model.CreateOption
 // 		setupMock   func(*MockGitProviderClient)
 // 		expectError bool
@@ -187,7 +187,7 @@ package gitlab
 // 	}{
 // 		{
 // 			name: "Create group repository success",
-// 			config: configuration.ProviderConfig{
+// 			config: model.ProviderConfig{
 // 				Domain: "gitlab.com",
 // 				Group:  "testgroup",
 // 			},
@@ -210,7 +210,7 @@ package gitlab
 // 		},
 // 		{
 // 			name: "Create user repository success",
-// 			config: configuration.ProviderConfig{
+// 			config: model.ProviderConfig{
 // 				Domain: "gitlab.com",
 // 				User:   "testuser",
 // 			},
@@ -233,7 +233,7 @@ package gitlab
 // 		},
 // 		{
 // 			name: "Create group repository failure",
-// 			config: configuration.ProviderConfig{
+// 			config: model.ProviderConfig{
 // 				Domain: "gitlab.com",
 // 				Group:  "testgroup",
 // 			},
@@ -257,7 +257,7 @@ package gitlab
 // 		},
 // 		{
 // 			name: "Create with empty repository name",
-// 			config: configuration.ProviderConfig{
+// 			config: model.ProviderConfig{
 // 				Domain: "gitlab.com",
 // 				User:   "testuser",
 // 			},
@@ -281,7 +281,7 @@ package gitlab
 // 		},
 // 		{
 // 			name: "Create with invalid visibility",
-// 			config: configuration.ProviderConfig{
+// 			config: model.ProviderConfig{
 // 				Domain: "gitlab.com",
 // 				Group:  "testgroup",
 // 			},
@@ -305,7 +305,7 @@ package gitlab
 // 		},
 // 		{
 // 			name: "Create with very long repository name",
-// 			config: configuration.ProviderConfig{
+// 			config: model.ProviderConfig{
 // 				Domain: "gitlab.com",
 // 				User:   "testuser",
 // 			},

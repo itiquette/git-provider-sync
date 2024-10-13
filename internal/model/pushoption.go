@@ -6,6 +6,8 @@ package model
 
 import (
 	"fmt"
+	model "itiquette/git-provider-sync/internal/model/configuration"
+	"strings"
 
 	"github.com/rs/zerolog"
 )
@@ -18,7 +20,7 @@ type PushOption struct {
 	RefSpecs   []string // The reference specifications to push
 	Prune      bool     // Whether to prune remote branches that no longer exist locally
 	Force      bool     // Whether to force push (overwrite remote history)
-	HTTPClient HTTPClientOption
+	HTTPClient model.HTTPClientOption
 }
 
 // String provides a string representation of PushOption.
@@ -52,11 +54,13 @@ func (po PushOption) DebugLog(logger *zerolog.Logger) *zerolog.Event {
 //
 // Returns:
 //   - A new PushOption struct configured with the provided options.
-func NewPushOption(target string, prune, force bool, httpClient HTTPClientOption) PushOption {
-	refSpecs := []string{"refs/heads/*:refs/heads/*", "refs/tags/*:refs/tags/*"}
+func NewPushOption(target string, prune, force bool, httpClient model.HTTPClientOption) PushOption {
+	refSpecs := []string{"refs/heads/*:refs/heads/*", "refs/tags/*:refs/tags/*", "^refs/pull/*:refs/pull/*"}
 	if force {
 		for i, spec := range refSpecs {
-			refSpecs[i] = "+" + spec
+			if !strings.HasPrefix(spec, "^") {
+				refSpecs[i] = "+" + spec
+			}
 		}
 	}
 

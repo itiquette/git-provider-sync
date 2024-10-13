@@ -15,9 +15,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"itiquette/git-provider-sync/internal/configuration"
 	"itiquette/git-provider-sync/internal/interfaces"
 	"itiquette/git-provider-sync/internal/model"
+	config "itiquette/git-provider-sync/internal/model/configuration"
 	"itiquette/git-provider-sync/internal/provider/archive"
 	"itiquette/git-provider-sync/internal/provider/directory"
 	"itiquette/git-provider-sync/internal/provider/gitea"
@@ -42,15 +42,15 @@ func NewGitProviderClient(ctx context.Context, option model.GitProviderClientOpt
 	client.InstallProtocol("https", githttp.NewClient(httpClient))
 
 	switch option.ProviderType {
-	case configuration.GITEA:
+	case config.GITEA:
 		provider, err = gitea.NewGiteaClient(ctx, option, httpClient)
-	case configuration.GITHUB:
+	case config.GITHUB:
 		provider, err = github.NewGitHubClient(ctx, option, httpClient)
-	case configuration.GITLAB:
+	case config.GITLAB:
 		provider, err = gitlab.NewGitLabClient(ctx, option, httpClient)
-	case configuration.ARCHIVE:
+	case config.ARCHIVE:
 		provider = archive.Client{}
-	case configuration.DIRECTORY:
+	case config.DIRECTORY:
 		provider = directory.Client{}
 	default:
 		return nil, ErrNonSupportedProvider
@@ -115,8 +115,6 @@ func loadCertsFromDir(dirPath string) (*tls.Config, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to read dir path. %w", err)
 	}
-
-	fmt.Println(files)
 
 	for _, file := range files {
 		if filepath.Ext(file.Name()) == ".crt" || filepath.Ext(file.Name()) == ".pem" {

@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+// Package target provides Git operations for repository management.
 package target
 
 import (
@@ -10,119 +11,111 @@ import (
 	"fmt"
 	"strings"
 
-	"itiquette/git-provider-sync/internal/configuration"
 	"itiquette/git-provider-sync/internal/interfaces"
 	"itiquette/git-provider-sync/internal/log"
 	"itiquette/git-provider-sync/internal/model"
+	gpsconfig "itiquette/git-provider-sync/internal/model/configuration"
 
+	"github.com/go-git/go-billy/v5"
+	"github.com/go-git/go-billy/v5/memfs"
 	"github.com/go-git/go-git/v5"
 	gogitconfig "github.com/go-git/go-git/v5/config"
-
+	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
+	"github.com/go-git/go-git/v5/storage/memory"
 	"github.com/rs/zerolog"
 )
 
+// Common errors.
+var (
+	ErrBranchCheckout         = errors.New("failed to checkout branch")
+	ErrCloneRepository        = errors.New("failed to clone repository")
+	ErrCreateNewRepository    = errors.New("failed to create new repository")
+	ErrFetchBranches          = errors.New("failed to fetch branches")
+	ErrGetAuthMethod          = errors.New("failed to get auth method")
+	ErrGetWorktree            = errors.New("failed to get worktree")
+	ErrHeadSet                = errors.New("failed to set HEAD reference")
+	ErrOpenRepository         = errors.New("failed to open repository")
+	ErrOpenRepositoryWorktree = errors.New("failed to open repository worktree")
+	ErrRemoteCreation         = errors.New("failed to set remote in target repository")
+	ErrRepoInitialization     = errors.New("failed to initialize target repository")
+	ErrRepoPush               = errors.New("failed to push to target repository")
+	ErrRepoPull               = errors.New("failed to pull updates")
+	ErrUncleanWorkspace       = errors.New("workspace is unclean, aborting")
+	ErrUnsupportedGitType     = errors.New("unsupported git option type")
+	ErrReadSSHKey             = errors.New("failed to read ssh key")
+)
+
 // Git represents operations against a Git repository.
-// It encapsulates a go-git Repository and provides methods for common Git operations.
 type Git struct {
 	goGitRepository *git.Repository
 	name            string
 }
 
-// Clone clones a repository to a target according to given clone options.
-// It creates a new repository at the specified target path and returns a model.Repository.
-//
-// Parameters:
-// - ctx: The context for the operation, which can be used for cancellation and passing values.
-// - option: The CloneOption containing details about the clone operation, including the source URL and target path.
-//
-// Returns:
-// - A model.Repository representing the cloned repository.
-// - An error if the cloning process fails at any step.
+// Clone clones a repository according to given clone options.
 func (g Git) Clone(ctx context.Context, option model.CloneOption) (model.Repository, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Git:Clone")
-	logger.Debug().Str("url", option.URL).Str("target", option.TargetPath).Msg("Git:Clone")
+	logger.Debug().Str("url", option.URL).Msg("Git:Clone")
 
-	var gitGoCloneOptions git.CloneOptions
-
-	var err error
-
-	var auth transport.AuthMethod
-
-	if strings.EqualFold(option.Git.Type, model.SSHKEY) {
-		auth, err = ssh.NewPublicKeysFromFile("git", option.Git.SSHPrivateKeyPath, option.Git.SSHPrivateKeyPW)
-		if err != nil {
-			return model.Repository{}, fmt.Errorf("generate publickeys failed: %w", err)
-		}
-	}
-
-	if strings.EqualFold(option.Git.Type, model.HTTPS) || len(option.Git.Type) == 0 {
-		auth = &http.BasicAuth{Username: "anyUser", Password: option.HTTPClient.Token}
-	}
-
-	gitGoCloneOptions = newGitGoCloneOption(option.URL, option.Mirror, auth)
-
-	cloneRepository, err := git.PlainClone(option.TargetPath, false, &gitGoCloneOptions)
+	auth, err := g.getAuthMethod(option.Git, option.HTTPClient.Token)
 	if err != nil {
-		return model.Repository{}, fmt.Errorf("failed to clone repository: %w", err)
+		return model.Repository{}, fmt.Errorf("%w: %w", ErrGetAuthMethod, err)
 	}
 
-	repo, err := model.NewRepository(cloneRepository)
+	var memFS billy.Filesystem
+
+	memStorage := memory.NewStorage()
+
+	if option.PlainRepo {
+		memFS = memfs.New()
+	}
+
+	cloneOptions := newGitGoCloneOption(option.URL, option.Mirror, auth)
+
+	repo, err := git.Clone(memStorage, memFS, &cloneOptions)
 	if err != nil {
-		return model.Repository{}, fmt.Errorf("failed to create new repository: %w", err)
+		return model.Repository{}, fmt.Errorf("%w: %w", ErrCloneRepository, err)
 	}
 
-	return repo, nil
+	newRepo, err := model.NewRepository(repo)
+	if err != nil {
+		return model.Repository{}, fmt.Errorf("%w: %w", ErrCreateNewRepository, err)
+	}
+
+	return newRepo, nil
 }
 
 // Pull performs a git pull operation on the repository.
-// It updates the current branch with changes from the remote repository.
-//
-// Parameters:
-// - ctx: The context for the operation, which can be used for cancellation and passing values.
-// - option: The PullOption containing details about the pull operation, including the target path.
-//
-// Returns an error if the pull operation fails or if the workspace is unclean.
-func (g Git) Pull(ctx context.Context, option model.PullOption) error {
+func (g Git) Pull(ctx context.Context, pullDirPath string, option model.PullOption) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Git:Pull")
 	option.DebugLog(logger).Msg("Git:Pull")
 
-	targetRepository, err := git.PlainOpen(option.TargetPath)
+	repo, err := git.PlainOpen(pullDirPath)
 	if err != nil {
-		return fmt.Errorf("failed to open repository directory %s: %w", option.TargetPath, err)
+		return fmt.Errorf("%w: %s: %w", ErrOpenRepository, pullDirPath, err)
 	}
 
-	worktree, err := targetRepository.Worktree()
+	worktree, err := repo.Worktree()
 	if err != nil {
-		return fmt.Errorf("failed to open repository worktree: %w", err)
+		return fmt.Errorf("%w: %w", ErrOpenRepositoryWorktree, err)
 	}
 
 	if status, _ := worktree.Status(); !status.IsClean() {
-		return fmt.Errorf("workspace at %s is unclean, aborting", option.TargetPath)
+		return fmt.Errorf("%w: %s", ErrUncleanWorkspace, pullDirPath)
 	}
 
-	var gitPullOptions git.PullOptions
-
-	var auth transport.AuthMethod
-
-	if strings.EqualFold(option.GitOption.Type, model.SSHKEY) {
-		auth, err = ssh.NewPublicKeysFromFile("git", option.GitOption.SSHPrivateKeyPath, option.GitOption.SSHPrivateKeyPW)
-		if err != nil {
-			return fmt.Errorf("generate publickeys failed: %w", err)
-		}
+	auth, err := g.getAuthMethod(option.GitOption, option.HTTPClientOption.Token)
+	if err != nil {
+		return fmt.Errorf("%w: %w", ErrGetAuthMethod, err)
 	}
 
-	if strings.EqualFold(option.GitOption.Type, model.HTTPS) || len(option.GitOption.Type) == 0 {
-		auth = &http.BasicAuth{Username: "anyUser", Password: option.HTTPClientOption.Token}
-	}
+	pullOptions := newGitGoPullOption(gpsconfig.ORIGIN, "", auth)
 
-	gitPullOptions = newGitGoPullOption(configuration.ORIGIN, "", auth)
-
-	if err := worktree.Pull(&gitPullOptions); err != nil {
+	if err := worktree.Pull(&pullOptions); err != nil {
 		if errors.Is(err, git.NoErrAlreadyUpToDate) {
 			logger.Debug().Msgf("Repository %s already up-to-date, ignoring Pull", g.name)
 			g.updateSyncRunMetainfo(ctx, "uptodate")
@@ -130,78 +123,66 @@ func (g Git) Pull(ctx context.Context, option model.PullOption) error {
 			return nil
 		}
 
-		return fmt.Errorf("failed to pull repository: %w", err)
+		return fmt.Errorf("%w: %w", ErrRepoPull, err)
 	}
 
-	if err := g.fetchBranches(ctx, targetRepository); err != nil {
-		return fmt.Errorf("failed to fetch branches: %w", err)
-	}
-
-	return nil
+	return g.fetchBranches(ctx, repo)
 }
 
-// Push pushes an existing repository to a target provider according to given push options.
-// It sends local changes to the remote repository.
-//
-// Parameters:
-// - ctx: The context for the operation, which can be used for cancellation and passing values.
-// - option: The PushOption containing details about the push operation, including the target and RefSpecs.
-//
-// Returns an error if the push operation fails.
-func (g Git) Push(ctx context.Context, option model.PushOption, _ model.GitOption, targetGitOption model.GitOption) error {
+// Push pushes an existing repository to a target provider.
+func (g Git) Push(ctx context.Context, repository interfaces.GitRepository, option model.PushOption, _ gpsconfig.ProviderConfig, targetGitOption gpsconfig.GitOption) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Git:Push")
 	option.DebugLog(logger).Msg("Git:Push")
-
 	g.logRemotes(logger)
 
-	var auth transport.AuthMethod
-
-	var err error
-
-	if strings.EqualFold(targetGitOption.Type, model.SSHKEY) {
-		auth, err = ssh.NewPublicKeysFromFile("git", targetGitOption.SSHPrivateKeyPath, targetGitOption.SSHPrivateKeyPW)
-		if err != nil {
-			return fmt.Errorf("generate publickeys failed: %w", err)
-		}
+	auth, err := g.getAuthMethod(targetGitOption, option.HTTPClient.Token)
+	if err != nil {
+		return fmt.Errorf("%w: %w", ErrGetAuthMethod, err)
 	}
 
-	if strings.EqualFold(targetGitOption.Type, model.HTTPS) || len(targetGitOption.Type) == 0 {
-		auth = &http.BasicAuth{Username: "anyUser", Password: option.HTTPClient.Token}
-	}
-
-	gitOptions := newGitGoPushOption(option.Target, option.RefSpecs, option.Prune, auth)
-
+	pushOptions := newGitGoPushOption(option.Target, option.RefSpecs, option.Prune, auth)
 	logger.Info().Str("target", option.Target).Msg("Pushing to:")
 
-	if err := g.goGitRepository.Push(&gitOptions); err != nil {
-		if errors.Is(err, git.NoErrAlreadyUpToDate) {
-			logger.Debug().Msgf("Repository %s already up-to-date, ignoring Push", g.name)
-			g.updateSyncRunMetainfo(ctx, "uptodate")
-
-			return nil
-		}
-
-		return fmt.Errorf("failed to push: %w", err)
+	if err := repository.GoGitRepository().Push(&pushOptions); err != nil {
+		return g.handlePushError(ctx, err)
 	}
 
 	return nil
 }
 
+func (g Git) handlePushError(ctx context.Context, err error) error {
+	if errors.Is(err, git.NoErrAlreadyUpToDate) {
+		log.Logger(ctx).Debug().Msgf("Repository %s already up-to-date, ignoring Push", g.name)
+		g.updateSyncRunMetainfo(ctx, "uptodate")
+
+		return nil
+	}
+
+	return fmt.Errorf("%w: %w", ErrRepoPush, err)
+}
+
+func (g Git) getAuthMethod(gitOption gpsconfig.GitOption, token string) (transport.AuthMethod, error) {
+	switch strings.ToLower(gitOption.Type) {
+	case gpsconfig.SSHKEY:
+		keys, err := ssh.NewPublicKeysFromFile("git", gitOption.SSHPrivateKeyPath, gitOption.SSHPrivateKeyPW)
+		if err != nil {
+			return nil, fmt.Errorf("%w: key path: %s. err: %w", ErrReadSSHKey, gitOption.SSHPrivateKeyPath, err)
+		}
+
+		return keys, nil
+	case gpsconfig.HTTPS, "":
+		return &http.BasicAuth{Username: "anyUser", Password: token}, nil
+	default:
+		return nil, fmt.Errorf("%w: %s", ErrUnsupportedGitType, gitOption.Type)
+	}
+}
+
 // Fetch fetches all branches locally.
-// It updates the local repository with changes from the remote without merging them.
-//
-// Parameters:
-// - ctx: The context for the operation, which can be used for cancellation and passing values.
-// - repository: The model.Repository to fetch branches for.
-//
-// Returns an error if the fetch operation fails.
 func (g Git) Fetch(ctx context.Context, repository model.Repository) error {
 	return g.fetchBranches(ctx, repository.GoGitRepository())
 }
 
-// fetchBranches fetches all branches from the remote repository.
-// This is an internal method used by Fetch and Pull operations.
 func (g Git) fetchBranches(ctx context.Context, repository *git.Repository) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Git:fetchBranches")
@@ -211,9 +192,7 @@ func (g Git) fetchBranches(ctx context.Context, repository *git.Repository) erro
 		"^refs/pull/*:refs/pull/*",
 	}
 
-	options := &git.FetchOptions{
-		RefSpecs: refSpecs,
-	}
+	options := &git.FetchOptions{RefSpecs: refSpecs}
 
 	if err := repository.Fetch(options); err != nil {
 		if errors.Is(err, git.NoErrAlreadyUpToDate) {
@@ -222,22 +201,18 @@ func (g Git) fetchBranches(ctx context.Context, repository *git.Repository) erro
 			return nil
 		}
 
-		return fmt.Errorf("failed to fetch branches: %w", err)
+		return fmt.Errorf("%w: %w", ErrFetchBranches, err)
 	}
 
 	return nil
 }
 
-// updateSyncRunMetainfo updates the synchronization run metadata in the context.
-// It is used to track repositories that are already up-to-date during sync operations.
 func (g Git) updateSyncRunMetainfo(ctx context.Context, key string) {
 	if syncRunMeta, ok := ctx.Value(model.SyncRunMetainfoKey{}).(model.SyncRunMetainfo); ok {
 		syncRunMeta.Fail[key] = append(syncRunMeta.Fail[key], g.name)
 	}
 }
 
-// logRemotes logs the remote configurations of the repository.
-// This is used for debugging purposes to show the configured remotes.
 func (g Git) logRemotes(logger *zerolog.Logger) {
 	if remotes, err := g.goGitRepository.Remotes(); err == nil {
 		for _, remote := range remotes {
@@ -247,13 +222,53 @@ func (g Git) logRemotes(logger *zerolog.Logger) {
 }
 
 // NewGit creates a new Git instance.
-// It initializes a Git struct with a go-git Repository and a name.
-//
-// Parameters:
-// - repository: An interface that provides access to a go-git Repository.
-// - name: A string identifier for the repository.
-//
-// Returns a new Git instance.
 func NewGit(repository interfaces.GitRepository, name string) Git {
 	return Git{goGitRepository: repository.GoGitRepository(), name: name}
+}
+
+func setRemoteAndBranch(repository interfaces.GitRepository, sourceDirPath string) error {
+	targetRepo, err := git.PlainOpen(sourceDirPath)
+	if err != nil {
+		return fmt.Errorf("%w: %s: %w", ErrOpenRepository, sourceDirPath, err)
+	}
+
+	remote, err := repository.GoGitRepository().Remote(gpsconfig.ORIGIN)
+	if err == nil {
+		if _, err := targetRepo.CreateRemote(&gogitconfig.RemoteConfig{
+			Name: gpsconfig.ORIGIN,
+			URLs: remote.Config().URLs,
+		}); err != nil {
+			return fmt.Errorf("%w: %w", ErrRemoteCreation, err)
+		}
+	}
+
+	return nil
+}
+
+func setDefaultBranch(repoPath, branchName string) error {
+	repo, err := git.PlainOpen(repoPath)
+	if err != nil {
+		return fmt.Errorf("%w: %s: %w", ErrOpenRepository, repoPath, err)
+	}
+
+	branchRef := plumbing.NewBranchReferenceName(branchName)
+
+	worktree, err := repo.Worktree()
+	if err != nil {
+		return fmt.Errorf("%w: %w", ErrGetWorktree, err)
+	}
+
+	if err := worktree.Checkout(&git.CheckoutOptions{
+		Branch: branchRef,
+		Force:  true,
+	}); err != nil {
+		return fmt.Errorf("%w: %s: %w", ErrBranchCheckout, branchName, err)
+	}
+
+	headRef := plumbing.NewSymbolicReference(plumbing.HEAD, branchRef)
+	if err := repo.Storer.SetReference(headRef); err != nil {
+		return fmt.Errorf("%w: %w", ErrHeadSet, err)
+	}
+
+	return nil
 }
