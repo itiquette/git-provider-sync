@@ -127,6 +127,38 @@ TIP: For configuration examples, see link:../examples/gitprovidersync.examplecon
 
 == Provider-Specific Notes
 
+
+=== Visibility Mappings
+
+Different providers have slightly different visibility options for repositories.
+Listed is how they will be synced.
+
+.GitLab Provider Visibility Mappings
+[options="header"]
+|===
+| GitLab    | GitHub   | Gitea     
+| Public    | Public   | Public    
+| Internal  | Private  | Private   
+| Private   | Private  | Private   
+|===
+
+.GitHub Provider Visibility Mappings
+[options="header"]
+|===
+| GitHub    | GitLab   | Gitea     
+| Public    | Public   | Public    
+| Private   | Private  | Private   
+|===
+
+.Gitea Provider Visibility Mappings
+[options="header"]
+|===
+| Gitea     | GitLab   | GitHub    
+| Public    | Public   | Public    
+| Private   | Private  | Private   
+| Limited   | Private  | Private   
+|===
+
 === Authentication
 
 * Default: Basic Auth (requires token in configuration)

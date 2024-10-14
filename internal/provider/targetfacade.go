@@ -42,7 +42,7 @@ func Push(ctx context.Context, targetProviderConfig config.ProviderConfig, provi
 	logger.Trace().Msg("Entering Push:")
 	targetProviderConfig.DebugLog(logger).Msg("Push:")
 
-	if _, _, err := exists(ctx, targetProviderConfig, provider, repository); err != nil {
+	if _, _, err := exists(ctx, targetProviderConfig, provider, sourceProviderConfig.ProviderType, repository); err != nil {
 		return fmt.Errorf("failed to check if the repository exists at provider: %w", err)
 	}
 
@@ -83,7 +83,7 @@ func getPushOption(ctx context.Context, providerConfig config.ProviderConfig, re
 
 // create attempts to create a new repository on the Git provider.
 // It builds the repository description and uses the provider's Create method.
-func create(ctx context.Context, providerConfig config.ProviderConfig, provider interfaces.GitProvider, repository interfaces.GitRepository) error {
+func create(ctx context.Context, providerConfig config.ProviderConfig, provider interfaces.GitProvider, sourceProviderType string, repository interfaces.GitRepository) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering create:")
 	providerConfig.DebugLog(logger).Msg("create:")
@@ -96,7 +96,12 @@ func create(ctx context.Context, providerConfig config.ProviderConfig, provider 
 	description := buildDescription(gpsUpstreamRemote, repository, providerConfig.Repositories.Description)
 	name := repository.Metainfo().Name(ctx)
 
-	option := model.NewCreateOption(name, repository.Metainfo().Visibility, description, repository.Metainfo().DefaultBranch)
+	visibility, err := mapVisibility(sourceProviderType, providerConfig.ProviderType, repository.Metainfo().Visibility)
+	if err != nil {
+		return fmt.Errorf("failed to map visibility: %w", err)
+	}
+
+	option := model.NewCreateOption(name, visibility, description, repository.Metainfo().DefaultBranch)
 
 	if err := provider.Create(ctx, providerConfig, option); err != nil {
 		return fmt.Errorf("%w: %s. err: %w", ErrCreateRepository, name, err)
@@ -123,7 +128,7 @@ func buildDescription(gpsUpstreamRemote model.Remote, repository interfaces.GitR
 
 // exists checks if a repository already exists on the Git provider.
 // If it doesn't exist, it attempts to create it.
-func exists(ctx context.Context, config config.ProviderConfig, provider interfaces.GitProvider, repository interfaces.GitRepository) (bool, context.Context, error) {
+func exists(ctx context.Context, config config.ProviderConfig, provider interfaces.GitProvider, sourceProviderType string, repository interfaces.GitRepository) (bool, context.Context, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering exists:")
 	config.DebugLog(logger).Msg("exists:")
@@ -140,7 +145,7 @@ func exists(ctx context.Context, config config.ProviderConfig, provider interfac
 	if !repoExists {
 		logger.Debug().Str("name", repositoryName).Msg("Repository - Did not exist")
 
-		if err := create(ctx, config, provider, repository); err != nil {
+		if err := create(ctx, config, provider, sourceProviderType, repository); err != nil {
 			return false, ctx, err
 		}
 
