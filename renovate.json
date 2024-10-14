@@ -48,16 +48,16 @@
       ]
     },
     {
-      "matchPackagePatterns": [
-        "^github.com/"
-      ],
-      "groupName": "github dependencies"
+      "groupName": "github dependencies",
+      "matchPackageNames": [
+        "/^github.com//"
+      ]
     },
     {
-      "matchPackagePatterns": [
-        "^golang.org/x/"
-      ],
-      "groupName": "golang standard library"
+      "groupName": "golang standard library",
+      "matchPackageNames": [
+        "/^golang.org/x//"
+      ]
     },
     {
       "matchPackageNames": [
