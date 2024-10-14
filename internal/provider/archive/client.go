@@ -21,6 +21,10 @@ func (Client) Name() string {
 	return config.ARCHIVE
 }
 
+func (Client) DefaultBranch(_ context.Context, _ string, _ string, _ string) error {
+	return nil
+}
+
 func (Client) IsValidRepositoryName(_ context.Context, _ string) bool {
 	return true
 }

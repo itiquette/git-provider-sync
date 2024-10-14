@@ -31,6 +31,8 @@ type GitProvider interface {
 	//   - Handling any provider-specific requirements or limitations.
 	Create(ctx context.Context, config config.ProviderConfig, option model.CreateOption) error
 
+	DefaultBranch(ctx context.Context, owner string, projectname string, branch string) error
+
 	// Metainfos retrieves metadata for repositories from the Git provider.
 	//
 	// Parameters:

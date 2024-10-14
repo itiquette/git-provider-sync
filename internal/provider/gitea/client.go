@@ -61,6 +61,11 @@ func (c Client) Create(ctx context.Context, config config.ProviderConfig, option
 	return nil
 }
 
+func (c Client) DefaultBranch(_ context.Context, _ string, _ string, _ string) error {
+	//TO-DO
+	return nil
+}
+
 // Name returns the name of the provider, which is "GITEA".
 func (c Client) Name() string {
 	return config.GITEA

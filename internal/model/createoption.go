@@ -4,6 +4,8 @@
 
 package model
 
+import "fmt"
+
 // CreateOption represents options for creating a new repository.
 // It includes the repository name, visibility settings, description,
 // and the name of the default branch.
@@ -12,6 +14,14 @@ type CreateOption struct {
 	Visibility     string // The visibility setting (e.g., "public", "private")
 	Description    string // A description of the repository
 	DefaultBranch  string // The name of the default branch (e.g., "main", "master")
+}
+
+func (co CreateOption) String() string {
+	return fmt.Sprintf("CreateOption{RepositoryName: %q, Visibility: %q, Description: %q, DefaultBranch: %q}",
+		co.RepositoryName,
+		co.Visibility,
+		co.Description,
+		co.DefaultBranch)
 }
 
 // NewCreateOption creates a new CreateOption.

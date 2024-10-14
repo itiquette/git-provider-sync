@@ -37,12 +37,14 @@ type Client struct {
 func (glc Client) Create(ctx context.Context, config config.ProviderConfig, option model.CreateOption) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitLab:Create:")
-	config.DebugLog(logger).Msg("GitLab:Create:")
+	logger.Debug().Msg("Entering GitLab:Create:")
+	config.DebugLog(logger).Str("CreateOption", option.String()).Msg("GitLab:Create:")
 
 	ops := &gitlab.CreateProjectOptions{
-		Name:        gitlab.Ptr(option.RepositoryName),
-		Description: gitlab.Ptr(option.Description),
-		Visibility:  gitlab.Ptr(toVisibility(option.Visibility)),
+		Name:          gitlab.Ptr(option.RepositoryName),
+		Description:   gitlab.Ptr(option.Description),
+		DefaultBranch: gitlab.Ptr(option.DefaultBranch),
+		Visibility:    gitlab.Ptr(toVisibility(option.Visibility)),
 	}
 
 	_, _, err := glc.rawClient.Projects.CreateProject(ops)
@@ -52,6 +54,21 @@ func (glc Client) Create(ctx context.Context, config config.ProviderConfig, opti
 	}
 
 	logger.Trace().Msg("Repository created successfully")
+
+	return nil
+}
+
+func (glc Client) DefaultBranch(ctx context.Context, owner string, projectName string, branch string) error {
+	logger := log.Logger(ctx)
+	logger.Trace().Msg("Entering GitLab:DefaultBranch:")
+	logger.Debug().Str("name", branch).Msg("GitLab:DefaultBranch:")
+
+	_, _, err := glc.rawClient.Projects.EditProject(owner+"/"+projectName, &gitlab.EditProjectOptions{
+		DefaultBranch: gitlab.Ptr(branch),
+	})
+	if err != nil {
+		return fmt.Errorf("%w", err)
+	}
 
 	return nil
 }

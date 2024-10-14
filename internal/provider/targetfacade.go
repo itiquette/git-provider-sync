@@ -23,6 +23,7 @@ var (
 	ErrTargetRepositoryName = errors.New("failed target repository name validation")
 	ErrCreateRepository     = errors.New("failed to create repository")
 	ErrPushChanges          = errors.New("failed to push changes")
+	ErrDefaultBranch        = errors.New("failed to set default branch")
 )
 
 // Push handles the process of pushing changes to a Git provider.
@@ -51,6 +52,15 @@ func Push(ctx context.Context, targetProviderConfig config.ProviderConfig, provi
 
 	if err := writer.Push(ctx, repository, pushOption, sourceProviderConfig, targetProviderConfig.Git); err != nil {
 		return fmt.Errorf("%w: %w", ErrPushChanges, err)
+	}
+
+	owner := targetProviderConfig.Group
+	if len(targetProviderConfig.Group) == 0 {
+		owner = targetProviderConfig.User
+	}
+
+	if err := provider.DefaultBranch(ctx, owner, repository.Metainfo().Name(ctx), repository.Metainfo().DefaultBranch); err != nil {
+		return fmt.Errorf("%w: %w", ErrDefaultBranch, err)
 	}
 
 	return nil

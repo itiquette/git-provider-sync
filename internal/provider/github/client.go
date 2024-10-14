@@ -63,7 +63,7 @@ func (ghc Client) Create(ctx context.Context, config config.ProviderConfig, opti
 		groupName = config.Group
 	}
 
-	rep := &github.Repository{Name: &option.RepositoryName, Private: &isPrivate, Description: &option.Description}
+	rep := &github.Repository{Name: &option.RepositoryName, Private: &isPrivate, DefaultBranch: &option.DefaultBranch, Description: &option.Description}
 	_, _, err = ghc.rawClient.Repositories.Create(ctx, groupName, rep)
 
 	if err != nil {
@@ -164,6 +164,21 @@ func (ghc *Client) processRepositories(ctx context.Context, config config.Provid
 // Returns true if the repository name is valid, false otherwise.
 func (ghc *Client) Validate(ctx context.Context, name string) bool {
 	return ghc.IsValidRepositoryName(ctx, name)
+}
+
+func (ghc Client) DefaultBranch(ctx context.Context, owner string, projectName string, branch string) error {
+	logger := log.Logger(ctx)
+	logger.Trace().Msg("Entering GitHub:DefaultBranch:")
+	logger.Debug().Str("branch", branch).Msg("GitHub:DefaultBranch:")
+
+	_, _, err := ghc.rawClient.Repositories.Edit(ctx, owner, projectName, &github.Repository{
+		DefaultBranch: github.String(branch),
+	})
+	if err != nil {
+		return fmt.Errorf("%w", err)
+	}
+
+	return nil
 }
 
 // IsValidRepositoryName checks if the given repository name is valid for GitHub.
