@@ -5,7 +5,13 @@
 version = 1
 
 [[annotations]]
-path = [".github/pull_request_template.md", "go.sum", "docs/dco.txt","assets/gpsgopher.png"]
+path = [
+  ".github/pull_request_template.md",
+  "go.sum",
+  "docs/dco.txt",
+  "assets/gpsgopher.png",
+  "renovate.json",
+]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "janderssonse. <https://github.com/janderssonse>"
 SPDX-License-Identifier = "CC0-1.0"

@@ -1,0 +1,88 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:best-practices",
+    ":gitSignOff",
+    ":maintainLockFilesWeekly",
+    ":automergeMinor",
+    ":semanticCommits"
+  ],
+  "semanticCommitType": "build",
+  "semanticCommitScope": "deps",
+  "commitMessageLowerCase": "auto",
+  "commitBody": "Signed-off-by: {{{gitAuthor}}}",
+  "gitSign": true,
+  "vulnerabilityAlerts": {
+    "labels": [
+      "security"
+    ],
+    "enabled": true,
+    "automerge": true
+  },
+  "packageRules": [
+    {
+      "matchManagers": [
+        "github-actions"
+      ],
+      "addLabels": [
+        "actions"
+      ]
+    },
+    {
+      "matchManagers": [
+        "gomod"
+      ],
+      "addLabels": [
+        "go",
+        "dependencies"
+      ]
+    },
+    {
+      "matchManagers": [
+        "gomod"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "addLabels": [
+        "major-update"
+      ]
+    },
+    {
+      "matchPackagePatterns": [
+        "^github.com/"
+      ],
+      "groupName": "github dependencies"
+    },
+    {
+      "matchPackagePatterns": [
+        "^golang.org/x/"
+      ],
+      "groupName": "golang standard library"
+    },
+    {
+      "matchPackageNames": [
+        "github.com/knadh/koanf"
+      ],
+      "groupName": "koanf dependencies"
+    },
+    {
+      "matchPackageNames": [
+        "go"
+      ],
+      "matchDepTypes": [
+        "golang"
+      ],
+      "rangeStrategy": "bump"
+    },
+    {
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchPackageNames": [
+        "slsa-framework/slsa-github-generator"
+      ],
+      "pinDigests": false
+    }
+  ]
+}
