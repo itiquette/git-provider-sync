@@ -80,8 +80,11 @@ func printRemoteProviderDetails(config config.ProviderConfig, writer io.Writer) 
 	// Protocol
 	printGitProtocol(writer, config)
 
-	fmt.Fprintf(writer, " Include: %s", config.Repositories.Include)
-	fmt.Fprintf(writer, " Exclude: %s", config.Repositories.Exclude)
+	// SSHClientOptions
+	printSSHClientOption(writer, config)
+
+	fmt.Fprintf(writer, " Include: %s\n", config.Repositories.Include)
+	fmt.Fprintf(writer, " Exclude: %s\n", config.Repositories.Exclude)
 }
 
 func printGitProtocol(writer io.Writer, providerConfig config.ProviderConfig) {
@@ -89,17 +92,21 @@ func printGitProtocol(writer io.Writer, providerConfig config.ProviderConfig) {
 
 	if len(providerConfig.Git.Type) == 0 {
 		fmt.Fprintf(writer, "  Type: %s\n", config.HTTPS)
+		fmt.Fprintf(writer, "  UseGitBinary: %t\n", providerConfig.Git.UseGitBinary)
 		fmt.Fprintf(writer, "  IncludeForks: %t\n", providerConfig.Git.IncludeForks)
 	} else {
 		fmt.Fprintf(writer, "  Type: %s\n", providerConfig.Git.Type)
-		fmt.Fprintf(writer, "  SSHPrivateKeyPath: %s\n", providerConfig.Git.SSHPrivateKeyPath)
+		fmt.Fprintf(writer, "  UseGitBinary: %t\n", providerConfig.Git.UseGitBinary)
 		fmt.Fprintf(writer, "  IncludeForks: %t\n", providerConfig.Git.IncludeForks)
+	}
+}
 
-		if len(providerConfig.Git.SSHPrivateKeyPW) == 0 {
-			fmt.Fprintln(writer, "  SSHPrivateKeyPW not specified")
-		} else {
-			fmt.Fprintln(writer, "  SSHPrivateKeyPW: <*****>")
-		}
+func printSSHClientOption(writer io.Writer, providerConfig config.ProviderConfig) {
+	if len(providerConfig.SSHClient.ProxyCommand) >= 0 {
+		fmt.Fprint(writer, " SSHClientOptions:\n")
+		fmt.Fprintf(writer, "  ProxyCommand: %s\n", providerConfig.SSHClient.ProxyCommand)
+		fmt.Fprintf(writer, "  RewriteSSHURLFrom: %s\n", providerConfig.SSHClient.RewriteSSHURLFrom)
+		fmt.Fprintf(writer, "  RewriteSSHURLTo: %s\n", providerConfig.SSHClient.RewriteSSHURLTo)
 	}
 }
 

@@ -8,10 +8,14 @@ import (
 	"errors"
 	"fmt"
 	config "itiquette/git-provider-sync/internal/model/configuration"
+	"itiquette/git-provider-sync/internal/target"
+	"net"
 	"net/url"
 	"os"
 	"slices"
 	"strings"
+
+	"golang.org/x/crypto/ssh/agent"
 )
 
 // Define error variables for various configuration validation scenarios.
@@ -36,12 +40,12 @@ var (
 	ErrHasNoHTTPPrefix              = errors.New("target provider currently only supports http/s")
 	ErrTargetURLValidFormat         = errors.New("target url must be a Git provider URL")
 	ErrNoTargetToken                = errors.New("no target token set")
-	ErrInvalidSSHKeyPath            = errors.New("ssh key path invalid")
+	ErrNoGitBinaryFound             = errors.New("failed to find git binary")
 )
 
 var ValidGitProviders = []string{config.GITHUB, config.GITLAB, config.ARCHIVE, config.GITEA, config.DIRECTORY}
 
-var ValidProtocolTypes = []string{"", config.HTTPS, config.SSHAGENT, config.SSHKEY}
+var ValidProtocolTypes = []string{"", config.HTTPS, config.SSHAGENT}
 
 var ValidSchemeTypes = []string{"", config.HTTPS, config.HTTP}
 
@@ -90,11 +94,60 @@ func validateSourceProvider(provider config.ProviderConfig) error {
 		return err
 	}
 
+	if err := validateSSHClient(provider); err != nil {
+		return err
+	}
+
 	if err := validateRepositoryLists(provider); err != nil {
 		return err
 	}
 
 	return validateAdditional(provider.ProviderType, provider.Additional)
+}
+func validateSSHClient(configuration config.ProviderConfig) error {
+	if strings.EqualFold(configuration.Git.Type, config.SSHAGENT) {
+		return checkSSHAgent()
+	}
+	// if config.HTTPClient.ProxyURL != "" {
+	// 	_, err := url.Parse(config.HTTPClient.ProxyURL)
+	// 	if err != nil {
+	// 		return fmt.Errorf("gitinfo proxyurl is set but an invalid url: %w", err)
+	// 	}
+	// }
+
+	// if config.HTTPClient.CertDirPath != "" {
+	// 	if _, err := os.Stat(config.HTTPClient.CertDirPath); os.IsNotExist(err) {
+	// 		return fmt.Errorf("CertDirPath is set but is not accessible: %w", err)
+	// 	}
+	// }
+
+	return nil
+}
+
+func checkSSHAgent() error {
+	sshAuthSock := os.Getenv("SSH_AUTH_SOCK")
+	if sshAuthSock == "" {
+		return errors.New("SSH_AUTH_SOCK environment variable not set")
+	}
+
+	conn, err := net.Dial("unix", sshAuthSock)
+	if err != nil {
+		return fmt.Errorf("failed to connect to SSH agent: %w", err)
+	}
+	defer conn.Close()
+
+	agentClient := agent.NewClient(conn)
+
+	keys, err := agentClient.List()
+	if err != nil {
+		return fmt.Errorf("failed to list keys from SSH agent: %w", err)
+	}
+
+	if len(keys) == 0 {
+		return errors.New("SSH agent is running but has no keys")
+	}
+
+	return nil
 }
 
 // validateTargetProvider checks the validity of a target provider configuration.
@@ -107,6 +160,16 @@ func validateTargetProvider(providerConfig config.ProviderConfig) error {
 		if err := validateStandardProvider(providerConfig); err != nil {
 			return err
 		}
+	}
+
+	if providerConfig.Git.UseGitBinary {
+		if _, err := target.ValidateGitBinary(); err != nil {
+			return ErrNoGitBinaryFound
+		}
+	}
+
+	if len(providerConfig.SSHClient.ProxyCommand) > 0 && !providerConfig.Git.UseGitBinary {
+		return errors.New("target Provider: using proxy command requires Git.UseGitBinary true due to restrictions in underlying go-git library")
 	}
 
 	return validateAdditional(providerConfig.ProviderType, providerConfig.Additional)
@@ -134,6 +197,10 @@ func validateStandardProvider(config config.ProviderConfig) error {
 		return err
 	}
 
+	if err := validateSSHClient(config); err != nil {
+		return err
+	}
+
 	if err := validateHTTPInfo(config); err != nil {
 		return err
 	}
@@ -158,17 +225,6 @@ func validateGroupAndUser(config config.ProviderConfig) error {
 func validateGitOption(providerConfig config.ProviderConfig) error {
 	if !slices.Contains(ValidProtocolTypes, providerConfig.Git.Type) {
 		return fmt.Errorf("gitinfo type: must be one of %v: %w", ValidProtocolTypes, ErrUnsupportedProtocolType)
-	}
-
-	if strings.EqualFold(providerConfig.Git.Type, config.SSHKEY) {
-		if len(providerConfig.Git.SSHPrivateKeyPath) == 0 {
-			return fmt.Errorf("gitinfo type was sshkey, but sshprivatekeypath was empty. err: %w", ErrInvalidSSHKeyPath)
-		}
-
-		_, err := os.Stat(providerConfig.Git.SSHPrivateKeyPath)
-		if err != nil {
-			return fmt.Errorf("gitinfo type was sshkey, but keyfile: %s could not be read. err: %w", providerConfig.Git.SSHPrivateKeyPath, ErrInvalidSSHKeyPath)
-		}
 	}
 
 	return nil

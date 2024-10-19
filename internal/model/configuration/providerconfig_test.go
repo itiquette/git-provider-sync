@@ -30,7 +30,7 @@ func TestProviderConfig_String(t *testing.T) {
 				Repositories: RepositoriesOption{Exclude: "excluded", Include: "included"},
 				Additional:   map[string]string{"key": "value"},
 			},
-			expected: "ProviderConfig: ProviderType: github, Domain: github.com, User: user1, Group: group1, Repository: RepositoryOption: Exclude excluded, Include: included, Git: GitOption: Type: , SSHPrivateKeyPath: , SSHPrivateKeyPW: ****,   HTTPClient: HTTPClientOption: ProxyURL , Token: **cret, Scheme: https, Extras: map[key:value]",
+			expected: "ProviderConfig: ProviderType: github, Domain: github.com, User: user1, Group: group1, Repository: RepositoryOption: Exclude excluded, Include: included, Git: GitOption: Type: , IncludeForks: false, UseGitBinary: false,   HTTPClient: HTTPClientOption: ProxyURL , Token: **cret, Scheme: https, Extras: map[key:value]",
 		},
 		{
 			name: "Minimal config",
@@ -38,7 +38,7 @@ func TestProviderConfig_String(t *testing.T) {
 				ProviderType: "gitlab",
 				Domain:       "gitlab.com",
 			},
-			expected: "ProviderConfig: ProviderType: gitlab, Domain: gitlab.com, User: , Group: , Repository: RepositoryOption: Exclude , Include: , Git: GitOption: Type: , SSHPrivateKeyPath: , SSHPrivateKeyPW: ****,   HTTPClient: HTTPClientOption: ProxyURL , Token: , Scheme: , Extras: map[]",
+			expected: "ProviderConfig: ProviderType: gitlab, Domain: gitlab.com, User: , Group: , Repository: RepositoryOption: Exclude , Include: , Git: GitOption: Type: , IncludeForks: false, UseGitBinary: false,   HTTPClient: HTTPClientOption: ProxyURL , Token: , Scheme: , Extras: map[]",
 		},
 		{
 			name: "Config with empty token",
@@ -47,7 +47,7 @@ func TestProviderConfig_String(t *testing.T) {
 				Domain:       "bitbucket.org",
 				HTTPClient:   HTTPClientOption{Token: ""},
 			},
-			expected: "ProviderConfig: ProviderType: bitbucket, Domain: bitbucket.org, User: , Group: , Repository: RepositoryOption: Exclude , Include: , Git: GitOption: Type: , SSHPrivateKeyPath: , SSHPrivateKeyPW: ****,   HTTPClient: HTTPClientOption: ProxyURL , Token: , Scheme: , Extras: map[]",
+			expected: "ProviderConfig: ProviderType: bitbucket, Domain: bitbucket.org, User: , Group: , Repository: RepositoryOption: Exclude , Include: , Git: GitOption: Type: , IncludeForks: false, UseGitBinary: false,   HTTPClient: HTTPClientOption: ProxyURL , Token: , Scheme: , Extras: map[]",
 		},
 	}
 

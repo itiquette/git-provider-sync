@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: CC0-1.0
 
 = Git Provider Sync: Usage Guide
-:toc: preamble
+:toc: 
 :toc-title: 
 :revdate: {docdatetime}
 :doctype: article
@@ -33,11 +33,12 @@ Git Provider Sync allows you to:
 
 1. Install Git Provider Sync
    * Use a pre-offered package OR build it yourself
-   * See the link:../INSTALL.adoc[installation guide] for options
+   * See the link:../INSTALL.adoc[installation guide] for installation options
 
-2. Create a configuration file
+2. Create a basic configuration file
    * Set up at least one source provider and target provider
-   * See link:../examples/gitprovidersync.exampleconf.yaml[example configuration]
+   * See link:../examples/gitprovidersync.exampleconf.yaml[example configuration] for all possible settings.
+   * See <<_cli_usage_examples>> and <<_configuration_examples>> for a few examples
 
 3. Verify your configuration
 +
@@ -62,7 +63,7 @@ gitprovidersync sync
 gitprovidersync --help
 ----
 
-* Read the man page (only if installed as package - deb, rpm, apk):
+* Read the man page (if installed as package - deb, rpm, apk):
 +
 [source,console]
 ----
@@ -71,7 +72,7 @@ man gitprovidersync
 
 NOTE: The `--from` option should be in https://pkg.go.dev/time#ParseDuration[Go duration string form].
 
-== Usage Examples
+== CLI Usage Examples
 
 === Print Current Configuration
 
@@ -103,6 +104,8 @@ gitprovidersync --force-push --from='-3h' --cleanup-name --config-file /usr/bin/
 
 === Configuration Methods
 
+TIP: For configuration examples, see link:../examples/gitprovidersync.exampleconf.yaml[the example configuration file].
+
 Configuration can be provided through:
 
 1. Environment variables
@@ -114,19 +117,92 @@ Priority order: 1 > 2 > 3 > 4
 
 === Configuration Notes
 
-* Environment variables:
+==== Environment variables:
   ** Must start with `GPS_`
   ** Use uppercase with underscore separation
   ** Example: `GPS_CONFIGURATIONS_SOURCE_PROVIDER=envconfprovider`
 
-* .env file:
+==== .env file:
   ** Use uppercase with underscore separation
   ** Example: `CONFIGURATIONS_SOURCE_PROVIDER=dotenvprovider`
 
-TIP: For configuration examples, see link:../examples/gitprovidersync.exampleconf.yaml[the example configuration file].
+==== Advanced Configuration
+
+===== Using a host Git Binary instead of the underlying Go Git Library
+
+In certain cases you might like to use the underlying host Git Binary instead of the built in Go Git-library.
+For example, If you would like to customize the underlying SSH-client with GIT_SSH_COMMAND. 
+Go Git does not currently support SSH-client customisation.
+
+NOTE: Only use this if you really have to (for example, you might want to use the SSH ProxyCommand option).
+
+=== Configuration Examples
+
+.A sync from github to gitlab, archive dir, and a dir. Because we can. NOTE DONT PUT SECRETS IN CONFIG FILES OTHER THAN FOR TESTING, use envs or alike
+[source,yaml]
+----
+configurations: 
+  itiquettesource: 
+    source: 
+      providertype: github
+      domain: github.com
+      group: itiquette 
+      httpclient:
+        token: <a-github-token-so-we-avoid-rate-limiting-etc>
+      repositories:
+        include: org-feature-test-repo # we only want one repo from this org
+
+    targets:
+      agitlabtarget:
+        providertype: gitlab
+        domain: gitlab.com 
+        user: <a-gitlab-user>
+        httpclient:
+          token: <a-gitlab-token-with-create-and-write-access>
+     
+     tartargetexample: 
+       providertype: archive 
+       additional: 
+         archivetargetdir: /tmp/myarcdir
+     
+     directoryexample: 
+       providertype: directory
+       additional: 
+         directorytargetdir: /tmp/mydir
+
+----
+
+.A sync from gitlab to github. special case, uses gitbinary, sshagent and custom ssh-client to push ssh through githubs https endpoint. It also uses corkscrew on the host.
+[source,yaml]
+----
+configurations: 
+  itiquettesource: 
+    source: 
+      providertype: gitlab
+      domain: gitlab.com
+      group: hanklank
+      httpclient:
+        token: <a-gitlab-token>
+      repositories:
+        include: org-feature-test-repo # we only want one repo from this org
+
+    targets:
+      agithubtarget:
+        providertype: github
+        domain: github.com 
+        user: <a-gitlab-user>
+        httpclient:
+          token: <a-gitlab-token-with-create-and-write-access>
+        sshclient:
+          proxycommand: ssh -vvv -o ProxyCommand="corkscrew <proxyserver> <proxyserverport> %h %p" -o ConnectTimeout=10 -p 443  #This SSH command uses corkscrew to tunnel SSH through an HTTP proxy. It's set to maximum verbosity (-vvv), uses a 10-second connection timeout, and connects to the SSH server on port 443. The ProxyCommand option specifies the proxy server and port, with %h and %p as placeholders for the SSH server host and port
+          rewritesshurlfrom: git@github.com:
+          rewritesshurlto: ssh://git@ssh.github.com:443/
+        git:
+          type: sshagent
+          usegitbinary: true
+----
 
 == Provider-Specific Notes
-
 
 === Visibility Mappings
 
@@ -162,7 +238,7 @@ Listed is how they will be synced.
 === Authentication
 
 * Default: Basic Auth (requires token in configuration)
-* Alternative: SSH (configure `gitinfo.type` as https, sshagen, or sshkey)
+* Alternative: SSH (configure `gitinfo.type` as sshagent)
 
 === GitHub
 
@@ -702,3 +778,12 @@ spec:
       value: "token"
     - name: ACTIVE_FROM_LIMIT
       value: "-30000h"
+
+----
+
+== F.A.Q 
+
+* Do I need to use both https and ssh in the same configuration?
+
+  No. 
+  To keep it simple, just use https and tokens. However, if you need it, ssh support is there. Speaking with various Git Providers Https API's is one thing - listing projects and so on, and pure Git operations another - clone, push and so on. So if you are using ssh for the git operations, you will still need to configure https options also (for metadata)

@@ -21,6 +21,7 @@ type PushOption struct {
 	Prune      bool     // Whether to prune remote branches that no longer exist locally
 	Force      bool     // Whether to force push (overwrite remote history)
 	HTTPClient model.HTTPClientOption
+	SSHClient  model.SSHClientOption
 }
 
 // String provides a string representation of PushOption.

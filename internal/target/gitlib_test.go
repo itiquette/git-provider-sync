@@ -42,7 +42,7 @@ func TestClone(t *testing.T) {
 			},
 		}
 
-		clonedRepo, err := Git{}.Clone(ctx, cloneOption)
+		clonedRepo, err := GitLib{}.Clone(ctx, cloneOption)
 		require.NoError(t, err)
 		require.NotNil(t, clonedRepo)
 
@@ -59,7 +59,7 @@ func TestClone(t *testing.T) {
 			},
 		}
 
-		_, err := Git{}.Clone(ctx, cloneOption)
+		_, err := GitLib{}.Clone(ctx, cloneOption)
 		assert.Error(t, err)
 	})
 }
@@ -79,9 +79,11 @@ func TestPull(t *testing.T) {
 			GitOption: gpsconfig.GitOption{
 				Type: gpsconfig.HTTPS,
 			},
+			HTTPClientOption: gpsconfig.HTTPClientOption{Token: ""},
+			SSHClient:        gpsconfig.SSHClientOption{},
 		}
 
-		err := Git{}.Pull(ctx, repoPath, pullOption)
+		err := GitLib{}.Pull(ctx, repoPath, pullOption)
 		require.NoError(t, err)
 
 		verifyFile(t, repoPath, "test.txt", "test contentpull")
@@ -94,7 +96,7 @@ func TestPull(t *testing.T) {
 
 		ctx := context.Background()
 		repoPath := filepath.Join(tmpDir, "test-pull-no-changes-repo")
-		setupTestRepository(t, repoPath, "pull-no-changes")
+		_ = setupTestRepository(t, repoPath, "pull-no-changes")
 
 		pullOption := model.PullOption{
 			Name: "origin",
@@ -104,7 +106,7 @@ func TestPull(t *testing.T) {
 			},
 		}
 
-		err := Git{}.Pull(ctx, repoPath, pullOption)
+		err := GitLib{}.Pull(ctx, repoPath, pullOption)
 		assert.NoError(t, err) // Should not return an error when already up-to-date
 	})
 }
@@ -129,21 +131,30 @@ func TestPull(t *testing.T) {
 //	})
 //}
 
+func testContext() context.Context {
+	ctx := context.Background()
+	input := model.CLIOption{CleanupName: true}
+	//ctx, _ = model.CreateTmpDir(ctx, "", "testadir")
+
+	return model.WithCLIOption(ctx, input)
+}
 func TestPush(t *testing.T) {
 	t.Run("Successful push", func(t *testing.T) {
 		tmpDir, cleanup := setupTestEnvironment(t)
 		defer cleanup()
 
-		ctx := context.Background()
+		ctx := testContext()
 		repoPath := filepath.Join(tmpDir, "test-push-repo")
 		repo := setupTestRepository(t, repoPath, "push")
 
-		po := model.NewPushOption(repoPath, false, false, gpsconfig.HTTPClientOption{})
+		pushOption := model.NewPushOption(repoPath, false, false, gpsconfig.HTTPClientOption{})
 
 		modelRepo, err := model.NewRepository(repo)
+		modelRepo.Meta = model.RepositoryMetainfo{OriginalName: "test-push-repo"}
+
 		require.NoError(t, err)
 
-		err = NewGit(modelRepo, modelRepo.Meta.OriginalName).Push(ctx, modelRepo, po, gpsconfig.ProviderConfig{}, gpsconfig.GitOption{})
+		err = NewGitLib().Push(ctx, modelRepo, pushOption, gpsconfig.ProviderConfig{}, gpsconfig.GitOption{})
 		require.NoError(t, err)
 
 		verifyFile(t, repoPath, "test.txt", "test contentpush")
@@ -154,7 +165,7 @@ func TestPush(t *testing.T) {
 		tmpDir, cleanup := setupTestEnvironment(t)
 		defer cleanup()
 
-		ctx := context.Background()
+		ctx := testContext()
 		repoPath := filepath.Join(tmpDir, "test-push-no-changes-repo")
 		repo := setupTestRepository(t, repoPath, "push-no-changes")
 
@@ -163,7 +174,7 @@ func TestPush(t *testing.T) {
 		modelRepo, err := model.NewRepository(repo)
 		require.NoError(t, err)
 
-		err = NewGit(modelRepo, modelRepo.Meta.OriginalName).Push(ctx, modelRepo, po, gpsconfig.ProviderConfig{}, gpsconfig.GitOption{})
+		err = NewGitLib().Push(ctx, modelRepo, po, gpsconfig.ProviderConfig{}, gpsconfig.GitOption{})
 		assert.NoError(t, err) // Should not return an error when already up-to-date
 	})
 
@@ -171,7 +182,7 @@ func TestPush(t *testing.T) {
 		tmpDir, cleanup := setupTestEnvironment(t)
 		defer cleanup()
 
-		ctx := context.Background()
+		ctx := testContext()
 		repoPath := filepath.Join(tmpDir, "test-push-non-existent-remote")
 		r := setupTestRepository(t, repoPath, "push-non-existent")
 
@@ -180,7 +191,7 @@ func TestPush(t *testing.T) {
 		R, err := model.NewRepository(r)
 		require.NoError(t, err)
 
-		err = NewGit(R, R.Meta.OriginalName).Push(ctx, R, po, gpsconfig.ProviderConfig{}, gpsconfig.GitOption{})
+		err = NewGitLib().Push(ctx, R, po, gpsconfig.ProviderConfig{}, gpsconfig.GitOption{})
 		assert.Error(t, err)
 	})
 }
@@ -197,7 +208,7 @@ func TestFetch(t *testing.T) {
 		modelRepo, err := model.NewRepository(repo)
 		require.NoError(t, err)
 
-		err = NewGit(modelRepo, "").Fetch(ctx, modelRepo)
+		err = NewGitLib().fetch(ctx, "", modelRepo.GoGitRepository())
 		require.NoError(t, err)
 
 		verifyFile(t, repoPath, "test.txt", "test contentfetch")
@@ -215,7 +226,7 @@ func TestFetch(t *testing.T) {
 		modelRepo, err := model.NewRepository(repo)
 		require.NoError(t, err)
 
-		err = NewGit(modelRepo, "").Fetch(ctx, modelRepo)
+		err = NewGitLib().fetch(ctx, "", modelRepo.GoGitRepository())
 		assert.NoError(t, err) // Should not return an error when already up-to-date
 	})
 
@@ -234,7 +245,7 @@ func TestFetch(t *testing.T) {
 		modelRepo, err := model.NewRepository(repo)
 		require.NoError(t, err)
 
-		err = NewGit(modelRepo, "").Fetch(ctx, modelRepo)
+		err = NewGitLib().fetch(ctx, "", modelRepo.GoGitRepository())
 		assert.Error(t, err)
 	})
 }

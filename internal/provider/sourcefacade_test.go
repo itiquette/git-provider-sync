@@ -34,7 +34,7 @@ func TestClone(t *testing.T) {
 				{HTTPSURL: "https://github.com/user/repo2.git", OriginalName: "repo2"},
 			},
 			mockSetup: func(m *mocks.SourceReader) {
-				m.On("Clone", mock.Anything, mock.Anything).Return(model.Repository{}, nil).Twice()
+				m.EXPECT().Clone(mock.Anything, mock.Anything).Return(model.Repository{}, nil).Twice()
 			},
 			wantErr: false,
 		},
@@ -44,7 +44,7 @@ func TestClone(t *testing.T) {
 				{HTTPSURL: "https://github.com/user/repo1.git", OriginalName: "repo1"},
 			},
 			mockSetup: func(m *mocks.SourceReader) {
-				m.On("Clone", mock.Anything, mock.Anything).Return(model.Repository{}, errors.New("clone failed"))
+				m.EXPECT().Clone(mock.Anything, mock.Anything).Return(model.Repository{}, errors.New("clone failed"))
 			},
 			wantErr: true,
 		},

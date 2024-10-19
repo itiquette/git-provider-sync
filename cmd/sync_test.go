@@ -6,9 +6,12 @@ package cmd
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"testing"
 
 	mocks "itiquette/git-provider-sync/generated/mocks/mockgogit"
+	"itiquette/git-provider-sync/internal/log"
 	"itiquette/git-provider-sync/internal/model"
 	config "itiquette/git-provider-sync/internal/model/configuration"
 
@@ -30,61 +33,61 @@ import (
 // 	_ = cmd.Execute()
 // }
 
-// func TestCreateTmpDir(t *testing.T) {
-// 	require := require.New(t)
+func TestCreateTmpDir(t *testing.T) {
+	require := require.New(t)
 
-// 	type args struct {
-// 		dir    string
-// 		prefix string
-// 	}
+	type args struct {
+		dir    string
+		prefix string
+	}
 
-// 	tests := map[string]struct {
-// 		args    args
-// 		want    string
-// 		wantErr bool
-// 	}{
-// 		"default os tmp dir with regular name success": {
-// 			args: args{dir: "", prefix: "gitprovidersync"},
-// 			want: filepath.Join(os.TempDir(), "gitprovidersync."),
-// 		},
-// 		"invalid os characters for tmp directory fail": {
-// 			args:    args{dir: "#¤%&/()=?!", prefix: "guthostsync"},
-// 			want:    "",
-// 			wantErr: true,
-// 		},
-// 		"non-existent directory fail": {
-// 			args:    args{dir: "/nonexistent", prefix: "test"},
-// 			want:    "",
-// 			wantErr: true,
-// 		},
-// 		// "custom directory success": {
-// 		// 	args: args{dir: "/tmp/custom", prefix: "gitprovidersync"},
-// 		// 	want: filepath.Join("/tmp/custom", "gitprovidersync."),
-// 		// },
-// 		"empty prefix success": {
-// 			args: args{dir: "", prefix: ""},
-// 			want: filepath.Join(os.TempDir(), ""),
-// 		},
-// 	}
+	tests := map[string]struct {
+		args    args
+		want    string
+		wantErr bool
+	}{
+		"default os tmp dir with regular name success": {
+			args: args{dir: "", prefix: "gitprovidersync"},
+			want: filepath.Join(os.TempDir(), "gitprovidersync."),
+		},
+		"invalid os characters for tmp directory fail": {
+			args:    args{dir: "#¤%&/()=?!", prefix: "guthostsync"},
+			want:    "",
+			wantErr: true,
+		},
+		"non-existent directory fail": {
+			args:    args{dir: "/nonexistent", prefix: "test"},
+			want:    "",
+			wantErr: true,
+		},
+		// "custom directory success": {
+		// 	args: args{dir: "/tmp/custom", prefix: "gitprovidersync"},
+		// 	want: filepath.Join("/tmp/custom", "gitprovidersync."),
+		// },
+		"empty prefix success": {
+			args: args{dir: "", prefix: ""},
+			want: filepath.Join(os.TempDir(), ""),
+		},
+	}
 
-// 	for name, tableTest := range tests {
-// 		ctx := context.Background()
-// 		ctx = log.InitLogger(ctx, newPrintCommand(), false, string(log.CONSOLE))
+	for name, tableTest := range tests {
+		ctx := context.Background()
+		ctx = log.InitLogger(ctx, newPrintCommand(), false, string(log.CONSOLE))
 
-// 		t.Run(name, func(_ *testing.T) {
-// 			ctx, err := model.CreateTmpDir(ctx, tableTest.args.dir, tableTest.args.prefix)
+		t.Run(name, func(_ *testing.T) {
+			ctx, err := model.CreateTmpDir(ctx, tableTest.args.dir, tableTest.args.prefix)
 
-// 			if !tableTest.wantErr {
-// 				tmpDir, _ := ctx.Value(model.TmpDirKey{}).(string)
-// 				require.DirExists(tmpDir, "tmp directory should exist")
-// 				require.Contains(tmpDir, tableTest.want, "tmp directory name should contain prefix")
-// 			} else {
-// 				require.Error(err, "error should be returned")
-// 				require.Contains(err.Error(), "failed to create temporary", "error message should be descriptive")
-// 			}
-// 		})
-// 	}
-// }
+			if !tableTest.wantErr {
+				tmpDir, _ := ctx.Value(model.TmpDirKey{}).(string)
+				require.DirExists(tmpDir, "tmp directory should exist")
+				require.Contains(tmpDir, tableTest.want, "tmp directory name should contain prefix")
+			} else {
+				require.Error(err, "error should be returned")
+				require.Contains(err.Error(), "failed to create temporary", "error message should be descriptive")
+			}
+		})
+	}
+}
 
 func TestNewSyncCommand(t *testing.T) {
 	cmd := newSyncCommand()

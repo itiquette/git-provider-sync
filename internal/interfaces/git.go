@@ -4,11 +4,6 @@
 
 package interfaces
 
-import (
-	"context"
-	"itiquette/git-provider-sync/internal/model"
-)
-
 // GitInterface defines a comprehensive interface for Git operations.
 // It combines the capabilities of SourceReader and TargetWriter,
 // along with additional methods for pulling and fetching.
@@ -35,7 +30,7 @@ type GitInterface interface {
 	//   - Merging or rebasing the pulled changes as specified in the options.
 	//   - Handling merge conflicts if they occur.
 	//   - Updating the local repository state after the pull.
-	Pull(ctx context.Context, option model.PullOption) error
+	//	Pull(ctx context.Context, option model.PullOption) error
 
 	// Fetch retrieves updates from a remote repository without merging them.
 	//
@@ -51,7 +46,7 @@ type GitInterface interface {
 	//   - Retrieving updates for all tracked branches.
 	//   - Updating remote-tracking branches in the local repository.
 	//   - Not modifying the working directory or current branch.
-	Fetch(ctx context.Context, repository model.Repository) error
+	//Fetch(ctx context.Context, workingDir string) error
 }
 
 // Note: The SourceReader and TargetWriter interfaces should be defined

@@ -89,6 +89,16 @@ Check out our https://github.com/itiquette/git-provider-sync/issues[Issues page]
 Git Provider Sync is slowly getting stable and reliable.
 But as with any tool, it's always good to be careful!
 
+== Documenting the project journey
+
+I'm writing a log of how this project is becoming useful. 
+Chapters are
+
+1. https://dev.to/janderssonse/from-friday-hack-to-release-reflections-on-creating-and-releasing-a-open-source-project-1ljg[From hack to release - reflections]
+2. Learning Go as a Java developer
+3. Open Source Practices 
+4. Open Source Security 
+
 == Legal Stuff
 
 Git Provider Sync is licensed under the EUPL 1.2 License.

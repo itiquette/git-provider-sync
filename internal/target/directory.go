@@ -28,7 +28,7 @@ var (
 
 // Directory represents a target directory for git operations.
 type Directory struct {
-	gitClient Git
+	gitClient GitLib
 }
 
 // Push performs a push operation on the target directory.
@@ -37,7 +37,7 @@ func (dir Directory) Push(ctx context.Context, repo interfaces.GitRepository, op
 	logger.Trace().Msg("Entering Directory:Push")
 	opt.DebugLog(logger).Msg("Directory:Push")
 
-	targetDir, err := getTargetDirPath(ctx, opt.Target, dir.gitClient.name)
+	targetDir, err := getTargetDirPath(ctx, opt.Target, repo.Metainfo().Name(ctx))
 	if err != nil {
 		return fmt.Errorf("%w %w", ErrDirGetPath, err)
 	}
@@ -100,6 +100,6 @@ func directoryExists(dir string) bool {
 }
 
 // NewDirectory creates a new Directory Target instance.
-func NewDirectory(ctx context.Context, repo interfaces.GitRepository) Directory {
-	return Directory{gitClient: NewGit(repo, repo.Metainfo().Name(ctx))}
+func NewDirectory() Directory {
+	return Directory{gitClient: NewGitLib()}
 }

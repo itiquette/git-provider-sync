@@ -20,6 +20,7 @@ type ProviderConfig struct {
 	Repositories RepositoriesOption `koanf:"repositories"`
 	Git          GitOption          `koanf:"git"`
 	HTTPClient   HTTPClientOption   `koanf:"httpclient"`
+	SSHClient    SSHClientOption    `koanf:"sshclient"`
 	Scheme       string             `koanf:"scheme"`
 	Additional   map[string]string  `koanf:"additional"`
 }

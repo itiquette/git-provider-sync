@@ -11,10 +11,8 @@ configurations: # a list of project configurations. Mandatory - at least one.
       group: group # Git provider group/organization owner. Mandatory (if no user given).  Mutually exclusive with user
       httpclient:
         token: git provider token. Optional but recommended to avoid GitHub-api limits, private repositories etc.
-      git: # https,sshagent,sshkey (default if empty is https)
-        type: sshkey
-        sshprivatekeypath: /key/path # Only applicable if sshkey was sethhhhhhhhh
-        sshprivatekeypw: #dont use saved pws here other htan for test
+      git: # https,sshagent (default if empty is https)
+        type: sshagent
       repositories:
         include: a-dummy-project, another-dummy-project # Git provider repositories to include. Optional (if empty, all are mirrored))
         exclude: a-dummy-project, another-dummy-project # Git provider repositories to exclude. Optional (if empty, none are excluded)

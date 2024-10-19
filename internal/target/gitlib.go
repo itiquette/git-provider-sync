@@ -45,22 +45,19 @@ var (
 	ErrRepoPull               = errors.New("failed to pull updates")
 	ErrUncleanWorkspace       = errors.New("workspace is unclean, aborting")
 	ErrUnsupportedGitType     = errors.New("unsupported git option type")
-	ErrReadSSHKey             = errors.New("failed to read ssh key")
 )
 
-// Git represents operations against a Git repository.
-type Git struct {
-	goGitRepository *git.Repository
-	name            string
+// GitLib represents operations against a GitLib repository.
+type GitLib struct {
 }
 
 // Clone clones a repository according to given clone options.
-func (g Git) Clone(ctx context.Context, option model.CloneOption) (model.Repository, error) {
+func (g GitLib) Clone(ctx context.Context, option model.CloneOption) (model.Repository, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Git:Clone")
 	logger.Debug().Str("url", option.URL).Msg("Git:Clone")
 
-	auth, err := g.getAuthMethod(option.Git, option.HTTPClient.Token)
+	auth, err := g.getAuthMethod(option.Git, option.HTTPClient, option.SSHClient)
 	if err != nil {
 		return model.Repository{}, fmt.Errorf("%w: %w", ErrGetAuthMethod, err)
 	}
@@ -89,7 +86,7 @@ func (g Git) Clone(ctx context.Context, option model.CloneOption) (model.Reposit
 }
 
 // Pull performs a git pull operation on the repository.
-func (g Git) Pull(ctx context.Context, pullDirPath string, option model.PullOption) error {
+func (g GitLib) Pull(ctx context.Context, pullDirPath string, option model.PullOption) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Git:Pull")
 	option.DebugLog(logger).Msg("Git:Pull")
@@ -108,7 +105,7 @@ func (g Git) Pull(ctx context.Context, pullDirPath string, option model.PullOpti
 		return fmt.Errorf("%w: %s", ErrUncleanWorkspace, pullDirPath)
 	}
 
-	auth, err := g.getAuthMethod(option.GitOption, option.HTTPClientOption.Token)
+	auth, err := g.getAuthMethod(option.GitOption, option.HTTPClientOption, option.SSHClient)
 	if err != nil {
 		return fmt.Errorf("%w: %w", ErrGetAuthMethod, err)
 	}
@@ -117,8 +114,8 @@ func (g Git) Pull(ctx context.Context, pullDirPath string, option model.PullOpti
 
 	if err := worktree.Pull(&pullOptions); err != nil {
 		if errors.Is(err, git.NoErrAlreadyUpToDate) {
-			logger.Debug().Msgf("Repository %s already up-to-date, ignoring Pull", g.name)
-			g.updateSyncRunMetainfo(ctx, "uptodate")
+			logger.Debug().Msgf("Repository %s already up-to-date, ignoring Pull", pullDirPath)
+			g.updateSyncRunMetainfo(ctx, "uptodate", pullDirPath)
 
 			return nil
 		}
@@ -126,17 +123,19 @@ func (g Git) Pull(ctx context.Context, pullDirPath string, option model.PullOpti
 		return fmt.Errorf("%w: %w", ErrRepoPull, err)
 	}
 
-	return g.fetchBranches(ctx, repo)
+	return g.fetch(ctx, "", repo)
 }
 
 // Push pushes an existing repository to a target provider.
-func (g Git) Push(ctx context.Context, repository interfaces.GitRepository, option model.PushOption, _ gpsconfig.ProviderConfig, targetGitOption gpsconfig.GitOption) error {
+func (g GitLib) Push(ctx context.Context, repository interfaces.GitRepository, option model.PushOption, _ gpsconfig.ProviderConfig, targetGitOption gpsconfig.GitOption) error {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering Git:Push")
-	option.DebugLog(logger).Msg("Git:Push")
-	g.logRemotes(logger)
+	logger.Trace().Msg("Entering GitLib:Push")
+	option.DebugLog(logger).Msg("GitLib:Push")
 
-	auth, err := g.getAuthMethod(targetGitOption, option.HTTPClient.Token)
+	remotes, _ := repository.GoGitRepository().Remotes()
+	g.logRemotes(logger, remotes)
+
+	auth, err := g.getAuthMethod(targetGitOption, option.HTTPClient, option.SSHClient)
 	if err != nil {
 		return fmt.Errorf("%w: %w", ErrGetAuthMethod, err)
 	}
@@ -145,16 +144,18 @@ func (g Git) Push(ctx context.Context, repository interfaces.GitRepository, opti
 	logger.Info().Str("target", option.Target).Msg("Pushing to:")
 
 	if err := repository.GoGitRepository().Push(&pushOptions); err != nil {
-		return g.handlePushError(ctx, err)
+		name := repository.Metainfo().Name(ctx)
+
+		return g.handlePushError(ctx, err, name)
 	}
 
 	return nil
 }
 
-func (g Git) handlePushError(ctx context.Context, err error) error {
+func (g GitLib) handlePushError(ctx context.Context, err error, name string) error {
 	if errors.Is(err, git.NoErrAlreadyUpToDate) {
-		log.Logger(ctx).Debug().Msgf("Repository %s already up-to-date, ignoring Push", g.name)
-		g.updateSyncRunMetainfo(ctx, "uptodate")
+		log.Logger(ctx).Debug().Msgf("Repository %s already up-to-date, ignoring Push", name)
+		g.updateSyncRunMetainfo(ctx, "uptodate", name)
 
 		return nil
 	}
@@ -162,28 +163,23 @@ func (g Git) handlePushError(ctx context.Context, err error) error {
 	return fmt.Errorf("%w: %w", ErrRepoPush, err)
 }
 
-func (g Git) getAuthMethod(gitOption gpsconfig.GitOption, token string) (transport.AuthMethod, error) {
+func (g GitLib) getAuthMethod(gitOption gpsconfig.GitOption, httpClient gpsconfig.HTTPClientOption, _ gpsconfig.SSHClientOption) (transport.AuthMethod, error) {
 	switch strings.ToLower(gitOption.Type) {
-	case gpsconfig.SSHKEY:
-		keys, err := ssh.NewPublicKeysFromFile("git", gitOption.SSHPrivateKeyPath, gitOption.SSHPrivateKeyPW)
+	case gpsconfig.SSHAGENT:
+		auth, err := ssh.NewSSHAgentAuth("git")
 		if err != nil {
-			return nil, fmt.Errorf("%w: key path: %s. err: %w", ErrReadSSHKey, gitOption.SSHPrivateKeyPath, err)
+			return nil, errors.New("failed to find a running ssh agent")
 		}
 
-		return keys, nil
+		return auth, nil
 	case gpsconfig.HTTPS, "":
-		return &http.BasicAuth{Username: "anyUser", Password: token}, nil
+		return &http.BasicAuth{Username: "anyUser", Password: httpClient.Token}, nil
 	default:
 		return nil, fmt.Errorf("%w: %s", ErrUnsupportedGitType, gitOption.Type)
 	}
 }
 
-// Fetch fetches all branches locally.
-func (g Git) Fetch(ctx context.Context, repository model.Repository) error {
-	return g.fetchBranches(ctx, repository.GoGitRepository())
-}
-
-func (g Git) fetchBranches(ctx context.Context, repository *git.Repository) error {
+func (g GitLib) fetch(ctx context.Context, _ string, repo *git.Repository) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Git:fetchBranches")
 
@@ -194,7 +190,7 @@ func (g Git) fetchBranches(ctx context.Context, repository *git.Repository) erro
 
 	options := &git.FetchOptions{RefSpecs: refSpecs}
 
-	if err := repository.Fetch(options); err != nil {
+	if err := repo.Fetch(options); err != nil {
 		if errors.Is(err, git.NoErrAlreadyUpToDate) {
 			logger.Debug().Msg("Repository already up-to-date, ignoring fetchBranches")
 
@@ -207,23 +203,21 @@ func (g Git) fetchBranches(ctx context.Context, repository *git.Repository) erro
 	return nil
 }
 
-func (g Git) updateSyncRunMetainfo(ctx context.Context, key string) {
+func (g GitLib) updateSyncRunMetainfo(ctx context.Context, key string, targetDir string) {
 	if syncRunMeta, ok := ctx.Value(model.SyncRunMetainfoKey{}).(model.SyncRunMetainfo); ok {
-		syncRunMeta.Fail[key] = append(syncRunMeta.Fail[key], g.name)
+		syncRunMeta.Fail[key] = append(syncRunMeta.Fail[key], targetDir)
 	}
 }
 
-func (g Git) logRemotes(logger *zerolog.Logger) {
-	if remotes, err := g.goGitRepository.Remotes(); err == nil {
-		for _, remote := range remotes {
-			logger.Debug().Strs("url", remote.Config().URLs).Str("name", remote.Config().Name).Msg("Remote:")
-		}
+func (g GitLib) logRemotes(logger *zerolog.Logger, remotes []*git.Remote) {
+	for _, remote := range remotes {
+		logger.Debug().Strs("url", remote.Config().URLs).Str("name", remote.Config().Name).Msg("Remote:")
 	}
 }
 
-// NewGit creates a new Git instance.
-func NewGit(repository interfaces.GitRepository, name string) Git {
-	return Git{goGitRepository: repository.GoGitRepository(), name: name}
+// NewGitLib creates a new Git instance.
+func NewGitLib() GitLib {
+	return GitLib{}
 }
 
 func setRemoteAndBranch(repository interfaces.GitRepository, sourceDirPath string) error {

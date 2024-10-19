@@ -99,6 +99,12 @@ func sync(ctx context.Context, appConfiguration *gpsconfig.AppConfiguration) err
 	logger.Trace().Msg("Entering sync:")
 	appConfiguration.DebugLog(logger)
 
+	ctx, err := model.CreateTmpDir(ctx, "", "gitprovidersync")
+	if err != nil {
+		return fmt.Errorf("failed to create a temporary directory: %w", err)
+	}
+	//defer cleanup(ctx)
+
 	for _, config := range appConfiguration.Configurations {
 		repositories, err := sourceRepositories(ctx, config.SourceProvider)
 		if err != nil {
@@ -149,7 +155,16 @@ func sourceRepositories(ctx context.Context, sourceProviderConfig gpsconfig.Prov
 		return nil, nil
 	}
 
-	repositories, err := provider.Clone(ctx, target.Git{}, sourceProviderConfig, metainfos)
+	var reader interfaces.SourceReader = target.GitLib{}
+
+	if sourceProviderConfig.Git.UseGitBinary {
+		reader, err = target.NewGitBinary()
+		if err != nil {
+			return nil, err //nolint
+		}
+	}
+
+	repositories, err := provider.Clone(ctx, reader, sourceProviderConfig, metainfos)
 	if err != nil {
 		return nil, fmt.Errorf("failed to clone source git-provider repositories: %w", err)
 	}
@@ -230,11 +245,15 @@ func pushRepository(ctx context.Context, sourceProviderConfig gpsconfig.Provider
 
 	switch strings.ToLower(targetProviderConfig.ProviderType) {
 	case gpsconfig.ARCHIVE:
-		targetWriter = target.NewArchive(ctx, repository)
+		targetWriter = target.NewArchive()
 	case gpsconfig.DIRECTORY:
-		targetWriter = target.NewDirectory(ctx, repository)
+		targetWriter = target.NewDirectory()
 	default:
-		targetWriter = target.NewGit(repository, repository.Metainfo().Name(ctx))
+		if targetProviderConfig.Git.UseGitBinary {
+			targetWriter, _ = target.NewGitBinary()
+		} else {
+			targetWriter = target.NewGitLib()
+		}
 	}
 
 	if err := provider.Push(ctx, targetProviderConfig, targetProviderClient, targetWriter, repository, sourceProviderConfig); err != nil {
@@ -336,3 +355,13 @@ func createProviderClient(ctx context.Context, providerConfig gpsconfig.Provider
 
 	return client, nil
 }
+
+// cleanup removes temporary directories created during the sync process.
+// func cleanup(ctx context.Context) {
+// 	logger := log.Logger(ctx)
+// 	logger.Trace().Msg("Entering cleanup:")
+
+// 	if err := model.DeleteTmpDir(ctx); err != nil {
+// 		logger.Error().Err(err).Msg("Failed to delete tmpdir")
+// 	}
+// }

@@ -21,7 +21,9 @@ type CloneOption struct {
 	Mirror      bool   // Whether to create a mirror clone
 	Git         model.GitOption
 	HTTPClient  model.HTTPClientOption
+	SSHClient   model.SSHClientOption
 	PlainRepo   bool
+	Name        string
 }
 
 // NewCloneOption creates a new CloneOption.
@@ -37,7 +39,7 @@ func NewCloneOption(ctx context.Context, metainfo RepositoryMetainfo, mirror boo
 	logger := log.Logger(ctx)
 
 	var cloneURL string
-	if strings.EqualFold(providerConfig.Git.Type, model.SSHAGENT) || strings.EqualFold(providerConfig.Git.Type, model.SSHKEY) {
+	if strings.EqualFold(providerConfig.Git.Type, model.SSHAGENT) {
 		cloneURL = metainfo.SSHURL
 	} else {
 		cloneURL = metainfo.HTTPSURL
@@ -47,7 +49,7 @@ func NewCloneOption(ctx context.Context, metainfo RepositoryMetainfo, mirror boo
 		Str("url", cloneURL).
 		Msg("Cloning repository")
 
-	return CloneOption{URL: cloneURL, Mirror: mirror, Git: providerConfig.Git, HTTPClient: providerConfig.HTTPClient}
+	return CloneOption{URL: cloneURL, Mirror: mirror, Git: providerConfig.Git, HTTPClient: providerConfig.HTTPClient, SSHClient: providerConfig.SSHClient, Name: metainfo.Name(ctx)}
 }
 
 // String provides a string representation of CloneOption.

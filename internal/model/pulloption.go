@@ -18,6 +18,7 @@ type PullOption struct {
 	URL              string                 // The URL of the remote repository
 	GitOption        model.GitOption        // GitOption options
 	HTTPClientOption model.HTTPClientOption // GitOption options
+	SSHClient        model.SSHClientOption  // GitOption options
 }
 
 // DebugLog creates a debug log event with repository metadata.
@@ -26,7 +27,6 @@ func (po PullOption) DebugLog(logger *zerolog.Logger) *zerolog.Event {
 	return logger.Debug(). //nolint:zerologlint
 				Str("target", po.Name).
 				Str("gitoption.type", po.GitOption.Type).
-				Str("gitoption.sshprivatekeypath", po.GitOption.SSHPrivateKeyPath).
 				Bool("gitoption.includeforks", po.GitOption.IncludeForks).
 				Str("prune", po.URL)
 }

@@ -32,7 +32,7 @@ var (
 
 // Archive represents a structure capable of pushing Git repositories to archive files.
 type Archive struct {
-	gitClient Git
+	gitClient GitLib
 }
 
 // Push initializes a target repository and creates an archive of it.
@@ -123,8 +123,8 @@ func mapFilesToArchive(sourceDir, targetName string) ([]archiver.File, error) {
 }
 
 // NewArchive creates a new Archive instance.
-func NewArchive(ctx context.Context, repo interfaces.GitRepository) *Archive {
-	return &Archive{gitClient: NewGit(repo, repo.Metainfo().Name(ctx))}
+func NewArchive() *Archive {
+	return &Archive{gitClient: NewGitLib()}
 }
 
 func getSourceDirPath(opt model.PushOption) (string, error) {
