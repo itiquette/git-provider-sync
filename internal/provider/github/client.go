@@ -24,7 +24,7 @@ import (
 	"itiquette/git-provider-sync/internal/model"
 	config "itiquette/git-provider-sync/internal/model/configuration"
 
-	"github.com/google/go-github/v65/github"
+	"github.com/google/go-github/v66/github"
 )
 
 // Client represents a GitHub client with associated operations.
