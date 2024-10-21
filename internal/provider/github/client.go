@@ -93,9 +93,9 @@ func (ghc Client) Metainfos(ctx context.Context, config config.ProviderConfig, f
 
 	var err error
 
-	listType := "all"
+	listType := "sources"
 	if config.Git.IncludeForks {
-		listType = "public,private,forks"
+		listType = "all"
 	}
 
 	if config.IsGroup() {

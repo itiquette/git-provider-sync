@@ -2,7 +2,6 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-// Package target provides Git operations for repository management.
 package target
 
 import (
@@ -24,6 +23,16 @@ import (
 	"github.com/go-git/go-git/v5"
 )
 
+var (
+	ErrGitBinaryNotFound   = errors.New("failed to find a Git executable")
+	ErrEmptyBinaryPath     = errors.New("failed to find Git binary path")
+	ErrPermissionDenied    = errors.New("failed with permission denied (publickey). Provide correct key in your ssh-agent")
+	ErrSetRepositoryConfig = errors.New("failed to set repository config")
+	ErrPullRepository      = errors.New("failed to pull repository")
+	ErrGetRemoteBranches   = errors.New("failed to get remote branches")
+	ErrTmpDirPath          = errors.New("failed to get tmpdirpath")
+)
+
 type GitBinary struct {
 	gitBinaryPath string
 }
@@ -31,11 +40,11 @@ type GitBinary struct {
 func NewGitBinary() (GitBinary, error) {
 	binaryPath, err := ValidateGitBinary()
 	if err != nil {
-		return GitBinary{}, fmt.Errorf("failed to find Git Binary: %w", err)
+		return GitBinary{}, fmt.Errorf("%w: %w", ErrGitBinaryNotFound, err)
 	}
 
 	if len(binaryPath) == 0 {
-		return GitBinary{}, errors.New("binaryPath to Git Binary was 0")
+		return GitBinary{}, ErrEmptyBinaryPath
 	}
 
 	return GitBinary{
@@ -45,21 +54,16 @@ func NewGitBinary() (GitBinary, error) {
 
 func (g GitBinary) Clone(ctx context.Context, option model.CloneOption) (model.Repository, error) {
 	logger := log.Logger(ctx)
-	logger.Debug().Str("url", option.URL).Msg("Git:Clone")
+	logger.Debug().Str("url", option.URL).Msg("GitBinary:Clone")
 
-	fmt.Println(option.SSHClient.ProxyCommand)
 	env := setupSSHCommandEnv(option.SSHClient.ProxyCommand, option.SSHClient.RewriteSSHURLFrom, option.SSHClient.RewriteSSHURLTo)
-
-	fmt.Println(env)
 
 	tmpDirPath, err := model.GetTmpDirPath(ctx)
 	if err != nil {
-		return model.Repository{}, fmt.Errorf("failed to get tmpdirpath: %w", err)
+		return model.Repository{}, fmt.Errorf("%w: %w", ErrTmpDirPath, err)
 	}
 
 	destinationDir := filepath.Join(tmpDirPath, option.Name)
-
-	// Use the parent directory as the working directory
 	parentDir := filepath.Dir(destinationDir)
 
 	url := option.URL
@@ -69,17 +73,17 @@ func (g GitBinary) Clone(ctx context.Context, option model.CloneOption) (model.R
 
 	if err := g.runGitCommand(ctx, env, parentDir, "clone", url, destinationDir); err != nil {
 		if strings.Contains(err.Error(), "Permission denied (publickey)") {
-			return model.Repository{}, errors.New("failed with permission denied (publickey). Provide correct key in your ssh-agent")
+			return model.Repository{}, ErrPermissionDenied
 		}
 
-		return model.Repository{}, fmt.Errorf("failed to clone repository: %w", err)
+		return model.Repository{}, fmt.Errorf("%w: %w", ErrCloneRepository, err)
 	}
 
 	g.fetch(ctx, destinationDir) //nolint
 
 	repo, err := git.PlainOpen(destinationDir)
 	if err != nil {
-		return model.Repository{}, fmt.Errorf("failed to open cloned repository: %w", err)
+		return model.Repository{}, fmt.Errorf("%w: %w", ErrOpenRepository, err)
 	}
 
 	if !strings.EqualFold(option.Git.Type, gpsconfig.SSHAGENT) {
@@ -90,23 +94,21 @@ func (g GitBinary) Clone(ctx context.Context, option model.CloneOption) (model.R
 
 		err = repo.SetConfig(cfg)
 		if err != nil {
-			return model.Repository{}, fmt.Errorf("failed to set repository config: %w", err)
+			return model.Repository{}, fmt.Errorf("%w: %w", ErrSetRepositoryConfig, err)
 		}
 	}
-
-	//panic(/* 333 */)
 
 	return model.NewRepository(repo) //nolint
 }
 
 func (g GitBinary) Pull(ctx context.Context, pullDirPath string, option model.PullOption) error {
 	logger := log.Logger(ctx)
-	option.DebugLog(logger).Msg("Git:Pull")
+	option.DebugLog(logger).Msg("GitBinary:Pull")
 
 	env := setupSSHCommandEnv(option.SSHClient.ProxyCommand, option.SSHClient.RewriteSSHURLFrom, option.SSHClient.RewriteSSHURLTo)
 
 	if err := g.runGitCommand(ctx, env, pullDirPath, "pull"); err != nil {
-		return fmt.Errorf("failed to pull repository: %w", err)
+		return fmt.Errorf("%w: %w", ErrPullRepository, err)
 	}
 
 	return g.fetch(ctx, pullDirPath)
@@ -155,56 +157,51 @@ func (g GitBinary) runGitCommand(ctx context.Context, env []string, workingDir s
 		return fmt.Errorf("error executing '%s %s': %w. err: %s", g.gitBinaryPath, strings.Join(args, " "), err, output)
 	}
 
-	log.Logger(ctx).Debug().Msgf("Git command output:%s", output)
+	log.Logger(ctx).Debug().Msgf("Git command output: %s", output)
 
 	return nil
 }
 
 func addBasicAuthToURL(urlStr, username, password string) string {
-	// Parse the URL
 	parsedURL, _ := url.Parse(urlStr)
-
-	// Add the username and password to the URL
 	parsedURL.User = url.UserPassword(username, password)
 
-	// Return the modified URL as a string
 	return parsedURL.String()
 }
 
 func removeBasicAuthFromURL(urlStr string) string {
-	// Parse the URL
 	parsedURL, err := url.Parse(urlStr)
 	if err != nil {
-		// If there's an error parsing the URL, return the original string
 		return urlStr
 	}
 
-	// Remove the username and password from the URL
 	parsedURL.User = nil
 
-	// Return the modified URL as a string
 	return parsedURL.String()
 }
 
 func (g GitBinary) createTrackingBranches(ctx context.Context, repoPath string) error {
+	logger := log.Logger(ctx)
+	logger.Trace().Msg("GitBinary:createTrackingBranches")
+
 	output, err := g.runGitCommandWithOutput(ctx, repoPath, "branch", "-r")
 	if err != nil {
-		return fmt.Errorf("error getting remote branches: %w", err)
+		return fmt.Errorf("%w: %w", ErrGetRemoteBranches, err)
 	}
 
 	for _, branch := range strings.Split(strings.TrimSpace(string(output)), "\n") {
 		branch = strings.TrimSpace(branch)
 		if strings.Contains(branch, "->") {
-			continue // Skip HEAD reference
+			continue
 		}
 
 		localBranch := strings.TrimPrefix(branch, "origin/")
 		if err := g.runGitCommand(ctx, nil, repoPath, "branch", "--track", localBranch, branch); err != nil {
 			if !strings.Contains(err.Error(), "already exists") {
-				log.Logger(ctx).Debug().Msgf("Could not create tracking branch for %s: %v", branch, err)
+				logger.Debug().Msgf("Could not create tracking branch for %s: %s", branch, err.Error())
 			}
 		} else {
-			log.Logger(ctx).Debug().Msgf("Created tracking branch for %s", branch)
+			logger.Debug().Msgf("Created tracking branch for %s", branch)
 		}
 	}
 
@@ -226,7 +223,7 @@ func ValidateGitBinary() (string, error) {
 		}
 	}
 
-	return "", errors.New("no valid git executable found")
+	return "", ErrGitBinaryNotFound
 }
 
 func setupSSHCommandEnv(proxycommand, rewriteurlfrom, rewriteurlto string) []string {
