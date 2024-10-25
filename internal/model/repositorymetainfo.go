@@ -38,6 +38,8 @@ type RepositoryMetainfo struct {
 	// LastActivityAt is a pointer to the time of the last activity in the repository.
 	// It's a pointer to allow for nil values, indicating no activity data is available.
 	LastActivityAt *time.Time
+
+	CleanupName bool
 }
 
 // Name returns the repository name, optionally cleaned up based on CLI options.

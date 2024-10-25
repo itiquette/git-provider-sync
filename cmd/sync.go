@@ -209,7 +209,7 @@ func processRepository(ctx context.Context, targetProviderConfig gpsconfig.Provi
 		cliOption := model.CLIOptions(ctx)
 		name := repository.Metainfo().OriginalName
 
-		if !cliOption.IgnoreInvalidName {
+		if !cliOption.IgnoreInvalidName || targetProviderConfig.SyncRun.IgnoreInvalidName {
 			return fmt.Errorf("%w: %s", ErrTargetRepositoryName, name)
 		}
 
@@ -344,7 +344,6 @@ func createProviderClient(ctx context.Context, providerConfig gpsconfig.Provider
 		ProviderType: providerConfig.ProviderType,
 		HTTPClient:   providerConfig.HTTPClient,
 		Domain:       providerConfig.Domain,
-		Scheme:       providerConfig.Scheme,
 		Repositories: providerConfig.Repositories,
 	}
 

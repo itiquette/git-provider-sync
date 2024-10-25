@@ -181,10 +181,6 @@ func validateStandardProvider(config config.ProviderConfig) error {
 		return ErrNoTargetDomain
 	}
 
-	if !slices.Contains(ValidSchemeTypes, config.Scheme) {
-		return fmt.Errorf("source provider: must be one of %v: %w", ValidSchemeTypes, ErrUnsupportedScheme)
-	}
-
 	if err := validateGroupAndUser(config); err != nil {
 		return err
 	}
@@ -232,6 +228,10 @@ func validateGitOption(providerConfig config.ProviderConfig) error {
 
 // validateHTTP checks the validity of the http setting.
 func validateHTTPInfo(config config.ProviderConfig) error {
+	if !slices.Contains(ValidSchemeTypes, config.HTTPClient.Scheme) {
+		return fmt.Errorf("source provider: must be one of %v: %w", ValidSchemeTypes, ErrUnsupportedScheme)
+	}
+
 	if len(config.HTTPClient.Token) == 0 {
 		return ErrNoTargetToken
 	}
