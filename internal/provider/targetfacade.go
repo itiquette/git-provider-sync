@@ -48,7 +48,12 @@ func Push(ctx context.Context, targetProviderConfig config.ProviderConfig, provi
 
 	cliOptions := model.CLIOptions(ctx)
 
-	pushOption := getPushOption(ctx, targetProviderConfig, repository, cliOptions.ForcePush)
+	forcePush := false
+	if cliOptions.ForcePush || targetProviderConfig.SyncRun.ForcePush {
+		forcePush = true
+	}
+
+	pushOption := getPushOption(ctx, targetProviderConfig, repository, forcePush)
 
 	if err := writer.Push(ctx, repository, pushOption, sourceProviderConfig, targetProviderConfig.Git); err != nil {
 		return fmt.Errorf("%w: %w", ErrPushChanges, err)
@@ -221,7 +226,7 @@ func toGitURL(ctx context.Context, config config.ProviderConfig, repository inte
 	trimmedProviderConfigURL := strings.TrimRight(config.Domain, "/")
 	projectPath := getProjectPath(config, repositoryName)
 
-	scheme := config.Scheme
+	scheme := config.HTTPClient.Scheme
 	if len(scheme) > 0 {
 		return fmt.Sprintf("%s://%s/%s", scheme, trimmedProviderConfigURL, projectPath)
 	}

@@ -21,14 +21,14 @@ type ProviderConfig struct {
 	Git          GitOption          `koanf:"git"`
 	HTTPClient   HTTPClientOption   `koanf:"httpclient"`
 	SSHClient    SSHClientOption    `koanf:"sshclient"`
-	Scheme       string             `koanf:"scheme"`
+	SyncRun      SyncRunOption      `koanf:"syncrun"`
 	Additional   map[string]string  `koanf:"additional"`
 }
 
 // String returns a string representation of ProviderConfig, masking the token.
 func (p ProviderConfig) String() string {
-	return fmt.Sprintf("ProviderConfig: ProviderType: %s, Domain: %s, User: %s, Group: %s, Repository: %v, Git: %v,   HTTPClient: %v, Scheme: %v, Extras: %v",
-		p.ProviderType, p.Domain, p.User, p.Group, p.Repositories, p.Git, p.HTTPClient, p.Scheme, p.Additional)
+	return fmt.Sprintf("ProviderConfig: ProviderType: %s, Domain: %s, User: %s, Group: %s, Repository: %v, Git: %v,   HTTPClient: %v, Extras: %v",
+		p.ProviderType, p.Domain, p.User, p.Group, p.Repositories, p.Git, p.HTTPClient, p.Additional)
 }
 
 // DebugLog logs the ProviderConfig details at debug level.

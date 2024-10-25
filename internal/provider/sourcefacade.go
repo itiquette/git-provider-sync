@@ -35,6 +35,10 @@ func Clone(ctx context.Context, reader interfaces.SourceReader, sourceProviderCo
 
 		resultRepo.Meta = metainfo
 
+		if model.CLIOptions(ctx).CleanupName || sourceProviderConfig.SyncRun.CleanupInvalidName {
+			resultRepo.Meta.CleanupName = true
+		}
+
 		repositories = append(repositories, resultRepo)
 	}
 
