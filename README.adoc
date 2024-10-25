@@ -68,9 +68,11 @@ Here's how you can contribute:
 * Found a bug or have a great idea? Let us know in our https://github.com/itiquette/git-provider-sync/issues[Issue Tracker]
 * Want to contribute code? Check out our link:CONTRIBUTING.md[Contribution Guide] to get started.
 
-== For developers
+== For developers and architects
 
-If you're interested in how it works, see the link:DEVELOPMENT.adoc[Development Guide].
+If you're interested in developing, see the link:DEVELOPMENT.adoc[Development Guide].
+
+If you're interested in an architectural view, see the link:docs/sad.md[Software Architecture Description (SAD)].
 
 == What's next?
 
