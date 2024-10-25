@@ -10,6 +10,7 @@ import (
 )
 
 type HTTPClientOption struct {
+	Scheme      string `koanf:"scheme"`
 	ProxyURL    string `koanf:"proxyurl"`
 	Token       string `koanf:"token"`
 	CertDirPath string `koanf:"certdirpath"`
