@@ -10,10 +10,12 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
+	"time"
 
 	"itiquette/git-provider-sync/internal/interfaces"
 	"itiquette/git-provider-sync/internal/model"
@@ -28,114 +30,204 @@ import (
 	githttp "github.com/go-git/go-git/v5/plumbing/transport/http"
 )
 
-var ErrNonSupportedProvider = errors.New("unsupported provider")
+var (
+	ErrNonSupportedProvider = errors.New("unsupported provider")
+	ErrInvalidProxy         = errors.New("invalid proxy configuration")
+	ErrCertificateLoad      = errors.New("failed to load certificates")
+)
 
-//nolint:ireturn
+// ProxyFunc defines the type for proxy configuration functions.
+type ProxyFunc func(req *http.Request) (*url.URL, error)
+
+// NewGitProviderClient creates a new git provider client with improved error handling.
 func NewGitProviderClient(ctx context.Context, option model.GitProviderClientOption) (interfaces.GitProvider, error) {
-	var provider interfaces.GitProvider
-
-	var err error
-
 	httpClient, err := newHTTPClient(option)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create HTTP client: %w", err)
+	}
 
-	// go-git is setup globally for git, it's by the lib's design
+	// Install git protocol handler
 	client.InstallProtocol("https", githttp.NewClient(httpClient))
 
+	return createProvider(ctx, option, httpClient)
+}
+
+// createProvider handles provider creation with proper error handling.
+func createProvider(ctx context.Context, option model.GitProviderClientOption, httpClient *http.Client) (interfaces.GitProvider, error) {
 	switch option.ProviderType {
 	case config.GITEA:
-		provider, err = gitea.NewGiteaClient(ctx, option, httpClient)
+		provider, err := gitea.NewGiteaClient(ctx, option, httpClient)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create Gitea client: %w", err)
+		}
+
+		return provider, nil
 	case config.GITHUB:
-		provider, err = github.NewGitHubClient(ctx, option, httpClient)
+		provider, err := github.NewGitHubClient(ctx, option, httpClient)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create GitHub client: %w", err)
+		}
+
+		return provider, nil
 	case config.GITLAB:
-		provider, err = gitlab.NewGitLabClient(ctx, option, httpClient)
+		provider, err := gitlab.NewGitLabClient(ctx, option, httpClient)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create GitLab client: %w", err)
+		}
+
+		return provider, nil
 	case config.ARCHIVE:
-		provider = archive.Client{}
+		return archive.Client{}, nil
 	case config.DIRECTORY:
-		provider = directory.Client{}
+		return directory.Client{}, nil
 	default:
-		return nil, ErrNonSupportedProvider
+		return nil, fmt.Errorf("%w: %s", ErrNonSupportedProvider, option.ProviderType)
 	}
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialized client: %s: %w", option, err)
-	}
-
-	return provider, nil
 }
 
+// newHTTPClient creates a new HTTP client with proper error handling.
 func newHTTPClient(option model.GitProviderClientOption) (*http.Client, error) {
-	httpClient := &http.Client{}
-
-	var proxyURL *url.URL
-
-	var tlsConfig *tls.Config
-
-	var err error
-
-	if len(option.HTTPClient.CertDirPath) > 0 {
-		tlsConfig, err = loadCertsFromDir(option.HTTPClient.CertDirPath)
-		if err != nil {
-			return nil, fmt.Errorf("failed to load certification dir %s. err: %w", option.HTTPClient.CertDirPath, err)
-		}
-	}
-
-	proxyFunc, err := proxy(option)
+	certPool, err := loadCertificates(option.HTTPClient.CertDirPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to set proxy url %s. err: %w", proxyURL, err)
+		return nil, fmt.Errorf("certificate loading error: %w", err)
 	}
 
-	httpClient.Transport = &http.Transport{
-		Proxy:             proxyFunc,
-		ForceAttemptHTTP2: true,
-		TLSClientConfig:   tlsConfig,
-	}
-
-	return httpClient, nil
-}
-
-func proxy(option model.GitProviderClientOption) (func(req *http.Request) (*url.URL, error), error) {
-	proxyFunc := http.ProxyFromEnvironment
-
-	if option.HTTPClient.ProxyURL != "" {
-		proxyURL, err := url.Parse(option.HTTPClient.ProxyURL)
-		if err != nil {
-			return nil, fmt.Errorf("error parsing proxy URL: %w", err)
-		}
-
-		proxyFunc = http.ProxyURL(proxyURL)
-	}
-
-	return proxyFunc, nil
-}
-
-func loadCertsFromDir(dirPath string) (*tls.Config, error) {
-	caCertPool := x509.NewCertPool()
-
-	files, err := os.ReadDir(dirPath)
+	proxyFunc, err := setupProxy(option.HTTPClient.ProxyURL)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read dir path. %w", err)
+		return nil, fmt.Errorf("proxy setup error: %w", err)
 	}
 
-	for _, file := range files {
-		if filepath.Ext(file.Name()) == ".crt" || filepath.Ext(file.Name()) == ".pem" {
-			certPath := filepath.Join(dirPath, file.Name())
+	tlsConfig := newTLSConfig(certPool)
+	transport := newHTTPTransport(proxyFunc, tlsConfig)
 
-			caCert, err := os.ReadFile(certPath)
-			if err != nil {
-				return nil, fmt.Errorf("failed to read file. %w", err)
+	return &http.Client{
+		Transport: transport,
+		// Total timeout for entire request/response cycle
+		Timeout: 30 * time.Second,
+		// Limit redirect chains to prevent infinite loops
+		CheckRedirect: func(_ *http.Request, via []*http.Request) error {
+			if len(via) >= 10 {
+				return http.ErrUseLastResponse
 			}
 
-			caCertPool.AppendCertsFromPEM(caCert)
+			return nil
+		},
+	}, nil
+}
+
+// newHTTPTransport returns an http.Transport with production-ready default settings.
+func newHTTPTransport(proxyFunc ProxyFunc, tlsConfig *tls.Config) *http.Transport {
+	return &http.Transport{
+		// Use proxy url setting or system proxy settings (HTTP_PROXY, HTTPS_PROXY)
+		Proxy: proxyFunc,
+
+		// Maximum time for TLS handshake - prevents hanging on SSL/TLS
+		TLSHandshakeTimeout: 10 * time.Second,
+
+		// Total number of idle connections across all hosts
+		MaxIdleConns: 100,
+
+		// Maximum idle connections per host
+		MaxIdleConnsPerHost: 10,
+
+		// Maximum total connections per host (idle + in-use)
+		MaxConnsPerHost: 100,
+
+		// How long to keep idle connections in pool before closing
+		IdleConnTimeout: 90 * time.Second,
+
+		// Time to wait for server's "100 Continue" response for large requests
+		ExpectContinueTimeout: 1 * time.Second,
+
+		TLSClientConfig: tlsConfig,
+
+		// Connection settings including timeouts and keep-alive
+		DialContext: (&net.Dialer{
+			Timeout:   30 * time.Second, // Time limit for establishing TCP connection
+			KeepAlive: 30 * time.Second, // Interval for TCP keepalive packets
+			DualStack: true,             // Enable both IPv4 and IPv6
+		}).DialContext,
+
+		// Enable HTTP/2 support when available
+		ForceAttemptHTTP2: true,
+
+		// Buffer sizes for reading/writing - 4KB is good balance
+		WriteBufferSize: 4 * 1024,
+		ReadBufferSize:  4 * 1024,
+	}
+}
+
+func newTLSConfig(caCertPool *x509.CertPool) *tls.Config {
+	return &tls.Config{
+		RootCAs:                caCertPool,           // Custom CA cert pool for verification
+		MinVersion:             tls.VersionTLS12,     // Minimum TLS version (good security practice)
+		MaxVersion:             tls.VersionTLS13,     // Maximum TLS version
+		ClientAuth:             tls.NoClientCert,     // No client certificate required
+		Renegotiation:          tls.RenegotiateNever, // Disable renegotiation (security best practice)
+		SessionTicketsDisabled: false,                // Disable session tickets for performance
+		InsecureSkipVerify:     false,                // Ensure certificate verification
+	}
+}
+
+// setupProxy configures the proxy.
+func setupProxy(proxyURL string) (ProxyFunc, error) {
+	if proxyURL == "" {
+		return http.ProxyFromEnvironment, nil
+	}
+
+	parsedURL, err := url.Parse(proxyURL)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrInvalidProxy, err)
+	}
+
+	return http.ProxyURL(parsedURL), nil
+}
+
+// loadCertificates loads certificates.
+func loadCertificates(dirPath string) (*x509.CertPool, error) {
+	if dirPath == "" {
+		return nil, nil //nolint
+	}
+
+	caCertPool := x509.NewCertPool()
+
+	entries, err := os.ReadDir(dirPath)
+	if err != nil {
+		return nil, fmt.Errorf("%w: failed to read directory: %w", ErrCertificateLoad, err)
+	}
+
+	for _, entry := range entries {
+		if err := processCertificateFile(entry, dirPath, caCertPool); err != nil {
+			return nil, err
 		}
 	}
 
-	tlsConfig := &tls.Config{
-		RootCAs:       caCertPool,
-		MinVersion:    tls.VersionTLS12,
-		MaxVersion:    tls.VersionTLS13,
-		ClientAuth:    tls.NoClientCert,
-		Renegotiation: tls.RenegotiateNever,
+	return caCertPool, nil
+}
+
+// processCertificateFile handles loading a single certificate file.
+func processCertificateFile(entry os.DirEntry, dirPath string, pool *x509.CertPool) error {
+	if !isCertFile(entry.Name()) {
+		return nil
 	}
 
-	return tlsConfig, nil
+	certPath := filepath.Join(dirPath, entry.Name())
+	cert, err := os.ReadFile(certPath)
+
+	if err != nil {
+		return fmt.Errorf("%w: failed to read certificate %s: %w", ErrCertificateLoad, certPath, err)
+	}
+
+	if !pool.AppendCertsFromPEM(cert) {
+		return fmt.Errorf("%w: failed to parse certificate %s", ErrCertificateLoad, certPath)
+	}
+
+	return nil
+}
+
+// isCertFile checks if the filename has a certificate extension.
+func isCertFile(filename string) bool {
+	ext := filepath.Ext(filename)
+
+	return ext == ".crt" || ext == ".pem"
 }

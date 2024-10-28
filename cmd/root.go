@@ -7,7 +7,9 @@ package cmd
 import (
 	"context"
 
-	"itiquette/git-provider-sync/internal/log"
+	"itiquette/git-provider-sync/cmd/mancmd"
+	"itiquette/git-provider-sync/cmd/printcmd"
+	"itiquette/git-provider-sync/cmd/synccmd"
 	"itiquette/git-provider-sync/internal/model"
 
 	"github.com/spf13/cobra"
@@ -35,35 +37,10 @@ Allows syncing to multiple target destinations.`,
 	rootCmd.SetContext(ctx)
 	rootCmd.CompletionOptions.HiddenDefaultCmd = true
 
-	// Add subcommands
-	rootCmd.AddCommand(newManCommand(), newPrintCommand(), newSyncCommand())
+	// Add subcommands,
+	rootCmd.AddCommand(mancmd.NewManCommand(), printcmd.NewPrintCommand(), synccmd.NewSyncCommand())
 
 	return rootCmd
-}
-
-// addRootInputOptionsToContext adds CLI options to the context.
-func addRootInputOptionsToContext(ctx context.Context, cmd *cobra.Command) context.Context {
-	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering addRootInputOptionsToContext:")
-
-	configFilePath, err := cmd.Flags().GetString("config-file")
-	model.HandleError(ctx, err)
-	configFileOnly, err := cmd.Flags().GetBool("config-file-only")
-	model.HandleError(ctx, err)
-	verbosityWithCaller, err := cmd.Flags().GetBool("verbosity-with-caller")
-	model.HandleError(ctx, err)
-
-	outputFormat, err := cmd.Flags().GetString("output-format")
-	model.HandleError(ctx, err)
-
-	cliOption := model.CLIOption{
-		ConfigFilePath:      configFilePath,
-		ConfigFileOnly:      configFileOnly,
-		VerbosityWithCaller: verbosityWithCaller,
-		OutputFormat:        outputFormat,
-	}
-
-	return model.WithCLIOption(ctx, cliOption)
 }
 
 // Execute runs the root command with the provided version information.

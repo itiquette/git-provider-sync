@@ -2,12 +2,13 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-package cmd
+package printcmd
 
 import (
 	"io"
 	"os"
 
+	"itiquette/git-provider-sync/cmd/baseoption"
 	"itiquette/git-provider-sync/internal/configuration"
 	"itiquette/git-provider-sync/internal/log"
 	"itiquette/git-provider-sync/internal/model"
@@ -19,8 +20,8 @@ import (
 // It can be modified for testing purposes.
 var configPrintWriter io.Writer = os.Stdout
 
-// newPrintCommand creates and returns a new cobra.Command for the 'print' subcommand.
-func newPrintCommand() *cobra.Command {
+// NewPrintCommand creates and returns a new cobra.Command for the 'print' subcommand.
+func NewPrintCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:   "print",
 		Short: "Print the current configuration",
@@ -34,7 +35,7 @@ It loads the configuration from available sources and displays it in a formatted
 // It loads the configuration, initializes the logger, and prints the configuration.
 func runPrint(cmd *cobra.Command, _ []string) {
 	ctx := cmd.Root().Context()
-	ctx = addRootInputOptionsToContext(ctx, cmd)
+	ctx = baseoption.AddRootInputOptionsToContext(ctx, cmd)
 
 	withCaller := model.CLIOptions(ctx).VerbosityWithCaller
 	ctx = log.InitLogger(ctx, cmd, withCaller, string(log.CONSOLE))

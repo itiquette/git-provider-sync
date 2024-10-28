@@ -11,11 +11,21 @@ configurations: # a list of project configurations. Mandatory - at least one.
       group: group # Git provider group/organization owner. Mandatory (if no user given).  Mutually exclusive with user
       httpclient:
         token: git provider token. Optional but recommended to avoid GitHub-api limits, private repositories etc.
+        scheme: https #default if empty https, http
+        proxyurl: proxyurl # a proxyurl, note env vars should be picked up
+        certdirpath: /path/certs # add custom certs
+      sshclient:
+        proxycommand: # a custom proxycommand 
+        rewritesshurlfrom:  #
+        rewritesshurlto: #
       git: # https,sshagent (default if empty is https)
         type: sshagent
+        includeforks: false # if forked projects also should be fetched from source provuder
+        usegitbinary: false # instead of using the go-git library with inmem support, use the host gitbinary
       repositories:
         include: a-dummy-project, another-dummy-project # Git provider repositories to include. Optional (if empty, all are mirrored))
         exclude: a-dummy-project, another-dummy-project # Git provider repositories to exclude. Optional (if empty, none are excluded)
+        description: a description # override the default project descroption prefix. d
       additional: # Gitprovider specific settings. Optional (see documentation)
         a_provider_specific_prop: ....
 
@@ -27,6 +37,12 @@ configurations: # a list of project configurations. Mandatory - at least one.
         group: group # Git provider group/organization owner. Mandatory (if no user given). Mutually exclusive with user
         httpclient:
           token: # Git provider token. Mandatory.
+        syncrun: # target specific settings
+          forcepush:
+          ignoreinvalidname: 
+          cleanupinvalidname: 
+          activefromlimit:  
+
       gitlabtargetexample2: # another target configuration
       # ....
       # ...

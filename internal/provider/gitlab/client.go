@@ -238,13 +238,21 @@ func (c Client) getNamespaceID(ctx context.Context, cfg config.ProviderConfig) (
 	return groups[0].ID, nil
 }
 
+func getProjectPath(cfg config.ProviderConfig, name string) string {
+	if cfg.IsGroup() {
+		return cfg.Group + "/" + name
+	}
+
+	return cfg.User + "/" + name
+}
+
 // NewGitLabClient creates a new GitLab client.
 func NewGitLabClient(ctx context.Context, option model.GitProviderClientOption, httpClient *http.Client) (Client, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering NewGitLabClient")
 
 	client, err := gitlab.NewClient(option.HTTPClient.Token,
-		gitlab.WithBaseURL(option.DomainWithScheme(option.Scheme)),
+		gitlab.WithBaseURL(option.DomainWithScheme(option.HTTPClient.Scheme)),
 		gitlab.WithHTTPClient(httpClient),
 	)
 	if err != nil {
@@ -252,12 +260,4 @@ func NewGitLabClient(ctx context.Context, option model.GitProviderClientOption, 
 	}
 
 	return Client{rawClient: client}, nil
-}
-
-func getProjectPath(cfg config.ProviderConfig, name string) string {
-	if cfg.IsGroup() {
-		return cfg.Group + "/" + name
-	}
-
-	return cfg.User + "/" + name
 }

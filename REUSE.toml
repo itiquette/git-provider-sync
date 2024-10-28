@@ -9,7 +9,7 @@ path = [
   ".github/pull_request_template.md",
   "go.sum",
   "docs/dco.txt",
-  "assets/gpsgopher.png",
+  "assets/*.png",
   "renovate.json",
 ]
 precedence = "aggregate"

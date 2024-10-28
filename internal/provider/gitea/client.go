@@ -161,7 +161,7 @@ func NewGiteaClient(ctx context.Context, option model.GitProviderClientOption, h
 	clientOptions = append(clientOptions, gitea.SetHTTPClient(httpClient))
 
 	client, err := gitea.NewClient(
-		option.DomainWithScheme(option.Scheme),
+		option.DomainWithScheme(option.HTTPClient.Scheme),
 		clientOptions...,
 	)
 	if err != nil {

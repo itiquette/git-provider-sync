@@ -22,9 +22,6 @@ type GitProviderClientOption struct {
 	// Domain is the domain of the git provider service (e.g., "github.com", "gitlab.com").
 	Domain string
 
-	// Scheme is the scheme of the git provider service (e.g., "https", "http". Default if empty is https).
-	Scheme string
-
 	Repositories model.RepositoriesOption
 }
 
@@ -34,8 +31,8 @@ type GitProviderClientOption struct {
 // Returns:
 //   - A string representation of the GitProviderClientOption instance.
 func (gpo GitProviderClientOption) String() string {
-	return fmt.Sprintf("GitProviderClientOption{ProviderType: %s, HTTPClient: %+v, Domain: %s, Scheme: %s}",
-		gpo.ProviderType, gpo.HTTPClient, gpo.Domain, gpo.Scheme)
+	return fmt.Sprintf("GitProviderClientOption{ProviderType: %s, HTTPClient: %+v, Domain: %s}",
+		gpo.ProviderType, gpo.HTTPClient, gpo.Domain)
 }
 
 func (gpo GitProviderClientOption) DomainWithScheme(scheme string) string {

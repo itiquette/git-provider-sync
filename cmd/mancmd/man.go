@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-package cmd
+package mancmd
 
 import (
 	"fmt"
@@ -13,7 +13,7 @@ import (
 	"github.com/muesli/roff"
 )
 
-func newManCommand() *cobra.Command {
+func NewManCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:                   "man",
 		Short:                 "Generates manpages",

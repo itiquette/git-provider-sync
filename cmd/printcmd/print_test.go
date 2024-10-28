@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-package cmd
+package printcmd
 
 import (
 	"bytes"
@@ -20,7 +20,7 @@ func TestExecutePrintCommandNoArgNoConfPanics(t *testing.T) {
 	ctx := context.Background()
 	cliOption := model.CLIOption{}
 	ctx = model.WithCLIOption(ctx, cliOption)
-	cmd := newPrintCommand()
+	cmd := NewPrintCommand()
 	cmd.PersistentFlags().String("config-file", "testdasadfasdfta/testconfig.yaml", "path to a git provider sync configuration file.")
 	cmd.PersistentFlags().Bool("config-file-only", false, "read configuration from file only (ignore ENV, dotenv, XDG_CONFIG_HOME)")
 	cmd.PersistentFlags().Bool("verbosity-with-caller", false, "")
@@ -43,7 +43,7 @@ func TestExecutePrintCommandFileConfArgSuccess(t *testing.T) {
 
 	require := require.New(t)
 
-	cmd := newPrintCommand()
+	cmd := NewPrintCommand()
 	cmd.PersistentFlags().String("config-file", "testdata/testconfig.yaml", "path to a git provider sync configuration file.")
 	cmd.PersistentFlags().Bool("config-file-only", false, "read configuration from file only (ignore ENV, dotenv, XDG_CONFIG_HOME)")
 	cmd.PersistentFlags().Bool("verbosity-with-caller", false, "")

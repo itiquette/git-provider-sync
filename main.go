@@ -4,9 +4,7 @@
 
 package main
 
-import (
-	"itiquette/git-provider-sync/cmd"
-)
+import "itiquette/git-provider-sync/cmd"
 
 var (
 	version = "dev"
