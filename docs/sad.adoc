@@ -111,7 +111,7 @@ HTTP:
 
 SSH:
   - Key-based authentication
-  - ProxyCommand support
+  - SSH Command support
   - Custom SSH configurations
 ----
 

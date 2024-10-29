@@ -2,55 +2,75 @@
 #
 # SPDX-License-Identifier: CC0-1.0
 
-configurations: # a list of project configurations. Mandatory - at least one.
-  myexampleconfiguration: # a project configuration name: Mandatory - at least one. Free naming,letters and digits only
-    source: # a source configuration. Mandatory - only one source
-      providertype: gitlab # Git provider. Mandatory - A supported name (gitlab,github,gitea)
-      domain: gitlab.com # Git instance domain. Mandatory.
-      user: user # Git provider repositories owner. Mandatory (if no group given).Mutually exclusive with group
-      group: group # Git provider group/organization owner. Mandatory (if no user given).  Mutually exclusive with user
-      httpclient:
-        token: git provider token. Optional but recommended to avoid GitHub-api limits, private repositories etc.
-        scheme: https #default if empty https, http
-        proxyurl: proxyurl # a proxyurl, note env vars should be picked up
-        certdirpath: /path/certs # add custom certs
-      sshclient:
-        proxycommand: # a custom proxycommand 
-        rewritesshurlfrom:  #
-        rewritesshurlto: #
-      git: # https,sshagent (default if empty is https)
-        type: sshagent
-        includeforks: false # if forked projects also should be fetched from source provuder
-        usegitbinary: false # instead of using the go-git library with inmem support, use the host gitbinary
-      repositories:
-        include: a-dummy-project, another-dummy-project # Git provider repositories to include. Optional (if empty, all are mirrored))
-        exclude: a-dummy-project, another-dummy-project # Git provider repositories to exclude. Optional (if empty, none are excluded)
-        description: a description # override the default project descroption prefix. d
-      additional: # Gitprovider specific settings. Optional (see documentation)
-        a_provider_specific_prop: ....
+# Complete reference of all available configuration options for Git Provider Sync
+# Each option is documented with its requirements and description
 
-    targets: # target configurations. Mandatory - minimum one target configuration
-      gitlabtargetexample: # target configuration. Free naming, letters and digits only.
-        providertype: gitea # Git provider. Mandatory - A valid name (gitlab,github,gitea.tar)
-        domain: gitea.com # Git instance domain. Mandatory.
-        user: user # Git provider repositories owner. Mandatory (if no group given). Mutually exclusive with group
-        group: group # Git provider group/organization owner. Mandatory (if no user given). Mutually exclusive with user
-        httpclient:
-          token: # Git provider token. Mandatory.
-        syncrun: # target specific settings
-          forcepush:
-          ignoreinvalidname: 
-          cleanupinvalidname: 
-          activefromlimit:  
+configurations: # MANDATORY: Root configuration object containing all project configurations
+  myexampleconfiguration: # MANDATORY: At least one configuration (letters and digits only)
+    source: # MANDATORY: Source repository configuration
+      providertype: gitlab # MANDATORY: Git provider type (supported: gitlab, github, gitea)
+      domain: gitlab.com # MANDATORY: Domain name of the Git provider
+      # Either user or group must be specified (mutually exclusive)
+      user: user # MANDATORY: (if no group) Repository owner username
+      group: group # MANDATORY: (if no user) Repository owner group/organization name
 
-      gitlabtargetexample2: # another target configuration
-      # ....
-      # ...
-      # ..
-      tartargetexample: # target configuration. Free naming, letters and digits only.
-        providertype: archive # provider. Mandatory - A valid name (gitlab,github,gitea,tar)
-        repositories:
-          description: An non default description
-        additional: # Gitprovider specific settings. Optional (see documentation)
-          archivetargetdir: /where/the/tarfiles/go # path to dir where tar backups will go
+      httpclient: # OPTIONAL: HTTP client configuration
+        token: token123 # OPTIONAL: Git provider API token - recommended for API limits, required for private repos
+        scheme: https # OPTIONAL: Protocol scheme (https or http, defaults to https)
+        proxyurl: proxyurl # OPTIONAL: Proxy URL (environment HTTP_PROXY etc, is also supported)
+        certdirpath: /path/certs # OPTIONAL: Directory path for custom certificates
 
+      sshclient: # OPTIONAL: SSH client configuration (used with sshagent)
+        sshcommand: command # OPTIONAL: Custom SSH proxy command
+        rewritesshurlfrom: url1 # OPTIONAL: Original SSH URL pattern to rewrite
+        rewritesshurlto: url2 # OPTIONAL: Target SSH URL pattern
+
+      git: # OPTIONAL: Git-specific settings
+        includeforks: false # OPTIONAL: Whether to include forked repositories
+
+      repositories: # OPTIONAL: Repository filtering options
+        include: repo1, repo2 # OPTIONAL: Comma-separated list of repositories to include (default: all)
+        exclude: repo3, repo4 # OPTIONAL: Comma-separated list of repositories to exclude
+        description: prefix # OPTIONAL: Description prefix for mirrored repositories
+      syncrun: # OPTIONAL: Sync operation settings
+        activefromlimit: 24h # OPTIONAL: Discard items older than duration (golang format)
+
+    targets: # MANDATORY: Target repository configurations (at least one required)
+      gitlabtargetexample: # MANDATORY: Target configuration name (letters and digits only)
+        providertype: gitea # MANDATORY: Target Git provider type
+        domain: gitea.com # MANDATORY: Target domain name
+        # Either user or group must be specified (mutually exclusive)
+        user: user # MANDATORY: (if no group) Target repository owner username
+        group: group # MANDATORY: (if no user) Target repository owner group/organization
+
+        git: # OPTIONAL: Git-specific settings
+          type: sshagent # OPTIONAL: Authentication type (https or sshagent, defaults to https)
+          usegitbinary: false # OPTIONAL: Use system git binary instead of go-git library
+
+        httpclient: # OPTIONAL: HTTP client configuration
+          token: token123 # OPTIONAL: Git provider API token
+          scheme: https # OPTIONAL: Protocol scheme
+          proxyurl: proxyurl # OPTIONAL: Proxy URL
+          certdirpath: /path/certs # OPTIONAL: Custom certificates directory
+
+        sshclient: # OPTIONAL: SSH client configuration (used with sshagent)
+          sshcommand: command # OPTIONAL: Custom SSH proxy command
+          rewritesshurlfrom: url1 # OPTIONAL: Original SSH URL pattern to rewrite
+          rewritesshurlto: url2 # OPTIONAL: Target SSH URL pattern
+
+        syncrun: # OPTIONAL: Sync operation settings
+          forcepush: true # OPTIONAL: Always use force push
+          ignoreinvalidname: true # OPTIONAL: Don't abort on invalid repository names
+          cleanupinvalidname: true # OPTIONAL: Clean repository names (alphanumeric only)
+
+      # Archive target example
+      tartargetexample:
+        providertype: archive # MANDATORY: Must be 'archive' for tar files
+        additional: # MANDATORY: (for tar archives)
+          archivetargetdir: /path/to/tars # MANDATORY: Directory for tar file storage
+
+      # Directory target example
+      dirtargetexample:
+        providertype: directory # MANDATORY: Must be 'directory' for direct file storage
+        additional: # MANDATORY: (for directory archives)
+          archivetargetdir: /path/to/dirs # MANDATORY: Directory for repository storage

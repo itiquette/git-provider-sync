@@ -7,7 +7,7 @@ package model
 import "strings"
 
 type SSHClientOption struct {
-	ProxyCommand      string `koanf:"proxycommand"`
+	SSHCommand        string `koanf:"sshcommand"`
 	RewriteSSHURLFrom string `koanf:"rewritesshurlfrom"`
 	RewriteSSHURLTo   string `koanf:"rewritesshurlto"`
 }
@@ -17,8 +17,8 @@ func (p SSHClientOption) String() string {
 
 	parts = append(parts, "SSHClientOption{")
 
-	if p.ProxyCommand != "" {
-		parts = append(parts, "ProxyCommand: "+p.ProxyCommand)
+	if p.SSHCommand != "" {
+		parts = append(parts, "SSHCommand: "+p.SSHCommand)
 	}
 
 	if p.RewriteSSHURLFrom != "" {

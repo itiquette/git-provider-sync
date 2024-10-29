@@ -102,9 +102,9 @@ func printGitProtocol(writer io.Writer, providerConfig config.ProviderConfig) {
 }
 
 func printSSHClientOption(writer io.Writer, providerConfig config.ProviderConfig) {
-	if len(providerConfig.SSHClient.ProxyCommand) >= 0 {
+	if len(providerConfig.SSHClient.SSHCommand) >= 0 {
 		fmt.Fprint(writer, " SSHClientOptions:\n")
-		fmt.Fprintf(writer, "  ProxyCommand: %s\n", providerConfig.SSHClient.ProxyCommand)
+		fmt.Fprintf(writer, "  SSHCommand: %s\n", providerConfig.SSHClient.SSHCommand)
 		fmt.Fprintf(writer, "  RewriteSSHURLFrom: %s\n", providerConfig.SSHClient.RewriteSSHURLFrom)
 		fmt.Fprintf(writer, "  RewriteSSHURLTo: %s\n", providerConfig.SSHClient.RewriteSSHURLTo)
 	}

@@ -134,7 +134,7 @@ In certain cases you might like to use the underlying host Git Binary instead of
 For example, If you would like to customize the underlying SSH-client with GIT_SSH_COMMAND. 
 Go Git does not currently support SSH-client customisation.
 
-NOTE: Only use this if you really have to (for example, you might want to use the SSH ProxyCommand option).
+NOTE: Only use this if you really have to (for example, you might want to use the SSHCommand option).
 
 === Configuration Examples
 
@@ -194,7 +194,7 @@ configurations:
         httpclient:
           token: <a-gitlab-token-with-create-and-write-access>
         sshclient:
-          proxycommand: ssh -vvv -o ProxyCommand="corkscrew <proxyserver> <proxyserverport> %h %p" -o ConnectTimeout=10 -p 443  #This SSH command uses corkscrew to tunnel SSH through an HTTP proxy. It's set to maximum verbosity (-vvv), uses a 10-second connection timeout, and connects to the SSH server on port 443. The ProxyCommand option specifies the proxy server and port, with %h and %p as placeholders for the SSH server host and port
+          sshcommand: ssh -vvv -o ProxyCommand="corkscrew <proxyserver> <proxyserverport> %h %p" -o ConnectTimeout=10 -p 443  #This SSH command uses corkscrew to tunnel SSH through an HTTP proxy. It's set to maximum verbosity (-vvv), uses a 10-second connection timeout, and connects to the SSH server on port 443. The ProxyCommand option specifies the proxy server and port, with %h and %p as placeholders for the SSH server host and port
           rewritesshurlfrom: git@github.com:
           rewritesshurlto: ssh://git@ssh.github.com:443/
         git:

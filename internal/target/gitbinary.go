@@ -56,7 +56,7 @@ func (g GitBinary) Clone(ctx context.Context, option model.CloneOption) (model.R
 	logger := log.Logger(ctx)
 	logger.Debug().Str("url", option.URL).Msg("GitBinary:Clone")
 
-	env := setupSSHCommandEnv(option.SSHClient.ProxyCommand, option.SSHClient.RewriteSSHURLFrom, option.SSHClient.RewriteSSHURLTo)
+	env := setupSSHCommandEnv(option.SSHClient.SSHCommand, option.SSHClient.RewriteSSHURLFrom, option.SSHClient.RewriteSSHURLTo)
 
 	tmpDirPath, err := model.GetTmpDirPath(ctx)
 	if err != nil {
@@ -105,7 +105,7 @@ func (g GitBinary) Pull(ctx context.Context, pullDirPath string, option model.Pu
 	logger := log.Logger(ctx)
 	option.DebugLog(logger).Msg("GitBinary:Pull")
 
-	env := setupSSHCommandEnv(option.SSHClient.ProxyCommand, option.SSHClient.RewriteSSHURLFrom, option.SSHClient.RewriteSSHURLTo)
+	env := setupSSHCommandEnv(option.SSHClient.SSHCommand, option.SSHClient.RewriteSSHURLFrom, option.SSHClient.RewriteSSHURLTo)
 
 	if err := g.runGitCommand(ctx, env, pullDirPath, "pull"); err != nil {
 		return fmt.Errorf("%w: %w", ErrPullRepository, err)
@@ -118,7 +118,7 @@ func (g GitBinary) Push(ctx context.Context, _ interfaces.GitRepository, option 
 	logger := log.Logger(ctx)
 	option.DebugLog(logger).Msg("GitBinary:Push")
 
-	env := setupSSHCommandEnv(option.SSHClient.ProxyCommand, option.SSHClient.RewriteSSHURLFrom, option.SSHClient.RewriteSSHURLTo)
+	env := setupSSHCommandEnv(option.SSHClient.SSHCommand, option.SSHClient.RewriteSSHURLFrom, option.SSHClient.RewriteSSHURLTo)
 
 	args := append([]string{"push", option.Target}, option.RefSpecs...)
 
@@ -226,13 +226,13 @@ func ValidateGitBinary() (string, error) {
 	return "", ErrGitBinaryNotFound
 }
 
-func setupSSHCommandEnv(proxycommand, rewriteurlfrom, rewriteurlto string) []string {
-	if proxycommand == "" {
+func setupSSHCommandEnv(sshcommand, rewriteurlfrom, rewriteurlto string) []string {
+	if sshcommand == "" {
 		return []string{}
 	}
 
 	return []string{
-		"GIT_SSH_COMMAND=" + proxycommand,
+		"GIT_SSH_COMMAND=" + sshcommand,
 		"GIT_CONFIG_COUNT=1",
 		"GIT_CONFIG_KEY_0=url." + rewriteurlto + ".insteadOf",
 		"GIT_CONFIG_VALUE_0=" + rewriteurlfrom,
