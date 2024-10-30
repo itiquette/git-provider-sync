@@ -9,7 +9,7 @@ configurations: # MANDATORY: Root configuration object containing all project co
   myexampleconfiguration: # MANDATORY: At least one configuration (letters and digits only)
     source: # MANDATORY: Source repository configuration
       providertype: gitlab # MANDATORY: Git provider type (supported: gitlab, github, gitea)
-      domain: gitlab.com # MANDATORY: Domain name of the Git provider
+      domain: gitlab.com # MANDATORY: FQDN Domain name of the Git provider
       # Either user or group must be specified (mutually exclusive)
       user: user # MANDATORY: (if no group) Repository owner username
       group: group # MANDATORY: (if no user) Repository owner group/organization name
@@ -27,6 +27,8 @@ configurations: # MANDATORY: Root configuration object containing all project co
 
       git: # OPTIONAL: Git-specific settings
         includeforks: false # OPTIONAL: Whether to include forked repositories
+        type: sshagent # OPTIONAL: Authentication type (https or sshagent, defaults to https)
+        usegitbinary: false # OPTIONAL: Use system git binary instead of go-git library
 
       repositories: # OPTIONAL: Repository filtering options
         include: repo1, repo2 # OPTIONAL: Comma-separated list of repositories to include (default: all)
@@ -73,4 +75,4 @@ configurations: # MANDATORY: Root configuration object containing all project co
       dirtargetexample:
         providertype: directory # MANDATORY: Must be 'directory' for direct file storage
         additional: # MANDATORY: (for directory archives)
-          archivetargetdir: /path/to/dirs # MANDATORY: Directory for repository storage
+          directtorytargetdir: /path/to/dirs # MANDATORY: Directory for repository storage

@@ -202,6 +202,7 @@ configurations:
           usegitbinary: true
 ----
 
+
 == Provider-Specific Notes
 
 === Visibility Mappings
@@ -787,3 +788,370 @@ spec:
 
   No. 
   To keep it simple, just use https and tokens. However, if you need it, ssh support is there. Speaking with various Git Providers Https API's is one thing - listing projects and so on, and pure Git operations another - clone, push and so on. So if you are using ssh for the git operations, you will still need to configure https options also (for metadata)
+
+[appendix]
+== Configuration properties table
+ 
+
+|===
+|Property Path |Description |Required |Extra Notes |Default Value
+
+|configurations
+|Root configuration object containing all project configurations
+|Mandatory
+a|Must contain at least one named configuration.
+
+[literal]
+configurations:
+  myconfig:
+    source: ...
+    targets: ...
+|N/A
+
+|configurations.<name>
+|Named configuration group
+|Mandatory
+a|Must contain only letters and digits and include source and targets sections.
+
+[literal]
+myconfig:
+  source: ...
+  targets: ...
+|N/A
+
+|configurations.<name>.source.providertype
+|Git provider type
+|Mandatory
+a|Must be one of: gitlab, github, gitea.
+
+[literal]
+providertype: gitlab
+|N/A
+
+|configurations.<name>.source.domain
+|FQDN Domain name of the Git provider
+|Mandatory
+a|Must not include protocol scheme.
+
+[literal]
+domain: gitlab.com
+|N/A
+
+|configurations.<name>.source.user
+|Repository owner username
+|Mandatory if group not set
+a|Mutually exclusive with group. Length: 1-39 characters. Valid chars: alphanumeric, -, _.
+
+[literal]
+user: user123-dev
+|N/A
+
+|configurations.<name>.source.group
+|Repository owner group/organization name
+|Mandatory if user not set
+a|Mutually exclusive with user. Length: 1-255 characters. Can include path segments.
+
+[literal]
+group: org/subgroup/team
+|N/A
+
+|configurations.<name>.source.httpclient.token
+|Git provider API token
+|Optional
+a|Required for private repositories and higher API limits.
+
+[literal]
+httpclient:
+  token: ${GIT_TOKEN}
+|Empty
+
+|configurations.<name>.source.httpclient.scheme
+|Protocol scheme
+|Optional
+a|Must be http or https. HTTP not recommended for production.
+
+[literal]
+httpclient:
+  scheme: https
+|https
+
+|configurations.<name>.source.httpclient.proxyurl
+|Proxy URL
+|Optional
+a|Must be valid URL. Environment vars HTTP_PROXY etc. also supported.
+
+[literal]
+httpclient:
+  proxyurl: http://proxy.company.com:8080
+|Empty
+
+|configurations.<name>.source.httpclient.certdirpath
+|Directory path for custom certificates
+|Optional
+a|Must be absolute path and directory must exist.
+
+[literal]
+httpclient:
+  certdirpath: /etc/ssl/certs
+|Empty
+
+|configurations.<name>.source.sshclient.sshcommand
+|Custom SSH proxy command
+|Optional
+a|Must start with 'ssh'. Requires git.usegitbinary: true.
+
+[literal]
+sshclient:
+  sshcommand: ssh -F /custom/ssh/config
+|Empty
+
+|configurations.<name>.source.sshclient.rewritesshurlfrom
+|Original SSH URL pattern to rewrite
+|Optional
+a|Must be set if rewritesshurlto is set.
+
+[literal]
+sshclient:
+  rewritesshurlfrom: git@github.com:
+|Empty
+
+|configurations.<name>.source.sshclient.rewritesshurlto
+|Target SSH URL pattern
+|Optional
+a|Must be set if rewritesshurlfrom is set.
+
+[literal]
+sshclient:
+  rewritesshurlto: git@github-internal:
+|Empty
+
+|configurations.<name>.source.git.includeforks
+|Whether to include forked repositories
+|Optional
+a|Only valid for source provider.
+
+[literal]
+git:
+  includeforks: false
+|false
+
+|configurations.<name>.source.git.type
+|Authentication type
+|Optional
+a|Must be https or sshagent. SSH agent requires running SSH agent.
+
+[literal]
+git:
+  type: sshagent
+|https
+
+|configurations.<name>.source.git.usegitbinary
+|Use system git binary instead of go-git library
+|Optional
+a|Required for SSH proxy command. Git must be installed.
+
+[literal]
+git:
+  usegitbinary: true
+|false
+
+|configurations.<name>.source.repositories.include
+|Repositories to include
+|Optional
+a|Cannot be empty if specified. Supports wildcards.
+
+[literal]
+repositories:
+  include: repo1,repo2,project-*
+|All repos
+
+|configurations.<name>.source.repositories.exclude
+|Repositories to exclude
+|Optional
+a|Cannot be empty if specified. Applied after include filter.
+
+[literal]
+repositories:
+  exclude: test-*,temp-repo
+|None
+
+|configurations.<name>.source.repositories.description
+|Description prefix for mirrored repositories
+|Optional
+a|Max length: 1000 characters.
+
+[literal]
+repositories:
+  description: "[Mirror] "
+|Empty
+
+|configurations.<name>.source.syncrun.activefromlimit
+|Age limit for repositories to sync
+|Optional
+a|Valid Go duration format.
+
+[literal]
+syncrun:
+  activefromlimit: 24h
+|Empty
+
+|configurations.<name>.targets
+|Target repository configurations
+|Mandatory
+a|Must contain at least one target.
+
+[literal]
+targets:
+  target1:
+    providertype: gitlab
+  target2:
+    providertype: archive
+|N/A
+
+|configurations.<name>.targets.<targetname>.providertype
+|Target Git provider type
+|Mandatory
+a|Must be: gitlab, github, gitea, archive, or directory.
+
+[literal]
+providertype: gitlab
+|N/A
+
+|configurations.<name>.targets.<targetname>.domain
+|Target domain name
+|Mandatory for Git providers
+a|Not needed for archive/directory types.
+
+[literal]
+domain: gitlab.internal.com
+|N/A
+
+|configurations.<name>.targets.<targetname>.user
+|Target repository owner username
+|Mandatory if group not set
+a|Same rules as source user.
+
+[literal]
+user: mirror-user
+|N/A
+
+|configurations.<name>.targets.<targetname>.group
+|Target repository owner group/organization
+|Mandatory if user not set
+a|Same rules as source group.
+
+[literal]
+group: mirror-org/team
+|N/A
+
+|configurations.<name>.targets.<targetname>.git.type
+|Authentication type for target
+|Optional
+a|Same rules as source git.type.
+
+[literal]
+git:
+  type: https
+|https
+
+|configurations.<name>.targets.<targetname>.git.usegitbinary
+|Use system git binary for target
+|Optional
+a|Same rules as source git.usegitbinary.
+
+[literal]
+git:
+  usegitbinary: true
+|false
+
+|configurations.<name>.targets.<targetname>.httpclient
+|HTTP client configuration for target
+|Optional
+a|Same rules as source httpclient.
+
+[literal]
+httpclient:
+  token: ${TARGET_TOKEN}
+  scheme: https
+|N/A
+
+|configurations.<name>.targets.<targetname>.sshclient
+|SSH client configuration for target
+|Optional
+a|Same rules as source sshclient.
+
+[literal]
+sshclient:
+  sshcommand: ssh -F /target/ssh/config
+|N/A
+
+|configurations.<name>.targets.<targetname>.syncrun.forcepush
+|Always use force push
+|Optional
+a|Only valid for target providers.
+
+[literal]
+syncrun:
+  forcepush: true
+|false
+
+|configurations.<name>.targets.<targetname>.syncrun.ignoreinvalidname
+|Don't abort on invalid repository names
+|Optional
+a|Only valid for target providers.
+
+[literal]
+syncrun:
+  ignoreinvalidname: true
+|false
+
+|configurations.<name>.targets.<targetname>.syncrun.cleanupinvalidname
+|Clean repository names (alphanumeric only)
+|Optional
+a|Only valid for target providers.
+
+[literal]
+syncrun:
+  cleanupinvalidname: true
+|false
+
+|configurations.<name>.targets.<targetname>.additional.archivetargetdir
+|Directory for tar file storage
+|Mandatory for archive type
+a|Must be absolute path.
+
+[literal]
+additional:
+  archivetargetdir: /path/to/archives
+|N/A
+
+|configurations.<name>.targets.<targetname>.additional.directorytargetdir
+|Directory for repository storage
+|Mandatory for directory type
+a|Must be absolute path.
+
+[literal]
+additional:
+  directorytargetdir: /path/to/repos
+|N/A
+|===
+
+[NOTE]
+====
+Key Dependencies:
+
+* SSH Authentication requires:
+** Running SSH agent
+** SSH_AUTH_SOCK environment variable
+** At least one loaded SSH key
+
+* HTTPS Authentication requires:
+** Valid token for private repositories
+** Valid certificate configuration for custom CAs
+
+* Path Requirements:
+** All paths must be absolute
+** Directories must exist and have appropriate permissions
+** Certificate directories must be readable
+** Archive/Directory target paths must be writable
+====
