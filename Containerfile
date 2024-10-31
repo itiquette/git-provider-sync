@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: CC0-1.0
 
-FROM cgr.dev/chainguard/glibc-dynamic:latest-dev@sha256:da2669610231b98dc8a064c8f3d9855605e95deaee42c8011842c37fd4ca6efd
+FROM cgr.dev/chainguard/glibc-dynamic:latest-dev@sha256:1c001f2a62d608463f171a45b63072cba856bfd489891a0821eda6938e956e39
 ARG TARGETOS TARGETARCH
 ARG DIRPATH=""
 
