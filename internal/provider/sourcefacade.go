@@ -19,7 +19,7 @@ import (
 // It takes a context, a SourceReader interface for cloning operations,
 // and a slice of RepositoryMetainfo containing information about the repositories to clone.
 // It returns a slice of GitRepository interfaces representing the cloned repositories and any error encountered.
-func Clone(ctx context.Context, reader interfaces.SourceReader, sourceProviderConfig config.ProviderConfig, metainfos []model.RepositoryMetainfo) ([]interfaces.GitRepository, error) {
+func Clone(ctx context.Context, reader interfaces.SourceReader, sourceProviderConfig config.ProviderConfig, metainfos []model.ProjectInfo) ([]interfaces.GitRepository, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Cloning repositories")
 
@@ -33,10 +33,10 @@ func Clone(ctx context.Context, reader interfaces.SourceReader, sourceProviderCo
 			return nil, fmt.Errorf("failed to clone repository %s: %w", metainfo.OriginalName, err)
 		}
 
-		resultRepo.Meta = metainfo
+		resultRepo.ProjectMetaInfo = metainfo
 
 		if model.CLIOptions(ctx).CleanupName || sourceProviderConfig.SyncRun.CleanupInvalidName {
-			resultRepo.Meta.CleanupName = true
+			resultRepo.ProjectMetaInfo.CleanupName = true
 		}
 
 		repositories = append(repositories, resultRepo)
@@ -48,7 +48,7 @@ func Clone(ctx context.Context, reader interfaces.SourceReader, sourceProviderCo
 // FetchMetainfo retrieves metadata information for repositories from a Git provider.
 // It takes a context, provider configuration, and a GitProvider interface.
 // It returns a slice of RepositoryMetainfo containing the fetched metadata and any error encountered.
-func FetchMetainfo(ctx context.Context, config config.ProviderConfig, gitProvider interfaces.GitProvider) ([]model.RepositoryMetainfo, error) {
+func FetchMetainfo(ctx context.Context, config config.ProviderConfig, gitProvider interfaces.GitProvider) ([]model.ProjectInfo, error) {
 	logger := log.Logger(ctx)
 
 	// Log the metadata fetching operation
@@ -59,7 +59,7 @@ func FetchMetainfo(ctx context.Context, config config.ProviderConfig, gitProvide
 
 	// Fetch the metadata from the Git provider
 	// The 'true' parameter likely indicates that all available metadata should be fetched
-	metainfo, err := gitProvider.Metainfos(ctx, config, true)
+	metainfo, err := gitProvider.ProjectInfos(ctx, config, true)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get repository meta information: %w", err)
 	}

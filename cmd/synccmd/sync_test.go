@@ -190,7 +190,7 @@ package synccmd
 // // 	panic("unimplemented")
 // // }
 // //
-// // // Metainfos implements interfaces.GitProvider.
+// // // ProjectInfos implements interfaces.GitProvider.
 // // func (m *mockGitProvider) Metainfos(_ context.Context, _ model.ProviderConfig, _ bool) ([]model.RepositoryMetainfo, error) {
 // // 	panic("unimplementedb")
 // // }

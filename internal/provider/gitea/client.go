@@ -71,7 +71,7 @@ func (c Client) Name() string {
 	return config.GITEA
 }
 
-// Metainfos retrieves metadata information for repositories.
+// ProjectInfos retrieves metadata information for repositories.
 // It can list repositories for both users and organizations.
 //
 // Parameters:
@@ -80,7 +80,7 @@ func (c Client) Name() string {
 // - filtering: If true, applies additional filtering to the results.
 //
 // Returns a slice of RepositoryMetainfo and an error if the operation fails.
-func (c Client) Metainfos(ctx context.Context, config config.ProviderConfig, filtering bool) ([]model.RepositoryMetainfo, error) {
+func (c Client) ProjectInfos(ctx context.Context, config config.ProviderConfig, filtering bool) ([]model.ProjectInfo, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Gitea:Metainfos:")
 
@@ -114,7 +114,7 @@ func (c Client) Metainfos(ctx context.Context, config config.ProviderConfig, fil
 
 	logger.Debug().Int("total_repositories", len(repositories)).Msg("Found repositories")
 
-	var metainfos []model.RepositoryMetainfo //nolint:prealloc
+	var metainfos []model.ProjectInfo //nolint:prealloc
 
 	for _, repo := range repositories {
 		if !config.Git.IncludeForks && repo.Fork {
@@ -186,7 +186,7 @@ func NewGiteaClient(ctx context.Context, option model.GitProviderClientOption, h
 // - repositoryName: The name of the repository to fetch information for.
 //
 // Returns a RepositoryMetainfo and an error if the operation fails.
-func newRepositoryMeta(ctx context.Context, config config.ProviderConfig, rawClient *gitea.Client, repositoryName string) (model.RepositoryMetainfo, error) {
+func newRepositoryMeta(ctx context.Context, config config.ProviderConfig, rawClient *gitea.Client, repositoryName string) (model.ProjectInfo, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering newRepositoryMeta:")
 
@@ -197,10 +197,10 @@ func newRepositoryMeta(ctx context.Context, config config.ProviderConfig, rawCli
 
 	giteaProject, _, err := rawClient.GetRepo(owner, repositoryName)
 	if err != nil {
-		return model.RepositoryMetainfo{}, fmt.Errorf("failed to get project info for %s: %w", repositoryName, err)
+		return model.ProjectInfo{}, fmt.Errorf("failed to get project info for %s: %w", repositoryName, err)
 	}
 
-	return model.RepositoryMetainfo{
+	return model.ProjectInfo{
 		OriginalName:   repositoryName,
 		HTTPSURL:       giteaProject.CloneURL,
 		SSHURL:         giteaProject.SSHURL,

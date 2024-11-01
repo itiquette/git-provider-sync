@@ -150,7 +150,7 @@ func TestPush(t *testing.T) {
 		pushOption := model.NewPushOption(repoPath, false, false, gpsconfig.HTTPClientOption{})
 
 		modelRepo, err := model.NewRepository(repo)
-		modelRepo.Meta = model.RepositoryMetainfo{OriginalName: "test-push-repo"}
+		modelRepo.ProjectMetaInfo = model.ProjectInfo{OriginalName: "test-push-repo"}
 
 		require.NoError(t, err)
 

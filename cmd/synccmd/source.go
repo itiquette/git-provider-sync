@@ -66,9 +66,9 @@ func getSourceReader(cfg gpsconfig.ProviderConfig) (interfaces.SourceReader, err
 
 func processRepository(ctx context.Context, targetCfg gpsconfig.ProviderConfig, client interfaces.GitProvider, repo interfaces.GitRepository, sourceCfg gpsconfig.ProviderConfig) error {
 	logger := log.Logger(ctx)
-	repo.Metainfo().DebugLog(logger).Msg("processRepository:")
+	repo.ProjectInfo().DebugLog(logger).Msg("processRepository:")
 
-	if repo.Metainfo().OriginalName == "" {
+	if repo.ProjectInfo().OriginalName == "" {
 		return ErrEmptyMetainfo
 	}
 
@@ -84,11 +84,11 @@ func processRepository(ctx context.Context, targetCfg gpsconfig.ProviderConfig, 
 }
 
 func validateRepository(ctx context.Context, client interfaces.GitProvider, repo interfaces.GitRepository, targetCfg gpsconfig.ProviderConfig) error {
-	if client.IsValidRepositoryName(ctx, repo.Metainfo().Name(ctx)) {
+	if client.IsValidRepositoryName(ctx, repo.ProjectInfo().Name(ctx)) {
 		return nil
 	}
 
-	name := repo.Metainfo().OriginalName
+	name := repo.ProjectInfo().OriginalName
 	markRepositoryInvalid(ctx, name)
 
 	opts := model.CLIOptions(ctx)

@@ -62,8 +62,8 @@ func IsInInterval(ctx context.Context, updatedAt time.Time) (bool, error) {
 // Returns:
 //   - A function that takes a context, provider configuration, and a slice of RepositoryMetainfo,
 //     and returns a filtered slice of RepositoryMetainfo and any error encountered.
-func FilterIncludedExcludedGen() func(context.Context, config.ProviderConfig, []model.RepositoryMetainfo) ([]model.RepositoryMetainfo, error) {
-	return func(ctx context.Context, config config.ProviderConfig, metainfos []model.RepositoryMetainfo) ([]model.RepositoryMetainfo, error) {
+func FilterIncludedExcludedGen() func(context.Context, config.ProviderConfig, []model.ProjectInfo) ([]model.ProjectInfo, error) {
+	return func(ctx context.Context, config config.ProviderConfig, metainfos []model.ProjectInfo) ([]model.ProjectInfo, error) {
 		logger := log.Logger(ctx)
 		logger.Trace().Msg("Entering Filtering repositories based on inclusion/exclusion lists")
 
@@ -71,7 +71,7 @@ func FilterIncludedExcludedGen() func(context.Context, config.ProviderConfig, []
 		excluded := config.Repositories.ExcludedRepositories()
 
 		// Use slices.DeleteFunc to efficiently filter the metainfos slice
-		return slices.DeleteFunc(metainfos, func(m model.RepositoryMetainfo) bool {
+		return slices.DeleteFunc(metainfos, func(m model.ProjectInfo) bool {
 			return !shouldIncludeRepo(m.OriginalName, included, excluded)
 		}), nil
 	}

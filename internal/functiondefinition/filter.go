@@ -33,7 +33,7 @@ import (
 //   - Applying exclusion patterns to remove repositories from the selection.
 //   - Handling edge cases such as conflicting inclusion and exclusion patterns.
 //   - Efficient processing of potentially large sets of repository metadata.
-type FilterIncludedExcludedFunc func(ctx context.Context, config config.ProviderConfig, metainfos []model.RepositoryMetainfo) ([]model.RepositoryMetainfo, error)
+type FilterIncludedExcludedFunc func(ctx context.Context, config config.ProviderConfig, metainfos []model.ProjectInfo) ([]model.ProjectInfo, error)
 
 // Example usage:
 //

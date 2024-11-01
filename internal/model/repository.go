@@ -24,7 +24,7 @@ var (
 // It encapsulates a go-git Repository and provides methods for common operations.
 type Repository struct {
 	goGitRepository *git.Repository
-	Meta            RepositoryMetainfo
+	ProjectMetaInfo ProjectInfo
 }
 
 // NewGitGoRemoteOption creates a new RemoteConfig for go-git.
@@ -51,10 +51,10 @@ func (r Repository) GoGitRepository() *git.Repository {
 	return r.goGitRepository
 }
 
-// Metainfo returns the repository metadata.
+// ProjectInfo returns the repository metadata.
 // This includes information such as the repository name, description, and URLs.
-func (r Repository) Metainfo() RepositoryMetainfo {
-	return r.Meta
+func (r Repository) ProjectInfo() ProjectInfo {
+	return r.ProjectMetaInfo
 }
 
 // Remote retrieves a remote by name.

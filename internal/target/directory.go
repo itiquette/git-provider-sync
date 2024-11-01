@@ -37,7 +37,7 @@ func (dir Directory) Push(ctx context.Context, repo interfaces.GitRepository, op
 	logger.Trace().Msg("Entering Directory:Push")
 	opt.DebugLog(logger).Msg("Directory:Push")
 
-	targetDir, err := getTargetDirPath(ctx, opt.Target, repo.Metainfo().Name(ctx))
+	targetDir, err := getTargetDirPath(ctx, opt.Target, repo.ProjectInfo().Name(ctx))
 	if err != nil {
 		return fmt.Errorf("%w %w", ErrDirGetPath, err)
 	}
@@ -86,7 +86,7 @@ func (dir Directory) initializeTargetRepository(ctx context.Context, repo interf
 		return err
 	}
 
-	if err := setDefaultBranch(targetDir, repo.Metainfo().DefaultBranch); err != nil {
+	if err := setDefaultBranch(targetDir, repo.ProjectInfo().DefaultBranch); err != nil {
 		return err
 	}
 

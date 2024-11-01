@@ -23,13 +23,13 @@ func TestClone(t *testing.T) {
 
 	tests := []struct {
 		name      string
-		metainfos []model.RepositoryMetainfo
+		metainfos []model.ProjectInfo
 		mockSetup func(*mocks.SourceReader)
 		wantErr   bool
 	}{
 		{
 			name: "Successful clone of multiple repositories",
-			metainfos: []model.RepositoryMetainfo{
+			metainfos: []model.ProjectInfo{
 				{HTTPSURL: "https://github.com/user/repo1.git", OriginalName: "repo1"},
 				{HTTPSURL: "https://github.com/user/repo2.git", OriginalName: "repo2"},
 			},
@@ -40,7 +40,7 @@ func TestClone(t *testing.T) {
 		},
 		{
 			name: "Failure to clone repository",
-			metainfos: []model.RepositoryMetainfo{
+			metainfos: []model.ProjectInfo{
 				{HTTPSURL: "https://github.com/user/repo1.git", OriginalName: "repo1"},
 			},
 			mockSetup: func(m *mocks.SourceReader) {
@@ -50,7 +50,7 @@ func TestClone(t *testing.T) {
 		},
 		{
 			name:      "Empty metainfos list",
-			metainfos: []model.RepositoryMetainfo{},
+			metainfos: []model.ProjectInfo{},
 			mockSetup: func(_ *mocks.SourceReader) {},
 			wantErr:   false,
 		},
@@ -92,8 +92,8 @@ func TestFetchMetainfo(t *testing.T) {
 			},
 			mockSetup: func(m *mocks.GitProvider) {
 				m.On("Name").Return("GitHub")
-				m.On("Metainfos", mock.Anything, mock.AnythingOfType("model.ProviderConfig"), true).
-					Return([]model.RepositoryMetainfo{
+				m.On("ProjectInfos", mock.Anything, mock.AnythingOfType("model.ProviderConfig"), true).
+					Return([]model.ProjectInfo{
 						{OriginalName: "repo1"},
 						{OriginalName: "repo2"},
 					}, nil)
@@ -108,7 +108,7 @@ func TestFetchMetainfo(t *testing.T) {
 			},
 			mockSetup: func(m *mocks.GitProvider) {
 				m.On("Name").Return("GitLab")
-				m.On("Metainfos", mock.Anything, mock.AnythingOfType("model.ProviderConfig"), true).
+				m.On("ProjectInfos", mock.Anything, mock.AnythingOfType("model.ProviderConfig"), true).
 					Return(nil, errors.New("failed to fetch metainfo"))
 			},
 			wantLength: 0,

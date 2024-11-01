@@ -29,6 +29,6 @@ func (Client) IsValidRepositoryName(_ context.Context, _ string) bool {
 	return true
 }
 
-func (Client) Metainfos(_ context.Context, _ config.ProviderConfig, _ bool) ([]model.RepositoryMetainfo, error) {
+func (Client) ProjectInfos(_ context.Context, _ config.ProviderConfig, _ bool) ([]model.ProjectInfo, error) {
 	return nil, nil
 }

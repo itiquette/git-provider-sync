@@ -30,7 +30,7 @@ func NewFilter(isInInterval IsInIntervalFunc) *Filter {
 	return &Filter{isInInterval: isInInterval}
 }
 
-func (Filter) FilterMetainfo(ctx context.Context, config config.ProviderConfig, metainfos []model.RepositoryMetainfo, filterExcludedIncludedFunc functiondefinition.FilterIncludedExcludedFunc, isInInterval IsInIntervalFunc) ([]model.RepositoryMetainfo, error) {
+func (Filter) FilterMetainfo(ctx context.Context, config config.ProviderConfig, metainfos []model.ProjectInfo, filterExcludedIncludedFunc functiondefinition.FilterIncludedExcludedFunc, isInInterval IsInIntervalFunc) ([]model.ProjectInfo, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering FilterMetainfo: starting")
 
@@ -42,11 +42,11 @@ func (Filter) FilterMetainfo(ctx context.Context, config config.ProviderConfig, 
 	return filterByDate(ctx, filteredURLs, isInInterval)
 }
 
-func filterByDate(ctx context.Context, metainfos []model.RepositoryMetainfo, isInInterval IsInIntervalFunc) ([]model.RepositoryMetainfo, error) {
+func filterByDate(ctx context.Context, metainfos []model.ProjectInfo, isInInterval IsInIntervalFunc) ([]model.ProjectInfo, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering filterByDate: starting")
 
-	filteredMetainfos := make([]model.RepositoryMetainfo, 0)
+	filteredMetainfos := make([]model.ProjectInfo, 0)
 
 	for _, metainfo := range metainfos {
 		if metainfo.LastActivityAt == nil {

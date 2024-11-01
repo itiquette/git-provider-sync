@@ -145,7 +145,7 @@ func TestBuildDescription(t *testing.T) {
 			remote: model.Remote{URL: "https://example.com/repo.git"},
 			repository: func() *mocks.GitRepository {
 				r := new(mocks.GitRepository)
-				r.On("Metainfo").Return(model.RepositoryMetainfo{Description: "Test repo"})
+				r.On("ProjectInfo").Return(model.ProjectInfo{Description: "Test repo"})
 
 				return r
 			}(),
@@ -155,7 +155,7 @@ func TestBuildDescription(t *testing.T) {
 			remote: model.Remote{URL: "https://example.com/repo.git"},
 			repository: func() *mocks.GitRepository {
 				r := new(mocks.GitRepository)
-				r.EXPECT().Metainfo().Return(model.RepositoryMetainfo{})
+				r.EXPECT().ProjectInfo().Return(model.ProjectInfo{})
 
 				return r
 			}(),
@@ -193,12 +193,12 @@ func TestIsArchiveOrDirectory(t *testing.T) {
 
 func TestRepositoryExists(t *testing.T) {
 	tests := map[string]struct {
-		metainfos      []model.RepositoryMetainfo
+		metainfos      []model.ProjectInfo
 		repositoryName string
 		expected       bool
 	}{
 		"repository exists": {
-			metainfos: []model.RepositoryMetainfo{
+			metainfos: []model.ProjectInfo{
 				{OriginalName: "repo1"},
 				{OriginalName: "repo2"},
 			},
@@ -206,7 +206,7 @@ func TestRepositoryExists(t *testing.T) {
 			expected:       true,
 		},
 		"repository does not exist": {
-			metainfos: []model.RepositoryMetainfo{
+			metainfos: []model.ProjectInfo{
 				{OriginalName: "repo1"},
 				{OriginalName: "repo2"},
 			},
@@ -214,7 +214,7 @@ func TestRepositoryExists(t *testing.T) {
 			expected:       false,
 		},
 		"case insensitive": {
-			metainfos: []model.RepositoryMetainfo{
+			metainfos: []model.ProjectInfo{
 				{OriginalName: "Repo1"},
 			},
 			repositoryName: "repo1",
@@ -226,7 +226,7 @@ func TestRepositoryExists(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			ctx := context.Background()
 			mockProvider := new(mocks.GitProvider)
-			mockProvider.EXPECT().Metainfos(ctx, mock.Anything, false).Return(tabletest.metainfos, nil)
+			mockProvider.EXPECT().ProjectInfos(ctx, mock.Anything, false).Return(tabletest.metainfos, nil)
 
 			result := repositoryExists(ctx, config.ProviderConfig{}, mockProvider, tabletest.repositoryName)
 			require.Equal(t, tabletest.expected, result)
@@ -262,7 +262,7 @@ func TestGetProjectPath(t *testing.T) {
 
 func mockRepositoryWithName(name string) *mocks.GitRepository {
 	r := new(mocks.GitRepository)
-	r.EXPECT().Metainfo().Return(model.RepositoryMetainfo{OriginalName: name})
+	r.EXPECT().ProjectInfo().Return(model.ProjectInfo{OriginalName: name})
 
 	return r
 }

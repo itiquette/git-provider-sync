@@ -13,10 +13,10 @@ import (
 	"github.com/rs/zerolog"
 )
 
-// RepositoryMetainfo holds metadata about a repository.
+// ProjectInfo holds metadata about a repository.
 // It encapsulates various attributes that describe a repository's
 // properties and state.
-type RepositoryMetainfo struct {
+type ProjectInfo struct {
 	// OriginalName is the repository's name as it appears in the source system.
 	OriginalName string
 
@@ -51,7 +51,7 @@ type RepositoryMetainfo struct {
 //
 // Returns:
 //   - A string representing the (possibly cleaned) repository name.
-func (rm RepositoryMetainfo) Name(ctx context.Context) string {
+func (rm ProjectInfo) Name(ctx context.Context) string {
 	if CLIOptions(ctx).CleanupName {
 		return stringconvert.RemoveNonAlphaNumericChars(ctx, rm.OriginalName)
 	}
@@ -69,7 +69,7 @@ func (rm RepositoryMetainfo) Name(ctx context.Context) string {
 //   - A pointer to a zerolog.Event containing the repository metadata.
 //
 // Note: This method uses the Time() method to safely handle the LastActivityAt field.
-func (rm RepositoryMetainfo) DebugLog(logger *zerolog.Logger) *zerolog.Event {
+func (rm ProjectInfo) DebugLog(logger *zerolog.Logger) *zerolog.Event {
 	return logger.Debug(). //nolint:zerologlint
 				Str("defaultBranch", rm.DefaultBranch).
 				Str("description", stringconvert.RemoveLinebreaks(rm.Description)).
@@ -84,7 +84,7 @@ func (rm RepositoryMetainfo) DebugLog(logger *zerolog.Logger) *zerolog.Event {
 //
 // Returns:
 //   - A time.Time representing the last activity time, or a zero time if not set.
-func (rm RepositoryMetainfo) Time() time.Time {
+func (rm ProjectInfo) Time() time.Time {
 	if rm.LastActivityAt == nil {
 		return time.Time{}
 	}

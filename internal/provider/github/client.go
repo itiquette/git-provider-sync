@@ -81,9 +81,9 @@ func (ghc Client) Name() string {
 	return config.GITHUB
 }
 
-// Metainfos retrieves metadata for repositories.
+// ProjectInfos retrieves metadata for repositories.
 // It can list repositories for Here's the updated version of the function with pagination support for go-github:.
-func (ghc Client) Metainfos(ctx context.Context, config config.ProviderConfig, filtering bool) ([]model.RepositoryMetainfo, error) {
+func (ghc Client) ProjectInfos(ctx context.Context, config config.ProviderConfig, filtering bool) ([]model.ProjectInfo, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitHub:Metainfos:")
 
@@ -152,8 +152,8 @@ func (ghc Client) Metainfos(ctx context.Context, config config.ProviderConfig, f
 
 // processRepositories is a helper function to process a list of repositories (either Org or User)
 // and convert them into RepositoryMetainfo slices.
-func (ghc *Client) processRepositories(ctx context.Context, config config.ProviderConfig, repos []*github.Repository) []model.RepositoryMetainfo {
-	var metainfos []model.RepositoryMetainfo //nolint:prealloc
+func (ghc *Client) processRepositories(ctx context.Context, config config.ProviderConfig, repos []*github.Repository) []model.ProjectInfo {
+	var metainfos []model.ProjectInfo //nolint:prealloc
 
 	logger := log.Logger(ctx)
 
@@ -261,7 +261,7 @@ func NewGitHubClient(ctx context.Context, option model.GitProviderClientOption, 
 //   - name: The name of the repository.
 //
 // Returns a RepositoryMetainfo and an error if the operation fails.
-func newRepositoryMeta(ctx context.Context, config config.ProviderConfig, gitClient *github.Client, name string) (model.RepositoryMetainfo, error) {
+func newRepositoryMeta(ctx context.Context, config config.ProviderConfig, gitClient *github.Client, name string) (model.ProjectInfo, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering newRepositoryMeta:")
 	logger.Debug().Str("usr", config.User).Str("name", name).Str("provider", config.ProviderType).Str("domain", config.Domain).Msg("newRepositoryMeta:")
@@ -273,10 +273,10 @@ func newRepositoryMeta(ctx context.Context, config config.ProviderConfig, gitCli
 
 	gitHubProject, _, err := gitClient.Repositories.Get(ctx, owner, name)
 	if err != nil {
-		return model.RepositoryMetainfo{}, fmt.Errorf("failed to get projectinfo for %s: %w", name, err)
+		return model.ProjectInfo{}, fmt.Errorf("failed to get projectinfo for %s: %w", name, err)
 	}
 
-	return model.RepositoryMetainfo{
+	return model.ProjectInfo{
 		OriginalName:   name,
 		Description:    getValueOrEmpty(gitHubProject.Description),
 		HTTPSURL:       getValueOrEmpty(gitHubProject.CloneURL),

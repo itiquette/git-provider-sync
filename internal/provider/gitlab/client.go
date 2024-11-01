@@ -86,8 +86,8 @@ func (c Client) Name() string {
 	return config.GITLAB
 }
 
-// Metainfos retrieves metadata information for repositories.
-func (c Client) Metainfos(ctx context.Context, cfg config.ProviderConfig, filtering bool) ([]model.RepositoryMetainfo, error) {
+// ProjectInfos retrieves metadata information for repositories.
+func (c Client) ProjectInfos(ctx context.Context, cfg config.ProviderConfig, filtering bool) ([]model.ProjectInfo, error) {
 	metainfos, err := c.getRepositoryMetaInfos(ctx, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("get repository metainfos: %w", err)
@@ -100,7 +100,7 @@ func (c Client) Metainfos(ctx context.Context, cfg config.ProviderConfig, filter
 	return metainfos, nil
 }
 
-func (c Client) getRepositoryMetaInfos(ctx context.Context, cfg config.ProviderConfig) ([]model.RepositoryMetainfo, error) {
+func (c Client) getRepositoryMetaInfos(ctx context.Context, cfg config.ProviderConfig) ([]model.ProjectInfo, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitLab:Metainfos:")
 
@@ -153,7 +153,7 @@ func (c Client) getRepositoryMetaInfos(ctx context.Context, cfg config.ProviderC
 
 	logger.Debug().Int("total_repositories", len(allRepositories)).Msg("Found repositories")
 
-	metainfos := make([]model.RepositoryMetainfo, 0, len(allRepositories))
+	metainfos := make([]model.ProjectInfo, 0, len(allRepositories))
 
 	for _, repo := range allRepositories {
 		if !cfg.Git.IncludeForks && repo.ForkedFromProject != nil {
@@ -187,7 +187,7 @@ func (c Client) IsValidRepositoryName(ctx context.Context, name string) bool {
 	return true
 }
 
-func newRepositoryMetainfo(ctx context.Context, cfg config.ProviderConfig, gitClient *gitlab.Client, name string) (model.RepositoryMetainfo, error) {
+func newRepositoryMetainfo(ctx context.Context, cfg config.ProviderConfig, gitClient *gitlab.Client, name string) (model.ProjectInfo, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering newRepositoryMeta:")
 	logger.Debug().Str("name", name).Msg("newRepositoryMeta:")
@@ -199,13 +199,13 @@ func newRepositoryMetainfo(ctx context.Context, cfg config.ProviderConfig, gitCl
 		if strings.Contains(err.Error(), "404 Not Found") {
 			logger.Warn().Str("name", name).Msg("Repository not found. Ignoring.")
 
-			return model.RepositoryMetainfo{}, nil
+			return model.ProjectInfo{}, nil
 		}
 
-		return model.RepositoryMetainfo{}, fmt.Errorf("get gitlab project: %w", err)
+		return model.ProjectInfo{}, fmt.Errorf("get gitlab project: %w", err)
 	}
 
-	return model.RepositoryMetainfo{
+	return model.ProjectInfo{
 		OriginalName:   name,
 		Description:    gitlabProject.Description,
 		HTTPSURL:       gitlabProject.HTTPURLToRepo,

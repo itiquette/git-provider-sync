@@ -35,7 +35,7 @@ type CloneOption struct {
 //
 // Returns:
 //   - A new CloneOption struct configured with the provided options.
-func NewCloneOption(ctx context.Context, metainfo RepositoryMetainfo, mirror bool, providerConfig model.ProviderConfig) CloneOption {
+func NewCloneOption(ctx context.Context, metainfo ProjectInfo, mirror bool, providerConfig model.ProviderConfig) CloneOption {
 	logger := log.Logger(ctx)
 
 	var cloneURL string

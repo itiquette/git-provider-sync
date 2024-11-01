@@ -30,7 +30,7 @@ type Filter struct{}
 // Returns:
 //   - []model.RepositoryMetainfo: A slice of filtered repository metadata.
 //   - error: An error if the filtering process fails.
-func (f Filter) FilterMetainfo(ctx context.Context, config config.ProviderConfig, metainfos []model.RepositoryMetainfo) ([]model.RepositoryMetainfo, error) {
+func (f Filter) FilterMetainfo(ctx context.Context, config config.ProviderConfig, metainfos []model.ProjectInfo) ([]model.ProjectInfo, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering FilterMetainfo: starting")
 
@@ -49,7 +49,7 @@ func (f Filter) FilterMetainfo(ctx context.Context, config config.ProviderConfig
 // Returns:
 //   - []model.RepositoryMetainfo: The filtered repository metadata.
 //   - error: An error if any part of the filtering process fails.
-func filter(ctx context.Context, config config.ProviderConfig, metainfos []model.RepositoryMetainfo, filterExcludedIncludedFunc functiondefinition.FilterIncludedExcludedFunc) ([]model.RepositoryMetainfo, error) {
+func filter(ctx context.Context, config config.ProviderConfig, metainfos []model.ProjectInfo, filterExcludedIncludedFunc functiondefinition.FilterIncludedExcludedFunc) ([]model.ProjectInfo, error) {
 	filteredByRules, err := filterExcludedIncludedFunc(ctx, config, metainfos)
 	if err != nil {
 		return nil, fmt.Errorf("failed to filter repositories by inclusion/exclusion rules: %w", err)
@@ -73,11 +73,11 @@ func filter(ctx context.Context, config config.ProviderConfig, metainfos []model
 // Returns:
 //   - []model.RepositoryMetainfo: The filtered repository metadata.
 //   - error: An error if the filtering process fails for any repository.
-func filterByDate(ctx context.Context, metainfos []model.RepositoryMetainfo) ([]model.RepositoryMetainfo, error) {
+func filterByDate(ctx context.Context, metainfos []model.ProjectInfo) ([]model.ProjectInfo, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering filterByDate: starting")
 
-	var filtered []model.RepositoryMetainfo
+	var filtered []model.ProjectInfo
 
 	for _, metainfo := range metainfos {
 		include, err := includeByActivityTime(ctx, metainfo)
@@ -103,7 +103,7 @@ func filterByDate(ctx context.Context, metainfos []model.RepositoryMetainfo) ([]
 // Returns:
 //   - bool: true if the repository's last activity is within the specified interval, false otherwise.
 //   - error: An error if the evaluation process fails or if the last activity time is nil.
-func includeByActivityTime(ctx context.Context, metainfo model.RepositoryMetainfo) (bool, error) {
+func includeByActivityTime(ctx context.Context, metainfo model.ProjectInfo) (bool, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering includeByActivityTime: checking")
 

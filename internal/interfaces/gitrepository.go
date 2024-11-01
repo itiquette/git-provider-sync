@@ -26,13 +26,13 @@ type GitRepository interface {
 	//   - *git.Repository: A pointer to the underlying go-git Repository.
 	GoGitRepository() *git.Repository
 
-	// Metainfo returns metadata about the repository.
+	// ProjectInfo returns metadata about the repository.
 	// This method provides access to additional information about the repository
 	// that may not be directly available from the go-git Repository object.
 	//
 	// Returns:
 	//   - model.RepositoryMetainfo: A struct containing metadata about the repository.
-	Metainfo() model.RepositoryMetainfo
+	ProjectInfo() model.ProjectInfo
 }
 
 // Note: The GitRemote interface is not defined in this snippet.

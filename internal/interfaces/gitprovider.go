@@ -33,7 +33,7 @@ type GitProvider interface {
 
 	DefaultBranch(ctx context.Context, owner string, projectname string, branch string) error
 
-	// Metainfos retrieves metadata for repositories from the Git provider.
+	// ProjectInfos retrieves metadata for repositories from the Git provider.
 	//
 	// Parameters:
 	//   - ctx: A context.Context for handling cancellation, timeouts, and request-scoped values.
@@ -49,7 +49,7 @@ type GitProvider interface {
 	//   - Fetching repository information, potentially paginating through results.
 	//   - Applying any specified filtering.
 	//   - Translating provider-specific data into the RepositoryMetainfo model.
-	Metainfos(ctx context.Context, config config.ProviderConfig, filtering bool) ([]model.RepositoryMetainfo, error)
+	ProjectInfos(ctx context.Context, config config.ProviderConfig, filtering bool) ([]model.ProjectInfo, error)
 
 	// Name returns the name of the Git provider.
 	//

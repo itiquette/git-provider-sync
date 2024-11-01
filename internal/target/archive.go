@@ -46,7 +46,7 @@ func (a *Archive) Push(ctx context.Context, repo interfaces.GitRepository, opt m
 		return fmt.Errorf("failed to initialize target repository: %w", err)
 	}
 
-	return createArchive(ctx, sourceDir, opt.Target, repo.Metainfo().Name(ctx))
+	return createArchive(ctx, sourceDir, opt.Target, repo.ProjectInfo().Name(ctx))
 }
 
 func (a *Archive) initializeTargetRepository(ctx context.Context, repo interfaces.GitRepository, opt model.PushOption) (string, error) {
@@ -68,7 +68,7 @@ func (a *Archive) initializeTargetRepository(ctx context.Context, repo interface
 		return "", err
 	}
 
-	if err := setDefaultBranch(sourceDir, repo.Metainfo().DefaultBranch); err != nil {
+	if err := setDefaultBranch(sourceDir, repo.ProjectInfo().DefaultBranch); err != nil {
 		return "", err
 	}
 

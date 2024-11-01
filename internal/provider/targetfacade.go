@@ -64,7 +64,7 @@ func Push(ctx context.Context, targetProviderConfig config.ProviderConfig, provi
 		owner = targetProviderConfig.User
 	}
 
-	if err := provider.DefaultBranch(ctx, owner, repository.Metainfo().Name(ctx), repository.Metainfo().DefaultBranch); err != nil {
+	if err := provider.DefaultBranch(ctx, owner, repository.ProjectInfo().Name(ctx), repository.ProjectInfo().DefaultBranch); err != nil {
 		return fmt.Errorf("%w: %w", ErrDefaultBranch, err)
 	}
 
@@ -76,7 +76,7 @@ func Push(ctx context.Context, targetProviderConfig config.ProviderConfig, provi
 func getPushOption(ctx context.Context, providerConfig config.ProviderConfig, repository interfaces.GitRepository, forcePush bool) model.PushOption {
 	switch strings.ToLower(providerConfig.ProviderType) {
 	case config.ARCHIVE:
-		name := repository.Metainfo().Name(ctx)
+		name := repository.ProjectInfo().Name(ctx)
 
 		return model.NewPushOption(target.ArchiveTargetPath(name, providerConfig.ArchiveTargetDir()), false, false, config.HTTPClientOption{})
 	case config.DIRECTORY:
@@ -99,14 +99,14 @@ func create(ctx context.Context, providerConfig config.ProviderConfig, provider 
 	}
 
 	description := buildDescription(gpsUpstreamRemote, repository, providerConfig.Repositories.Description)
-	name := repository.Metainfo().Name(ctx)
+	name := repository.ProjectInfo().Name(ctx)
 
-	visibility, err := mapVisibility(sourceProviderType, providerConfig.ProviderType, repository.Metainfo().Visibility)
+	visibility, err := mapVisibility(sourceProviderType, providerConfig.ProviderType, repository.ProjectInfo().Visibility)
 	if err != nil {
 		return fmt.Errorf("failed to map visibility: %w", err)
 	}
 
-	option := model.NewCreateOption(name, visibility, description, repository.Metainfo().DefaultBranch)
+	option := model.NewCreateOption(name, visibility, description, repository.ProjectInfo().DefaultBranch)
 
 	if err := provider.Create(ctx, providerConfig, option); err != nil {
 		return fmt.Errorf("%w: %s. err: %w", ErrCreateRepository, name, err)
@@ -124,8 +124,8 @@ func buildDescription(gpsUpstreamRemote model.Remote, repository interfaces.GitR
 		description = "Git Provider Sync cloned this from: " + gpsUpstreamRemote.URL + ": "
 	}
 
-	if repository.Metainfo().Description != "" {
-		description += repository.Metainfo().Description
+	if repository.ProjectInfo().Description != "" {
+		description += repository.ProjectInfo().Description
 	}
 
 	return stringconvert.RemoveLinebreaks(description)
@@ -143,7 +143,7 @@ func exists(ctx context.Context, config config.ProviderConfig, provider interfac
 	}
 
 	cliOption := model.CLIOptions(ctx)
-	repositoryName := repository.Metainfo().Name(ctx)
+	repositoryName := repository.ProjectInfo().Name(ctx)
 
 	repoExists := repositoryExists(ctx, config, provider, repositoryName)
 
@@ -172,7 +172,7 @@ func isArchiveOrDirectory(provider string) bool {
 // repositoryExists checks if a repository with the given name exists on the provider.
 func repositoryExists(ctx context.Context, config config.ProviderConfig, provider interfaces.GitProvider, repositoryName string) bool {
 	logger := log.Logger(ctx)
-	metainfos, err := provider.Metainfos(ctx, config, false)
+	metainfos, err := provider.ProjectInfos(ctx, config, false)
 
 	if err != nil {
 		logger.Error().Msgf("failed to get repository meta information. Aborting run. err: %s", err.Error())
@@ -221,7 +221,7 @@ func toGitURL(ctx context.Context, config config.ProviderConfig, repository inte
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering toGitURL:")
 
-	repositoryName := repository.Metainfo().Name(ctx)
+	repositoryName := repository.ProjectInfo().Name(ctx)
 
 	trimmedProviderConfigURL := strings.TrimRight(config.Domain, "/")
 	projectPath := getProjectPath(config, repositoryName)

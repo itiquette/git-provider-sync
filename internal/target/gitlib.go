@@ -144,7 +144,7 @@ func (g GitLib) Push(ctx context.Context, repository interfaces.GitRepository, o
 	logger.Info().Str("target", option.Target).Msg("Pushing to:")
 
 	if err := repository.GoGitRepository().Push(&pushOptions); err != nil {
-		name := repository.Metainfo().Name(ctx)
+		name := repository.ProjectInfo().Name(ctx)
 
 		return g.handlePushError(ctx, err, name)
 	}

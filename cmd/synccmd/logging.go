@@ -97,7 +97,7 @@ func logFailures(logger *zerolog.Logger, meta *model.SyncRunMetainfo) {
 	}
 }
 
-func logDryRun(ctx context.Context, cfg gpsconfig.ProviderConfig, metainfo []model.RepositoryMetainfo) {
+func logDryRun(ctx context.Context, cfg gpsconfig.ProviderConfig, metainfo []model.ProjectInfo) {
 	logger := log.Logger(ctx)
 
 	logger.Info().
