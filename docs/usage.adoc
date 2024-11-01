@@ -2,9 +2,9 @@
 //
 // SPDX-License-Identifier: CC0-1.0
 
-= Git Provider Sync: Usage Guide
+= Git Provider Sync: Technical Documentation
 :toc: 
-:toc-title: 
+:toc-title: Table of Contents
 :revdate: {docdatetime}
 :doctype: article
 :imagesdir: assets
@@ -18,131 +18,141 @@ ifdef::env-github[]
 :warning-caption: :warning:
 endif::[]
 
+== 1. Introduction
 
-== Overview
+Git Provider Sync is a tool that enables repository synchronization across different Git Providers and storage. This document provides guidance on its configuration and usage.
 
-Git Provider Sync allows you to:
+=== 1.1 Key Features
 
-1. Configure one or more source Git Providers.
-2. Set up one or more targets for each source provider, which can be:
-   * Another Git Provider user or organization
-   * An archive
-   * A directory
+Git Provider Sync enables:
 
-== Quick Start
+* Multi-source Git provider configuration
+* Multiple target types per source:
+  - Git provider (user/organization)
+  - Archive storage
+  - Directory storage
 
-1. Install Git Provider Sync
-   * Use a pre-offered package OR build it yourself
-   * See the link:../INSTALL.adoc[installation guide] for installation options
+== 2. Getting Started
 
-2. Create a basic configuration file
-   * Set up at least one source provider and target provider
-   * See link:../examples/gitprovidersync.exampleconf.yaml[example configuration] for all possible settings.
-   * See <<_cli_usage_examples>> and <<_configuration_examples>> for a few examples
+=== 2.1 Installation
 
-3. Verify your configuration
-+
+1. Choose an installation method:
+   * Pre-packaged distributions
+   * Manual build
+   * Refer to link:../INSTALL.adoc[installation guide] for detailed instructions
+
+=== 2.2 Basic Setup
+
+1. Create configuration file
+   * Reference link:../examples/gitprovidersync.exampleconf.yaml[example of full configuration options]
+   * See <<_3_2_cli_usage_examples>> and <<_4_4_configuration_examples>> for a few practical examples
+   * Configure minimum one source and target provider
+
+2. Validate configuration:
 [source,console]
 ----
 gitprovidersync print
 ----
-
-4. Start syncing
 +
+3. Initialize synchronization:
+
 [source,console]
 ----
 gitprovidersync sync
 ----
 
-== Command Line Options
+== 3. Command Line Interface
 
-* List available options:
-+
+=== 3.1 Basic Usage
+
+* Display available options:
 [source,console]
 ----
 gitprovidersync --help
 ----
 
-* Read the man page (if installed as package - deb, rpm, apk):
-+
+* Access manual (package installations only):
 [source,console]
 ----
 man gitprovidersync
 ----
 
-NOTE: The `--from` option should be in https://pkg.go.dev/time#ParseDuration[Go duration string form].
+[NOTE]
+====
+Time duration parameters in CLI (i.e --from) should follow https://pkg.go.dev/time#ParseDuration[Go duration string format]
+====
 
-== CLI Usage Examples
+=== 3.2 CLI Usage Examples
 
-=== Print Current Configuration
+==== Configuration Display
 
-To print the current configuration with a non-default configuration file location:
-
-[source,console]
-----
-gitprovidersync print --config-file /path/to/a/conffilem.yaml
-----
-
-=== Sync with Advanced Options
-
-To sync with options to force push, fetch recent updates, clean up names, and use a custom config file:
+_Print the current configuration, using a non-default configuration file location_
 
 [source,console]
 ----
-gitprovidersync --force-push --from='-3h' --cleanup-name --config-file /usr/bin/gitprovidersync.yaml
+gitprovidersync print --config-file /custom/path/config.yaml
 ----
 
-== Configuration
+==== Advanced Synchronization
 
-=== File Locations
+_Sync, using force push, fetch recent update (3 hours to now)_
+[source,console]
+----
+gitprovidersync --force-push --from='-3h' --cleanup-name --config-file /path/config.yaml
+----
 
-1. Default filename: `gitprovidersync.yaml`
-2. Default search locations:
-   * Binary run directory
-   * `$XDG_CONFIG_HOME/gitprovidersync` directory
-3. Custom location: Use `--config-file` option
+== 4. Configuration Specific
 
-=== Configuration Methods
+=== 4.1 Configuration Sources
 
-TIP: For configuration examples, see link:../examples/gitprovidersync.exampleconf.yaml[the example configuration file].
-
-Configuration can be provided through:
+Priority order (highest to lowest):
 
 1. Environment variables
 2. .env file
 3. Configuration file
 4. XDG_CONFIG_HOME
 
-Priority order: 1 > 2 > 3 > 4
+=== 4.2 File Location Hierarchy
 
-=== Configuration Notes
+1. Default filename: `gitprovidersync.yaml`
+2. Search locations:
+   * Binary execution directory
+   * `$XDG_CONFIG_HOME/gitprovidersync`
+   * Custom location (via `--config-file`)
 
-==== Environment variables:
-  ** Must start with `GPS_`
-  ** Use uppercase with underscore separation
-  ** Example: `GPS_CONFIGURATIONS_SOURCE_PROVIDER=envconfprovider`
+=== 4.3 Environment Variables
 
-==== .env file:
-  ** Use uppercase with underscore separation
-  ** Example: `CONFIGURATIONS_SOURCE_PROVIDER=dotenvprovider`
+* Prefix: `GPS_`
+* Format: Uppercase with underscores
+* Example: `GPS_CONFIGURATIONS_SOURCE_PROVIDER=envconfprovider`
 
-==== Advanced Configuration
+=== 4.4 Configuration Examples
 
-===== Using a host Git Binary instead of the underlying Go Git Library
-
-In certain cases you might like to use the underlying host Git Binary instead of the built in Go Git-library.
-For example, If you would like to customize the underlying SSH-client with GIT_SSH_COMMAND. 
-Go Git does not currently support SSH-client customisation.
-
-NOTE: Only use this if you really have to (for example, you might want to use the SSHCommand option).
-
-=== Configuration Examples
-
-.A sync from github to gitlab, archive dir, and a dir. Because we can. NOTE DONT PUT SECRETS IN CONFIG FILES OTHER THAN FOR TESTING, use envs or alike
+.Simple: A sync from github to gitlab, in the simplest way. All public repos.
 [source,yaml]
 ----
 configurations: 
-  itiquettesource: 
+  mysimplesourceonfig: 
+    source: 
+      providertype: github
+      domain: github.com
+      group: itiquette 
+
+    targets:
+      agitlabtarget:
+        providertype: gitlab
+        domain: gitlab.com 
+        user: <a-gitlab-user>
+        httpclient:
+          token: <a-gitlab-token-with-create-and-write-access>
+
+----
+
+.Extended: A sync from github to gitlab, archive dir, and a dir. Because we can. NOTE DONT PUT SECRETS IN CONFIG FILES OTHER THAN FOR TESTING, use envs or alike
+[source,yaml]
+----
+configurations: 
+  myextendedsourceconfig: 
     source: 
       providertype: github
       domain: github.com
@@ -172,11 +182,11 @@ configurations:
 
 ----
 
-.A sync from gitlab to github. special case, uses gitbinary, sshagent and custom ssh-client to push ssh through githubs https endpoint. It also uses corkscrew on the host.
+.Git-Binary: A sync from gitlab to github. special case, uses gitbinary, sshagent and custom ssh-client to push ssh through githubs https endpoint. It also uses corkscrew on the host.
 [source,yaml]
 ----
 configurations: 
-  itiquettesource: 
+  myexamplesourceconfig: 
     source: 
       providertype: gitlab
       domain: gitlab.com
@@ -194,60 +204,134 @@ configurations:
         httpclient:
           token: <a-gitlab-token-with-create-and-write-access>
         sshclient:
-          sshcommand: ssh -vvv -o ProxyCommand="corkscrew <proxyserver> <proxyserverport> %h %p" -o ConnectTimeout=10 -p 443  #This SSH command uses corkscrew to tunnel SSH through an HTTP proxy. It's set to maximum verbosity (-vvv), uses a 10-second connection timeout, and connects to the SSH server on port 443. The ProxyCommand option specifies the proxy server and port, with %h and %p as placeholders for the SSH server host and port
+          sshcommand: ssh -vvv -o ProxyCommand="corkscrew <proxyserver> <proxyserverport> %h %p" -o ConnectTimeout=10 -p 443  
           rewritesshurlfrom: git@github.com:
           rewritesshurlto: ssh://git@ssh.github.com:443/
         git:
           type: sshagent
           usegitbinary: true
+
+          #This SSH command uses corkscrew to tunnel SSH through an HTTP proxy. It's set to maximum verbosity (-vvv), uses a 10-second connection timeout, and connects to the SSH server on port 443. The ProxyCommand option specifies the proxy server and port, with %h and %p as placeholders for the SSH server host and port
 ----
 
+=== 4.5 Advanced Configuration
 
-== Provider-Specific Notes
+==== Using a host Git Binary instead of the underlying Go Git Library
 
-=== Visibility Mappings
+In certain cases you might like to use the underlying host Git Binary instead of the built in Go Git-library.
+For example, If you would like to customize the underlying SSH-client with GIT_SSH_COMMAND. 
+Go Git does not currently support SSH-client customisation.
 
-Different providers have slightly different visibility options for repositories.
-Listed is how they will be synced.
+NOTE: Only use this if you really have to (for example, you might want to use the SSHCommand option).
 
-.GitLab Provider Visibility Mappings
-[options="header"]
+== 5. Provider-Specific
+
+=== 5.1 Authentication Methods
+
+* Default: Use Token Access
+* Alternative for non-API access: SSH with sshagent
+
+==== GitLab API
+
+GitLab API has the following Authentication methods:
+
+[cols="2,3,2,2,2", options="header", align="center"]
 |===
-| GitLab    | GitHub   | Gitea     
-| Public    | Public   | Public    
-| Internal  | Private  | Private   
-| Private   | Private  | Private   
+|Auth Type |Use Case |Security Level |Expiration |Scope Control
+
+|BasicAuth
+|Development/Testing
+|Low
+|N/A
+|Full Access
+
+|JobToken https://docs.gitlab.com/ee/ci/jobs/ci_job_token.html[Docs]
+|CI/CD Pipelines
+|High
+|Job Duration
+|Job-specific
+
+|OAuthToken
+|Third-party Apps
+|High
+|Configurable
+|Granular
+
+|PrivateToken https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html[Personal Token] https://docs.gitlab.com/ee/user/group/settings/group_access_tokens.html#group-access-tokens[Group Token]
+|Automation/Scripts
+|High
+|Never
+|Granular
 |===
 
-.GitHub Provider Visibility Mappings
-[options="header"]
+Git Provider Sync currently supports Private Token/Group Token.
+
+==== GitHub API
+
+[cols="2,3,2,2,2", options="header", align="center"]
 |===
-| GitHub    | GitLab   | Gitea     
-| Public    | Public   | Public    
-| Private   | Private  | Private   
+|Auth Type |Use Case |Security Level |Expiration |Scope Control
+
+|Personal Access Token (Classic) https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token#creating-a-personal-access-token-classic[Docs]
+|General Automation/Scripts
+|High
+|Never (unless revoked)
+|Repository/Org level
+
+|Fine-grained PAT https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token#creating-a-fine-grained-personal-access-token[Docs]
+|Specific repository access
+|Very High
+|Required (max 1 year)
+|Repository specific
+
+|GITHUB_TOKEN https://docs.github.com/en/actions/security-guides/automatic-token-authentication[Docs]
+|GitHub Actions
+|High
+|Job Duration
+|Repository scoped
+
+
+|OAuth App Token
+|Third-party Apps
+|High
+|Configurable with refresh
+|User-authorized scopes
 |===
 
-.Gitea Provider Visibility Mappings
-[options="header"]
+Git Provider Sync currently supports Classic/Fine Grained and GITHUB_TOKEN.
+
+==== Gitea API
+
+[cols="2,3,2,2,2", options="header", align="center"]
 |===
-| Gitea     | GitLab   | GitHub    
-| Public    | Public   | Public    
-| Private   | Private  | Private   
-| Limited   | Private  | Private   
+|Auth Type |Use Case |Security Level |Expiration |Scope Control
+|Basic Auth
+|Development/Testing
+|Low
+|N/A
+|Full Access
+|Access Token https://docs.gitea.com/development/api-usage#access-tokens[Docs]
+|General Automation/Scripts
+|High
+|Never (unless revoked)
+|Repository/Organization level
+|OAuth2 Token
+|Third-party Apps
+|High
+|Configurable
+|Granular scopes
+|Internal Token https://docs.gitea.com/administration/command-line#admin[Docs]
+|Admin operations
+|Very High
+|Never
+|Full system access
+|Action Token https://docs.gitea.com/usage/actions/overview#authentication[Docs]
+|Actions (CI/CD)
+|High
+|Job Duration
+|Repository scoped
 |===
 
-=== Authentication
-
-* Default: Basic Auth (requires token in configuration)
-* Alternative: SSH (configure `gitinfo.type` as sshagent)
-
-=== GitHub
-
-* API rate limits apply to unauthenticated requests
-* Use a token to avoid hitting limits quickly
-
-
-=== Gitea
 
 To generate an access token for a Gitea user with creation rights:
 
@@ -256,9 +340,45 @@ To generate an access token for a Gitea user with creation rights:
 curl -H "Content-Type: application/json" -d '{"name":"<tokenname>","scopes":["write:organization","write:repository","read:user","write:user"]}' -u user:password https://<giteahost>/api/v1/users/<username>/tokens
 ----
 
-== Target-Specific Notes
 
-=== Directory Target
+
+=== 5.2 Provider Rate Limits
+
+[cols="2,3,2,3", options="header", align="center"]
+|===
+|Platform |Unauthenticated |With Token |Notes
+
+|GitHub.com
+|60 requests/hour
+a|* Basic Token: 5,000/hour
+a|* 83x increase with token
+
+|GitLab.com
+|60 requests/hour
+a|* Free: 2,000/hour
+* Premium: 2,500/hour
+* Ultimate: 3,000/hour
+a|* Tier determines limit
+* CI tokens have separate limits
+
+|Gitea.com
+|10 requests/minute
+|20 requests/minute
+a|* 2x increase with token
+* Per-minute rather than per-hour
+|===
+
+[IMPORTANT]
+====
+* GitHub: Authentication method matters
+* GitLab: User tier matters
+* Gitea: Simple doubling with any authentication
+====
+
+
+== 6 Target-Specific
+
+=== 6.1 Directory Target
 
 * Contains working copy repositories from the source
 * Default: Check out all remote branches locally and keep original origin remote
@@ -273,7 +393,7 @@ localtar:
     directorytargetdir: <full/path/to/directory/where/repositories/go>
 ----
 
-=== Compressed Archive (tar.gz) Target
+=== 6.2 Compressed Archive (tar.gz) Target
 
 * Contains tar.gz files of bare repositories
 * Adds a timestamp prefix to allow multiple re-runs
@@ -288,58 +408,11 @@ localtar:
     archivetargetdir: <full/path/to/directory/where/tar/archives/go>
 ----
 
-==== Advanced: Working with Compressed Archives
-
-1. Unpack the tar.gz file:
-+
-[source,console]
-----
-tar -xvzf <path/to/tar.gz-archive> [-C /path/to/target/dir]
-----
-
-2. Clone the bare repository to get a working copy:
-+
-[source,console]
-----
-git clone <path/to/unpacked-bare-git-repository> [/path/to/clone-target/dir]
-----
-
-3. (Optional) Check out all branches:
-+
-[source,console]
-----
-for b in `git branch -r | grep -v -- '->'`; do git branch --track ${b##origin/} $b; done
-----
-
-4. (Optional) Change the "origin" of your working copy:
-   a. Show current remote origin:
-+
-[source,console]
-----
-git remote -v
-----
-
-   b. Print original remote origin:
-+
-[source,console]
-----
-(cd <path/to/unpacked-bare-git-repository>; git remote -v)
-----
-
-   c. Set new remote origin:
-+
-[source,console]
-----
-git remote set-url origin <the origin url shown above>
-----
-
-NOTE: For HTTPS remote origins, consider using SSH format instead.
-
-== CI/CD examples
+== 7. CI Deployment Examples
 
 A few examples of how you can run Git Provider Syns in various CI/CD environments.
 
-=== GitLab CI
+=== 7.1 GitLab CI
 
 .With example env. Dont ever commit and put a token in a .gitlab-ci file.
 [source,yaml]
@@ -414,7 +487,7 @@ manual_sync:
   <<: *sync_script
 ----
 
-=== GitHub Action
+=== 7.2 GitHub Action
 
 .With example env. Dont ever commit and put token in the ci file.
 [source,yaml]
@@ -544,7 +617,7 @@ jobs:
         run: gitprovidersync sync --active-from-limit ${{ env.ACTIVE_FROM_LIMIT }} --force-push
 ----
 
-=== Tekton CI
+=== 7.3 Tekton CI
 
 NOTE: Tekton doesn't have native support for scheduled triggers or manual dispatch. Use Tekton Triggers and CronJobs for similar functionality.
 
@@ -782,12 +855,46 @@ spec:
 
 ----
 
-== F.A.Q 
+== 8. Troubleshooting and FAQ
 
-* Do I need to use both https and ssh in the same configuration?
+=== 8.1 Common Questions
 
-  No. 
-  To keep it simple, just use https and tokens. However, if you need it, ssh support is there. Speaking with various Git Providers Https API's is one thing - listing projects and so on, and pure Git operations another - clone, push and so on. So if you are using ssh for the git operations, you will still need to configure https options also (for metadata)
+Q: Is dual HTTP/SSH configuration required? 
+
+A: No. HTTPS with tokens is recommended for simplicity. SSH support is available but requires additional configuration.
+
+
+[appendix]
+== Provider Visibility Mappings
+
+Different providers have slightly different visibility options for repositories.
+Listed is how they will be synced.
+
+.GitLab Provider Visibility Mappings
+[options="header"]
+|===
+| GitLab    | GitHub   | Gitea     
+| Public    | Public   | Public    
+| Internal  | Private  | Private   
+| Private   | Private  | Private   
+|===
+
+.GitHub Provider Visibility Mappings
+[options="header"]
+|===
+| GitHub    | GitLab   | Gitea     
+| Public    | Public   | Public    
+| Private   | Private  | Private   
+|===
+
+.Gitea Provider Visibility Mappings
+[options="header"]
+|===
+| Gitea     | GitLab   | GitHub    
+| Public    | Public   | Public    
+| Private   | Private  | Private   
+| Limited   | Private  | Private   
+|===
 
 [appendix]
 == Configuration properties table
@@ -1155,3 +1262,51 @@ Key Dependencies:
 ** Certificate directories must be readable
 ** Archive/Directory target paths must be writable
 ====
+
+[appendix]
+== Advanced: Restoring a Working Copy from a Compressed Archived Bare Git Repository
+
+1. Unpack the tar.gz file:
++
+[source,console]
+----
+tar -xvzf <path/to/tar.gz-archive> [-C /path/to/target/dir]
+----
+
+2. Clone the bare repository to get a working copy:
++
+[source,console]
+----
+git clone <path/to/unpacked-bare-git-repository> [/path/to/clone-target/dir]
+----
+
+3. (Optional) Check out all branches:
++
+[source,console]
+----
+for b in `git branch -r | grep -v -- '->'`; do git branch --track ${b##origin/} $b; done
+----
+
+4. (Optional) Change the "origin" of your working copy:
+   a. Show current remote origin:
++
+[source,console]
+----
+git remote -v
+----
+
+   b. Print original remote origin:
++
+[source,console]
+----
+(cd <path/to/unpacked-bare-git-repository>; git remote -v)
+----
+
+   c. Set new remote origin:
++
+[source,console]
+----
+git remote set-url origin <the origin url shown above>
+----
+
+NOTE: For HTTPS remote origins, consider using SSH format instead.
