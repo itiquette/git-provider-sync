@@ -33,7 +33,6 @@ configurations: # MANDATORY: Root configuration object containing all project co
       repositories: # OPTIONAL: Repository filtering options
         include: repo1, repo2 # OPTIONAL: Comma-separated list of repositories to include (default: all)
         exclude: repo3, repo4 # OPTIONAL: Comma-separated list of repositories to exclude
-        description: prefix # OPTIONAL: Description prefix for mirrored repositories
       syncrun: # OPTIONAL: Sync operation settings
         activefromlimit: 24h # OPTIONAL: Discard items older than duration (golang format)
 
@@ -48,6 +47,9 @@ configurations: # MANDATORY: Root configuration object containing all project co
         git: # OPTIONAL: Git-specific settings
           type: sshagent # OPTIONAL: Authentication type (https or sshagent, defaults to https)
           usegitbinary: false # OPTIONAL: Use system git binary instead of go-git library
+
+        project:
+          description: prefix # OPTIONAL: Description prefix for mirrored repositories
 
         httpclient: # OPTIONAL: HTTP client configuration
           token: token123 # OPTIONAL: Git provider API token

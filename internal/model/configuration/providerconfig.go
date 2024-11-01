@@ -19,6 +19,7 @@ type ProviderConfig struct {
 	User         string             `koanf:"user"`
 	Repositories RepositoriesOption `koanf:"repositories"`
 	Git          GitOption          `koanf:"git"`
+	Project      ProjectOption      `koanf:"project"`
 	HTTPClient   HTTPClientOption   `koanf:"httpclient"`
 	SSHClient    SSHClientOption    `koanf:"sshclient"`
 	SyncRun      SyncRunOption      `koanf:"syncrun"`

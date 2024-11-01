@@ -37,31 +37,31 @@ var (
 //   - repository: The Git repository interface
 //
 // Returns an error if any step in the process fails.
-func Push(ctx context.Context, targetProviderConfig config.ProviderConfig, provider interfaces.GitProvider, writer interfaces.TargetWriter, repository interfaces.GitRepository, sourceProviderConfig config.ProviderConfig) error {
+func Push(ctx context.Context, targetProviderCfg config.ProviderConfig, provider interfaces.GitProvider, writer interfaces.TargetWriter, repository interfaces.GitRepository, sourceProviderConfig config.ProviderConfig) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Push:")
-	targetProviderConfig.DebugLog(logger).Msg("Push:")
+	targetProviderCfg.DebugLog(logger).Msg("Push:")
 
-	if _, _, err := exists(ctx, targetProviderConfig, provider, sourceProviderConfig.ProviderType, repository); err != nil {
+	if _, _, err := exists(ctx, targetProviderCfg, provider, sourceProviderConfig.ProviderType, repository); err != nil {
 		return fmt.Errorf("failed to check if the repository exists at provider: %w", err)
 	}
 
 	cliOptions := model.CLIOptions(ctx)
 
 	forcePush := false
-	if cliOptions.ForcePush || targetProviderConfig.SyncRun.ForcePush {
+	if cliOptions.ForcePush || targetProviderCfg.SyncRun.ForcePush {
 		forcePush = true
 	}
 
-	pushOption := getPushOption(ctx, targetProviderConfig, repository, forcePush)
+	pushOption := getPushOption(ctx, targetProviderCfg, repository, forcePush)
 
-	if err := writer.Push(ctx, repository, pushOption, sourceProviderConfig, targetProviderConfig.Git); err != nil {
+	if err := writer.Push(ctx, repository, pushOption, sourceProviderConfig, targetProviderCfg.Git); err != nil {
 		return fmt.Errorf("%w: %w", ErrPushChanges, err)
 	}
 
-	owner := targetProviderConfig.Group
-	if len(targetProviderConfig.Group) == 0 {
-		owner = targetProviderConfig.User
+	owner := targetProviderCfg.Group
+	if len(targetProviderCfg.Group) == 0 {
+		owner = targetProviderCfg.User
 	}
 
 	if err := provider.DefaultBranch(ctx, owner, repository.ProjectInfo().Name(ctx), repository.ProjectInfo().DefaultBranch); err != nil {
@@ -88,27 +88,27 @@ func getPushOption(ctx context.Context, providerConfig config.ProviderConfig, re
 
 // create attempts to create a new repository on the Git provider.
 // It builds the repository description and uses the provider's Create method.
-func create(ctx context.Context, providerConfig config.ProviderConfig, provider interfaces.GitProvider, sourceProviderType string, repository interfaces.GitRepository) error {
+func create(ctx context.Context, targetProviderCfg config.ProviderConfig, provider interfaces.GitProvider, sourceProviderType string, repository interfaces.GitRepository) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering create:")
-	providerConfig.DebugLog(logger).Msg("create:")
+	targetProviderCfg.DebugLog(logger).Msg("create:")
 
 	gpsUpstreamRemote, err := repository.Remote(config.GPSUPSTREAM)
 	if err != nil || gpsUpstreamRemote.URL == "" {
 		return fmt.Errorf("failed to get gpsupstream remote: %w", err)
 	}
 
-	description := buildDescription(gpsUpstreamRemote, repository, providerConfig.Repositories.Description)
+	description := buildDescription(gpsUpstreamRemote, repository, targetProviderCfg.Project.Description)
 	name := repository.ProjectInfo().Name(ctx)
 
-	visibility, err := mapVisibility(sourceProviderType, providerConfig.ProviderType, repository.ProjectInfo().Visibility)
+	visibility, err := mapVisibility(sourceProviderType, targetProviderCfg.ProviderType, repository.ProjectInfo().Visibility)
 	if err != nil {
 		return fmt.Errorf("failed to map visibility: %w", err)
 	}
 
 	option := model.NewCreateOption(name, visibility, description, repository.ProjectInfo().DefaultBranch)
 
-	if err := provider.Create(ctx, providerConfig, option); err != nil {
+	if err := provider.Create(ctx, targetProviderCfg, option); err != nil {
 		return fmt.Errorf("%w: %s. err: %w", ErrCreateRepository, name, err)
 	}
 
@@ -116,10 +116,10 @@ func create(ctx context.Context, providerConfig config.ProviderConfig, provider 
 }
 
 // buildDescription creates a description for the repository, combining the upstream URL and existing description.
-func buildDescription(gpsUpstreamRemote model.Remote, repository interfaces.GitRepository, userDescription *string) string {
+func buildDescription(gpsUpstreamRemote model.Remote, repository interfaces.GitRepository, userDescription string) string {
 	var description string
-	if userDescription != nil {
-		description = *userDescription
+	if userDescription != "" {
+		description = userDescription
 	} else {
 		description = "Git Provider Sync cloned this from: " + gpsUpstreamRemote.URL + ": "
 	}
@@ -133,24 +133,24 @@ func buildDescription(gpsUpstreamRemote model.Remote, repository interfaces.GitR
 
 // exists checks if a repository already exists on the Git provider.
 // If it doesn't exist, it attempts to create it.
-func exists(ctx context.Context, config config.ProviderConfig, provider interfaces.GitProvider, sourceProviderType string, repository interfaces.GitRepository) (bool, context.Context, error) {
+func exists(ctx context.Context, targetProviderCfg config.ProviderConfig, provider interfaces.GitProvider, sourceProviderType string, repository interfaces.GitRepository) (bool, context.Context, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering exists:")
-	config.DebugLog(logger).Msg("exists:")
+	targetProviderCfg.DebugLog(logger).Msg("exists:")
 
-	if isArchiveOrDirectory(config.ProviderType) {
+	if isArchiveOrDirectory(targetProviderCfg.ProviderType) {
 		return false, ctx, nil
 	}
 
 	cliOption := model.CLIOptions(ctx)
 	repositoryName := repository.ProjectInfo().Name(ctx)
 
-	repoExists := repositoryExists(ctx, config, provider, repositoryName)
+	repoExists := repositoryExists(ctx, targetProviderCfg, provider, repositoryName)
 
 	if !repoExists {
 		logger.Debug().Str("name", repositoryName).Msg("Repository - Did not exist")
 
-		if err := create(ctx, config, provider, sourceProviderType, repository); err != nil {
+		if err := create(ctx, targetProviderCfg, provider, sourceProviderType, repository); err != nil {
 			return false, ctx, err
 		}
 
@@ -159,7 +159,7 @@ func exists(ctx context.Context, config config.ProviderConfig, provider interfac
 		ctx = model.WithCLIOption(ctx, cliOption)
 	}
 
-	logger.Debug().Str("domain", config.Domain).Str("name", repositoryName).Msg("Repository - Exists:")
+	logger.Debug().Str("domain", targetProviderCfg.Domain).Str("name", repositoryName).Msg("Repository - Exists:")
 
 	return true, ctx, nil
 }

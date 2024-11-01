@@ -10,9 +10,8 @@ import (
 )
 
 type RepositoriesOption struct {
-	Exclude     string  `koanf:"exclude"`
-	Include     string  `koanf:"include"`
-	Description *string `koanf:"description"`
+	Exclude string `koanf:"exclude"`
+	Include string `koanf:"include"`
 }
 
 func (r RepositoriesOption) String() string {

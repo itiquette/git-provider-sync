@@ -165,7 +165,7 @@ func TestBuildDescription(t *testing.T) {
 
 	for name, tabletest := range tests {
 		t.Run(name, func(t *testing.T) {
-			result := buildDescription(tabletest.remote, tabletest.repository, nil)
+			result := buildDescription(tabletest.remote, tabletest.repository, "")
 			require.Equal(t, tabletest.expected, result)
 		})
 	}

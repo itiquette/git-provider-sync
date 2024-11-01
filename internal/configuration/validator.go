@@ -143,6 +143,10 @@ func validateSourceProvider(provider config.ProviderConfig) error {
 		}
 	}
 
+	if provider.Project.Description != "" {
+		return errors.New("source provider does not support project.description, only target does")
+	}
+
 	if provider.SyncRun.CleanupInvalidName || provider.SyncRun.ForcePush || provider.SyncRun.IgnoreInvalidName {
 		return errors.New("source provider does not support syncrun.cleanupinvalidname, forcepush, ignoreninvalid")
 	}
@@ -200,6 +204,12 @@ func validateTargetProvider(providerConfig config.ProviderConfig) error {
 
 		if providerConfig.SyncRun.ActiveFromLimit != "" {
 			return errors.New("target provider: syncrun active from limit only makes sense from source provider conf")
+		}
+
+		if providerConfig.Project.Description != "" {
+			if err := validateRepoDescription(providerConfig.Project.Description); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -311,12 +321,6 @@ func validateRepositoryLists(config config.ProviderConfig) error {
 
 	if len(config.Repositories.Include) > 0 && len(config.Repositories.IncludedRepositories()) < 1 {
 		return ErrIncludeIsConfiguredButEmpty
-	}
-
-	if config.Repositories.Description != nil {
-		if err := validateRepoDescription(*config.Repositories.Description); err != nil {
-			return err
-		}
 	}
 
 	return nil
