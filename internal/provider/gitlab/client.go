@@ -101,33 +101,61 @@ func (c Client) Metainfos(ctx context.Context, cfg config.ProviderConfig, filter
 }
 
 func (c Client) getRepositoryMetaInfos(ctx context.Context, cfg config.ProviderConfig) ([]model.RepositoryMetainfo, error) {
-	var (
-		repositories []*gitlab.Project
-		err          error
-	)
+	logger := log.Logger(ctx)
+	logger.Trace().Msg("Entering GitLab:Metainfos:")
+
+	var allRepositories []*gitlab.Project
 
 	if cfg.IsGroup() {
-		repositories, _, err = c.rawClient.Groups.ListGroupProjects(cfg.Group, &gitlab.ListGroupProjectsOptions{
+		opt := &gitlab.ListGroupProjectsOptions{
 			OrderBy:     gitlab.Ptr("name"),
 			Sort:        gitlab.Ptr("asc"),
-			ListOptions: gitlab.ListOptions{PerPage: 100, Page: 1},
-		})
+			ListOptions: gitlab.ListOptions{PerPage: 100}, //TODO: add archived support, consider projectinfo struct
+		}
+
+		for {
+			repositories, resp, err := c.rawClient.Groups.ListGroupProjects(cfg.Group, opt)
+			if err != nil {
+				return nil, fmt.Errorf("fetch group repositories page %d: %w", opt.Page, err)
+			}
+
+			allRepositories = append(allRepositories, repositories...)
+
+			if resp.CurrentPage >= resp.TotalPages {
+				break
+			}
+
+			opt.Page = resp.NextPage
+		}
 	} else {
-		repositories, _, err = c.rawClient.Projects.ListUserProjects(cfg.User, &gitlab.ListProjectsOptions{
+		opt := &gitlab.ListProjectsOptions{
 			Owned:       gitlab.Ptr(true),
 			OrderBy:     gitlab.Ptr("name"),
 			Sort:        gitlab.Ptr("asc"),
-			ListOptions: gitlab.ListOptions{PerPage: 100, Page: 1},
-		})
+			ListOptions: gitlab.ListOptions{PerPage: 100},
+		}
+
+		for {
+			repositories, resp, err := c.rawClient.Projects.ListUserProjects(cfg.User, opt)
+			if err != nil {
+				return nil, fmt.Errorf("fetch user repositories page %d: %w", opt.Page, err)
+			}
+
+			allRepositories = append(allRepositories, repositories...)
+
+			if resp.CurrentPage >= resp.TotalPages {
+				break
+			}
+
+			opt.Page = resp.NextPage
+		}
 	}
 
-	if err != nil {
-		return nil, fmt.Errorf("fetch repositories: %w", err)
-	}
+	logger.Debug().Int("total_repositories", len(allRepositories)).Msg("Found repositories")
 
-	metainfos := make([]model.RepositoryMetainfo, 0, len(repositories))
+	metainfos := make([]model.RepositoryMetainfo, 0, len(allRepositories))
 
-	for _, repo := range repositories {
+	for _, repo := range allRepositories {
 		if !cfg.Git.IncludeForks && repo.ForkedFromProject != nil {
 			continue
 		}

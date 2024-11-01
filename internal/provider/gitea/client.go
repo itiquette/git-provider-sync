@@ -81,6 +81,9 @@ func (c Client) Name() string {
 //
 // Returns a slice of RepositoryMetainfo and an error if the operation fails.
 func (c Client) Metainfos(ctx context.Context, config config.ProviderConfig, filtering bool) ([]model.RepositoryMetainfo, error) {
+	logger := log.Logger(ctx)
+	logger.Trace().Msg("Entering Gitea:Metainfos:")
+
 	var (
 		repositories []*gitea.Repository
 		err          error
@@ -108,6 +111,8 @@ func (c Client) Metainfos(ctx context.Context, config config.ProviderConfig, fil
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch repositories: %w", err)
 	}
+
+	logger.Debug().Int("total_repositories", len(repositories)).Msg("Found repositories")
 
 	var metainfos []model.RepositoryMetainfo //nolint:prealloc
 

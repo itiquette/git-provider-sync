@@ -82,16 +82,12 @@ func (ghc Client) Name() string {
 }
 
 // Metainfos retrieves metadata for repositories.
-// It can list repositories for both users and organizations, and optionally apply filtering.
+// It can list repositories for Here's the updated version of the function with pagination support for go-github:.
 func (ghc Client) Metainfos(ctx context.Context, config config.ProviderConfig, filtering bool) ([]model.RepositoryMetainfo, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitHub:Metainfos:")
 
-	var metainfos []model.RepositoryMetainfo
-
-	var repos []*github.Repository
-
-	var err error
+	var allRepos []*github.Repository
 
 	listType := "sources"
 	if config.Git.IncludeForks {
@@ -99,26 +95,53 @@ func (ghc Client) Metainfos(ctx context.Context, config config.ProviderConfig, f
 	}
 
 	if config.IsGroup() {
-		opt := &github.RepositoryListByOrgOptions{Type: listType, Sort: "full_name", ListOptions: github.ListOptions{PerPage: 300}}
+		opt := &github.RepositoryListByOrgOptions{
+			Type:        listType,
+			Sort:        "full_name",
+			ListOptions: github.ListOptions{PerPage: 100}, // GitHub's max is 100
+		}
 
-		repos, _, err = ghc.rawClient.Repositories.ListByOrg(ctx, config.Group, opt)
-		if err != nil {
-			return nil, fmt.Errorf("failed to fetch org repositories: %w", err)
+		for {
+			repos, resp, err := ghc.rawClient.Repositories.ListByOrg(ctx, config.Group, opt)
+			if err != nil {
+				return nil, fmt.Errorf("failed to fetch org repositories page %d: %w", opt.Page, err)
+			}
+
+			allRepos = append(allRepos, repos...)
+
+			if resp.NextPage == 0 {
+				break
+			}
+
+			opt.Page = resp.NextPage
 		}
 	} else {
 		opt := &github.RepositoryListByAuthenticatedUserOptions{
 			Visibility:  "all",
 			Affiliation: "owner",
 			Sort:        "full_name",
-			ListOptions: github.ListOptions{PerPage: 300}}
+			ListOptions: github.ListOptions{PerPage: 100}, // GitHub's max is 100
+		}
 
-		repos, _, err = ghc.rawClient.Repositories.ListByAuthenticatedUser(ctx, opt)
-		if err != nil {
-			return nil, fmt.Errorf("failed to fetch user repositories: %w", err)
+		for {
+			repos, resp, err := ghc.rawClient.Repositories.ListByAuthenticatedUser(ctx, opt)
+			if err != nil {
+				return nil, fmt.Errorf("failed to fetch user repositories page %d: %w", opt.Page, err)
+			}
+
+			allRepos = append(allRepos, repos...)
+
+			if resp.NextPage == 0 {
+				break
+			}
+
+			opt.Page = resp.NextPage
 		}
 	}
 
-	metainfos = ghc.processRepositories(ctx, config, repos)
+	logger.Debug().Int("total_repositories", len(allRepos)).Msg("Found repositories")
+
+	metainfos := ghc.processRepositories(ctx, config, allRepos)
 
 	if filtering {
 		return ghc.filter.FilterMetainfo(ctx, config, metainfos)
