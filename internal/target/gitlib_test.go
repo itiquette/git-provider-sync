@@ -208,7 +208,7 @@ func TestFetch(t *testing.T) {
 		modelRepo, err := model.NewRepository(repo)
 		require.NoError(t, err)
 
-		err = NewGitLib().fetch(ctx, "", modelRepo.GoGitRepository())
+		err = NewGitLib().fetch(ctx, "", modelRepo.GoGitRepository(), nil)
 		require.NoError(t, err)
 
 		verifyFile(t, repoPath, "test.txt", "test contentfetch")
@@ -226,7 +226,7 @@ func TestFetch(t *testing.T) {
 		modelRepo, err := model.NewRepository(repo)
 		require.NoError(t, err)
 
-		err = NewGitLib().fetch(ctx, "", modelRepo.GoGitRepository())
+		err = NewGitLib().fetch(ctx, "", modelRepo.GoGitRepository(), nil)
 		assert.NoError(t, err) // Should not return an error when already up-to-date
 	})
 
@@ -245,7 +245,7 @@ func TestFetch(t *testing.T) {
 		modelRepo, err := model.NewRepository(repo)
 		require.NoError(t, err)
 
-		err = NewGitLib().fetch(ctx, "", modelRepo.GoGitRepository())
+		err = NewGitLib().fetch(ctx, "", modelRepo.GoGitRepository(), nil)
 		assert.Error(t, err)
 	})
 }

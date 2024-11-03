@@ -123,7 +123,7 @@ func (g GitLib) Pull(ctx context.Context, pullDirPath string, option model.PullO
 		return fmt.Errorf("%w: %w", ErrRepoPull, err)
 	}
 
-	return g.fetch(ctx, "", repo)
+	return g.fetch(ctx, "", repo, auth)
 }
 
 // Push pushes an existing repository to a target provider.
@@ -179,7 +179,7 @@ func (g GitLib) getAuthMethod(gitOption gpsconfig.GitOption, httpClient gpsconfi
 	}
 }
 
-func (g GitLib) fetch(ctx context.Context, _ string, repo *git.Repository) error {
+func (g GitLib) fetch(ctx context.Context, _ string, repo *git.Repository, auth transport.AuthMethod) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Git:fetchBranches")
 
@@ -188,7 +188,7 @@ func (g GitLib) fetch(ctx context.Context, _ string, repo *git.Repository) error
 		"^refs/pull/*:refs/pull/*",
 	}
 
-	options := &git.FetchOptions{RefSpecs: refSpecs}
+	options := &git.FetchOptions{RefSpecs: refSpecs, Auth: auth}
 
 	if err := repo.Fetch(options); err != nil {
 		if errors.Is(err, git.NoErrAlreadyUpToDate) {

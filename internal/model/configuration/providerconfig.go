@@ -80,7 +80,6 @@ func (p ProviderConfig) GitHubUploadURL() string {
 }
 
 func (p ProviderConfig) GetDomain() string {
-
 	if p.Domain == "" {
 		switch p.ProviderType {
 		case "gitea":
