@@ -4,7 +4,11 @@
 
 package model
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/rs/zerolog"
+)
 
 // CreateOption represents options for creating a new repository.
 // It includes the repository name, visibility settings, description,
@@ -16,24 +20,25 @@ type CreateOption struct {
 	DefaultBranch  string // The name of the default branch (e.g., "main", "master")
 }
 
+// String provides a string representation of CreateOption.
 func (co CreateOption) String() string {
-	return fmt.Sprintf("CreateOption{RepositoryName: %q, Visibility: %q, Description: %q, DefaultBranch: %q}",
+	return fmt.Sprintf("CreateOption{RepositoryName: %s, Visibility: %s, Description: %s, DefaultBranch: %s}",
 		co.RepositoryName,
 		co.Visibility,
 		co.Description,
 		co.DefaultBranch)
 }
 
+// DebugLog creates a debug log event with repository creation options.
+func (co CreateOption) DebugLog(logger *zerolog.Logger) *zerolog.Event {
+	return logger.Debug(). //nolint:zerologlint
+				Str("repository_name", co.RepositoryName).
+				Str("visibility", co.Visibility).
+				Str("description", co.Description).
+				Str("default_branch", co.DefaultBranch)
+}
+
 // NewCreateOption creates a new CreateOption.
-//
-// Parameters:
-//   - repoName: The name of the new repository.
-//   - visibility: The visibility setting for the repository.
-//   - description: A description of the repository.
-//   - defaultBranch: The name of the default branch.
-//
-// Returns:
-//   - A new CreateOption struct configured with the provided options.
 func NewCreateOption(repoName, visibility, description, defaultBranch string) CreateOption {
 	return CreateOption{
 		RepositoryName: repoName,

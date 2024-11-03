@@ -191,7 +191,7 @@ package synccmd
 // // }
 // //
 // // // ProjectInfos implements interfaces.GitProvider.
-// // func (m *mockGitProvider) Metainfos(_ context.Context, _ model.ProviderConfig, _ bool) ([]model.RepositoryMetainfo, error) {
+// // func (m *mockGitProvider) Projectinfos(_ context.Context, _ model.ProviderConfig, _ bool) ([]model.RepositoryMetainfo, error) {
 // // 	panic("unimplementedb")
 // // }
 // //

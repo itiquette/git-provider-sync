@@ -39,8 +39,8 @@ var (
 // Returns an error if any step in the process fails.
 func Push(ctx context.Context, targetProviderCfg config.ProviderConfig, provider interfaces.GitProvider, writer interfaces.TargetWriter, repository interfaces.GitRepository, sourceProviderConfig config.ProviderConfig) error {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering Push:")
-	targetProviderCfg.DebugLog(logger).Msg("Push:")
+	logger.Trace().Msg("Entering Push")
+	targetProviderCfg.DebugLog(logger).Msg("Push")
 
 	if _, _, err := exists(ctx, targetProviderCfg, provider, sourceProviderConfig.ProviderType, repository); err != nil {
 		return fmt.Errorf("failed to check if the repository exists at provider: %w", err)
@@ -90,8 +90,8 @@ func getPushOption(ctx context.Context, providerConfig config.ProviderConfig, re
 // It builds the repository description and uses the provider's Create method.
 func create(ctx context.Context, targetProviderCfg config.ProviderConfig, provider interfaces.GitProvider, sourceProviderType string, repository interfaces.GitRepository) error {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering create:")
-	targetProviderCfg.DebugLog(logger).Msg("create:")
+	logger.Trace().Msg("Entering create")
+	targetProviderCfg.DebugLog(logger).Msg("create")
 
 	gpsUpstreamRemote, err := repository.Remote(config.GPSUPSTREAM)
 	if err != nil || gpsUpstreamRemote.URL == "" {
@@ -135,8 +135,8 @@ func buildDescription(gpsUpstreamRemote model.Remote, repository interfaces.GitR
 // If it doesn't exist, it attempts to create it.
 func exists(ctx context.Context, targetProviderCfg config.ProviderConfig, provider interfaces.GitProvider, sourceProviderType string, repository interfaces.GitRepository) (bool, context.Context, error) {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering exists:")
-	targetProviderCfg.DebugLog(logger).Msg("exists:")
+	logger.Trace().Msg("Entering exists")
+	targetProviderCfg.DebugLog(logger).Msg("exists")
 
 	if isArchiveOrDirectory(targetProviderCfg.ProviderType) {
 		return false, ctx, nil
@@ -148,7 +148,7 @@ func exists(ctx context.Context, targetProviderCfg config.ProviderConfig, provid
 	repoExists := repositoryExists(ctx, targetProviderCfg, provider, repositoryName)
 
 	if !repoExists {
-		logger.Debug().Str("name", repositoryName).Msg("Repository - Did not exist")
+		logger.Debug().Str("name", repositoryName).Msg("Repository didn't exist at target provider")
 
 		if err := create(ctx, targetProviderCfg, provider, sourceProviderType, repository); err != nil {
 			return false, ctx, err
@@ -159,7 +159,7 @@ func exists(ctx context.Context, targetProviderCfg config.ProviderConfig, provid
 		ctx = model.WithCLIOption(ctx, cliOption)
 	}
 
-	logger.Debug().Str("domain", targetProviderCfg.GetDomain()).Str("name", repositoryName).Msg("Repository - Exists:")
+	logger.Debug().Str("domain", targetProviderCfg.GetDomain()).Str("name", repositoryName).Msg("Repository exists at target provider")
 
 	return true, ctx, nil
 }
@@ -172,14 +172,14 @@ func isArchiveOrDirectory(provider string) bool {
 // repositoryExists checks if a repository with the given name exists on the provider.
 func repositoryExists(ctx context.Context, config config.ProviderConfig, provider interfaces.GitProvider, repositoryName string) bool {
 	logger := log.Logger(ctx)
-	metainfos, err := provider.ProjectInfos(ctx, config, false)
+	projectinfos, err := provider.ProjectInfos(ctx, config, false)
 
 	if err != nil {
 		logger.Error().Msgf("failed to get repository meta information. Aborting run. err: %s", err.Error())
 		panic(2)
 	}
 
-	for _, metainfo := range metainfos {
+	for _, metainfo := range projectinfos {
 		if strings.EqualFold(repositoryName, metainfo.OriginalName) {
 			return true
 		}
@@ -219,7 +219,7 @@ func SetGPSUpstreamRemoteFromOrigin(ctx context.Context, remote interfaces.GitRe
 // This URL can be used for authenticated Git operations.
 func toGitURL(ctx context.Context, config config.ProviderConfig, repository interfaces.GitRepository) string {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering toGitURL:")
+	logger.Trace().Msg("Entering toGitURL")
 
 	repositoryName := repository.ProjectInfo().Name(ctx)
 
@@ -231,7 +231,11 @@ func toGitURL(ctx context.Context, config config.ProviderConfig, repository inte
 		return fmt.Sprintf("%s://%s/%s", scheme, trimmedProviderConfigURL, projectPath)
 	}
 
-	return fmt.Sprintf("https://%s/%s", trimmedProviderConfigURL, projectPath)
+	newURL := fmt.Sprintf("https://%s/%s", trimmedProviderConfigURL, projectPath)
+
+	logger.Debug().Str("newURL", newURL).Msg("toGitURL")
+
+	return newURL
 }
 
 // getProjectPath constructs the project path based on whether it's a group or user repository.

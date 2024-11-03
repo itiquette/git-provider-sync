@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"itiquette/git-provider-sync/internal/interfaces"
+	"itiquette/git-provider-sync/internal/log"
 	"itiquette/git-provider-sync/internal/model"
 	config "itiquette/git-provider-sync/internal/model/configuration"
 	"itiquette/git-provider-sync/internal/provider/archive"
@@ -41,7 +42,10 @@ type ProxyFunc func(req *http.Request) (*url.URL, error)
 
 // NewGitProviderClient creates a new git provider client with improved error handling.
 func NewGitProviderClient(ctx context.Context, option model.GitProviderClientOption) (interfaces.GitProvider, error) {
-	httpClient, err := newHTTPClient(option)
+	logger := log.Logger(ctx)
+	logger.Trace().Msg("Entering NewGitProviderClient")
+
+	httpClient, err := newHTTPClient(ctx, option)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create HTTP client: %w", err)
 	}
@@ -54,6 +58,10 @@ func NewGitProviderClient(ctx context.Context, option model.GitProviderClientOpt
 
 // createProvider handles provider creation with proper error handling.
 func createProvider(ctx context.Context, option model.GitProviderClientOption, httpClient *http.Client) (interfaces.GitProvider, error) {
+	logger := log.Logger(ctx)
+	logger.Trace().Msg("Entering createProvider")
+	option.DebugLog(logger).Msg("createProvider")
+
 	switch option.ProviderType {
 	case config.GITEA:
 		provider, err := gitea.NewGiteaClient(ctx, option, httpClient)
@@ -86,19 +94,22 @@ func createProvider(ctx context.Context, option model.GitProviderClientOption, h
 }
 
 // newHTTPClient creates a new HTTP client with proper error handling.
-func newHTTPClient(option model.GitProviderClientOption) (*http.Client, error) {
-	certPool, err := loadCertificates(option.HTTPClient.CertDirPath)
+func newHTTPClient(ctx context.Context, option model.GitProviderClientOption) (*http.Client, error) {
+	logger := log.Logger(ctx)
+	logger.Trace().Msg("Entering newHTTPClient")
+
+	certPool, err := loadCertificates(ctx, option.HTTPClient.CertDirPath)
 	if err != nil {
 		return nil, fmt.Errorf("certificate loading error: %w", err)
 	}
 
-	proxyFunc, err := setupProxy(option.HTTPClient.ProxyURL)
+	proxyFunc, err := setupProxy(ctx, option.HTTPClient.ProxyURL)
 	if err != nil {
 		return nil, fmt.Errorf("proxy setup error: %w", err)
 	}
 
-	tlsConfig := newTLSConfig(certPool)
-	transport := newHTTPTransport(proxyFunc, tlsConfig)
+	tlsConfig := newTLSConfig(ctx, certPool)
+	transport := newHTTPTransport(ctx, proxyFunc, tlsConfig)
 
 	return &http.Client{
 		Transport: transport,
@@ -116,7 +127,10 @@ func newHTTPClient(option model.GitProviderClientOption) (*http.Client, error) {
 }
 
 // newHTTPTransport returns an http.Transport with production-ready default settings.
-func newHTTPTransport(proxyFunc ProxyFunc, tlsConfig *tls.Config) *http.Transport {
+func newHTTPTransport(ctx context.Context, proxyFunc ProxyFunc, tlsConfig *tls.Config) *http.Transport {
+	logger := log.Logger(ctx)
+	logger.Trace().Msg("Entering newHTTPTransport")
+
 	return &http.Transport{
 		// Use proxy url setting or system proxy settings (HTTP_PROXY, HTTPS_PROXY)
 		Proxy: proxyFunc,
@@ -157,7 +171,10 @@ func newHTTPTransport(proxyFunc ProxyFunc, tlsConfig *tls.Config) *http.Transpor
 	}
 }
 
-func newTLSConfig(caCertPool *x509.CertPool) *tls.Config {
+func newTLSConfig(ctx context.Context, caCertPool *x509.CertPool) *tls.Config {
+	logger := log.Logger(ctx)
+	logger.Trace().Msg("Entering newTLSConfig")
+
 	return &tls.Config{
 		RootCAs:                caCertPool,           // Custom CA cert pool for verification
 		MinVersion:             tls.VersionTLS12,     // Minimum TLS version (good security practice)
@@ -170,7 +187,10 @@ func newTLSConfig(caCertPool *x509.CertPool) *tls.Config {
 }
 
 // setupProxy configures the proxy.
-func setupProxy(proxyURL string) (ProxyFunc, error) {
+func setupProxy(ctx context.Context, proxyURL string) (ProxyFunc, error) {
+	logger := log.Logger(ctx)
+	logger.Trace().Msg("Entering setupProxy")
+
 	if proxyURL == "" {
 		return http.ProxyFromEnvironment, nil
 	}
@@ -184,7 +204,10 @@ func setupProxy(proxyURL string) (ProxyFunc, error) {
 }
 
 // loadCertificates loads certificates.
-func loadCertificates(dirPath string) (*x509.CertPool, error) {
+func loadCertificates(ctx context.Context, dirPath string) (*x509.CertPool, error) {
+	logger := log.Logger(ctx)
+	logger.Trace().Msg("Entering loadCertificates")
+
 	if dirPath == "" {
 		return nil, nil //nolint
 	}
@@ -197,7 +220,7 @@ func loadCertificates(dirPath string) (*x509.CertPool, error) {
 	}
 
 	for _, entry := range entries {
-		if err := processCertificateFile(entry, dirPath, caCertPool); err != nil {
+		if err := processCertificateFile(ctx, entry, dirPath, caCertPool); err != nil {
 			return nil, err
 		}
 	}
@@ -206,7 +229,10 @@ func loadCertificates(dirPath string) (*x509.CertPool, error) {
 }
 
 // processCertificateFile handles loading a single certificate file.
-func processCertificateFile(entry os.DirEntry, dirPath string, pool *x509.CertPool) error {
+func processCertificateFile(ctx context.Context, entry os.DirEntry, dirPath string, pool *x509.CertPool) error {
+	logger := log.Logger(ctx)
+	logger.Trace().Msg("Entering processCertificateFile")
+
 	if !isCertFile(entry.Name()) {
 		return nil
 	}

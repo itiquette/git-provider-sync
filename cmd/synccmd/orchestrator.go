@@ -15,7 +15,7 @@ import (
 
 func sync(ctx context.Context, cfg *gpsconfig.AppConfiguration) error {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering sync:")
+	logger.Trace().Msg("Entering sync")
 	cfg.DebugLog(logger)
 
 	ctx, err := model.CreateTmpDir(ctx, "", "gitprovidersync")
@@ -37,6 +37,9 @@ func sync(ctx context.Context, cfg *gpsconfig.AppConfiguration) error {
 }
 
 func sourceToTarget(ctx context.Context, config gpsconfig.ProvidersConfig) error {
+	logger := log.Logger(ctx)
+	logger.Trace().Msg("Entering sourceToTarget")
+
 	repositories, err := sourceRepositories(ctx, config.SourceProvider)
 	if err != nil {
 		return fmt.Errorf("failed to fetch source repositories: %w", err)
@@ -52,6 +55,9 @@ func sourceToTarget(ctx context.Context, config gpsconfig.ProvidersConfig) error
 }
 
 func cleanup(ctx context.Context) {
+	logger := log.Logger(ctx)
+	logger.Trace().Msg("Entering cleanup")
+
 	if err := model.DeleteTmpDir(ctx); err != nil {
 		log.Logger(ctx).Error().Err(err).Msg("failed to delete temporary directory")
 	}

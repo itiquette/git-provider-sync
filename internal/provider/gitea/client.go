@@ -41,10 +41,10 @@ type Client struct {
 // - option: Options for creating the repository, including name, visibility, and description.
 //
 // Returns an error if the creation fails.
-func (c Client) Create(ctx context.Context, config config.ProviderConfig, option model.CreateOption) error {
+func (c Client) Create(ctx context.Context, _ config.ProviderConfig, option model.CreateOption) error {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering Gitea:Create:")
-	config.DebugLog(logger).Msg("Gitea:Create:")
+	logger.Trace().Msg("Entering Gitea:Create")
+	option.DebugLog(logger).Msg("Gitea:CreateOption")
 
 	_, _, err := c.giteaClient.CreateRepo(gitea.CreateRepoOption{
 		Name:          option.RepositoryName,
@@ -62,7 +62,6 @@ func (c Client) Create(ctx context.Context, config config.ProviderConfig, option
 }
 
 func (c Client) DefaultBranch(_ context.Context, _ string, _ string, _ string) error {
-	//TO-DO
 	return nil
 }
 
@@ -82,7 +81,7 @@ func (c Client) Name() string {
 // Returns a slice of RepositoryMetainfo and an error if the operation fails.
 func (c Client) ProjectInfos(ctx context.Context, config config.ProviderConfig, filtering bool) ([]model.ProjectInfo, error) {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering Gitea:Metainfos:")
+	logger.Trace().Msg("Entering Gitea:Projectinfos")
 
 	var (
 		repositories []*gitea.Repository
@@ -114,7 +113,7 @@ func (c Client) ProjectInfos(ctx context.Context, config config.ProviderConfig, 
 
 	logger.Debug().Int("total_repositories", len(repositories)).Msg("Found repositories")
 
-	var metainfos []model.ProjectInfo //nolint:prealloc
+	var projectinfos []model.ProjectInfo //nolint:prealloc
 
 	for _, repo := range repositories {
 		if !config.Git.IncludeForks && repo.Fork {
@@ -122,14 +121,14 @@ func (c Client) ProjectInfos(ctx context.Context, config config.ProviderConfig, 
 		}
 
 		rm, _ := newProjectInfo(ctx, config, c.giteaClient, repo.Name)
-		metainfos = append(metainfos, rm)
+		projectinfos = append(projectinfos, rm)
 	}
 
 	if filtering {
-		return c.filter.FilterMetainfo(ctx, config, metainfos)
+		return c.filter.FilterProjectinfos(ctx, config, projectinfos)
 	}
 
-	return metainfos, nil
+	return projectinfos, nil
 }
 
 // IsValidRepositoryName checks if the given repository name is valid for Gitea.
@@ -142,8 +141,8 @@ func (c Client) ProjectInfos(ctx context.Context, config config.ProviderConfig, 
 // Returns true if the name is valid, false otherwise.
 func (c Client) IsValidRepositoryName(ctx context.Context, name string) bool {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering Gitea:Validate:")
-	logger.Debug().Str("name", name).Msg("Gitea:Validate:")
+	logger.Trace().Msg("Entering Gitea:IsValidRepositoryName")
+	logger.Debug().Str("name", name).Msg("Gitea:Validate")
 
 	return IsValidGiteaRepositoryName(name)
 }
@@ -157,7 +156,7 @@ func (c Client) IsValidRepositoryName(ctx context.Context, name string) bool {
 // Returns a new Client and an error if the creation fails.
 func NewGiteaClient(ctx context.Context, option model.GitProviderClientOption, httpClient *http.Client) (Client, error) {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering NewGiteaClient")
+	logger.Trace().Msg("Entering Gitea:NewGiteaClient")
 
 	clientOptions := []gitea.ClientOption{
 		gitea.SetToken(option.HTTPClient.Token),
@@ -194,7 +193,7 @@ func NewGiteaClient(ctx context.Context, option model.GitProviderClientOption, h
 // Returns a RepositoryMetainfo and an error if the operation fails.
 func newProjectInfo(ctx context.Context, config config.ProviderConfig, rawClient *gitea.Client, repositoryName string) (model.ProjectInfo, error) {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering newProjectInfo:")
+	logger.Trace().Msg("Entering Gitea:newProjectInfo")
 
 	owner := config.Group
 	if !config.IsGroup() {

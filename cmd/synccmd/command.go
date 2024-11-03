@@ -57,7 +57,8 @@ func runSync(cmd *cobra.Command, _ []string) {
 
 func addFlagsToContext(ctx context.Context, flags *syncFlags) context.Context {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering addInputOptionsToContext:")
+	logger.Trace().Msg("Entering addInputOptionsToContext")
+	flags.DebugLog(logger).Msg("addInputOptionsToContext")
 
 	opts := model.CLIOptions(ctx)
 
@@ -74,5 +75,8 @@ func initLogger(ctx context.Context, cmd *cobra.Command) context.Context {
 	withCaller := model.CLIOptions(ctx).VerbosityWithCaller
 	outputFormat := model.CLIOptions(ctx).OutputFormat
 
-	return log.InitLogger(ctx, cmd, withCaller, outputFormat)
+	ctx = log.InitLogger(ctx, cmd, withCaller, outputFormat)
+	log.Logger(ctx).Trace().Msg("Logger initialized")
+
+	return ctx
 }

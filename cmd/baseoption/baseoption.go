@@ -15,7 +15,7 @@ import (
 // AddRootInputOptionsToContext adds CLI options to the context.
 func AddRootInputOptionsToContext(ctx context.Context, cmd *cobra.Command) context.Context {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering addRootInputOptionsToContext:")
+	logger.Trace().Msg("Entering addRootInputOptionsToContext")
 
 	configFilePath, err := cmd.Flags().GetString("config-file")
 	model.HandleError(ctx, err)

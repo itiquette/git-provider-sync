@@ -54,7 +54,8 @@ func NewGitBinary() (GitBinary, error) {
 
 func (g GitBinary) Clone(ctx context.Context, option model.CloneOption) (model.Repository, error) {
 	logger := log.Logger(ctx)
-	logger.Debug().Str("url", option.URL).Msg("GitBinary:Clone")
+	logger.Trace().Msg("GitBinary:Clone")
+	option.DebugLog(logger).Msg("GitBinary:CloneOption")
 
 	env := setupSSHCommandEnv(option.SSHClient.SSHCommand, option.SSHClient.RewriteSSHURLFrom, option.SSHClient.RewriteSSHURLTo)
 

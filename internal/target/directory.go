@@ -50,8 +50,11 @@ func (dir Directory) Push(ctx context.Context, repo interfaces.GitRepository, op
 	return updateRepository(ctx, sourceConfig, targetDir, dir)
 }
 
-func updateRepository(ctx context.Context, sourceConfig gpsconfig.ProviderConfig, targetDir string, dir Directory) error {
-	pullOpt := model.NewPullOption("", "", sourceConfig.Git, sourceConfig.HTTPClient)
+func updateRepository(ctx context.Context, sourceCfg gpsconfig.ProviderConfig, targetDir string, dir Directory) error {
+	logger := log.Logger(ctx)
+	logger.Trace().Msg("Entering Directory:updateRepository")
+
+	pullOpt := model.NewPullOption("", "", sourceCfg.Git, sourceCfg.HTTPClient, sourceCfg.SSHClient)
 
 	if err := dir.gitClient.Pull(ctx, targetDir, pullOpt); err != nil {
 		return fmt.Errorf("%w: targetDir: %s: %w", ErrRepoPull, targetDir, err)
@@ -62,6 +65,8 @@ func updateRepository(ctx context.Context, sourceConfig gpsconfig.ProviderConfig
 
 func getTargetDirPath(ctx context.Context, targetDir, name string) (string, error) {
 	logger := log.Logger(ctx)
+	logger.Trace().Msg("Entering Directory:getTargetDirPath")
+
 	fullPath := filepath.Join(targetDir, name)
 	logger.Debug().Str("path", fullPath).Msg("Targeting directory")
 
@@ -73,6 +78,9 @@ func getTargetDirPath(ctx context.Context, targetDir, name string) (string, erro
 }
 
 func (dir Directory) initializeTargetRepository(ctx context.Context, repo interfaces.GitRepository, targetDir string) error {
+	logger := log.Logger(ctx)
+	logger.Trace().Msg("Entering Directory:initializeTargetRepository")
+
 	if _, err := git.PlainInit(targetDir, false); err != nil {
 		return fmt.Errorf("%w: %w", ErrRepoInitialization, err)
 	}

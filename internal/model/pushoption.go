@@ -24,24 +24,24 @@ type PushOption struct {
 	SSHClient  model.SSHClientOption
 }
 
-// String provides a string representation of PushOption.
-// It uses ScrubTarget to ensure sensitive information is not exposed.
-//
-// Returns:
-//   - A string representation of the PushOption struct.
 func (po PushOption) String() string {
-	return fmt.Sprintf("PushOption{Target: %s, RefSpecs: %v, Prune: %t, Force: %t}",
-		po.Target, po.RefSpecs, po.Prune, po.Force)
+	return fmt.Sprintf("PushOption{Target: %s, RefSpecs: %v, Prune: %t, Force: %t, HTTPClient: %s, SSHClient: %s}",
+		po.Target,
+		po.RefSpecs,
+		po.Prune,
+		po.Force,
+		po.HTTPClient.String(),
+		po.SSHClient.String())
 }
 
-// DebugLog creates a debug log event with repository metadata.
-// This method is useful for debugging and tracing Push option operations.
 func (po PushOption) DebugLog(logger *zerolog.Logger) *zerolog.Event {
 	return logger.Debug(). //nolint:zerologlint
 				Str("target", po.Target).
 				Strs("refspecs", po.RefSpecs).
 				Bool("prune", po.Prune).
-				Bool("force", po.Force)
+				Bool("force", po.Force).
+				Str("http_client", po.HTTPClient.String()).
+				Str("ssh_client", po.SSHClient.String())
 }
 
 // NewPushOption creates a new PushOption with appropriate RefSpecs.

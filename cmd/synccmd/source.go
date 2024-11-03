@@ -17,33 +17,32 @@ import (
 	"itiquette/git-provider-sync/internal/target"
 )
 
-func sourceRepositories(ctx context.Context, sourceProviderCfg gpsconfig.ProviderConfig) ([]interfaces.GitRepository, error) {
+func sourceRepositories(ctx context.Context, sourceCfg gpsconfig.ProviderConfig) ([]interfaces.GitRepository, error) {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering sourceRepositories:")
-	sourceProviderCfg.DebugLog(logger).Msg("sourceProviderConfig")
+	logger.Trace().Msg("Entering sourceRepositories")
 
-	providerClient, err := createProviderClient(ctx, sourceProviderCfg)
+	providerClient, err := createProviderClient(ctx, sourceCfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create provider client: %w", err)
 	}
 
-	metainfo, err := provider.FetchMetainfo(ctx, sourceProviderCfg, providerClient)
+	metainfo, err := provider.FetchProjectInfo(ctx, sourceCfg, providerClient)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch repository metainfo for %s: %w", sourceProviderCfg.ProviderType, err)
+		return nil, fmt.Errorf("failed to fetch repository metainfo for %s: %w", sourceCfg.ProviderType, err)
 	}
 
 	if model.CLIOptions(ctx).DryRun {
-		logDryRun(ctx, sourceProviderCfg, metainfo)
+		logDryRun(ctx, sourceCfg, metainfo)
 
 		return nil, nil
 	}
 
-	reader, err := getSourceReader(sourceProviderCfg)
+	reader, err := getSourceReader(sourceCfg)
 	if err != nil {
 		return nil, fmt.Errorf("get source reader: %w", err)
 	}
 
-	repositories, err := provider.Clone(ctx, reader, sourceProviderCfg, metainfo)
+	repositories, err := provider.Clone(ctx, reader, sourceCfg, metainfo)
 	if err != nil {
 		return nil, fmt.Errorf("clone repositories: %w", err)
 	}
@@ -66,7 +65,8 @@ func getSourceReader(cfg gpsconfig.ProviderConfig) (interfaces.SourceReader, err
 
 func processRepository(ctx context.Context, targetCfg gpsconfig.ProviderConfig, client interfaces.GitProvider, repo interfaces.GitRepository, sourceCfg gpsconfig.ProviderConfig) error {
 	logger := log.Logger(ctx)
-	repo.ProjectInfo().DebugLog(logger).Msg("processRepository:")
+	logger.Trace().Msg("Entering processRepository")
+	repo.ProjectInfo().DebugLog(logger).Msg("processRepository")
 
 	if repo.ProjectInfo().OriginalName == "" {
 		return ErrEmptyMetainfo
@@ -84,6 +84,9 @@ func processRepository(ctx context.Context, targetCfg gpsconfig.ProviderConfig, 
 }
 
 func validateRepository(ctx context.Context, client interfaces.GitProvider, repo interfaces.GitRepository, targetCfg gpsconfig.ProviderConfig) error {
+	logger := log.Logger(ctx)
+	logger.Trace().Msg("Entering validateRepository")
+
 	if client.IsValidRepositoryName(ctx, repo.ProjectInfo().Name(ctx)) {
 		return nil
 	}
@@ -111,6 +114,9 @@ func markRepositoryInvalid(ctx context.Context, repoName string) {
 }
 
 func prepareRepository(ctx context.Context, targetCfg gpsconfig.ProviderConfig, repo interfaces.GitRepository) error {
+	logger := log.Logger(ctx)
+	logger.Trace().Msg("Entering prepareRepository")
+
 	if targetCfg.ProviderType == gpsconfig.ARCHIVE {
 		return nil
 	}
@@ -123,6 +129,9 @@ func prepareRepository(ctx context.Context, targetCfg gpsconfig.ProviderConfig, 
 }
 
 func createProviderClient(ctx context.Context, cfg gpsconfig.ProviderConfig) (interfaces.GitProvider, error) {
+	logger := log.Logger(ctx)
+	logger.Trace().Msg("Entering createProviderClient")
+
 	client, err := provider.NewGitProviderClient(ctx, model.GitProviderClientOption{
 		ProviderType: cfg.ProviderType,
 		HTTPClient:   cfg.HTTPClient,

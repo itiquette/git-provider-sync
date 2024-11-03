@@ -37,8 +37,8 @@ type Client struct {
 // Create creates a new repository in GitLab.
 func (c Client) Create(ctx context.Context, cfg config.ProviderConfig, opt model.CreateOption) error {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering GitLab:Create:")
-	logger.Debug().Str("CreateOption", opt.String()).Msg("GitLab:Create")
+	logger.Trace().Msg("Entering GitLab:Create")
+	opt.DebugLog(logger).Msg("GitLab:CreateOption")
 
 	namespaceID, err := c.getNamespaceID(ctx, cfg)
 	if err != nil {
@@ -58,7 +58,7 @@ func (c Client) Create(ctx context.Context, cfg config.ProviderConfig, opt model
 
 	_, _, err = c.rawClient.Projects.CreateProject(projectOpts)
 	if err != nil {
-		return fmt.Errorf("create: failed to create %s: %w", opt.RepositoryName, err)
+		return fmt.Errorf("failed to create %s: %w", opt.RepositoryName, err)
 	}
 
 	logger.Debug().Msg("Repository created successfully")
@@ -68,8 +68,8 @@ func (c Client) Create(ctx context.Context, cfg config.ProviderConfig, opt model
 
 func (c Client) DefaultBranch(ctx context.Context, owner, projectName, branch string) error {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering GitLab:DefaultBranch:")
-	logger.Debug().Str("name", branch).Msg("GitLab:DefaultBranch:")
+	logger.Trace().Msg("Entering GitLab:DefaultBranch")
+	logger.Debug().Str("branch", branch).Msg("GitLab:DefaultBranch")
 
 	_, _, err := c.rawClient.Projects.EditProject(owner+"/"+projectName, &gitlab.EditProjectOptions{
 		DefaultBranch: gitlab.Ptr(branch),
@@ -88,21 +88,24 @@ func (c Client) Name() string {
 
 // ProjectInfos retrieves metadata information for repositories.
 func (c Client) ProjectInfos(ctx context.Context, cfg config.ProviderConfig, filtering bool) ([]model.ProjectInfo, error) {
-	metainfos, err := c.getRepositoryMetaInfos(ctx, cfg)
+	logger := log.Logger(ctx)
+	logger.Trace().Msg("Entering GitLab:ProjectInfos")
+
+	projectinfos, err := c.getRepositoryProjectInfos(ctx, cfg)
 	if err != nil {
-		return nil, fmt.Errorf("get repository metainfos: %w", err)
+		return nil, fmt.Errorf("get repository projectinfos: %w", err)
 	}
 
 	if filtering {
-		return c.filter.FilterMetainfo(ctx, cfg, metainfos, targetfilter.FilterIncludedExcludedGen(), targetfilter.IsInInterval)
+		return c.filter.FilterProjectinfos(ctx, cfg, projectinfos, targetfilter.FilterIncludedExcludedGen(), targetfilter.IsInInterval)
 	}
 
-	return metainfos, nil
+	return projectinfos, nil
 }
 
-func (c Client) getRepositoryMetaInfos(ctx context.Context, cfg config.ProviderConfig) ([]model.ProjectInfo, error) {
+func (c Client) getRepositoryProjectInfos(ctx context.Context, cfg config.ProviderConfig) ([]model.ProjectInfo, error) {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering GitLab:Metainfos:")
+	logger.Trace().Msg("Entering GitLab:getRepositoryProjectInfos")
 
 	var allRepositories []*gitlab.Project
 
@@ -153,7 +156,7 @@ func (c Client) getRepositoryMetaInfos(ctx context.Context, cfg config.ProviderC
 
 	logger.Debug().Int("total_repositories", len(allRepositories)).Msg("Found repositories")
 
-	metainfos := make([]model.ProjectInfo, 0, len(allRepositories))
+	projectinfos := make([]model.ProjectInfo, 0, len(allRepositories))
 
 	for _, repo := range allRepositories {
 		if !cfg.Git.IncludeForks && repo.ForkedFromProject != nil {
@@ -165,17 +168,17 @@ func (c Client) getRepositoryMetaInfos(ctx context.Context, cfg config.ProviderC
 			return nil, fmt.Errorf("init repository meta for %s: %w", repo.Path, err)
 		}
 
-		metainfos = append(metainfos, rm)
+		projectinfos = append(projectinfos, rm)
 	}
 
-	return metainfos, nil
+	return projectinfos, nil
 }
 
 // IsValidRepositoryName checks if the given name is a valid GitLab repository name.
 func (c Client) IsValidRepositoryName(ctx context.Context, name string) bool {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering GitLab:Validate:")
-	logger.Debug().Str("name", name).Msg("GitLab:Validate")
+	logger.Trace().Msg("Entering GitLab:IsValidRepositoryName")
+	logger.Debug().Str("name", name).Msg("IsValidRepositoryName")
 
 	if !IsValidGitLabRepositoryName(name) || !isValidGitLabRepositoryNameCharacters(name) {
 		logger.Debug().Str("name", name).Msg("Invalid GitLab repository name")
@@ -189,8 +192,8 @@ func (c Client) IsValidRepositoryName(ctx context.Context, name string) bool {
 
 func newProjectInfo(ctx context.Context, cfg config.ProviderConfig, gitClient *gitlab.Client, name string) (model.ProjectInfo, error) {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering newProjectInfo:")
-	logger.Debug().Str("name", name).Msg("newProjectInfo:")
+	logger.Trace().Msg("Entering GitLab:newProjectInfo")
+	logger.Debug().Str("usr/grp", cfg.User+cfg.Group).Str("name", name).Str("provider", cfg.ProviderType).Str("domain", cfg.GetDomain()).Msg("newProjectInfo")
 
 	projectPath := getProjectPath(cfg, name)
 
@@ -242,7 +245,7 @@ func toVisibility(vis string) gitlab.VisibilityValue {
 
 func (c Client) getNamespaceID(ctx context.Context, cfg config.ProviderConfig) (int, error) {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering getNamespaceID")
+	logger.Trace().Msg("Entering GitLab:getNamespaceID")
 
 	if !cfg.IsGroup() {
 		return 0, nil
@@ -277,7 +280,7 @@ func getProjectPath(cfg config.ProviderConfig, name string) string {
 // NewGitLabClient creates a new GitLab client.
 func NewGitLabClient(ctx context.Context, option model.GitProviderClientOption, httpClient *http.Client) (Client, error) {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering NewGitLabClient")
+	logger.Trace().Msg("Entering GitLab:NewGitLabClient")
 
 	defaultBaseURL := "https://gitlab.com/"
 

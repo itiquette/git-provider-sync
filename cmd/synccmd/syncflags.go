@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
 )
 
@@ -27,6 +28,15 @@ func addSyncFlags(cmd *cobra.Command) {
 	flags.Bool("cleanup-name", false, "Remove non-alphanumeric characters from repository names")
 	flags.String("active-from-limit", "", "A negative time duration (e.g., '-1h') to consider repositories active from")
 	flags.Bool("dry-run", false, "Simulate sync run without performing clone and push actions")
+}
+
+func (syn syncFlags) DebugLog(logger *zerolog.Logger) *zerolog.Event {
+	return logger.Debug(). //nolint:zerologlint
+				Bool("forcePush", syn.forcePush).
+				Bool("ignoreInvalidName", syn.ignoreInvalidName).
+				Bool("cleanupName", syn.cleanupName).
+				Str("activeFromLimit", syn.activeFromLimit).
+				Bool("dryRun", syn.dryRun)
 }
 
 func getSyncFlags(_ context.Context, cmd *cobra.Command) (*syncFlags, error) {

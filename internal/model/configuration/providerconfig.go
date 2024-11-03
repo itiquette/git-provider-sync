@@ -29,25 +29,31 @@ type ProviderConfig struct {
 
 // String returns a string representation of ProviderConfig, masking the token.
 func (p ProviderConfig) String() string {
-	return fmt.Sprintf("ProviderConfig: ProviderType: %s, Domain: %s, User: %s, Group: %s, Repository: %v, Git: %v,   HTTPClient: %v, Extras: %v",
-		p.ProviderType, p.Domain, p.User, p.Group, p.Repositories, p.Git, p.HTTPClient, p.Additional)
+	return fmt.Sprintf("ProviderConfig: ProviderType: %s, Domain: %s, UploadDomain: %s, User: %s, Group: %s, Repositories: %v, Git: %v, Project: %v, HTTPClient: %v, SSHClient: %v, SyncRun: %v, Additional: %v",
+		p.ProviderType, p.Domain, p.UploadDomain, p.User, p.Group, p.Repositories, p.Git, p.Project, p.HTTPClient.String(), p.SSHClient, p.SyncRun, p.Additional)
 }
 
 // DebugLog logs the ProviderConfig details at debug level.
 func (p ProviderConfig) DebugLog(logger *zerolog.Logger) *zerolog.Event {
 	event := logger.Debug(). //nolint:zerologlint
 					Str("provider", p.ProviderType).
-					Fields(p.Repositories.Exclude).
-					Fields(p.Repositories.Include)
+					Str("domain", p.GetDomain()).
+					Str("uploadDomain", p.UploadDomain).
+					Interface("repositories", p.Repositories).
+					Interface("git", p.Git).
+					Interface("project", p.Project).
+					Interface("httpClient", p.HTTPClient.String()).
+					Interface("sshClient", p.SSHClient).
+					Interface("syncRun", p.SyncRun).
+					Interface("additional", p.Additional)
 
 	switch strings.ToLower(p.ProviderType) {
 	case DIRECTORY:
-		event.Str("target directory", p.DirectoryTargetDir())
+		event.Str("target_directory", p.DirectoryTargetDir())
 	case ARCHIVE:
-		event.Str("target directory", p.ArchiveTargetDir())
+		event.Str("target_directory", p.ArchiveTargetDir())
 	default:
-		event.Str("domain", p.Domain).
-			Strs("user,group", []string{p.User, p.Group})
+		event.Strs("user_group", []string{p.User, p.Group})
 	}
 
 	return event

@@ -8,6 +8,8 @@ import (
 	"fmt"
 	model "itiquette/git-provider-sync/internal/model/configuration"
 	"strings"
+
+	"github.com/rs/zerolog"
 )
 
 // GitProviderClientOption holds configuration options for a git provider client.
@@ -27,14 +29,22 @@ type GitProviderClientOption struct {
 	UploadURL string
 }
 
-// String provides a string representation of GitProviderClientOption.
-// It formats the fields into a human-readable string, masking the Token for security.
-//
-// Returns:
-//   - A string representation of the GitProviderClientOption instance.
+// String provides a safe string representation without exposing sensitive data.
 func (gpo GitProviderClientOption) String() string {
-	return fmt.Sprintf("GitProviderClientOption{ProviderType: %s, HTTPClient: %+v, Domain: %s}",
-		gpo.ProviderType, gpo.HTTPClient, gpo.Domain)
+	return fmt.Sprintf("GitProviderClientOption{type: %s, domain: %s, httpClient: %v}",
+		gpo.ProviderType,
+		gpo.Domain,
+		gpo.HTTPClient.String(),
+	)
+}
+
+// DebugLog provides detailed logging while protecting sensitive information.
+func (gpo GitProviderClientOption) DebugLog(logger *zerolog.Logger) *zerolog.Event {
+	return logger.Debug(). //nolint
+				Str("provider_type", gpo.ProviderType).
+				Str("domain", gpo.Domain).
+				Str("httpclient", gpo.String()).
+				Interface("repositories", gpo.Repositories)
 }
 
 func (gpo GitProviderClientOption) DomainWithScheme(scheme string) string {

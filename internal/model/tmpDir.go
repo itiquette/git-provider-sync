@@ -39,7 +39,7 @@ type TmpDirKey struct{}
 //	// Use the temporary directory path
 func GetTmpDirPath(ctx context.Context) (string, error) {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering GetTmpDirPath: retrieving path")
+	logger.Trace().Msg("Entering GetTmpDirPath")
 
 	tmpDir, ok := ctx.Value(TmpDirKey{}).(string)
 	if !ok || tmpDir == "" {
@@ -70,6 +70,10 @@ func GetTmpDirPath(ctx context.Context) (string, error) {
 //	}
 //	// Use newCtx in subsequent operations
 func CreateTmpDir(ctx context.Context, dir, prefix string) (context.Context, error) {
+	logger := log.Logger(ctx)
+	logger.Trace().Msg("Entering CreateTmpDir")
+	logger.Debug().Str("dir", dir).Str("prefix", prefix).Msg("CreateTmpDir")
+
 	tmpDir, err := os.MkdirTemp(dir, prefix+".*")
 	if err != nil {
 		return nil, fmt.Errorf("failed to create temporary directory (dir: %s, prefix: %s): %w", dir, prefix, err)
@@ -95,6 +99,7 @@ func CreateTmpDir(ctx context.Context, dir, prefix string) (context.Context, err
 //	}
 func DeleteTmpDir(ctx context.Context) error {
 	logger := log.Logger(ctx)
+	logger.Trace().Msg("Entering DeleteTmpDir")
 
 	tmpDir, err := GetTmpDirPath(ctx)
 	if err != nil {

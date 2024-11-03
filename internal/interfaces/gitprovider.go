@@ -88,7 +88,7 @@ type GitProvider interface {
 //		return err
 //	}
 //
-//	func (g *GitHubProvider) Metainfos(ctx context.Context, config model.ProviderConfig, filtering bool) ([]model.RepositoryMetainfo, error) {
+//	func (g *GitHubProvider) Projectinfos(ctx context.Context, config model.ProviderConfig, filtering bool) ([]model.RepositoryMetainfo, error) {
 //		// Implementation for fetching repository metadata from GitHub
 //		// ...
 //	}
@@ -114,11 +114,11 @@ type GitProvider interface {
 //		}
 //
 //		// Fetch and print metadata for all repositories
-//		metainfos, err := provider.Metainfos(ctx, config, true)
+//		projectinfos, err := provider.Projectinfos(ctx, config, true)
 //		if err != nil {
 //			return err
 //		}
-//		for _, info := range metainfos {
+//		for _, info := range projectinfos {
 //			fmt.Printf("Repository: %s, URL: %s\n", info.Name, info.URL)
 //		}
 //

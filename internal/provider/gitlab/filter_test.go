@@ -23,33 +23,33 @@ type MockFilterIncludedExcluded struct {
 	mock.Mock
 }
 
-func (m *MockFilterIncludedExcluded) FilterIncludedExcluded(ctx context.Context, config config.ProviderConfig, metainfos []model.ProjectInfo) ([]model.ProjectInfo, error) {
-	args := m.Called(ctx, config, metainfos)
+func (m *MockFilterIncludedExcluded) FilterIncludedExcluded(ctx context.Context, config config.ProviderConfig, projectinfos []model.ProjectInfo) ([]model.ProjectInfo, error) {
+	args := m.Called(ctx, config, projectinfos)
 
 	//nolint:forcetypeassert
 	return args.Get(0).([]model.ProjectInfo), args.Error(1) //nolint:wrapcheck
 }
 
-func TestFilter_FilterMetainfo(t *testing.T) {
+func TestFilter_FilterProjectinfos(t *testing.T) {
 	require := require.New(t)
 	ctx := context.Background()
 	now := time.Now()
 	oldTime := now.Add(-24 * time.Hour)
 
 	tests := []struct {
-		name             string
-		config           config.ProviderConfig
-		inputMetainfos   []model.ProjectInfo
-		mockFilterResult []model.ProjectInfo
-		mockFilterErr    error
-		isInInterval     IsInIntervalFunc
-		expectedResult   []model.ProjectInfo
-		expectedErr      bool
+		name              string
+		config            config.ProviderConfig
+		inputProjectinfos []model.ProjectInfo
+		mockFilterResult  []model.ProjectInfo
+		mockFilterErr     error
+		isInInterval      IsInIntervalFunc
+		expectedResult    []model.ProjectInfo
+		expectedErr       bool
 	}{
 		{
 			name:   "Success - All repositories included",
 			config: config.ProviderConfig{},
-			inputMetainfos: []model.ProjectInfo{
+			inputProjectinfos: []model.ProjectInfo{
 				{HTTPSURL: "https://example.com/repo1", LastActivityAt: &now},
 				{HTTPSURL: "https://example.com/repo2", LastActivityAt: &now},
 			},
@@ -70,7 +70,7 @@ func TestFilter_FilterMetainfo(t *testing.T) {
 		{
 			name:   "Success - Some repositories filtered out",
 			config: config.ProviderConfig{},
-			inputMetainfos: []model.ProjectInfo{
+			inputProjectinfos: []model.ProjectInfo{
 				{HTTPSURL: "https://example.com/repo1", LastActivityAt: &now},
 				{HTTPSURL: "https://example.com/repo2", LastActivityAt: &oldTime},
 			},
@@ -88,11 +88,11 @@ func TestFilter_FilterMetainfo(t *testing.T) {
 			expectedErr: false,
 		},
 		{
-			name:             "Error - Filter function fails",
-			config:           config.ProviderConfig{},
-			inputMetainfos:   []model.ProjectInfo{{HTTPSURL: "https://example.com/repo1"}},
-			mockFilterResult: nil,
-			mockFilterErr:    errors.New("mock error"),
+			name:              "Error - Filter function fails",
+			config:            config.ProviderConfig{},
+			inputProjectinfos: []model.ProjectInfo{{HTTPSURL: "https://example.com/repo1"}},
+			mockFilterResult:  nil,
+			mockFilterErr:     errors.New("mock error"),
 			isInInterval: func(_ context.Context, _ time.Time) (bool, error) {
 				return true, nil
 			},
@@ -100,11 +100,11 @@ func TestFilter_FilterMetainfo(t *testing.T) {
 			expectedErr:    true,
 		},
 		{
-			name:             "Edge Case - Empty input",
-			config:           config.ProviderConfig{},
-			inputMetainfos:   []model.ProjectInfo{},
-			mockFilterResult: []model.ProjectInfo{},
-			mockFilterErr:    nil,
+			name:              "Edge Case - Empty input",
+			config:            config.ProviderConfig{},
+			inputProjectinfos: []model.ProjectInfo{},
+			mockFilterResult:  []model.ProjectInfo{},
+			mockFilterErr:     nil,
 			isInInterval: func(_ context.Context, _ time.Time) (bool, error) {
 				return true, nil
 			},
@@ -114,7 +114,7 @@ func TestFilter_FilterMetainfo(t *testing.T) {
 		{
 			name:   "Edge Case - Nil LastActivityAt",
 			config: config.ProviderConfig{},
-			inputMetainfos: []model.ProjectInfo{
+			inputProjectinfos: []model.ProjectInfo{
 				{HTTPSURL: "https://example.com/repo1", LastActivityAt: nil},
 			},
 			mockFilterResult: []model.ProjectInfo{
@@ -130,7 +130,7 @@ func TestFilter_FilterMetainfo(t *testing.T) {
 		{
 			name:   "Edge Case - IsInInterval returns error",
 			config: config.ProviderConfig{},
-			inputMetainfos: []model.ProjectInfo{
+			inputProjectinfos: []model.ProjectInfo{
 				{HTTPSURL: "https://example.com/repo1", LastActivityAt: &now},
 			},
 			mockFilterResult: []model.ProjectInfo{
@@ -148,10 +148,10 @@ func TestFilter_FilterMetainfo(t *testing.T) {
 	for _, tabletest := range tests {
 		t.Run(tabletest.name, func(_ *testing.T) {
 			mockFilter := new(MockFilterIncludedExcluded)
-			mockFilter.On("FilterIncludedExcluded", mock.Anything, tabletest.config, tabletest.inputMetainfos).Return(tabletest.mockFilterResult, tabletest.mockFilterErr)
+			mockFilter.On("FilterIncludedExcluded", mock.Anything, tabletest.config, tabletest.inputProjectinfos).Return(tabletest.mockFilterResult, tabletest.mockFilterErr)
 
 			f := NewFilter(tabletest.isInInterval)
-			result, err := f.FilterMetainfo(ctx, tabletest.config, tabletest.inputMetainfos, mockFilter.FilterIncludedExcluded, tabletest.isInInterval)
+			result, err := f.FilterProjectinfos(ctx, tabletest.config, tabletest.inputProjectinfos, mockFilter.FilterIncludedExcluded, tabletest.isInInterval)
 
 			// mockFilter.AssertExpectations(t)
 			if tabletest.expectedErr {
@@ -171,15 +171,15 @@ func TestFilterByDate(t *testing.T) {
 	oldTime := now.Add(-24 * time.Hour)
 
 	tests := []struct {
-		name           string
-		inputMetainfos []model.ProjectInfo
-		isInInterval   IsInIntervalFunc
-		expectedResult []model.ProjectInfo
-		expectedErr    bool
+		name              string
+		inputProjectinfos []model.ProjectInfo
+		isInInterval      IsInIntervalFunc
+		expectedResult    []model.ProjectInfo
+		expectedErr       bool
 	}{
 		{
 			name: "Success - All repositories within date range",
-			inputMetainfos: []model.ProjectInfo{
+			inputProjectinfos: []model.ProjectInfo{
 				{HTTPSURL: "https://example.com/repo1", LastActivityAt: &now},
 				{HTTPSURL: "https://example.com/repo2", LastActivityAt: &now},
 			},
@@ -194,7 +194,7 @@ func TestFilterByDate(t *testing.T) {
 		},
 		{
 			name: "Success - Some repositories filtered out",
-			inputMetainfos: []model.ProjectInfo{
+			inputProjectinfos: []model.ProjectInfo{
 				{HTTPSURL: "https://example.com/repo1", LastActivityAt: &now},
 				{HTTPSURL: "https://example.com/repo2", LastActivityAt: &oldTime},
 			},
@@ -207,8 +207,8 @@ func TestFilterByDate(t *testing.T) {
 			expectedErr: false,
 		},
 		{
-			name:           "Edge Case - Empty input",
-			inputMetainfos: []model.ProjectInfo{},
+			name:              "Edge Case - Empty input",
+			inputProjectinfos: []model.ProjectInfo{},
 			isInInterval: func(_ context.Context, _ time.Time) (bool, error) {
 				return true, nil
 			},
@@ -217,7 +217,7 @@ func TestFilterByDate(t *testing.T) {
 		},
 		{
 			name: "Edge Case - Nil LastActivityAt",
-			inputMetainfos: []model.ProjectInfo{
+			inputProjectinfos: []model.ProjectInfo{
 				{HTTPSURL: "https://example.com/repo1", LastActivityAt: nil},
 			},
 			isInInterval: func(_ context.Context, _ time.Time) (bool, error) {
@@ -228,7 +228,7 @@ func TestFilterByDate(t *testing.T) {
 		},
 		{
 			name: "Edge Case - IsInInterval returns error",
-			inputMetainfos: []model.ProjectInfo{
+			inputProjectinfos: []model.ProjectInfo{
 				{HTTPSURL: "https://example.com/repo1", LastActivityAt: &now},
 			},
 			isInInterval: func(_ context.Context, _ time.Time) (bool, error) {
@@ -239,7 +239,7 @@ func TestFilterByDate(t *testing.T) {
 		},
 		{
 			name: "Edge Case - Mixed nil and non-nil LastActivityAt",
-			inputMetainfos: []model.ProjectInfo{
+			inputProjectinfos: []model.ProjectInfo{
 				{HTTPSURL: "https://example.com/repo1", LastActivityAt: &now},
 				{HTTPSURL: "https://example.com/repo2", LastActivityAt: nil},
 				{HTTPSURL: "https://example.com/repo3", LastActivityAt: &oldTime},
@@ -256,7 +256,7 @@ func TestFilterByDate(t *testing.T) {
 
 	for _, tabletest := range tests {
 		t.Run(tabletest.name, func(t *testing.T) {
-			result, err := filterByDate(ctx, tabletest.inputMetainfos, tabletest.isInInterval)
+			result, err := filterByDate(ctx, tabletest.inputProjectinfos, tabletest.isInInterval)
 
 			if tabletest.expectedErr {
 				assert.Error(t, err)

@@ -20,7 +20,7 @@ import (
 //   - ctx: A context.Context for handling cancellation, timeouts, and request-scoped values.
 //   - config: A model.ProviderConfig containing provider-specific settings,
 //     including inclusion and exclusion patterns for repositories.
-//   - metainfos: A slice of model.RepositoryMetainfo representing the repositories to be filtered.
+//   - projectinfos: A slice of model.RepositoryMetainfo representing the repositories to be filtered.
 //
 // Returns:
 //   - []model.RepositoryMetainfo: A slice of filtered repository metadata that matches the inclusion
@@ -33,13 +33,13 @@ import (
 //   - Applying exclusion patterns to remove repositories from the selection.
 //   - Handling edge cases such as conflicting inclusion and exclusion patterns.
 //   - Efficient processing of potentially large sets of repository metadata.
-type FilterIncludedExcludedFunc func(ctx context.Context, config config.ProviderConfig, metainfos []model.ProjectInfo) ([]model.ProjectInfo, error)
+type FilterIncludedExcludedFunc func(ctx context.Context, config config.ProviderConfig, projectinfos []model.ProjectInfo) ([]model.ProjectInfo, error)
 
 // Example usage:
 //
-//	func SimpleFilterImplementation(ctx context.Context, config model.ProviderConfig, metainfos []model.RepositoryMetainfo) ([]model.RepositoryMetainfo, error) {
+//	func SimpleFilterImplementation(ctx context.Context, config model.ProviderConfig, projectinfos []model.RepositoryMetainfo) ([]model.RepositoryMetainfo, error) {
 //		var filtered []model.RepositoryMetainfo
-//		for _, repo := range metainfos {
+//		for _, repo := range projectinfos {
 //			// Example: Include repositories with names starting with "project-"
 //			if strings.HasPrefix(repo.Name, "project-") {
 //				// Example: Exclude repositories with names ending in "-archive"

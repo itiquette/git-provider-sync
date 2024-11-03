@@ -22,14 +22,14 @@ func TestClone(t *testing.T) {
 	ctx := testContext()
 
 	tests := []struct {
-		name      string
-		metainfos []model.ProjectInfo
-		mockSetup func(*mocks.SourceReader)
-		wantErr   bool
+		name         string
+		projectinfos []model.ProjectInfo
+		mockSetup    func(*mocks.SourceReader)
+		wantErr      bool
 	}{
 		{
 			name: "Successful clone of multiple repositories",
-			metainfos: []model.ProjectInfo{
+			projectinfos: []model.ProjectInfo{
 				{HTTPSURL: "https://github.com/user/repo1.git", OriginalName: "repo1"},
 				{HTTPSURL: "https://github.com/user/repo2.git", OriginalName: "repo2"},
 			},
@@ -40,7 +40,7 @@ func TestClone(t *testing.T) {
 		},
 		{
 			name: "Failure to clone repository",
-			metainfos: []model.ProjectInfo{
+			projectinfos: []model.ProjectInfo{
 				{HTTPSURL: "https://github.com/user/repo1.git", OriginalName: "repo1"},
 			},
 			mockSetup: func(m *mocks.SourceReader) {
@@ -49,10 +49,10 @@ func TestClone(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:      "Empty metainfos list",
-			metainfos: []model.ProjectInfo{},
-			mockSetup: func(_ *mocks.SourceReader) {},
-			wantErr:   false,
+			name:         "Empty projectinfos list",
+			projectinfos: []model.ProjectInfo{},
+			mockSetup:    func(_ *mocks.SourceReader) {},
+			wantErr:      false,
 		},
 	}
 
@@ -61,13 +61,13 @@ func TestClone(t *testing.T) {
 			mockReader := new(mocks.SourceReader)
 			tabletest.mockSetup(mockReader)
 
-			repos, err := Clone(ctx, mockReader, config.ProviderConfig{}, tabletest.metainfos)
+			repos, err := Clone(ctx, mockReader, config.ProviderConfig{}, tabletest.projectinfos)
 
 			if tabletest.wantErr {
 				require.Error(err)
 			} else {
 				require.NoError(err)
-				require.Len(repos, len(tabletest.metainfos))
+				require.Len(repos, len(tabletest.projectinfos))
 			}
 
 			mockReader.AssertExpectations(t)
@@ -118,13 +118,13 @@ func TestFetchMetainfo(t *testing.T) {
 			tabletest.mockSetup(mockProvider)
 
 			ctx := context.Background()
-			metainfos, err := FetchMetainfo(ctx, tabletest.config, mockProvider)
+			projectinfos, err := FetchProjectInfo(ctx, tabletest.config, mockProvider)
 
 			if tabletest.wantErr {
 				require.Error(err)
 			} else {
 				require.NoError(err)
-				require.Len(metainfos, tabletest.wantLength)
+				require.Len(projectinfos, tabletest.wantLength)
 			}
 
 			mockProvider.AssertExpectations(t)

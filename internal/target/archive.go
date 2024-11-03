@@ -50,7 +50,10 @@ func (a *Archive) Push(ctx context.Context, repo interfaces.GitRepository, opt m
 }
 
 func (a *Archive) initializeTargetRepository(ctx context.Context, repo interfaces.GitRepository, opt model.PushOption) (string, error) {
-	sourceDir, err := getSourceDirPath(opt)
+	logger := log.Logger(ctx)
+	logger.Trace().Msg("Entering Archive:initializeTargetRepository")
+
+	sourceDir, err := getSourceDirPath(ctx, opt)
 	if err != nil {
 		return "", err
 	}
@@ -76,7 +79,10 @@ func (a *Archive) initializeTargetRepository(ctx context.Context, repo interface
 }
 
 func createArchive(ctx context.Context, sourceDir, targetArchive, name string) error {
-	files, err := mapFilesToArchive(sourceDir, name)
+	logger := log.Logger(ctx)
+	logger.Trace().Msg("Entering Archive:createArchive")
+
+	files, err := mapFilesToArchive(ctx, sourceDir, name)
 	if err != nil {
 		return err
 	}
@@ -85,6 +91,9 @@ func createArchive(ctx context.Context, sourceDir, targetArchive, name string) e
 }
 
 func compress(ctx context.Context, targetPath string, files []archiver.File) error {
+	logger := log.Logger(ctx)
+	logger.Trace().Msg("Entering Archive:compress")
+
 	file, err := os.Create(targetPath)
 	if err != nil {
 		return fmt.Errorf("%w: %s: %w", ErrArchiveCreation, targetPath, err)
@@ -107,7 +116,10 @@ func compress(ctx context.Context, targetPath string, files []archiver.File) err
 	return nil
 }
 
-func mapFilesToArchive(sourceDir, targetName string) ([]archiver.File, error) {
+func mapFilesToArchive(ctx context.Context, sourceDir, targetName string) ([]archiver.File, error) {
+	logger := log.Logger(ctx)
+	logger.Trace().Msg("Entering Archive:mapFilesToArchive")
+
 	files, err := archiver.FilesFromDisk(nil, map[string]string{
 		sourceDir: targetName,
 	})
@@ -127,7 +139,10 @@ func NewArchive() *Archive {
 	return &Archive{gitClient: NewGitLib()}
 }
 
-func getSourceDirPath(opt model.PushOption) (string, error) {
+func getSourceDirPath(ctx context.Context, opt model.PushOption) (string, error) {
+	logger := log.Logger(ctx)
+	logger.Trace().Msg("Entering Archive:getSourceDirPath")
+
 	sourceDir := strings.TrimSuffix(opt.Target, ".tar.gz")
 	if err := os.MkdirAll(filepath.Dir(sourceDir), os.ModePerm); err != nil {
 		return "", fmt.Errorf("%w: %s: %w", ErrDirectoryCreation, filepath.Dir(sourceDir), err)

@@ -30,7 +30,7 @@ import (
 //			"push success": {
 //				config: targetProviderConfig(),
 //				mockSetup: func(mockClient *mocks.GitProvider, mockRepo *mocks.GitRepository) {
-//					mockClient.EXPECT().Metainfos(mock.Anything, mock.Anything, mock.Anything).Return([]model.RepositoryMetainfo{{HTTPSURL: "https://url.c"}}, nil)
+//					mockClient.EXPECT().Projectinfos(mock.Anything, mock.Anything, mock.Anything).Return([]model.RepositoryMetainfo{{HTTPSURL: "https://url.c"}}, nil)
 //					mockClient.EXPECT().Create(mock.Anything, mock.Anything, mock.Anything).Return(nil)
 //					mockRepo.EXPECT().Metainfo().Return(model.RepositoryMetainfo{
 //						OriginalName:  "nasename",
@@ -45,7 +45,7 @@ import (
 //			// "repository exists error": {
 //			//     config: targetProviderConfig(),
 //			//     mockSetup: func(mockClient *mocks.GitProvider, mockRepo *mocks.GitRepository) {
-//			//         mockClient.EXPECT().Metainfos(mock.Anything, mock.Anything, mock.Anything).Return(nil, errors.New("failed to check repository"))
+//			//         mockClient.EXPECT().Projectinfos(mock.Anything, mock.Anything, mock.Anything).Return(nil, errors.New("failed to check repository"))
 //			//         mockRepo.EXPECT().Metainfo().Return(model.RepositoryMetainfo{})
 //			//         mockRepo.EXPECT().Remote(mock.Anything).Return(model.Remote{URL: "https://up.url"}, errors.New("an err"))
 //			//     },
@@ -54,7 +54,7 @@ import (
 //			// "push error": {
 //			//     config: targetProviderConfig(),
 //			//     mockSetup: func(mockClient *mocks.GitProvider, mockRepo *mocks.GitRepository) {
-//			//         mockClient.EXPECT().Metainfos(mock.Anything, mock.Anything, mock.Anything).Return([]model.RepositoryMetainfo{{HTTPSURL: "https://url.c"}}, nil)
+//			//         mockClient.EXPECT().Projectinfos(mock.Anything, mock.Anything, mock.Anything).Return([]model.RepositoryMetainfo{{HTTPSURL: "https://url.c"}}, nil)
 //			//         mockRepo.EXPECT().Metainfo().Return(model.RepositoryMetainfo{})
 //			//         mockRepo.EXPECT().Remote(mock.Anything).Return(model.Remote{URL: "https://up.url"}, nil)
 //			//     },
@@ -192,12 +192,12 @@ func TestIsArchiveOrDirectory(t *testing.T) {
 
 func TestRepositoryExists(t *testing.T) {
 	tests := map[string]struct {
-		metainfos      []model.ProjectInfo
+		projectinfos   []model.ProjectInfo
 		repositoryName string
 		expected       bool
 	}{
 		"repository exists": {
-			metainfos: []model.ProjectInfo{
+			projectinfos: []model.ProjectInfo{
 				{OriginalName: "repo1"},
 				{OriginalName: "repo2"},
 			},
@@ -205,7 +205,7 @@ func TestRepositoryExists(t *testing.T) {
 			expected:       true,
 		},
 		"repository does not exist": {
-			metainfos: []model.ProjectInfo{
+			projectinfos: []model.ProjectInfo{
 				{OriginalName: "repo1"},
 				{OriginalName: "repo2"},
 			},
@@ -213,7 +213,7 @@ func TestRepositoryExists(t *testing.T) {
 			expected:       false,
 		},
 		"case insensitive": {
-			metainfos: []model.ProjectInfo{
+			projectinfos: []model.ProjectInfo{
 				{OriginalName: "Repo1"},
 			},
 			repositoryName: "repo1",
@@ -225,7 +225,7 @@ func TestRepositoryExists(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			ctx := context.Background()
 			mockProvider := new(mocks.GitProvider)
-			mockProvider.EXPECT().ProjectInfos(ctx, mock.Anything, false).Return(tabletest.metainfos, nil)
+			mockProvider.EXPECT().ProjectInfos(ctx, mock.Anything, false).Return(tabletest.projectinfos, nil)
 
 			result := repositoryExists(ctx, config.ProviderConfig{}, mockProvider, tabletest.repositoryName)
 			require.Equal(t, tabletest.expected, result)

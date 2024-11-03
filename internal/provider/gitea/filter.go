@@ -18,29 +18,29 @@ import (
 // It provides methods to filter repository metadata based on configured rules.
 type Filter struct{}
 
-// FilterMetainfo filters repository metadata based on configured rules.
+// FilterProjectinfos filters repository metadata based on configured rules.
 // It applies both inclusion/exclusion rules and date-based filtering.
 //
 // Parameters:
 // - ctx: The context for the operation, which can be used for cancellation and passing request-scoped values.
 // - config: The provider configuration, which includes settings for filtering.
-// - metainfos: A slice of RepositoryMetainfo to be filtered.
+// - projectinfos: A slice of RepositoryMetainfo to be filtered.
 //
 // Returns:
 // - A slice of filtered RepositoryMetainfo.
 // - An error if any part of the filtering process fails.
-func (Filter) FilterMetainfo(ctx context.Context, config config.ProviderConfig, metainfos []model.ProjectInfo) ([]model.ProjectInfo, error) {
+func (Filter) FilterProjectinfos(ctx context.Context, config config.ProviderConfig, projectinfos []model.ProjectInfo) ([]model.ProjectInfo, error) {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering FilterMetainfo: Starting repository filtering process")
+	logger.Trace().Msg("Entering Gitea:FilterProjectinfos")
 
 	// Apply inclusion/exclusion rules
-	includedMetainfos, err := targetfilter.FilterIncludedExcludedGen()(ctx, config, metainfos)
+	includedProjectinfos, err := targetfilter.FilterIncludedExcludedGen()(ctx, config, projectinfos)
 	if err != nil {
 		return nil, fmt.Errorf("failed to filter repositories by include/exclude rules: %w", err)
 	}
 
 	// Apply date-based filtering
-	return filterByDate(ctx, config, includedMetainfos)
+	return filterByDate(ctx, config, includedProjectinfos)
 }
 
 // filterByDate filters repositories based on their last activity date.
@@ -50,18 +50,18 @@ func (Filter) FilterMetainfo(ctx context.Context, config config.ProviderConfig, 
 // Parameters:
 // - ctx: The context for the operation.
 // - config: The provider configuration.
-// - metainfos: A slice of RepositoryMetainfo to be filtered by date.
+// - projectinfos: A slice of RepositoryMetainfo to be filtered by date.
 //
 // Returns:
 // - A slice of RepositoryMetainfo that passed the date filter.
 // - An error if the filtering process fails for any repository.
-func filterByDate(ctx context.Context, config config.ProviderConfig, metainfos []model.ProjectInfo) ([]model.ProjectInfo, error) {
+func filterByDate(ctx context.Context, config config.ProviderConfig, projectinfos []model.ProjectInfo) ([]model.ProjectInfo, error) {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering filterByDate: Filtering repositories by last activity date")
+	logger.Trace().Msg("Entering Gitea:filterByDate")
 
 	var filtered []model.ProjectInfo
 
-	for _, metainfo := range metainfos {
+	for _, metainfo := range projectinfos {
 		include, err := includeByActivityTime(ctx, config, metainfo)
 		if err != nil {
 			return nil, fmt.Errorf("failed to check activity time for %s: %w", metainfo.OriginalName, err)
@@ -72,7 +72,7 @@ func filterByDate(ctx context.Context, config config.ProviderConfig, metainfos [
 		}
 	}
 
-	logger.Debug().Msgf("filterByDate: Filtered %d repositories out of %d", len(filtered), len(metainfos))
+	logger.Debug().Msgf("filterByDate: Filtered %d repositories out of %d", len(filtered), len(projectinfos))
 
 	return filtered, nil
 }
@@ -91,7 +91,7 @@ func filterByDate(ctx context.Context, config config.ProviderConfig, metainfos [
 // - An error if the check fails, e.g., if the last activity time is nil.
 func includeByActivityTime(ctx context.Context, config config.ProviderConfig, metainfo model.ProjectInfo) (bool, error) {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering includeByActivityTime: Checking repository activity time")
+	logger.Trace().Msg("Entering Gitea:includeByActivityTime")
 	config.DebugLog(logger).Msg("includeByActivityTime: Using configuration")
 
 	if metainfo.LastActivityAt == nil {

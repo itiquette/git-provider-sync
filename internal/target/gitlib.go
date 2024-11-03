@@ -54,10 +54,10 @@ type GitLib struct {
 // Clone clones a repository according to given clone options.
 func (g GitLib) Clone(ctx context.Context, option model.CloneOption) (model.Repository, error) {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering Git:Clone")
-	logger.Debug().Str("url", option.URL).Msg("Git:Clone")
+	logger.Trace().Msg("Entering GitLib:Clone")
+	option.DebugLog(logger).Msg("GitLib:CloneOption")
 
-	auth, err := g.getAuthMethod(option.Git, option.HTTPClient, option.SSHClient)
+	auth, err := g.getAuthMethod(ctx, option.Git, option.HTTPClient, option.SSHClient)
 	if err != nil {
 		return model.Repository{}, fmt.Errorf("%w: %w", ErrGetAuthMethod, err)
 	}
@@ -88,8 +88,8 @@ func (g GitLib) Clone(ctx context.Context, option model.CloneOption) (model.Repo
 // Pull performs a git pull operation on the repository.
 func (g GitLib) Pull(ctx context.Context, pullDirPath string, option model.PullOption) error {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering Git:Pull")
-	option.DebugLog(logger).Msg("Git:Pull")
+	logger.Trace().Msg("Entering GitLib:Pull")
+	option.DebugLog(logger).Msg("GitLib:Pull")
 
 	repo, err := git.PlainOpen(pullDirPath)
 	if err != nil {
@@ -105,7 +105,7 @@ func (g GitLib) Pull(ctx context.Context, pullDirPath string, option model.PullO
 		return fmt.Errorf("%w: %s", ErrUncleanWorkspace, pullDirPath)
 	}
 
-	auth, err := g.getAuthMethod(option.GitOption, option.HTTPClientOption, option.SSHClient)
+	auth, err := g.getAuthMethod(ctx, option.GitOption, option.HTTPClientOption, option.SSHClient)
 	if err != nil {
 		return fmt.Errorf("%w: %w", ErrGetAuthMethod, err)
 	}
@@ -135,13 +135,13 @@ func (g GitLib) Push(ctx context.Context, repository interfaces.GitRepository, o
 	remotes, _ := repository.GoGitRepository().Remotes()
 	g.logRemotes(logger, remotes)
 
-	auth, err := g.getAuthMethod(targetGitOption, option.HTTPClient, option.SSHClient)
+	auth, err := g.getAuthMethod(ctx, targetGitOption, option.HTTPClient, option.SSHClient)
 	if err != nil {
 		return fmt.Errorf("%w: %w", ErrGetAuthMethod, err)
 	}
 
 	pushOptions := newGitGoPushOption(option.Target, option.RefSpecs, option.Prune, auth)
-	logger.Info().Str("target", option.Target).Msg("Pushing to:")
+	logger.Info().Str("target", option.Target).Msg("Pushing to")
 
 	if err := repository.GoGitRepository().Push(&pushOptions); err != nil {
 		name := repository.ProjectInfo().Name(ctx)
@@ -163,7 +163,10 @@ func (g GitLib) handlePushError(ctx context.Context, err error, name string) err
 	return fmt.Errorf("%w: %w", ErrRepoPush, err)
 }
 
-func (g GitLib) getAuthMethod(gitOption gpsconfig.GitOption, httpClient gpsconfig.HTTPClientOption, _ gpsconfig.SSHClientOption) (transport.AuthMethod, error) {
+func (g GitLib) getAuthMethod(ctx context.Context, gitOption gpsconfig.GitOption, httpClient gpsconfig.HTTPClientOption, _ gpsconfig.SSHClientOption) (transport.AuthMethod, error) {
+	logger := log.Logger(ctx)
+	logger.Trace().Msg("Entering GitLib:getAuthMethod")
+
 	switch strings.ToLower(gitOption.Type) {
 	case gpsconfig.SSHAGENT:
 		auth, err := ssh.NewSSHAgentAuth("git")
@@ -181,7 +184,7 @@ func (g GitLib) getAuthMethod(gitOption gpsconfig.GitOption, httpClient gpsconfi
 
 func (g GitLib) fetch(ctx context.Context, _ string, repo *git.Repository, auth transport.AuthMethod) error {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering Git:fetchBranches")
+	logger.Trace().Msg("Entering GitLib:fetchBranches")
 
 	refSpecs := []gogitconfig.RefSpec{
 		"refs/*:refs/*",
@@ -211,7 +214,7 @@ func (g GitLib) updateSyncRunMetainfo(ctx context.Context, key string, targetDir
 
 func (g GitLib) logRemotes(logger *zerolog.Logger, remotes []*git.Remote) {
 	for _, remote := range remotes {
-		logger.Debug().Strs("url", remote.Config().URLs).Str("name", remote.Config().Name).Msg("Remote:")
+		logger.Debug().Strs("url", remote.Config().URLs).Str("name", remote.Config().Name).Msg("Remote")
 	}
 }
 

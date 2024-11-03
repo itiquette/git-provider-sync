@@ -26,14 +26,8 @@ func initTargetSync(ctx context.Context, sourceProvider gpsconfig.ProviderConfig
 	return ctx
 }
 
-func logSyncStart(ctx context.Context, source, target gpsconfig.ProviderConfig) {
+func logSyncStart(ctx context.Context, _, target gpsconfig.ProviderConfig) {
 	logger := log.Logger(ctx)
-	userGroup := formatUserGroup(source.User, source.Group)
-
-	logger.Info().
-		Str("domain", source.GetDomain()).
-		Str("usr/group", userGroup).
-		Msg("syncing from")
 
 	logTargetInfo(logger, target)
 }
@@ -41,15 +35,15 @@ func logSyncStart(ctx context.Context, source, target gpsconfig.ProviderConfig) 
 func logTargetInfo(logger *zerolog.Logger, target gpsconfig.ProviderConfig) {
 	switch strings.ToLower(target.ProviderType) {
 	case gpsconfig.DIRECTORY:
-		logger.Info().Str("directory", target.DirectoryTargetDir()).Msg("targeting")
+		logger.Info().Str("directory", target.DirectoryTargetDir()).Msg("Targeting")
 	case gpsconfig.ARCHIVE:
-		logger.Info().Str("archive directory", target.ArchiveTargetDir()).Msg("targeting")
+		logger.Info().Str("archive directory", target.ArchiveTargetDir()).Msg("Targeting")
 	default:
 		logger.Info().
 			Str("provider", target.ProviderType).
 			Str("domain", target.GetDomain()).
 			Str("usr/group", formatUserGroup(target.User, target.Group)).
-			Msg("targeting")
+			Msg("Targeting")
 	}
 }
 
@@ -61,7 +55,7 @@ func summary(ctx context.Context, sourceProvider gpsconfig.ProviderConfig) {
 	logger := log.Logger(ctx)
 	userGroup := formatUserGroup(sourceProvider.User, sourceProvider.Group)
 
-	meta, ok := ctx.Value(model.SyncRunMetainfoKey{}).(*model.SyncRunMetainfo)
+	syncRunMetaInfo, ok := ctx.Value(model.SyncRunMetainfoKey{}).(*model.SyncRunMetainfo)
 	if !ok {
 		model.HandleError(ctx, ErrMissingSyncRunMeta)
 
@@ -71,10 +65,10 @@ func summary(ctx context.Context, sourceProvider gpsconfig.ProviderConfig) {
 	logger.Info().
 		Str("domain", sourceProvider.GetDomain()).
 		Str("usr/group", userGroup).
-		Msg("completed sync run")
+		Msg("Completed sync run")
 
-	logger.Info().Msgf("sync request: %d repositories", meta.Total)
-	logFailures(logger, meta)
+	logger.Info().Msgf("Sync request: %d repositories", syncRunMetaInfo.Total)
+	logFailures(logger, syncRunMetaInfo)
 }
 
 func logFailures(logger *zerolog.Logger, meta *model.SyncRunMetainfo) {
@@ -106,6 +100,6 @@ func logDryRun(ctx context.Context, cfg gpsconfig.ProviderConfig, metainfo []mod
 		Msg("dry-run enabled, skipping local clone")
 
 	for _, meta := range metainfo {
-		meta.DebugLog(logger).Msg("fetched repository metadata:")
+		meta.DebugLog(logger).Msg("fetched repository metadata")
 	}
 }

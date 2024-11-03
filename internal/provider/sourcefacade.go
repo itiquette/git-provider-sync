@@ -19,13 +19,13 @@ import (
 // It takes a context, a SourceReader interface for cloning operations,
 // and a slice of RepositoryMetainfo containing information about the repositories to clone.
 // It returns a slice of GitRepository interfaces representing the cloned repositories and any error encountered.
-func Clone(ctx context.Context, reader interfaces.SourceReader, sourceProviderConfig config.ProviderConfig, metainfos []model.ProjectInfo) ([]interfaces.GitRepository, error) {
+func Clone(ctx context.Context, reader interfaces.SourceReader, sourceProviderConfig config.ProviderConfig, projectinfos []model.ProjectInfo) ([]interfaces.GitRepository, error) {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering Cloning repositories")
+	logger.Trace().Msg("Entering Clone")
 
-	repositories := make([]interfaces.GitRepository, 0, len(metainfos))
+	repositories := make([]interfaces.GitRepository, 0, len(projectinfos))
 
-	for _, metainfo := range metainfos {
+	for _, metainfo := range projectinfos {
 		option := model.NewCloneOption(ctx, metainfo, true, sourceProviderConfig)
 
 		resultRepo, err := reader.Clone(ctx, option)
@@ -45,17 +45,18 @@ func Clone(ctx context.Context, reader interfaces.SourceReader, sourceProviderCo
 	return repositories, nil
 }
 
-// FetchMetainfo retrieves metadata information for repositories from a Git provider.
+// FetchProjectInfo retrieves metadata information for repositories from a Git provider.
 // It takes a context, provider configuration, and a GitProvider interface.
 // It returns a slice of RepositoryMetainfo containing the fetched metadata and any error encountered.
-func FetchMetainfo(ctx context.Context, config config.ProviderConfig, gitProvider interfaces.GitProvider) ([]model.ProjectInfo, error) {
+func FetchProjectInfo(ctx context.Context, config config.ProviderConfig, gitProvider interfaces.GitProvider) ([]model.ProjectInfo, error) {
 	logger := log.Logger(ctx)
 
 	// Log the metadata fetching operation
 	logger.Info().
 		Str("domain", config.GetDomain()).
 		Str("provider", gitProvider.Name()).
-		Msg("Fetching source meta info")
+		Str("usr/grp", config.User+config.Group).
+		Msg("Fetching repository projectinfo/s from:")
 
 	// Fetch the metadata from the Git provider
 	// The 'true' parameter likely indicates that all available metadata should be fetched

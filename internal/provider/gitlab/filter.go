@@ -30,11 +30,11 @@ func NewFilter(isInInterval IsInIntervalFunc) *Filter {
 	return &Filter{isInInterval: isInInterval}
 }
 
-func (Filter) FilterMetainfo(ctx context.Context, config config.ProviderConfig, metainfos []model.ProjectInfo, filterExcludedIncludedFunc functiondefinition.FilterIncludedExcludedFunc, isInInterval IsInIntervalFunc) ([]model.ProjectInfo, error) {
+func (Filter) FilterProjectinfos(ctx context.Context, config config.ProviderConfig, projectinfos []model.ProjectInfo, filterExcludedIncludedFunc functiondefinition.FilterIncludedExcludedFunc, isInInterval IsInIntervalFunc) ([]model.ProjectInfo, error) {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering FilterMetainfo: starting")
+	logger.Trace().Msg("Entering GitLab:FilterProjectinfos")
 
-	filteredURLs, err := filterExcludedIncludedFunc(ctx, config, metainfos)
+	filteredURLs, err := filterExcludedIncludedFunc(ctx, config, projectinfos)
 	if err != nil {
 		return nil, fmt.Errorf("failed to filter repository URLs by include/exclude: %w", err)
 	}
@@ -42,13 +42,13 @@ func (Filter) FilterMetainfo(ctx context.Context, config config.ProviderConfig, 
 	return filterByDate(ctx, filteredURLs, isInInterval)
 }
 
-func filterByDate(ctx context.Context, metainfos []model.ProjectInfo, isInInterval IsInIntervalFunc) ([]model.ProjectInfo, error) {
+func filterByDate(ctx context.Context, projectinfos []model.ProjectInfo, isInInterval IsInIntervalFunc) ([]model.ProjectInfo, error) {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering filterByDate: starting")
+	logger.Trace().Msg("Entering GitLab:filterByDate")
 
-	filteredMetainfos := make([]model.ProjectInfo, 0)
+	filteredProjectinfos := make([]model.ProjectInfo, 0)
 
-	for _, metainfo := range metainfos {
+	for _, metainfo := range projectinfos {
 		if metainfo.LastActivityAt == nil {
 			continue
 		}
@@ -59,9 +59,9 @@ func filterByDate(ctx context.Context, metainfos []model.ProjectInfo, isInInterv
 		}
 
 		if include {
-			filteredMetainfos = append(filteredMetainfos, metainfo)
+			filteredProjectinfos = append(filteredProjectinfos, metainfo)
 		}
 	}
 
-	return filteredMetainfos, nil
+	return filteredProjectinfos, nil
 }

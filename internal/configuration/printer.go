@@ -30,7 +30,7 @@ func printConfigurationSection(name string, sourceConfig config.ProviderConfig, 
 	printProviderConfig("Source Provider", sourceConfig, writer)
 
 	for provider, target := range targetConfigs {
-		fmt.Fprintln(writer, "Target Provider:")
+		fmt.Fprintln(writer, "Target Provider")
 		fmt.Fprintf(writer, " Configuration Name: %s\n", provider)
 		printProviderConfig("", target, writer)
 	}

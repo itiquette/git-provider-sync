@@ -18,25 +18,25 @@ import (
 	"itiquette/git-provider-sync/internal/target"
 )
 
-func toTarget(ctx context.Context, sourceProvider, targetConfig gpsconfig.ProviderConfig, repositories []interfaces.GitRepository) error {
+func toTarget(ctx context.Context, sourceCfg, targetCfg gpsconfig.ProviderConfig, repositories []interfaces.GitRepository) error {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("syncing to target")
-	targetConfig.DebugLog(logger)
+	logger.Trace().Msg("Entering toTarget")
+	targetCfg.DebugLog(logger)
 
-	ctx = initTargetSync(ctx, sourceProvider, targetConfig, repositories)
+	ctx = initTargetSync(ctx, sourceCfg, targetCfg, repositories)
 
-	client, err := createProviderClient(ctx, targetConfig)
+	client, err := createProviderClient(ctx, targetCfg)
 	if err != nil {
 		return fmt.Errorf("create target provider client: %w", err)
 	}
 
 	for _, repo := range repositories {
-		if err := processRepository(ctx, targetConfig, client, repo, sourceProvider); err != nil {
+		if err := processRepository(ctx, targetCfg, client, repo, sourceCfg); err != nil {
 			return fmt.Errorf("process repository: %w", err)
 		}
 	}
 
-	summary(ctx, sourceProvider)
+	summary(ctx, sourceCfg)
 
 	return nil
 }

@@ -47,8 +47,8 @@ type Client struct {
 // Returns an error if the repository creation fails.
 func (ghc Client) Create(ctx context.Context, config config.ProviderConfig, option model.CreateOption) error {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering GitHub:Create:")
-	config.DebugLog(logger).Msg("GitHub:Create:")
+	logger.Trace().Msg("Entering GitHub:Create")
+	option.DebugLog(logger).Msg("GitHub:CreateOption")
 
 	var (
 		err error
@@ -86,7 +86,7 @@ func (ghc Client) Name() string {
 // It can list repositories for Here's the updated version of the function with pagination support for go-github:.
 func (ghc Client) ProjectInfos(ctx context.Context, config config.ProviderConfig, filtering bool) ([]model.ProjectInfo, error) {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering GitHub:Metainfos:")
+	logger.Trace().Msg("Entering GitHub:Projectinfos")
 
 	var allRepos []*github.Repository
 
@@ -140,23 +140,24 @@ func (ghc Client) ProjectInfos(ctx context.Context, config config.ProviderConfig
 		}
 	}
 
-	logger.Debug().Int("total_repositories", len(allRepos)).Msg("Found repositories")
+	logger.Debug().Int("total_repositories", len(allRepos)).Msg("Total fetched repositories projectinfo")
 
-	metainfos := ghc.processRepositories(ctx, config, allRepos)
+	projectinfos := ghc.processRepositories(ctx, config, allRepos)
 
 	if filtering {
-		return ghc.filter.FilterMetainfo(ctx, config, metainfos)
+		return ghc.filter.FilterProjectInfos(ctx, config, projectinfos)
 	}
 
-	return metainfos, nil
+	return projectinfos, nil
 }
 
 // processRepositories is a helper function to process a list of repositories (either Org or User)
 // and convert them into RepositoryMetainfo slices.
 func (ghc *Client) processRepositories(ctx context.Context, config config.ProviderConfig, repos []*github.Repository) []model.ProjectInfo {
-	var metainfos []model.ProjectInfo //nolint:prealloc
-
 	logger := log.Logger(ctx)
+	logger.Trace().Msg("Entering GitHub:processRepositories")
+
+	var projectinfos []model.ProjectInfo //nolint:prealloc
 
 	for _, repo := range repos {
 		if !config.Git.IncludeForks && repo.Fork != nil && *repo.Fork {
@@ -167,15 +168,15 @@ func (ghc *Client) processRepositories(ctx context.Context, config config.Provid
 		metainfo, err := newProjectInfo(ctx, config, ghc.rawClient, name)
 
 		if err != nil {
-			logger.Warn().Err(err).Str("repo", name).Msg("Failed to create organization repository metadata")
+			logger.Warn().Err(err).Str("repo", name).Msg("failed to create projectinfo")
 
 			continue
 		}
 
-		metainfos = append(metainfos, metainfo)
+		projectinfos = append(projectinfos, metainfo)
 	}
 
-	return metainfos
+	return projectinfos
 }
 
 // Validate checks if the given repository name is valid.
@@ -192,8 +193,8 @@ func (ghc *Client) Validate(ctx context.Context, name string) bool {
 
 func (ghc Client) DefaultBranch(ctx context.Context, owner string, projectName string, branch string) error {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering GitHub:DefaultBranch:")
-	logger.Debug().Str("branch", branch).Msg("GitHub:DefaultBranch:")
+	logger.Trace().Msg("Entering GitHub:DefaultBranch")
+	logger.Debug().Str("branch", branch).Msg("DefaultBranch")
 
 	_, _, err := ghc.rawClient.Repositories.Edit(ctx, owner, projectName, &github.Repository{
 		DefaultBranch: github.String(branch),
@@ -215,8 +216,8 @@ func (ghc Client) DefaultBranch(ctx context.Context, owner string, projectName s
 // Returns true if the repository name is valid, false otherwise.
 func (ghc Client) IsValidRepositoryName(ctx context.Context, name string) bool {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering GitHub:Validate:")
-	logger.Debug().Str("name", name).Msg("GitHub:Validate:")
+	logger.Trace().Msg("Entering GitHub:IsValidRepositoryName")
+	logger.Debug().Str("name", name).Msg("IsValidRepositoryName")
 
 	if !IsValidGitHubRepositoryName(name) {
 		logger.Debug().Str("name", name).Msg("Invalid GitHub repository name")
@@ -238,7 +239,7 @@ func (ghc Client) IsValidRepositoryName(ctx context.Context, name string) bool {
 // Returns a new Client and an error if the client creation fails.
 func NewGitHubClient(ctx context.Context, option model.GitProviderClientOption, httpClient *http.Client) (Client, error) {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering NewGitHubClient")
+	logger.Trace().Msg("Entering GitHub:NewGitHubClient")
 
 	defaultBaseURL := "https://api.github.com/"
 	uploadBaseURL := "https://uploads.github.com/"
@@ -257,7 +258,6 @@ func NewGitHubClient(ctx context.Context, option model.GitProviderClientOption, 
 		client.UploadURL, _ = url.Parse(uploadBaseURL)
 	}
 
-	// TODO: Implement custom domain support for GitHub Enterprise
 	// TODO: secondary rate limiting check
 
 	return Client{rawClient: client}, nil
@@ -276,8 +276,8 @@ func NewGitHubClient(ctx context.Context, option model.GitProviderClientOption, 
 // Returns a RepositoryMetainfo and an error if the operation fails.
 func newProjectInfo(ctx context.Context, config config.ProviderConfig, gitClient *github.Client, name string) (model.ProjectInfo, error) {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering newProjectInfo:")
-	logger.Debug().Str("usr", config.User).Str("name", name).Str("provider", config.ProviderType).Str("domain", config.GetDomain()).Msg("newProjectInfo:")
+	logger.Trace().Msg("Entering GitHub:newProjectInfo")
+	logger.Debug().Str("usr/grp", config.User+config.Group).Str("name", name).Str("provider", config.ProviderType).Str("domain", config.GetDomain()).Msg("newProjectInfo")
 
 	owner := config.Group
 	if !config.IsGroup() {
