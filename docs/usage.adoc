@@ -1265,6 +1265,62 @@ Key Dependencies:
 ** Archive/Directory target paths must be writable
 ====
 
+
+[appendix]
+== Logging
+
+Git Provider Sync follows the Unix philosophy where logs are diagnostics (stderr) and not part of the program's actual output (stdout).
+
+=== Levels
+
+* Use TRACE, DEBUG during development
+* INFO, WARN, ERROR in production
+* FATAL used occasionally for startup errors 
+* PANIC is used rarely and will abort the current run
+
+TRACE helps you follow code execution path and program flow.
+// log.Trace().Msg("Entering method")
+
+DEBUG helps you find bug values
+// log.Debug().Int("count", count).Msg("processing items")
+
+INFO shows normal operation
+// log.Info().Msg("server started")
+
+WARN shows things to watch but not errors
+// log.Warn().Msg("high memory usage")
+
+ERROR shows actual problems, and oftent they will abort the current run.
+// log.Error().Err(err).Msg("failed to connect to x")
+
+FATAL - severe error, will call os.Exit(1)
+// log.Fatal().Msg("failed to initialize essential service")  // exits program
+
+PANIC - severe error, will call panic()
+// log.Panic().Msg("unrecoverable error")  // panics program
+
+=== Tips
+
+* Log verbosity are given with the --verbosity option.
+
+  gitprovidersync sync --verbosity=TRACE
+
+* As logs are written to stderr, if you filter with grep, you might want to pipe stderr to stdout
+
+  --verbosity=TRACE 2>&1 >/dev/null | grep 'TRC'
+
+* For even more verbose information while developing, add caller output with option
+ 
+  --verbosity-with-caller 
+
+* For output in json, choose output format
+
+  --output-format=json
+
+* For quiet output, only outputting errors, use option
+
+  --quiet
+
 [appendix]
 == Advanced: Restoring a Working Copy from a Compressed Archived Bare Git Repository
 
