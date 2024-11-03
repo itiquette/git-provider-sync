@@ -18,7 +18,7 @@ import (
 )
 
 func initTargetSync(ctx context.Context, sourceProvider gpsconfig.ProviderConfig, targetProvider gpsconfig.ProviderConfig, repositories []interfaces.GitRepository) context.Context {
-	meta := model.NewSyncRunMetainfo(0, sourceProvider.Domain, targetProvider.ProviderType, len(repositories))
+	meta := model.NewSyncRunMetainfo(0, sourceProvider.GetDomain(), targetProvider.ProviderType, len(repositories))
 	ctx = context.WithValue(ctx, model.SyncRunMetainfoKey{}, meta)
 
 	logSyncStart(ctx, sourceProvider, targetProvider)
@@ -31,7 +31,7 @@ func logSyncStart(ctx context.Context, source, target gpsconfig.ProviderConfig) 
 	userGroup := formatUserGroup(source.User, source.Group)
 
 	logger.Info().
-		Str("domain", source.Domain).
+		Str("domain", source.GetDomain()).
 		Str("usr/group", userGroup).
 		Msg("syncing from")
 
@@ -47,7 +47,7 @@ func logTargetInfo(logger *zerolog.Logger, target gpsconfig.ProviderConfig) {
 	default:
 		logger.Info().
 			Str("provider", target.ProviderType).
-			Str("domain", target.Domain).
+			Str("domain", target.GetDomain()).
 			Str("usr/group", formatUserGroup(target.User, target.Group)).
 			Msg("targeting")
 	}
@@ -69,7 +69,7 @@ func summary(ctx context.Context, sourceProvider gpsconfig.ProviderConfig) {
 	}
 
 	logger.Info().
-		Str("domain", sourceProvider.Domain).
+		Str("domain", sourceProvider.GetDomain()).
 		Str("usr/group", userGroup).
 		Msg("completed sync run")
 
@@ -101,7 +101,7 @@ func logDryRun(ctx context.Context, cfg gpsconfig.ProviderConfig, metainfo []mod
 	logger := log.Logger(ctx)
 
 	logger.Info().
-		Str("domain", cfg.Domain).
+		Str("domain", cfg.GetDomain()).
 		Strs("user/group", []string{cfg.User, cfg.Group}).
 		Msg("dry-run enabled, skipping local clone")
 

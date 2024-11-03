@@ -126,8 +126,9 @@ func createProviderClient(ctx context.Context, cfg gpsconfig.ProviderConfig) (in
 	client, err := provider.NewGitProviderClient(ctx, model.GitProviderClientOption{
 		ProviderType: cfg.ProviderType,
 		HTTPClient:   cfg.HTTPClient,
-		Domain:       cfg.Domain,
+		Domain:       cfg.GetDomain(),
 		Repositories: cfg.Repositories,
+		UploadURL:    cfg.GitHubUploadURL(),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize provider client: %w", err)

@@ -121,7 +121,7 @@ func (c Client) ProjectInfos(ctx context.Context, config config.ProviderConfig, 
 			continue
 		}
 
-		rm, _ := newRepositoryMeta(ctx, config, c.giteaClient, repo.Name)
+		rm, _ := newProjectInfo(ctx, config, c.giteaClient, repo.Name)
 		metainfos = append(metainfos, rm)
 	}
 
@@ -165,8 +165,14 @@ func NewGiteaClient(ctx context.Context, option model.GitProviderClientOption, h
 
 	clientOptions = append(clientOptions, gitea.SetHTTPClient(httpClient))
 
+	defaultBaseURL := "https://gitea.com"
+
+	if option.Domain != "" {
+		defaultBaseURL = option.DomainWithScheme(option.HTTPClient.Scheme)
+	}
+
 	client, err := gitea.NewClient(
-		option.DomainWithScheme(option.HTTPClient.Scheme),
+		defaultBaseURL,
 		clientOptions...,
 	)
 	if err != nil {
@@ -176,7 +182,7 @@ func NewGiteaClient(ctx context.Context, option model.GitProviderClientOption, h
 	return Client{giteaClient: client}, nil
 }
 
-// newRepositoryMeta creates a new RepositoryMetainfo struct for a given repository.
+// newProjectInfo creates a new RepositoryMetainfo struct for a given repository.
 // It fetches detailed information about the repository from Gitea.
 //
 // Parameters:
@@ -186,9 +192,9 @@ func NewGiteaClient(ctx context.Context, option model.GitProviderClientOption, h
 // - repositoryName: The name of the repository to fetch information for.
 //
 // Returns a RepositoryMetainfo and an error if the operation fails.
-func newRepositoryMeta(ctx context.Context, config config.ProviderConfig, rawClient *gitea.Client, repositoryName string) (model.ProjectInfo, error) {
+func newProjectInfo(ctx context.Context, config config.ProviderConfig, rawClient *gitea.Client, repositoryName string) (model.ProjectInfo, error) {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering newRepositoryMeta:")
+	logger.Trace().Msg("Entering newProjectInfo:")
 
 	owner := config.Group
 	if !config.IsGroup() {

@@ -15,6 +15,7 @@ import (
 type ProviderConfig struct {
 	ProviderType string             `koanf:"providertype"`
 	Domain       string             `koanf:"domain"`
+	UploadDomain string             `koanf:"uploaddomain"`
 	Group        string             `koanf:"group"`
 	User         string             `koanf:"user"`
 	Repositories RepositoriesOption `koanf:"repositories"`
@@ -71,6 +72,29 @@ func (p ProviderConfig) ArchiveTargetDir() string {
 // DirectoryTargetDir returns the directory target directory.
 func (p ProviderConfig) DirectoryTargetDir() string {
 	return p.Additional["directorytargetdir"]
+}
+
+// GitHubUploadURL returns the special GitHubUploadURL.
+func (p ProviderConfig) GitHubUploadURL() string {
+	return p.Additional["githubuploadurl"]
+}
+
+func (p ProviderConfig) GetDomain() string {
+
+	if p.Domain == "" {
+		switch p.ProviderType {
+		case "gitea":
+			return "gitea.com"
+		case "github":
+			return "github.com"
+		case "gitlab":
+			return "gitlab.com"
+		default:
+			return ""
+		}
+	}
+
+	return p.Domain
 }
 
 // IsGroup returns true if the configuration is for a group.

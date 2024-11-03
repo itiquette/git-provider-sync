@@ -17,6 +17,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -163,7 +164,7 @@ func (ghc *Client) processRepositories(ctx context.Context, config config.Provid
 		}
 
 		name := repo.GetName()
-		metainfo, err := newRepositoryMeta(ctx, config, ghc.rawClient, name)
+		metainfo, err := newProjectInfo(ctx, config, ghc.rawClient, name)
 
 		if err != nil {
 			logger.Warn().Err(err).Str("repo", name).Msg("Failed to create organization repository metadata")
@@ -239,18 +240,30 @@ func NewGitHubClient(ctx context.Context, option model.GitProviderClientOption, 
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering NewGitHubClient")
 
+	defaultBaseURL := "https://api.github.com/"
+	uploadBaseURL := "https://uploads.github.com/"
+
 	client := github.NewClient(httpClient)
 
 	if option.HTTPClient.Token != "" {
 		client = client.WithAuthToken(option.HTTPClient.Token)
 	}
 
+	if option.Domain == "" {
+		client.BaseURL, _ = url.Parse(defaultBaseURL)
+	}
+
+	if option.UploadURL == "" {
+		client.UploadURL, _ = url.Parse(uploadBaseURL)
+	}
+
 	// TODO: Implement custom domain support for GitHub Enterprise
+	// TODO: secondary rate limiting check
 
 	return Client{rawClient: client}, nil
 }
 
-// newRepositoryMeta creates a new RepositoryMetainfo struct from a GitHub repository.
+// newProjectInfo creates a new RepositoryMetainfo struct from a GitHub repository.
 // This is an internal function used to convert GitHub-specific repository data
 // into the application's generic RepositoryMetainfo format.
 //
@@ -261,10 +274,10 @@ func NewGitHubClient(ctx context.Context, option model.GitProviderClientOption, 
 //   - name: The name of the repository.
 //
 // Returns a RepositoryMetainfo and an error if the operation fails.
-func newRepositoryMeta(ctx context.Context, config config.ProviderConfig, gitClient *github.Client, name string) (model.ProjectInfo, error) {
+func newProjectInfo(ctx context.Context, config config.ProviderConfig, gitClient *github.Client, name string) (model.ProjectInfo, error) {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering newRepositoryMeta:")
-	logger.Debug().Str("usr", config.User).Str("name", name).Str("provider", config.ProviderType).Str("domain", config.Domain).Msg("newRepositoryMeta:")
+	logger.Trace().Msg("Entering newProjectInfo:")
+	logger.Debug().Str("usr", config.User).Str("name", name).Str("provider", config.ProviderType).Str("domain", config.GetDomain()).Msg("newProjectInfo:")
 
 	owner := config.Group
 	if !config.IsGroup() {

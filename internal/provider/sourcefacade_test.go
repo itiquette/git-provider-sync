@@ -86,10 +86,8 @@ func TestFetchMetainfo(t *testing.T) {
 		wantErr    bool
 	}{
 		{
-			name: "Successful fetch of metainfo",
-			config: config.ProviderConfig{
-				Domain: "https://github.com",
-			},
+			name:   "Successful fetch of metainfo",
+			config: config.ProviderConfig{},
 			mockSetup: func(m *mocks.GitProvider) {
 				m.On("Name").Return("GitHub")
 				m.On("ProjectInfos", mock.Anything, mock.AnythingOfType("model.ProviderConfig"), true).
@@ -102,10 +100,8 @@ func TestFetchMetainfo(t *testing.T) {
 			wantErr:    false,
 		},
 		{
-			name: "Failure to fetch metainfo",
-			config: config.ProviderConfig{
-				Domain: "https://gitlab.com",
-			},
+			name:   "Failure to fetch metainfo",
+			config: config.ProviderConfig{},
 			mockSetup: func(m *mocks.GitProvider) {
 				m.On("Name").Return("GitLab")
 				m.On("ProjectInfos", mock.Anything, mock.AnythingOfType("model.ProviderConfig"), true).

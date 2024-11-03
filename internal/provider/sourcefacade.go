@@ -53,7 +53,7 @@ func FetchMetainfo(ctx context.Context, config config.ProviderConfig, gitProvide
 
 	// Log the metadata fetching operation
 	logger.Info().
-		Str("domain", config.Domain).
+		Str("domain", config.GetDomain()).
 		Str("provider", gitProvider.Name()).
 		Msg("Fetching source meta info")
 

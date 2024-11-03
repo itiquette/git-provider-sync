@@ -6,6 +6,7 @@ configurations:
   conf1:
     source:
       providertype: xdgprovider1
+      domain: xdgdomain1
       user: xdguser1
       repositories:
         include: xdgrepo1, xdgrepo2

@@ -107,7 +107,7 @@ func validateSourceProvider(provider config.ProviderConfig) error {
 		return fmt.Errorf("source provider: must be one of %v: %w", ValidSourceGitProviders, ErrUnsupportedProvider)
 	}
 
-	if err := validateDomainName(provider.Domain); err != nil {
+	if err := validateDomainName(provider.GetDomain()); err != nil {
 		return fmt.Errorf("%w %w", ErrNoSourceDomain, err)
 	}
 
@@ -164,8 +164,8 @@ func validateTargetProvider(providerConfig config.ProviderConfig) error {
 	}
 
 	if providerConfig.ProviderType != config.ARCHIVE && providerConfig.ProviderType != config.DIRECTORY {
-		if len(providerConfig.Domain) == 0 {
-			return ErrNoTargetDomain
+		if err := validateDomainName(providerConfig.GetDomain()); err != nil {
+			return err
 		}
 
 		if err := validateGroupAndUser(providerConfig); err != nil {
@@ -435,10 +435,6 @@ func validateSSHCommand(command string) error {
 }
 
 func validateDomainName(domain string) error {
-	if domain == "" {
-		return errors.New("domain name cannot be empty")
-	}
-
 	if strings.Contains(domain, "://") {
 		return errors.New("domain should not include protocol scheme")
 	}

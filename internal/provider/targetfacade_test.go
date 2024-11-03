@@ -116,7 +116,6 @@ func TestGetPushOption(t *testing.T) {
 		"git provider with force push": {
 			config: config.ProviderConfig{
 				ProviderType: "gitlab",
-				Domain:       "gitlab.com",
 				HTTPClient:   config.HTTPClientOption{Token: "token"},
 				User:         "user",
 			},

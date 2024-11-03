@@ -128,20 +128,18 @@ Priority order (highest to lowest):
 
 === 4.4 Configuration Examples
 
-.Simple: A sync from github to gitlab, in the simplest way. All public repos.
+.Simple: A sync from github to gitlab, in the simplest way. All public repos. Default github.com and gitlab.com domains.
 [source,yaml]
 ----
 configurations: 
   mysimplesourceonfig: 
     source: 
       providertype: github
-      domain: github.com
       group: itiquette 
 
     targets:
       agitlabtarget:
         providertype: gitlab
-        domain: gitlab.com 
         user: <a-gitlab-user>
         httpclient:
           token: <a-gitlab-token-with-create-and-write-access>
@@ -155,7 +153,7 @@ configurations:
   myextendedsourceconfig: 
     source: 
       providertype: github
-      domain: github.com
+      domain: custom.github.domain
       group: itiquette 
       httpclient:
         token: <a-github-token-so-we-avoid-rate-limiting-etc>
@@ -165,7 +163,7 @@ configurations:
     targets:
       agitlabtarget:
         providertype: gitlab
-        domain: gitlab.com 
+        domain: custom.gitlab.domain
         user: <a-gitlab-user>
         httpclient:
           token: <a-gitlab-token-with-create-and-write-access>
@@ -189,7 +187,6 @@ configurations:
   myexamplesourceconfig: 
     source: 
       providertype: gitlab
-      domain: gitlab.com
       group: hanklank
       httpclient:
         token: <a-gitlab-token>
@@ -199,7 +196,6 @@ configurations:
     targets:
       agithubtarget:
         providertype: github
-        domain: github.com 
         user: <a-gitlab-user>
         httpclient:
           token: <a-gitlab-token-with-create-and-write-access>
@@ -375,6 +371,12 @@ a|* 2x increase with token
 * Gitea: Simple doubling with any authentication
 ====
 
+[IMPORTANT]
+====
+* GitHub: Authentication method matters
+* GitLab: User tier matters
+* Gitea: Simple doubling with any authentication
+====
 
 == 6 Target-Specific
 
@@ -937,12 +939,12 @@ providertype: gitlab
 
 |configurations.<name>.source.domain
 |FQDN Domain name of the Git provider
-|Mandatory
+|Optional
 a|Must not include protocol scheme.
 
 [literal]
 domain: gitlab.com
-|N/A
+a|Providertype=DefaultDomain: gitlab=gitlab.com github=github.com gitea=gitea.com
 
 |configurations.<name>.source.user
 |Repository owner username

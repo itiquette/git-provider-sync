@@ -9,7 +9,7 @@ configurations: # MANDATORY: Root configuration object containing all project co
   myexampleconfiguration: # MANDATORY: At least one configuration (letters and digits only)
     source: # MANDATORY: Source repository configuration
       providertype: gitlab # MANDATORY: Git provider type (supported: gitlab, github, gitea)
-      domain: gitlab.com # MANDATORY: FQDN Domain name of the Git provider
+      domain: gitlab.com # OPTIONAL: FQDN Domain name of the Git provider, (defaults: github.com, gitlab.com, gitea.com depending on providertype)
       # Either user or group must be specified (mutually exclusive)
       user: user # MANDATORY: (if no group) Repository owner username
       group: group # MANDATORY: (if no user) Repository owner group/organization name
@@ -39,7 +39,7 @@ configurations: # MANDATORY: Root configuration object containing all project co
     targets: # MANDATORY: Target repository configurations (at least one required)
       gitlabtargetexample: # MANDATORY: Target configuration name (letters and digits only)
         providertype: gitea # MANDATORY: Target Git provider type
-        domain: gitea.com # MANDATORY: Target domain name
+        domain: gitea.com # OPTIONAL: Target domain name
         # Either user or group must be specified (mutually exclusive)
         user: user # MANDATORY: (if no group) Target repository owner username
         group: group # MANDATORY: (if no user) Target repository owner group/organization

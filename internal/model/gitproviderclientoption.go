@@ -23,6 +23,8 @@ type GitProviderClientOption struct {
 	Domain string
 
 	Repositories model.RepositoriesOption
+
+	UploadURL string
 }
 
 // String provides a string representation of GitProviderClientOption.

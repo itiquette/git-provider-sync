@@ -160,7 +160,7 @@ func (c Client) getRepositoryMetaInfos(ctx context.Context, cfg config.ProviderC
 			continue
 		}
 
-		rm, err := newRepositoryMetainfo(ctx, cfg, c.rawClient, repo.Path)
+		rm, err := newProjectInfo(ctx, cfg, c.rawClient, repo.Path)
 		if err != nil {
 			return nil, fmt.Errorf("init repository meta for %s: %w", repo.Path, err)
 		}
@@ -187,10 +187,10 @@ func (c Client) IsValidRepositoryName(ctx context.Context, name string) bool {
 	return true
 }
 
-func newRepositoryMetainfo(ctx context.Context, cfg config.ProviderConfig, gitClient *gitlab.Client, name string) (model.ProjectInfo, error) {
+func newProjectInfo(ctx context.Context, cfg config.ProviderConfig, gitClient *gitlab.Client, name string) (model.ProjectInfo, error) {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering newRepositoryMeta:")
-	logger.Debug().Str("name", name).Msg("newRepositoryMeta:")
+	logger.Trace().Msg("Entering newProjectInfo:")
+	logger.Debug().Str("name", name).Msg("newProjectInfo:")
 
 	projectPath := getProjectPath(cfg, name)
 
@@ -279,10 +279,17 @@ func NewGitLabClient(ctx context.Context, option model.GitProviderClientOption, 
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering NewGitLabClient")
 
+	defaultBaseURL := "https://gitlab.com/"
+
+	if option.Domain != "" {
+		defaultBaseURL = option.DomainWithScheme(option.HTTPClient.Scheme)
+	}
+
 	client, err := gitlab.NewClient(option.HTTPClient.Token,
-		gitlab.WithBaseURL(option.DomainWithScheme(option.HTTPClient.Scheme)),
+		gitlab.WithBaseURL(defaultBaseURL),
 		gitlab.WithHTTPClient(httpClient),
 	)
+
 	if err != nil {
 		return Client{}, fmt.Errorf("create new GitLab client: %w", err)
 	}

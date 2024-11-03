@@ -159,7 +159,7 @@ func exists(ctx context.Context, targetProviderCfg config.ProviderConfig, provid
 		ctx = model.WithCLIOption(ctx, cliOption)
 	}
 
-	logger.Debug().Str("domain", targetProviderCfg.Domain).Str("name", repositoryName).Msg("Repository - Exists:")
+	logger.Debug().Str("domain", targetProviderCfg.GetDomain()).Str("name", repositoryName).Msg("Repository - Exists:")
 
 	return true, ctx, nil
 }
@@ -223,7 +223,7 @@ func toGitURL(ctx context.Context, config config.ProviderConfig, repository inte
 
 	repositoryName := repository.ProjectInfo().Name(ctx)
 
-	trimmedProviderConfigURL := strings.TrimRight(config.Domain, "/")
+	trimmedProviderConfigURL := strings.TrimRight(config.GetDomain(), "/")
 	projectPath := getProjectPath(config, repositoryName)
 
 	scheme := config.HTTPClient.Scheme

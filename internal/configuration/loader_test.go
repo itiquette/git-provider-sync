@@ -38,30 +38,30 @@ func TestReadConfigFileMergedOptionsInOrderXDGLocalDotEnvEnvVarSuccess(t *testin
 	require.Len(appConfiguration.Configurations, 6)
 
 	// a xdg file only defined conf
-	require.Equal("xdgconfdomain", appConfiguration.Configurations["confxdg"].SourceProvider.Domain)
+	require.Equal("xdgconfdomain", appConfiguration.Configurations["confxdg"].SourceProvider.GetDomain())
 
 	// a local file only defined conf
-	require.Equal("localconfdomain", appConfiguration.Configurations["conflocal"].SourceProvider.Domain)
+	require.Equal("localconfdomain", appConfiguration.Configurations["conflocal"].SourceProvider.GetDomain())
 
 	// a dotenv file only defined conf
-	require.Equal("dotenvdomain", appConfiguration.Configurations["confdotenv"].SourceProvider.Domain)
+	require.Equal("dotenvdomain", appConfiguration.Configurations["confdotenv"].SourceProvider.GetDomain())
 
 	// a env var only defined conf
-	require.Equal("confenvdomain", appConfiguration.Configurations["confenv"].SourceProvider.Domain)
+	require.Equal("confenvdomain", appConfiguration.Configurations["confenv"].SourceProvider.GetDomain())
 
 	// xdg spec value is read
 	require.Equal("xdguser1", appConfiguration.Configurations["conf1"].SourceProvider.User)
 
 	// local confile prop without overriding
 	// local conffile, which overrides a xdg prop
-	require.Equal("conf1domain", appConfiguration.Configurations["conf1"].SourceProvider.Domain)
+	require.Equal("conf1domain", appConfiguration.Configurations["conf1"].SourceProvider.GetDomain())
 	require.Equal("gitea", appConfiguration.Configurations["conf2"].SourceProvider.ProviderType)
 
 	// a prop was overridden from xdg to local then by .env file
 	require.Equal("dotenvprovider", appConfiguration.Configurations["conf1"].ProviderTargets["atarget"].ProviderType)
 
 	// a prop was overridden from xdg to local then by .env then by env var
-	require.Equal("envdomain", appConfiguration.Configurations["conf1"].ProviderTargets["anothertarget"].Domain)
+	require.Equal("envdomain", appConfiguration.Configurations["conf1"].ProviderTargets["anothertarget"].GetDomain())
 }
 func TestLoadConfiguration_InvalidConfig(t *testing.T) {
 	tests := []struct {

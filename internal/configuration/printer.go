@@ -59,7 +59,7 @@ func isLocalProvider(provider string) bool {
 
 // printRemoteProviderDetails writes the details specific to remote providers.
 func printRemoteProviderDetails(config config.ProviderConfig, writer io.Writer) {
-	fmt.Fprintf(writer, " Domain: %s\n", config.Domain)
+	fmt.Fprintf(writer, " Domain: %s\n", config.GetDomain())
 
 	if len(config.HTTPClient.Token) == 0 {
 		fmt.Fprintln(writer, " Token not specified")
