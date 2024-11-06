@@ -32,11 +32,11 @@ var (
 
 // Archive represents a structure capable of pushing Git repositories to archive files.
 type Archive struct {
-	gitClient GitLib
+	gitClient *gitLib
 }
 
 // Push initializes a target repository and creates an archive of it.
-func (a *Archive) Push(ctx context.Context, repo interfaces.GitRepository, opt model.PushOption, _ gpsconfig.ProviderConfig, _ gpsconfig.GitOption) error {
+func (a *Archive) Push(ctx context.Context, repo interfaces.GitRepository, opt model.PushOption, _ gpsconfig.GitOption) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Archive:Push")
 	opt.DebugLog(logger).Msg("Archive:Push")
@@ -58,21 +58,22 @@ func (a *Archive) initializeTargetRepository(ctx context.Context, repo interface
 		return "", err
 	}
 
-	if _, err := git.PlainInit(sourceDir, false); err != nil {
+	initializedRepo, err := git.PlainInit(sourceDir, false)
+	if err != nil {
 		return "", fmt.Errorf("%w: %w", ErrRepoInitialization, err)
 	}
 
 	pushOpt := model.NewPushOption(sourceDir, false, true, gpsconfig.HTTPClientOption{})
-	if err := a.gitClient.Push(ctx, repo, pushOpt, gpsconfig.ProviderConfig{}, gpsconfig.GitOption{}); err != nil {
-		return "", fmt.Errorf("%w: %w", ErrRepoPush, err)
+	if err := a.gitClient.Push(ctx, repo, pushOpt, gpsconfig.GitOption{}); err != nil {
+		return "", fmt.Errorf("%w: %w", ErrPushRepository, err)
 	}
 
-	if err := setRemoteAndBranch(repo, sourceDir); err != nil {
+	if err := setRemoteAndBranch(ctx, repo, sourceDir); err != nil {
 		return "", err
 	}
 
-	if err := setDefaultBranch(sourceDir, repo.ProjectInfo().DefaultBranch); err != nil {
-		return "", err
+	if err := a.gitClient.gitLibOperation.SetDefaultBranch(ctx, initializedRepo, repo.ProjectInfo().DefaultBranch); err != nil {
+		return "", err //nolint
 	}
 
 	return sourceDir, nil
@@ -134,7 +135,6 @@ func mapFilesToArchive(ctx context.Context, sourceDir, targetName string) ([]arc
 	return files, nil
 }
 
-// NewArchive creates a new Archive instance.
 func NewArchive() *Archive {
 	return &Archive{gitClient: NewGitLib()}
 }

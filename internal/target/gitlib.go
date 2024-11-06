@@ -2,270 +2,135 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-// Package target provides Git operations for repository management.
 package target
 
 import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
+	"path/filepath"
+
+	"github.com/go-git/go-billy/v5"
+	"github.com/go-git/go-billy/v5/memfs"
+	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/storage/memory"
 
 	"itiquette/git-provider-sync/internal/interfaces"
 	"itiquette/git-provider-sync/internal/log"
 	"itiquette/git-provider-sync/internal/model"
 	gpsconfig "itiquette/git-provider-sync/internal/model/configuration"
-
-	"github.com/go-git/go-billy/v5"
-	"github.com/go-git/go-billy/v5/memfs"
-	"github.com/go-git/go-git/v5"
-	gogitconfig "github.com/go-git/go-git/v5/config"
-	"github.com/go-git/go-git/v5/plumbing"
-	"github.com/go-git/go-git/v5/plumbing/transport"
-	"github.com/go-git/go-git/v5/plumbing/transport/http"
-	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
-	"github.com/go-git/go-git/v5/storage/memory"
-	"github.com/rs/zerolog"
 )
 
-// Common errors.
-var (
-	ErrBranchCheckout         = errors.New("failed to checkout branch")
-	ErrCloneRepository        = errors.New("failed to clone repository")
-	ErrCreateNewRepository    = errors.New("failed to create new repository")
-	ErrFetchBranches          = errors.New("failed to fetch branches")
-	ErrGetAuthMethod          = errors.New("failed to get auth method")
-	ErrGetWorktree            = errors.New("failed to get worktree")
-	ErrHeadSet                = errors.New("failed to set HEAD reference")
-	ErrOpenRepository         = errors.New("failed to open repository")
-	ErrOpenRepositoryWorktree = errors.New("failed to open repository worktree")
-	ErrRemoteCreation         = errors.New("failed to set remote in target repository")
-	ErrRepoInitialization     = errors.New("failed to initialize target repository")
-	ErrRepoPush               = errors.New("failed to push to target repository")
-	ErrRepoPull               = errors.New("failed to pull updates")
-	ErrUncleanWorkspace       = errors.New("workspace is unclean, aborting")
-	ErrUnsupportedGitType     = errors.New("unsupported git option type")
-)
-
-// GitLib represents operations against a GitLib repository.
-type GitLib struct {
+type gitLib struct {
+	gitLibOperation GitLibOperation
+	authProv        authProvider
 }
 
-// Clone clones a repository according to given clone options.
-func (g GitLib) Clone(ctx context.Context, option model.CloneOption) (model.Repository, error) {
+func NewGitLib() *gitLib { //nolint
+	return &gitLib{
+		gitLibOperation: newGitLibOperation(),
+		authProv:        newAuthProvider(),
+	}
+}
+
+func (g gitLib) Clone(ctx context.Context, opt model.CloneOption) (model.Repository, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitLib:Clone")
-	option.DebugLog(logger).Msg("GitLib:CloneOption")
+	opt.DebugLog(logger).Msg("GitLib:Clone")
 
-	auth, err := g.getAuthMethod(ctx, option.Git, option.HTTPClient, option.SSHClient)
+	auth, err := g.authProv.getAuthMethod(ctx, opt.Git, opt.HTTPClient, opt.SSHClient)
 	if err != nil {
-		return model.Repository{}, fmt.Errorf("%w: %w", ErrGetAuthMethod, err)
+		return model.Repository{}, fmt.Errorf("%w: %w", ErrAuthMethod, err)
 	}
 
-	var memFS billy.Filesystem
-
-	memStorage := memory.NewStorage()
-
-	if option.PlainRepo {
-		memFS = memfs.New()
+	var fileSys billy.Filesystem
+	if opt.NonBareRepo {
+		fileSys = memfs.New()
 	}
 
-	cloneOptions := newGitGoCloneOption(option.URL, option.Mirror, auth)
+	cloneOpt := newGitLibCloneOption(opt.URL, opt.Mirror, auth)
 
-	repo, err := git.Clone(memStorage, memFS, &cloneOptions)
+	repo, err := git.Clone(memory.NewStorage(), fileSys, &cloneOpt)
 	if err != nil {
 		return model.Repository{}, fmt.Errorf("%w: %w", ErrCloneRepository, err)
 	}
 
-	newRepo, err := model.NewRepository(repo)
-	if err != nil {
-		return model.Repository{}, fmt.Errorf("%w: %w", ErrCreateNewRepository, err)
-	}
-
-	return newRepo, nil
+	return model.NewRepository(repo) //nolint
 }
 
-// Pull performs a git pull operation on the repository.
-func (g GitLib) Pull(ctx context.Context, pullDirPath string, option model.PullOption) error {
+func (g gitLib) Pull(ctx context.Context, opt model.PullOption, targetDir string) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitLib:Pull")
-	option.DebugLog(logger).Msg("GitLib:Pull")
+	opt.DebugLog(logger).Str("targetDir", targetDir).Msg("GitLib:Pull")
 
-	repo, err := git.PlainOpen(pullDirPath)
+	repo, err := g.gitLibOperation.Open(ctx, targetDir)
 	if err != nil {
-		return fmt.Errorf("%w: %s: %w", ErrOpenRepository, pullDirPath, err)
+		return err //nolint
 	}
 
-	worktree, err := repo.Worktree()
+	worktree, err := g.gitLibOperation.GetWorktree(ctx, repo)
 	if err != nil {
-		return fmt.Errorf("%w: %w", ErrOpenRepositoryWorktree, err)
+		return err //nolint
 	}
 
-	if status, _ := worktree.Status(); !status.IsClean() {
-		return fmt.Errorf("%w: %s", ErrUncleanWorkspace, pullDirPath)
+	if err := g.gitLibOperation.WorktreeStatus(ctx, worktree); err != nil {
+		return fmt.Errorf("%w: %s", err, targetDir)
 	}
 
-	auth, err := g.getAuthMethod(ctx, option.GitOption, option.HTTPClientOption, option.SSHClient)
+	auth, err := g.authProv.getAuthMethod(ctx, opt.GitOption, opt.HTTPClient, opt.SSHClient)
 	if err != nil {
-		return fmt.Errorf("%w: %w", ErrGetAuthMethod, err)
+		return fmt.Errorf("%w: %w", ErrAuthMethod, err)
 	}
 
-	pullOptions := newGitGoPullOption(gpsconfig.ORIGIN, "", auth)
+	pullOpts := newGitLibPullOption(gpsconfig.ORIGIN, targetDir, auth)
 
-	if err := worktree.Pull(&pullOptions); err != nil {
+	if err := worktree.Pull(&pullOpts); err != nil {
 		if errors.Is(err, git.NoErrAlreadyUpToDate) {
-			logger.Debug().Msgf("Repository %s already up-to-date, ignoring Pull", pullDirPath)
-			g.updateSyncRunMetainfo(ctx, "uptodate", pullDirPath)
+			logger.Debug().Str("targetDir", targetDir).Msg("repository already up-to-date")
+			g.updateSyncRunMetainfo(ctx, "uptodate", targetDir)
 
 			return nil
 		}
 
-		return fmt.Errorf("%w: %w", ErrRepoPull, err)
+		return fmt.Errorf("%w: %w", ErrPullRepository, err)
 	}
 
-	return g.fetch(ctx, "", repo, auth)
+	return g.gitLibOperation.FetchBranches(ctx, repo, auth, filepath.Dir(targetDir)) //nolint
 }
 
-// Push pushes an existing repository to a target provider.
-func (g GitLib) Push(ctx context.Context, repository interfaces.GitRepository, option model.PushOption, _ gpsconfig.ProviderConfig, targetGitOption gpsconfig.GitOption) error {
+func (g gitLib) Push(ctx context.Context, repo interfaces.GitRepository, opt model.PushOption, gitOpt gpsconfig.GitOption) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitLib:Push")
-	option.DebugLog(logger).Msg("GitLib:Push")
+	opt.DebugLog(logger).Str("gitOpt", gitOpt.String()).Msg("GitLib:Push")
 
-	remotes, _ := repository.GoGitRepository().Remotes()
-	g.logRemotes(logger, remotes)
-
-	auth, err := g.getAuthMethod(ctx, targetGitOption, option.HTTPClient, option.SSHClient)
+	auth, err := g.authProv.getAuthMethod(ctx, gitOpt, opt.HTTPClient, opt.SSHClient)
 	if err != nil {
-		return fmt.Errorf("%w: %w", ErrGetAuthMethod, err)
+		return fmt.Errorf("%w: %w", ErrAuthMethod, err)
 	}
 
-	pushOptions := newGitGoPushOption(option.Target, option.RefSpecs, option.Prune, auth)
-	logger.Info().Str("target", option.Target).Msg("Pushing to")
+	pushOpts := newGitLibPushOption(opt.Target, opt.RefSpecs, opt.Prune, auth)
 
-	if err := repository.GoGitRepository().Push(&pushOptions); err != nil {
-		name := repository.ProjectInfo().Name(ctx)
-
-		return g.handlePushError(ctx, err, name)
-	}
-
-	return nil
-}
-
-func (g GitLib) handlePushError(ctx context.Context, err error, name string) error {
-	if errors.Is(err, git.NoErrAlreadyUpToDate) {
-		log.Logger(ctx).Debug().Msgf("Repository %s already up-to-date, ignoring Push", name)
-		g.updateSyncRunMetainfo(ctx, "uptodate", name)
-
-		return nil
-	}
-
-	return fmt.Errorf("%w: %w", ErrRepoPush, err)
-}
-
-func (g GitLib) getAuthMethod(ctx context.Context, gitOption gpsconfig.GitOption, httpClient gpsconfig.HTTPClientOption, _ gpsconfig.SSHClientOption) (transport.AuthMethod, error) {
-	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering GitLib:getAuthMethod")
-
-	switch strings.ToLower(gitOption.Type) {
-	case gpsconfig.SSHAGENT:
-		auth, err := ssh.NewSSHAgentAuth("git")
-		if err != nil {
-			return nil, errors.New("failed to find a running ssh agent")
-		}
-
-		return auth, nil
-	case gpsconfig.HTTPS, "":
-		return &http.BasicAuth{Username: "anyUser", Password: httpClient.Token}, nil
-	default:
-		return nil, fmt.Errorf("%w: %s", ErrUnsupportedGitType, gitOption.Type)
-	}
-}
-
-func (g GitLib) fetch(ctx context.Context, _ string, repo *git.Repository, auth transport.AuthMethod) error {
-	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering GitLib:fetchBranches")
-
-	refSpecs := []gogitconfig.RefSpec{
-		"refs/*:refs/*",
-		"^refs/pull/*:refs/pull/*",
-	}
-
-	options := &git.FetchOptions{RefSpecs: refSpecs, Auth: auth}
-
-	if err := repo.Fetch(options); err != nil {
+	if err := repo.GoGitRepository().Push(&pushOpts); err != nil {
 		if errors.Is(err, git.NoErrAlreadyUpToDate) {
-			logger.Debug().Msg("Repository already up-to-date, ignoring fetchBranches")
+			name := repo.ProjectInfo().Name(ctx)
+			logger.Debug().Str("name", name).Msg("repository already up-to-date")
+			g.updateSyncRunMetainfo(ctx, "uptodate", name)
 
 			return nil
 		}
 
-		return fmt.Errorf("%w: %w", ErrFetchBranches, err)
+		return fmt.Errorf("%w: %w", ErrPushRepository, err)
 	}
 
 	return nil
 }
 
-func (g GitLib) updateSyncRunMetainfo(ctx context.Context, key string, targetDir string) {
+func (g gitLib) updateSyncRunMetainfo(ctx context.Context, key, targetDir string) {
+	logger := log.Logger(ctx)
+	logger.Trace().Msg("Entering GitLib:updateSyncRunMetainfo")
+	logger.Debug().Str("key", key).Str("targetDir", targetDir).Msg("GitLib:updateSyncRunMetainfo")
+
 	if syncRunMeta, ok := ctx.Value(model.SyncRunMetainfoKey{}).(model.SyncRunMetainfo); ok {
 		syncRunMeta.Fail[key] = append(syncRunMeta.Fail[key], targetDir)
 	}
-}
-
-func (g GitLib) logRemotes(logger *zerolog.Logger, remotes []*git.Remote) {
-	for _, remote := range remotes {
-		logger.Debug().Strs("url", remote.Config().URLs).Str("name", remote.Config().Name).Msg("Remote")
-	}
-}
-
-// NewGitLib creates a new Git instance.
-func NewGitLib() GitLib {
-	return GitLib{}
-}
-
-func setRemoteAndBranch(repository interfaces.GitRepository, sourceDirPath string) error {
-	targetRepo, err := git.PlainOpen(sourceDirPath)
-	if err != nil {
-		return fmt.Errorf("%w: %s: %w", ErrOpenRepository, sourceDirPath, err)
-	}
-
-	remote, err := repository.GoGitRepository().Remote(gpsconfig.ORIGIN)
-	if err == nil {
-		if _, err := targetRepo.CreateRemote(&gogitconfig.RemoteConfig{
-			Name: gpsconfig.ORIGIN,
-			URLs: remote.Config().URLs,
-		}); err != nil {
-			return fmt.Errorf("%w: %w", ErrRemoteCreation, err)
-		}
-	}
-
-	return nil
-}
-
-func setDefaultBranch(repoPath, branchName string) error {
-	repo, err := git.PlainOpen(repoPath)
-	if err != nil {
-		return fmt.Errorf("%w: %s: %w", ErrOpenRepository, repoPath, err)
-	}
-
-	branchRef := plumbing.NewBranchReferenceName(branchName)
-
-	worktree, err := repo.Worktree()
-	if err != nil {
-		return fmt.Errorf("%w: %w", ErrGetWorktree, err)
-	}
-
-	if err := worktree.Checkout(&git.CheckoutOptions{
-		Branch: branchRef,
-		Force:  true,
-	}); err != nil {
-		return fmt.Errorf("%w: %s: %w", ErrBranchCheckout, branchName, err)
-	}
-
-	headRef := plumbing.NewSymbolicReference(plumbing.HEAD, branchRef)
-	if err := repo.Storer.SetReference(headRef); err != nil {
-		return fmt.Errorf("%w: %w", ErrHeadSet, err)
-	}
-
-	return nil
 }

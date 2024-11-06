@@ -23,7 +23,7 @@ func sync(ctx context.Context, cfg *gpsconfig.AppConfiguration) error {
 		return fmt.Errorf("failed to create temporary directory: %w", err)
 	}
 
-	defer cleanup(ctx)
+	//defer cleanup(ctx)
 
 	for _, config := range cfg.Configurations {
 		if err := sourceToTarget(ctx, config); err != nil {
@@ -54,11 +54,11 @@ func sourceToTarget(ctx context.Context, config gpsconfig.ProvidersConfig) error
 	return nil
 }
 
-func cleanup(ctx context.Context) {
-	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering cleanup")
+// func cleanup(ctx context.Context) {
+// 	logger := log.Logger(ctx)
+// 	logger.Trace().Msg("Entering cleanup")
 
-	if err := model.DeleteTmpDir(ctx); err != nil {
-		log.Logger(ctx).Error().Err(err).Msg("failed to delete temporary directory")
-	}
-}
+// 	if err := model.DeleteTmpDir(ctx); err != nil {
+// 		log.Logger(ctx).Error().Err(err).Msg("failed to delete temporary directory")
+// 	}
+// }

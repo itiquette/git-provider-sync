@@ -24,18 +24,18 @@ type CloneOption struct {
 	Git         model.GitOption        // Git configuration options
 	HTTPClient  model.HTTPClientOption // HTTP client options
 	SSHClient   model.SSHClientOption  // SSH client options
-	PlainRepo   bool                   // Whether to clone as a plain repository
+	NonBareRepo bool                   // Whether to clone as a nonbare (regular with worktree) repository
 	Name        string                 // Repository name
 }
 
 // String provides a string representation of CloneOption.
 func (co CloneOption) String() string {
-	return fmt.Sprintf("CloneOption{Name: %s, URL: %s, CleanupName: %t, Mirror: %t, PlainRepo: %t, Git: %s, HTTPClient: %s, SSHClient: %s}",
+	return fmt.Sprintf("CloneOption{Name: %s, URL: %s, CleanupName: %t, Mirror: %t, NonBareRepo: %t, Git: %s, HTTPClient: %s, SSHClient: %s}",
 		co.Name,
 		co.URL,
 		co.CleanupName,
 		co.Mirror,
-		co.PlainRepo,
+		co.NonBareRepo,
 		co.Git.String(),
 		co.HTTPClient.String(),
 		co.SSHClient.String())
@@ -48,7 +48,7 @@ func (co CloneOption) DebugLog(logger *zerolog.Logger) *zerolog.Event {
 				Str("url", co.URL).
 				Bool("cleanup_name", co.CleanupName).
 				Bool("mirror", co.Mirror).
-				Bool("plain_repo", co.PlainRepo).
+				Bool("nonbare_repo", co.NonBareRepo).
 				Str("git", co.Git.String()).
 				Str("http_client", co.HTTPClient.String()).
 				Str("ssh_client", co.SSHClient.String())

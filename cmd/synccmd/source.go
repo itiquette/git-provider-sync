@@ -52,7 +52,7 @@ func sourceRepositories(ctx context.Context, sourceCfg gpsconfig.ProviderConfig)
 
 func getSourceReader(cfg gpsconfig.ProviderConfig) (interfaces.SourceReader, error) {
 	if !cfg.Git.UseGitBinary {
-		return target.GitLib{}, nil
+		return target.NewGitLib(), nil
 	}
 
 	reader, err := target.NewGitBinary()
@@ -80,7 +80,17 @@ func processRepository(ctx context.Context, targetCfg gpsconfig.ProviderConfig, 
 		return fmt.Errorf("failed to prepare repository: %w", err)
 	}
 
-	return pushRepository(ctx, sourceCfg, targetCfg, client, repo)
+	if err := pushRepository(ctx, sourceCfg, targetCfg, client, repo); err != nil {
+		return fmt.Errorf("failed to push repository: %w", err)
+	}
+
+	if targetCfg.ProviderType == gpsconfig.DIRECTORY {
+		if err := target.NewDirectory().Pull(ctx, sourceCfg, targetCfg.DirectoryTargetDir(), repo); err != nil {
+			return fmt.Errorf("failed to pull repository for directory target: %w", err)
+		}
+	}
+
+	return nil
 }
 
 func validateRepository(ctx context.Context, client interfaces.GitProvider, repo interfaces.GitRepository, targetCfg gpsconfig.ProviderConfig) error {

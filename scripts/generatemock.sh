@@ -67,4 +67,16 @@ done
 echo -e "${YELLOW}Generating mocks for go-gitlab...${NC}"
 run_mockery --all --srcpkg=github.com/xanzy/go-gitlab --output "${OUTPUT_DIR}"/mockgitlab
 
+# Generate mocks for internal interfaces
+echo -e "${YELLOW}Generating mocks for target interfaces...${NC}"
+TARGET_INTERFACES=(
+  "GitLibOperation"
+  "CommandExecutor"
+  "BranchManager"
+)
+for interface in "${TARGET_INTERFACES[@]}"; do
+  echo -e "${BLUE}Generating mock for ${interface}...${NC}"
+  run_mockery --dir=internal/target --name="${interface}" --output "${OUTPUT_DIR}"/mockgogit
+done
+
 echo -e "${GREEN}Mock generation completed successfully.${NC}"

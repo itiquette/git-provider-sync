@@ -28,11 +28,11 @@ var (
 
 // Directory represents a target directory for git operations.
 type Directory struct {
-	gitClient GitLib
+	gitClient *gitLib
 }
 
 // Push performs a push operation on the target directory.
-func (dir Directory) Push(ctx context.Context, repo interfaces.GitRepository, opt model.PushOption, sourceConfig gpsconfig.ProviderConfig, _ gpsconfig.GitOption) error {
+func (dir Directory) Push(ctx context.Context, repo interfaces.GitRepository, opt model.PushOption, _ gpsconfig.GitOption) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Directory:Push")
 	opt.DebugLog(logger).Msg("Directory:Push")
@@ -47,17 +47,23 @@ func (dir Directory) Push(ctx context.Context, repo interfaces.GitRepository, op
 		return dir.initializeTargetRepository(ctx, repo, targetDir)
 	}
 
-	return updateRepository(ctx, sourceConfig, targetDir, dir)
+	return nil
 }
 
-func updateRepository(ctx context.Context, sourceCfg gpsconfig.ProviderConfig, targetDir string, dir Directory) error {
+func (dir Directory) Pull(ctx context.Context, sourceCfg gpsconfig.ProviderConfig, targetPath string, repo interfaces.GitRepository) error {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering Directory:updateRepository")
+	logger.Trace().Msg("Entering Directory:Pull")
+	logger.Debug().Str("targetPath", targetPath).Msg("Directory:Pull")
+
+	targetDir, err := getTargetDirPath(ctx, targetPath, repo.ProjectInfo().Name(ctx))
+	if err != nil {
+		return fmt.Errorf("%w %w", ErrDirGetPath, err)
+	}
 
 	pullOpt := model.NewPullOption("", "", sourceCfg.Git, sourceCfg.HTTPClient, sourceCfg.SSHClient)
 
-	if err := dir.gitClient.Pull(ctx, targetDir, pullOpt); err != nil {
-		return fmt.Errorf("%w: targetDir: %s: %w", ErrRepoPull, targetDir, err)
+	if err := dir.gitClient.Pull(ctx, pullOpt, targetDir); err != nil {
+		return fmt.Errorf("%w: targetDir: %s: %w", ErrPullRepository, targetDir, err)
 	}
 
 	return nil
@@ -80,22 +86,24 @@ func getTargetDirPath(ctx context.Context, targetDir, name string) (string, erro
 func (dir Directory) initializeTargetRepository(ctx context.Context, repo interfaces.GitRepository, targetDir string) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Directory:initializeTargetRepository")
+	logger.Debug().Str("targetDir", targetDir).Msg("Directory:initializeTargetRepository")
 
-	if _, err := git.PlainInit(targetDir, false); err != nil {
+	initializedRepo, err := git.PlainInit(targetDir, false)
+	if err != nil {
 		return fmt.Errorf("%w: %w", ErrRepoInitialization, err)
 	}
 
 	pushOpt := model.NewPushOption(targetDir, false, true, gpsconfig.HTTPClientOption{})
-	if err := dir.gitClient.Push(ctx, repo, pushOpt, gpsconfig.ProviderConfig{}, gpsconfig.GitOption{}); err != nil {
-		return fmt.Errorf("%w: %w", ErrRepoPush, err)
+	if err := dir.gitClient.Push(ctx, repo, pushOpt, gpsconfig.GitOption{}); err != nil {
+		return fmt.Errorf("%w: %w", ErrPushRepository, err)
 	}
 
-	if err := setRemoteAndBranch(repo, targetDir); err != nil {
+	if err := setRemoteAndBranch(ctx, repo, targetDir); err != nil {
 		return err
 	}
 
-	if err := setDefaultBranch(targetDir, repo.ProjectInfo().DefaultBranch); err != nil {
-		return err
+	if err := dir.gitClient.gitLibOperation.SetDefaultBranch(ctx, initializedRepo, repo.ProjectInfo().DefaultBranch); err != nil {
+		return err //nolint
 	}
 
 	return nil

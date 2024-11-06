@@ -10,7 +10,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/transport"
 )
 
-func newGitGoPullOption(name string, url string, auth transport.AuthMethod) git.PullOptions {
+func newGitLibPullOption(name string, url string, auth transport.AuthMethod) git.PullOptions {
 	return git.PullOptions{
 		RemoteName: name,
 		RemoteURL:  url,
@@ -18,7 +18,7 @@ func newGitGoPullOption(name string, url string, auth transport.AuthMethod) git.
 	}
 }
 
-func newGitGoCloneOption(url string, mirror bool, auth transport.AuthMethod) git.CloneOptions {
+func newGitLibCloneOption(url string, mirror bool, auth transport.AuthMethod) git.CloneOptions {
 	return git.CloneOptions{
 		Auth:   auth,
 		URL:    url,
@@ -26,7 +26,7 @@ func newGitGoCloneOption(url string, mirror bool, auth transport.AuthMethod) git
 	}
 }
 
-func newGitGoPushOption(url string, refSpec []string, prune bool, auth transport.AuthMethod) git.PushOptions {
+func newGitLibPushOption(url string, refSpec []string, prune bool, auth transport.AuthMethod) git.PushOptions {
 	refSpecs := make([]gogitconfig.RefSpec, 0, 20)
 
 	for _, r := range refSpec {

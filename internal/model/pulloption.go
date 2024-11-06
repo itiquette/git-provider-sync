@@ -14,11 +14,11 @@ import (
 // PullOption represents options for a git pull operation.
 // It includes the name of the remote, its URL, and the local target path.
 type PullOption struct {
-	Name             string // The name of the remote (e.g., "origin")
-	URL              string // The URL of the remote repository
-	GitOption        model.GitOption
-	HTTPClientOption model.HTTPClientOption
-	SSHClient        model.SSHClientOption
+	Name       string // The name of the remote (e.g., "origin")
+	URL        string // The URL of the remote repository
+	GitOption  model.GitOption
+	HTTPClient model.HTTPClientOption
+	SSHClient  model.SSHClientOption
 }
 
 func (po PullOption) String() string {
@@ -26,7 +26,7 @@ func (po PullOption) String() string {
 		po.Name,
 		po.URL,
 		po.GitOption.String(),
-		po.HTTPClientOption.String(),
+		po.HTTPClient.String(),
 		po.SSHClient.String())
 }
 
@@ -35,17 +35,17 @@ func (po PullOption) DebugLog(logger *zerolog.Logger) *zerolog.Event {
 				Str("name", po.Name).
 				Str("url", po.URL).
 				Str("git_option", po.GitOption.String()).
-				Str("http_client", po.HTTPClientOption.String()).
+				Str("http_client", po.HTTPClient.String()).
 				Str("ssh_client", po.SSHClient.String())
 }
 
 // NewPullOption creates a new PullOption.
 func NewPullOption(name, url string, gitInfo model.GitOption, httpClient model.HTTPClientOption, sshClient model.SSHClientOption) PullOption {
 	return PullOption{
-		Name:             name,
-		URL:              url,
-		GitOption:        gitInfo,
-		HTTPClientOption: httpClient,
-		SSHClient:        sshClient,
+		Name:       name,
+		URL:        url,
+		GitOption:  gitInfo,
+		HTTPClient: httpClient,
+		SSHClient:  sshClient,
 	}
 }

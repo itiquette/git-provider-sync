@@ -6,73 +6,64 @@ package target
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"net/url"
-	"os"
-	"os/exec"
 	"path/filepath"
-	"strings"
-	"time"
+
+	"github.com/go-git/go-git/v5"
 
 	"itiquette/git-provider-sync/internal/interfaces"
 	"itiquette/git-provider-sync/internal/log"
 	"itiquette/git-provider-sync/internal/model"
 	gpsconfig "itiquette/git-provider-sync/internal/model/configuration"
-
-	"github.com/go-git/go-git/v5"
-)
-
-var (
-	ErrGitBinaryNotFound   = errors.New("failed to find a Git executable")
-	ErrEmptyBinaryPath     = errors.New("failed to find Git binary path")
-	ErrPermissionDenied    = errors.New("failed with permission denied (publickey). Provide correct key in your ssh-agent")
-	ErrSetRepositoryConfig = errors.New("failed to set repository config")
-	ErrPullRepository      = errors.New("failed to pull repository")
-	ErrGetRemoteBranches   = errors.New("failed to get remote branches")
-	ErrTmpDirPath          = errors.New("failed to get tmpdirpath")
+	"os/exec"
+	"strings"
 )
 
 type GitBinary struct {
-	gitBinaryPath string
+	authProv   authProvider
+	executor   CommandExecutor
+	branchMgr  BranchManager
+	binaryPath string
 }
 
-func NewGitBinary() (GitBinary, error) {
+func NewGitBinary() (*GitBinary, error) {
 	binaryPath, err := ValidateGitBinary()
 	if err != nil {
-		return GitBinary{}, fmt.Errorf("%w: %w", ErrGitBinaryNotFound, err)
+		return nil, fmt.Errorf("%w: %w", ErrGitBinaryNotFound, err)
 	}
 
 	if len(binaryPath) == 0 {
-		return GitBinary{}, ErrEmptyBinaryPath
+		return nil, ErrEmptyBinaryPath
 	}
 
-	return GitBinary{
-		gitBinaryPath: binaryPath,
+	executor := newExecService(binaryPath)
+
+	return &GitBinary{
+		authProv:   newAuthProvider(),
+		executor:   executor,
+		branchMgr:  newGitBranch(executor),
+		binaryPath: binaryPath,
 	}, nil
 }
 
-func (g GitBinary) Clone(ctx context.Context, option model.CloneOption) (model.Repository, error) {
+func (g *GitBinary) Clone(ctx context.Context, opt model.CloneOption) (model.Repository, error) {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("GitBinary:Clone")
-	option.DebugLog(logger).Msg("GitBinary:CloneOption")
+	logger.Trace().Msg("Entering GitBinary:Clone")
+	opt.DebugLog(logger).Msg("GitBinary:Clone")
 
-	env := setupSSHCommandEnv(option.SSHClient.SSHCommand, option.SSHClient.RewriteSSHURLFrom, option.SSHClient.RewriteSSHURLTo)
+	env := setupSSHCommandEnv(opt.SSHClient.SSHCommand, opt.SSHClient.RewriteSSHURLFrom, opt.SSHClient.RewriteSSHURLTo)
 
 	tmpDirPath, err := model.GetTmpDirPath(ctx)
 	if err != nil {
 		return model.Repository{}, fmt.Errorf("%w: %w", ErrTmpDirPath, err)
 	}
 
-	destinationDir := filepath.Join(tmpDirPath, option.Name)
+	destinationDir := filepath.Join(tmpDirPath, opt.Name)
 	parentDir := filepath.Dir(destinationDir)
 
-	url := option.URL
-	if !strings.EqualFold(option.Git.Type, gpsconfig.SSHAGENT) {
-		url = addBasicAuthToURL(option.URL, "anyuser", option.HTTPClient.Token)
-	}
+	cloneURL := g.prepareCloneURL(ctx, opt)
 
-	if err := g.runGitCommand(ctx, env, parentDir, "clone", url, destinationDir); err != nil {
+	if err := g.executor.RunGitCommand(ctx, env, parentDir, "clone", cloneURL, destinationDir); err != nil {
 		if strings.Contains(err.Error(), "Permission denied (publickey)") {
 			return model.Repository{}, ErrPermissionDenied
 		}
@@ -80,140 +71,84 @@ func (g GitBinary) Clone(ctx context.Context, option model.CloneOption) (model.R
 		return model.Repository{}, fmt.Errorf("%w: %w", ErrCloneRepository, err)
 	}
 
-	g.fetch(ctx, destinationDir) //nolint
+	if err := g.branchMgr.Fetch(ctx, destinationDir); err != nil {
+		logger.Warn().Err(err).Msg("fetch after clone failed")
+	}
+
+	return g.finalizeClone(ctx, destinationDir, cloneURL, opt.Git.Type)
+}
+
+func (g *GitBinary) prepareCloneURL(ctx context.Context, opt model.CloneOption) string {
+	logger := log.Logger(ctx)
+	logger.Trace().Msg("Entering GitBinary:prepareCloneURL")
+	opt.DebugLog(logger).Msg("GitBinary:prepareCloneURL")
+
+	url := opt.URL
+	if !strings.EqualFold(opt.Git.Type, gpsconfig.SSHAGENT) {
+		url = addBasicAuthToURL(ctx, opt.URL, "anyuser", opt.HTTPClient.Token)
+	}
+
+	return url
+}
+
+func (g *GitBinary) finalizeClone(ctx context.Context, destinationDir, cloneURL, gitType string) (model.Repository, error) {
+	logger := log.Logger(ctx)
+	logger.Trace().Msg("Entering GitBinary:finalizeClone")
+	logger.Debug().Str("destinationDir", destinationDir).Str("cloneURL", cloneURL).Str("gitType", gitType).Msg("GitBinary:finalizeClone")
 
 	repo, err := git.PlainOpen(destinationDir)
 	if err != nil {
 		return model.Repository{}, fmt.Errorf("%w: %w", ErrOpenRepository, err)
 	}
 
-	if !strings.EqualFold(option.Git.Type, gpsconfig.SSHAGENT) {
-		url = removeBasicAuthFromURL(url)
-
-		cfg, _ := repo.Config()
-		cfg.Remotes["origin"].URLs = []string{url}
-
-		err = repo.SetConfig(cfg)
-		if err != nil {
-			return model.Repository{}, fmt.Errorf("%w: %w", ErrSetRepositoryConfig, err)
+	if !strings.EqualFold(gitType, gpsconfig.SSHAGENT) {
+		if err := g.updateRepoConfig(ctx, repo, cloneURL); err != nil {
+			return model.Repository{}, err
 		}
 	}
 
 	return model.NewRepository(repo) //nolint
 }
 
-func (g GitBinary) Pull(ctx context.Context, pullDirPath string, option model.PullOption) error {
+func (g *GitBinary) updateRepoConfig(ctx context.Context, repo *git.Repository, cloneURL string) error {
 	logger := log.Logger(ctx)
-	option.DebugLog(logger).Msg("GitBinary:Pull")
+	logger.Trace().Msg("Entering GitBinary:updateRepoConfig")
+	logger.Debug().Str("cloneURL", cloneURL).Msg("GitBinary:updateRepoConfig")
 
-	env := setupSSHCommandEnv(option.SSHClient.SSHCommand, option.SSHClient.RewriteSSHURLFrom, option.SSHClient.RewriteSSHURLTo)
+	url := removeBasicAuthFromURL(ctx, cloneURL)
+	cfg, _ := repo.Config()
+	cfg.Remotes["origin"].URLs = []string{url}
 
-	if err := g.runGitCommand(ctx, env, pullDirPath, "pull"); err != nil {
+	if err := repo.SetConfig(cfg); err != nil {
+		return fmt.Errorf("%w: %w", ErrSetRepositoryConfig, err)
+	}
+
+	return nil
+}
+
+func (g *GitBinary) Pull(ctx context.Context, pullDirPath string, opt model.PullOption) error {
+	logger := log.Logger(ctx)
+	logger.Trace().Msg("Entering GitBinary:Pull")
+	opt.DebugLog(logger).Str("pullDirPath", pullDirPath).Msg("GitBinary:Pull")
+
+	env := setupSSHCommandEnv(opt.SSHClient.SSHCommand, opt.SSHClient.RewriteSSHURLFrom, opt.SSHClient.RewriteSSHURLTo)
+
+	if err := g.executor.RunGitCommand(ctx, env, pullDirPath, "pull"); err != nil {
 		return fmt.Errorf("%w: %w", ErrPullRepository, err)
 	}
 
-	return g.fetch(ctx, pullDirPath)
+	return g.branchMgr.Fetch(ctx, pullDirPath) //nolint
 }
 
-func (g GitBinary) Push(ctx context.Context, _ interfaces.GitRepository, option model.PushOption, _ gpsconfig.ProviderConfig, _ gpsconfig.GitOption) error {
+func (g *GitBinary) Push(ctx context.Context, _ interfaces.GitRepository, opt model.PushOption, _ gpsconfig.GitOption) error {
 	logger := log.Logger(ctx)
-	option.DebugLog(logger).Msg("GitBinary:Push")
+	logger.Trace().Msg("Entering GitBinary:Push")
+	opt.DebugLog(logger).Msg("GitBinary:Push")
 
-	env := setupSSHCommandEnv(option.SSHClient.SSHCommand, option.SSHClient.RewriteSSHURLFrom, option.SSHClient.RewriteSSHURLTo)
+	env := setupSSHCommandEnv(opt.SSHClient.SSHCommand, opt.SSHClient.RewriteSSHURLFrom, opt.SSHClient.RewriteSSHURLTo)
+	args := append([]string{"push", opt.Target}, opt.RefSpecs...)
 
-	args := append([]string{"push", option.Target}, option.RefSpecs...)
-
-	return g.runGitCommand(ctx, env, "", args...)
-}
-
-func (g GitBinary) fetch(ctx context.Context, workingDirPath string) error {
-	commands := [][]string{
-		{"fetch", "--all", "--prune"},
-		{"pull", "--all"},
-		{"pull", "--all"},
-	}
-
-	for _, cmd := range commands {
-		if err := g.runGitCommand(ctx, nil, workingDirPath, cmd...); err != nil {
-			return err
-		}
-	}
-
-	return g.createTrackingBranches(ctx, workingDirPath)
-}
-
-func (g GitBinary) runGitCommand(ctx context.Context, env []string, workingDir string, args ...string) error {
-	ctx, cancel := context.WithTimeout(ctx, 3*time.Minute)
-	defer cancel()
-
-	cmd := exec.CommandContext(ctx, g.gitBinaryPath, args...) //nolint:gosec
-
-	cmd.Env = append(os.Environ(), env...)
-	if len(workingDir) != 0 {
-		cmd.Dir = workingDir
-	}
-
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("error executing '%s %s': %w. err: %s", g.gitBinaryPath, strings.Join(args, " "), err, output)
-	}
-
-	log.Logger(ctx).Debug().Msgf("Git command output: %s", output)
-
-	return nil
-}
-
-func addBasicAuthToURL(urlStr, username, password string) string {
-	parsedURL, _ := url.Parse(urlStr)
-	parsedURL.User = url.UserPassword(username, password)
-
-	return parsedURL.String()
-}
-
-func removeBasicAuthFromURL(urlStr string) string {
-	parsedURL, err := url.Parse(urlStr)
-	if err != nil {
-		return urlStr
-	}
-
-	parsedURL.User = nil
-
-	return parsedURL.String()
-}
-
-func (g GitBinary) createTrackingBranches(ctx context.Context, repoPath string) error {
-	logger := log.Logger(ctx)
-	logger.Trace().Msg("GitBinary:createTrackingBranches")
-
-	output, err := g.runGitCommandWithOutput(ctx, repoPath, "branch", "-r")
-	if err != nil {
-		return fmt.Errorf("%w: %w", ErrGetRemoteBranches, err)
-	}
-
-	for _, branch := range strings.Split(strings.TrimSpace(string(output)), "\n") {
-		branch = strings.TrimSpace(branch)
-		if strings.Contains(branch, "->") {
-			continue
-		}
-
-		localBranch := strings.TrimPrefix(branch, "origin/")
-		if err := g.runGitCommand(ctx, nil, repoPath, "branch", "--track", localBranch, branch); err != nil {
-			if !strings.Contains(err.Error(), "already exists") {
-				logger.Debug().Msgf("Could not create tracking branch for %s: %s", branch, err.Error())
-			}
-		} else {
-			logger.Debug().Msgf("Created tracking branch for %s", branch)
-		}
-	}
-
-	return nil
-}
-
-func (g GitBinary) runGitCommandWithOutput(ctx context.Context, workingDir string, args ...string) ([]byte, error) {
-	cmd := exec.CommandContext(ctx, g.gitBinaryPath, args...) //nolint:gosec
-	cmd.Dir = workingDir
-
-	return cmd.Output() //nolint
+	return g.executor.RunGitCommand(ctx, env, "", args...) //nolint
 }
 
 func ValidateGitBinary() (string, error) {

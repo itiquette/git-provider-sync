@@ -55,7 +55,7 @@ func Push(ctx context.Context, targetProviderCfg config.ProviderConfig, provider
 
 	pushOption := getPushOption(ctx, targetProviderCfg, repository, forcePush)
 
-	if err := writer.Push(ctx, repository, pushOption, sourceProviderConfig, targetProviderCfg.Git); err != nil {
+	if err := writer.Push(ctx, repository, pushOption, targetProviderCfg.Git); err != nil {
 		return fmt.Errorf("%w: %w", ErrPushChanges, err)
 	}
 
@@ -176,7 +176,7 @@ func repositoryExists(ctx context.Context, config config.ProviderConfig, provide
 
 	if err != nil {
 		logger.Error().Msgf("failed to get repository meta information. Aborting run. err: %s", err.Error())
-		panic(2)
+		panic(4)
 	}
 
 	for _, metainfo := range projectinfos {
