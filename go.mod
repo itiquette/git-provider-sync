@@ -4,7 +4,7 @@
 
 module itiquette/git-provider-sync
 
-go 1.23.2
+go 1.23.3
 
 require (
 	code.gitea.io/sdk/gitea v0.19.0
