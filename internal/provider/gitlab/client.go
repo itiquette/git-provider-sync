@@ -56,6 +56,11 @@ func (c Client) Create(ctx context.Context, cfg config.ProviderConfig, opt model
 		projectOpts.NamespaceID = gitlab.Ptr(namespaceID)
 	}
 
+	projectOpts.BuildsAccessLevel = gitlab.Ptr(gitlab.DisabledAccessControl)
+	if opt.CIEnabled {
+		projectOpts.BuildsAccessLevel = gitlab.Ptr(gitlab.PrivateAccessControl)
+	}
+
 	_, _, err = c.rawClient.Projects.CreateProject(projectOpts)
 	if err != nil {
 		return fmt.Errorf("failed to create %s: %w", opt.RepositoryName, err)

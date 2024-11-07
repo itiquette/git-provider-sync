@@ -101,12 +101,17 @@ func create(ctx context.Context, targetProviderCfg config.ProviderConfig, provid
 	description := buildDescription(gpsUpstreamRemote, repository, targetProviderCfg.Project.Description)
 	name := repository.ProjectInfo().Name(ctx)
 
-	visibility, err := mapVisibility(sourceProviderType, targetProviderCfg.ProviderType, repository.ProjectInfo().Visibility)
-	if err != nil {
-		return fmt.Errorf("failed to map visibility: %w", err)
+	visibility := targetProviderCfg.Project.Visibility
+	if targetProviderCfg.Project.Visibility == "" {
+		visibility, err = mapVisibility(sourceProviderType, targetProviderCfg.ProviderType, repository.ProjectInfo().Visibility)
+		if err != nil {
+			return fmt.Errorf("failed to map visibility: %w", err)
+		}
 	}
 
-	option := model.NewCreateOption(name, visibility, description, repository.ProjectInfo().DefaultBranch)
+	ciEnabled := targetProviderCfg.Project.CIEnabled
+
+	option := model.NewCreateOption(name, visibility, description, repository.ProjectInfo().DefaultBranch, ciEnabled)
 
 	if err := provider.Create(ctx, targetProviderCfg, option); err != nil {
 		return fmt.Errorf("%w: %s. err: %w", ErrCreateRepository, name, err)

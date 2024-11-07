@@ -45,7 +45,7 @@ func printProviderConfig(header string, config config.ProviderConfig, writer io.
 	fmt.Fprintf(writer, " ProviderType: %s\n", config.ProviderType)
 
 	if !isLocalProvider(config.ProviderType) {
-		printRemoteProviderDetails(config, writer)
+		printProviderDetails(config, writer)
 	}
 
 	printStringMap(" Additional", config.Additional, writer)
@@ -57,8 +57,8 @@ func isLocalProvider(provider string) bool {
 	return strings.EqualFold(provider, config.ARCHIVE) || strings.EqualFold(provider, config.DIRECTORY)
 }
 
-// printRemoteProviderDetails writes the details specific to remote providers.
-func printRemoteProviderDetails(config config.ProviderConfig, writer io.Writer) {
+// printProviderDetails writes the details specific to remote providers.
+func printProviderDetails(config config.ProviderConfig, writer io.Writer) {
 	fmt.Fprintf(writer, " Domain: %s\n", config.GetDomain())
 
 	if len(config.HTTPClient.Token) == 0 {
@@ -83,8 +83,24 @@ func printRemoteProviderDetails(config config.ProviderConfig, writer io.Writer) 
 	// SSHClientOptions
 	printSSHClientOption(writer, config)
 
+	printProjectOption(writer, config)
+
 	fmt.Fprintf(writer, " Include: %s\n", config.Repositories.Include)
 	fmt.Fprintf(writer, " Exclude: %s\n", config.Repositories.Exclude)
+}
+
+func printProjectOption(writer io.Writer, config config.ProviderConfig) {
+	fmt.Fprint(writer, " Project:\n")
+
+	if config.Project.Description != "" {
+		fmt.Fprintf(writer, "  Description: %s\n", config.Project.Description)
+	}
+
+	if config.Project.Visibility != "" {
+		fmt.Fprintf(writer, "  Visibility: %s\n", config.Project.Visibility)
+	}
+
+	fmt.Fprintf(writer, "  CIEnabled: %t\n", config.Project.CIEnabled)
 }
 
 func printGitProtocol(writer io.Writer, providerConfig config.ProviderConfig) {

@@ -71,6 +71,26 @@ func (ghc Client) Create(ctx context.Context, config config.ProviderConfig, opti
 		return fmt.Errorf("create: failed to create %s: %w", option.RepositoryName, err)
 	}
 
+	// disable workflows
+
+	if !option.CIEnabled {
+		owner := config.User
+		if config.IsGroup() {
+			owner = config.Group
+		}
+
+		ciEnablePtr := &option.CIEnabled
+		permissions := &github.ActionsPermissionsRepository{
+			Enabled: ciEnablePtr,
+		}
+
+		// Update repository actions permissions
+		_, _, err := ghc.rawClient.Repositories.EditActionsPermissions(ctx, owner, option.RepositoryName, *permissions)
+		if err != nil {
+			return fmt.Errorf("failed to disable Actions for repository: %w", err)
+		}
+	}
+
 	logger.Trace().Msg("User repository created successfully")
 
 	return nil

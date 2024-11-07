@@ -41,9 +41,9 @@ func (p ProviderConfig) DebugLog(logger *zerolog.Logger) *zerolog.Event {
 					Str("uploadDomain", p.UploadDomain).
 					Interface("repositories", p.Repositories).
 					Interface("git", p.Git).
-					Interface("project", p.Project).
+					Interface("project", p.Project.String()).
 					Interface("httpClient", p.HTTPClient.String()).
-					Interface("sshClient", p.SSHClient).
+					Interface("sshClient", p.SSHClient.String()).
 					Interface("syncRun", p.SyncRun).
 					Interface("additional", p.Additional)
 

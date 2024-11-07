@@ -50,6 +50,8 @@ configurations: # MANDATORY: Root configuration object containing all project co
 
         project:
           description: prefix # OPTIONAL: Description prefix for mirrored repositories
+          cienabled: true # OPTIONAL: Should CI be enabled on target (Default:false) 
+          visibility: something # OPTIONAL: Default visibiltiy for target repo. (Default: use source setting)
 
         httpclient: # OPTIONAL: HTTP client configuration
           token: token123 # OPTIONAL: Git provider API token

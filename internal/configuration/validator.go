@@ -147,6 +147,14 @@ func validateSourceProvider(provider config.ProviderConfig) error {
 		return errors.New("source provider does not support project.description, only target does")
 	}
 
+	if provider.Project.CIEnabled {
+		return errors.New("source provider does not support project.cienabled, only target does")
+	}
+
+	if provider.Project.Visibility != "" {
+		return errors.New("source provider does not support project.visibility, only target does")
+	}
+
 	if provider.SyncRun.CleanupInvalidName || provider.SyncRun.ForcePush || provider.SyncRun.IgnoreInvalidName {
 		return errors.New("source provider does not support syncrun.cleanupinvalidname, forcepush, ignoreninvalid")
 	}
