@@ -18,23 +18,23 @@ import (
 
 type IsInIntervalFunc func(context.Context, time.Time) (bool, error)
 
-type Filter struct {
+type filterService struct {
 	isInInterval IsInIntervalFunc
 }
 
-func NewFilter(isInInterval IsInIntervalFunc) *Filter {
+func NewFilter(isInInterval IsInIntervalFunc) *filterService { //nolint
 	if isInInterval == nil {
 		isInInterval = targetfilter.IsInInterval
 	}
 
-	return &Filter{isInInterval: isInInterval}
+	return &filterService{isInInterval: isInInterval}
 }
 
-func (Filter) FilterProjectinfos(ctx context.Context, config config.ProviderConfig, projectinfos []model.ProjectInfo, filterExcludedIncludedFunc functiondefinition.FilterIncludedExcludedFunc, isInInterval IsInIntervalFunc) ([]model.ProjectInfo, error) {
+func (filterService) FilterProjectinfos(ctx context.Context, cfg config.ProviderConfig, projectinfos []model.ProjectInfo, filterExcludedIncludedFunc functiondefinition.FilterIncludedExcludedFunc, isInInterval IsInIntervalFunc) ([]model.ProjectInfo, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitLab:FilterProjectinfos")
 
-	filteredURLs, err := filterExcludedIncludedFunc(ctx, config, projectinfos)
+	filteredURLs, err := filterExcludedIncludedFunc(ctx, cfg, projectinfos)
 	if err != nil {
 		return nil, fmt.Errorf("failed to filter repository URLs by include/exclude: %w", err)
 	}

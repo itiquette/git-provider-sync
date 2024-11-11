@@ -8,18 +8,18 @@ import "strconv"
 
 type ProjectOption struct {
 	Description string `koanf:"description"`
-	CIEnabled   bool   `koanf:"cienabled"`
+	Disabled    bool   `koanf:"disabled"`
 	Visibility  string `koanf:"visibility"`
 }
 
 func (p ProjectOption) String() string {
-	return "ProjectOption: Type: " + p.Description + ", CIEnabled: " + strconv.FormatBool(p.CIEnabled) + ", Visibility: " + p.Visibility
+	return "ProjectOption: Type: " + p.Description + ", Disabled: " + strconv.FormatBool(p.Disabled) + ", Visibility: " + p.Visibility
 }
 
 func NewProjectOption() *ProjectOption {
 	return &ProjectOption{
 		Description: "",
-		CIEnabled:   false,
+		Disabled:    false,
 		Visibility:  "",
 	}
 }

@@ -39,6 +39,8 @@ type ProjectInfo struct {
 	// It's a pointer to allow for nil values, indicating no activity data is available.
 	LastActivityAt *time.Time
 
+	ProjectID string
+
 	CleanupName bool
 }
 

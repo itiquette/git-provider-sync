@@ -15,9 +15,13 @@ import (
 	"itiquette/git-provider-sync/internal/provider/targetfilter"
 )
 
-// Filter struct provides methods for filtering GitHub repositories.
+// filterService struct provides methods for filtering GitHub repositories.
 // It can be extended in the future to include additional filtering options or state if needed.
-type Filter struct{}
+type filterService struct{}
+
+func NewFilter() *filterService { //nolint
+	return &filterService{}
+}
 
 // FilterProjectInfos filters repository metadata based on inclusion/exclusion rules and activity date.
 // This is the main entry point for applying filters to a list of repositories.
@@ -30,11 +34,11 @@ type Filter struct{}
 // Returns:
 //   - []model.RepositoryMetainfo: A slice of filtered repository metadata.
 //   - error: An error if the filtering process fails.
-func (f Filter) FilterProjectInfos(ctx context.Context, config config.ProviderConfig, projectinfos []model.ProjectInfo) ([]model.ProjectInfo, error) {
+func (f filterService) FilterProjectInfos(ctx context.Context, cfg config.ProviderConfig, projectinfos []model.ProjectInfo) ([]model.ProjectInfo, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitHub:FilterProjectInfos")
 
-	return filter(ctx, config, projectinfos, targetfilter.FilterIncludedExcludedGen())
+	return filter(ctx, cfg, projectinfos, targetfilter.FilterIncludedExcludedGen())
 }
 
 // filter applies both inclusion/exclusion and date-based filtering to the projectinfos.
@@ -49,11 +53,11 @@ func (f Filter) FilterProjectInfos(ctx context.Context, config config.ProviderCo
 // Returns:
 //   - []model.RepositoryMetainfo: The filtered repository metadata.
 //   - error: An error if any part of the filtering process fails.
-func filter(ctx context.Context, config config.ProviderConfig, projectinfos []model.ProjectInfo, filterExcludedIncludedFunc functiondefinition.FilterIncludedExcludedFunc) ([]model.ProjectInfo, error) {
+func filter(ctx context.Context, cfg config.ProviderConfig, projectinfos []model.ProjectInfo, filterExcludedIncludedFunc functiondefinition.FilterIncludedExcludedFunc) ([]model.ProjectInfo, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitHub:filter")
 
-	filteredByRules, err := filterExcludedIncludedFunc(ctx, config, projectinfos)
+	filteredByRules, err := filterExcludedIncludedFunc(ctx, cfg, projectinfos)
 	if err != nil {
 		return nil, fmt.Errorf("failed to filter repositories by inclusion/exclusion rules: %w", err)
 	}
@@ -106,15 +110,15 @@ func filterByDate(ctx context.Context, projectinfos []model.ProjectInfo) ([]mode
 // Returns:
 //   - bool: true if the repository's last activity is within the specified interval, false otherwise.
 //   - error: An error if the evaluation process fails or if the last activity time is nil.
-func includeByActivityTime(ctx context.Context, metainfo model.ProjectInfo) (bool, error) {
+func includeByActivityTime(ctx context.Context, projectInfo model.ProjectInfo) (bool, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitHub:includeByActivityTime")
 
-	if metainfo.LastActivityAt == nil {
-		return false, errors.New("last activity time is nil for repository" + metainfo.OriginalName)
+	if projectInfo.LastActivityAt == nil {
+		return false, errors.New("last activity time is nil for repository" + projectInfo.OriginalName)
 	}
 
-	inInterval, err := targetfilter.IsInInterval(ctx, *metainfo.LastActivityAt)
+	inInterval, err := targetfilter.IsInInterval(ctx, *projectInfo.LastActivityAt)
 	if err != nil {
 		return false, fmt.Errorf("failed to check if is interval %w", err)
 	}

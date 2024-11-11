@@ -100,7 +100,7 @@ func printProjectOption(writer io.Writer, config config.ProviderConfig) {
 		fmt.Fprintf(writer, "  Visibility: %s\n", config.Project.Visibility)
 	}
 
-	fmt.Fprintf(writer, "  CIEnabled: %t\n", config.Project.CIEnabled)
+	fmt.Fprintf(writer, "  Disabled: %t\n", config.Project.Disabled)
 }
 
 func printGitProtocol(writer io.Writer, providerConfig config.ProviderConfig) {

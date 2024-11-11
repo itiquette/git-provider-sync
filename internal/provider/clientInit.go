@@ -64,21 +64,21 @@ func createProvider(ctx context.Context, option model.GitProviderClientOption, h
 
 	switch option.ProviderType {
 	case config.GITEA:
-		provider, err := gitea.NewGiteaClient(ctx, option, httpClient)
+		provider, err := gitea.NewGiteaAPIClient(ctx, option, httpClient)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create Gitea client: %w", err)
 		}
 
 		return provider, nil
 	case config.GITHUB:
-		provider, err := github.NewGitHubClient(ctx, option, httpClient)
+		provider, err := github.NewGitHubAPIClient(ctx, option, httpClient)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create GitHub client: %w", err)
 		}
 
 		return provider, nil
 	case config.GITLAB:
-		provider, err := gitlab.NewGitLabClient(ctx, option, httpClient)
+		provider, err := gitlab.NewGitLabAPIClient(ctx, option, httpClient)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create GitLab client: %w", err)
 		}

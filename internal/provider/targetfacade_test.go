@@ -227,8 +227,9 @@ func TestRepositoryExists(t *testing.T) {
 			mockProvider := new(mocks.GitProvider)
 			mockProvider.EXPECT().ProjectInfos(ctx, mock.Anything, false).Return(tabletest.projectinfos, nil)
 
-			result := repositoryExists(ctx, config.ProviderConfig{}, mockProvider, tabletest.repositoryName)
-			require.Equal(t, tabletest.expected, result)
+			exists, id := repositoryExists(ctx, config.ProviderConfig{}, mockProvider, tabletest.repositoryName)
+			require.Equal(t, tabletest.expected, exists)
+			require.Equal(t, "", id)
 		})
 	}
 }

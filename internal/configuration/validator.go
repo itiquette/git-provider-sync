@@ -147,8 +147,8 @@ func validateSourceProvider(provider config.ProviderConfig) error {
 		return errors.New("source provider does not support project.description, only target does")
 	}
 
-	if provider.Project.CIEnabled {
-		return errors.New("source provider does not support project.cienabled, only target does")
+	if provider.Project.Disabled {
+		return errors.New("source provider does not support project.disabled, only target does")
 	}
 
 	if provider.Project.Visibility != "" {

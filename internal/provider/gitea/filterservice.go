@@ -14,9 +14,9 @@ import (
 	"itiquette/git-provider-sync/internal/provider/targetfilter"
 )
 
-// Filter represents a filter for Gitea repositories.
+// FilterService represents a filter for Gitea repositories.
 // It provides methods to filter repository metadata based on configured rules.
-type Filter struct{}
+type FilterService struct{}
 
 // FilterProjectinfos filters repository metadata based on configured rules.
 // It applies both inclusion/exclusion rules and date-based filtering.
@@ -29,7 +29,7 @@ type Filter struct{}
 // Returns:
 // - A slice of filtered RepositoryMetainfo.
 // - An error if any part of the filtering process fails.
-func (Filter) FilterProjectinfos(ctx context.Context, config config.ProviderConfig, projectinfos []model.ProjectInfo) ([]model.ProjectInfo, error) {
+func (FilterService) FilterProjectinfos(ctx context.Context, config config.ProviderConfig, projectinfos []model.ProjectInfo) ([]model.ProjectInfo, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Gitea:FilterProjectinfos")
 

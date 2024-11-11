@@ -25,11 +25,11 @@ import (
 	"code.gitea.io/sdk/gitea"
 )
 
-// Client represents a Gitea client that can perform various operations
+// APIClient represents a Gitea client that can perform various operations
 // on Gitea repositories.
-type Client struct {
-	giteaClient *gitea.Client
-	filter      Filter
+type APIClient struct {
+	raw           *gitea.Client
+	filterService FilterService
 }
 
 // Create creates a new repository in Gitea.
@@ -41,32 +41,32 @@ type Client struct {
 // - option: Options for creating the repository, including name, visibility, and description.
 //
 // Returns an error if the creation fails.
-func (c Client) Create(ctx context.Context, _ config.ProviderConfig, option model.CreateOption) error {
+func (c APIClient) Create(ctx context.Context, _ config.ProviderConfig, option model.CreateOption) (string, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Gitea:Create")
 	option.DebugLog(logger).Msg("Gitea:CreateOption")
 
-	_, _, err := c.giteaClient.CreateRepo(gitea.CreateRepoOption{
+	_, _, err := c.raw.CreateRepo(gitea.CreateRepoOption{
 		Name:          option.RepositoryName,
 		Description:   option.Description,
 		DefaultBranch: option.DefaultBranch,
 	})
 
 	if err != nil {
-		return fmt.Errorf("failed to create repository %s: %w", option.RepositoryName, err)
+		return "", fmt.Errorf("failed to create repository %s: %w", option.RepositoryName, err)
 	}
 
 	logger.Trace().Msg("Repository created successfully")
 
-	return nil
+	return "", nil
 }
 
-func (c Client) DefaultBranch(_ context.Context, _ string, _ string, _ string) error {
+func (c APIClient) DefaultBranch(_ context.Context, _ string, _ string, _ string) error {
 	return nil
 }
 
 // Name returns the name of the provider, which is "GITEA".
-func (c Client) Name() string {
+func (c APIClient) Name() string {
 	return config.GITEA
 }
 
@@ -79,7 +79,7 @@ func (c Client) Name() string {
 // - filtering: If true, applies additional filtering to the results.
 //
 // Returns a slice of RepositoryMetainfo and an error if the operation fails.
-func (c Client) ProjectInfos(ctx context.Context, config config.ProviderConfig, filtering bool) ([]model.ProjectInfo, error) {
+func (c APIClient) ProjectInfos(ctx context.Context, config config.ProviderConfig, filtering bool) ([]model.ProjectInfo, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Gitea:Projectinfos")
 
@@ -95,7 +95,7 @@ func (c Client) ProjectInfos(ctx context.Context, config config.ProviderConfig, 
 				PageSize: -1,
 			},
 		}
-		repositories, _, err = c.giteaClient.ListOrgRepos(config.Group, opt)
+		repositories, _, err = c.raw.ListOrgRepos(config.Group, opt)
 	} else {
 		opt := gitea.ListReposOptions{
 			ListOptions: gitea.ListOptions{
@@ -104,7 +104,7 @@ func (c Client) ProjectInfos(ctx context.Context, config config.ProviderConfig, 
 			},
 		}
 
-		repositories, _, err = c.giteaClient.ListUserRepos(config.User, opt)
+		repositories, _, err = c.raw.ListUserRepos(config.User, opt)
 	}
 
 	if err != nil {
@@ -120,12 +120,12 @@ func (c Client) ProjectInfos(ctx context.Context, config config.ProviderConfig, 
 			continue
 		}
 
-		rm, _ := newProjectInfo(ctx, config, c.giteaClient, repo.Name)
+		rm, _ := newProjectInfo(ctx, config, c.raw, repo.Name)
 		projectinfos = append(projectinfos, rm)
 	}
 
 	if filtering {
-		return c.filter.FilterProjectinfos(ctx, config, projectinfos)
+		return c.filterService.FilterProjectinfos(ctx, config, projectinfos)
 	}
 
 	return projectinfos, nil
@@ -139,7 +139,7 @@ func (c Client) ProjectInfos(ctx context.Context, config config.ProviderConfig, 
 // - name: The repository name to validate.
 //
 // Returns true if the name is valid, false otherwise.
-func (c Client) IsValidRepositoryName(ctx context.Context, name string) bool {
+func (c APIClient) IsValidRepositoryName(ctx context.Context, name string) bool {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Gitea:IsValidRepositoryName")
 	logger.Debug().Str("name", name).Msg("Gitea:Validate")
@@ -147,14 +147,22 @@ func (c Client) IsValidRepositoryName(ctx context.Context, name string) bool {
 	return IsValidGiteaRepositoryName(name)
 }
 
-// NewGiteaClient creates a new Gitea client.
+func (c APIClient) Protect(_ context.Context, _, _, _ string) error {
+	return nil
+}
+
+func (APIClient) Unprotect(_ context.Context, _, _ string) error {
+	return nil
+}
+
+// NewGiteaAPIClient creates a new Gitea client.
 //
 // Parameters:
 // - ctx: The context for the operation.
 // - option: Options for creating the client, including domain and authentication token.
 //
 // Returns a new Client and an error if the creation fails.
-func NewGiteaClient(ctx context.Context, option model.GitProviderClientOption, httpClient *http.Client) (Client, error) {
+func NewGiteaAPIClient(ctx context.Context, option model.GitProviderClientOption, httpClient *http.Client) (APIClient, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Gitea:NewGiteaClient")
 
@@ -175,10 +183,10 @@ func NewGiteaClient(ctx context.Context, option model.GitProviderClientOption, h
 		clientOptions...,
 	)
 	if err != nil {
-		return Client{}, fmt.Errorf("failed to create a new Gitea client: %w", err)
+		return APIClient{}, fmt.Errorf("failed to create a new Gitea client: %w", err)
 	}
 
-	return Client{giteaClient: client}, nil
+	return APIClient{raw: client}, nil
 }
 
 // newProjectInfo creates a new RepositoryMetainfo struct for a given repository.

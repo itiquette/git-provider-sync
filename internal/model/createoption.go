@@ -18,17 +18,17 @@ type CreateOption struct {
 	Visibility     string // The visibility setting (e.g., "public", "private")
 	Description    string // A description of the repository
 	DefaultBranch  string // The name of the default branch (e.g., "main", "master")
-	CIEnabled      bool
+	Disabled       bool
 }
 
 // String provides a string representation of CreateOption.
 func (co CreateOption) String() string {
-	return fmt.Sprintf("CreateOption{RepositoryName: %s, Visibility: %s, Description: %s, DefaultBranch: %s, CIEnabled: %t}",
+	return fmt.Sprintf("CreateOption{RepositoryName: %s, Visibility: %s, Description: %s, DefaultBranch: %s, Disabled: %t}",
 		co.RepositoryName,
 		co.Visibility,
 		co.Description,
 		co.DefaultBranch,
-		co.CIEnabled)
+		co.Disabled)
 }
 
 // DebugLog creates a debug log event with repository creation options.
@@ -38,16 +38,16 @@ func (co CreateOption) DebugLog(logger *zerolog.Logger) *zerolog.Event {
 				Str("visibility", co.Visibility).
 				Str("description", co.Description).
 				Str("default_branch", co.DefaultBranch).
-				Bool("CIEnabled", co.CIEnabled)
+				Bool("Disabled", co.Disabled)
 }
 
 // NewCreateOption creates a new CreateOption.
-func NewCreateOption(repoName, visibility, description, defaultBranch string, ciEnabled bool) CreateOption {
+func NewCreateOption(repoName, visibility, description, defaultBranch string, disabled bool) CreateOption {
 	return CreateOption{
 		RepositoryName: repoName,
 		Visibility:     visibility,
 		Description:    description,
 		DefaultBranch:  defaultBranch,
-		CIEnabled:      ciEnabled,
+		Disabled:       disabled,
 	}
 }

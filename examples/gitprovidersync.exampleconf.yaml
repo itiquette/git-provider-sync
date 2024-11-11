@@ -50,7 +50,7 @@ configurations: # MANDATORY: Root configuration object containing all project co
 
         project:
           description: prefix # OPTIONAL: Description prefix for mirrored repositories
-          cienabled: true # OPTIONAL: Should CI be enabled on target (Default:false)
+          disabledproject: true # OPTIONAL: Disables as much project settings as possible -  enabled on target (Default: true)
           visibility: something # OPTIONAL: Default visibiltiy for target repo. (Default: use source setting)
 
         httpclient: # OPTIONAL: HTTP client configuration
