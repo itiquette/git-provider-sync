@@ -24,12 +24,12 @@ type APIClient struct {
 	filterService     *filterService
 }
 
-func (glc APIClient) Create(ctx context.Context, cfg config.ProviderConfig, opt model.CreateOption) (string, error) {
+func (api APIClient) Create(ctx context.Context, cfg config.ProviderConfig, opt model.CreateOption) (string, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitLab:Create")
 	opt.DebugLog(logger).Msg("GitLab:CreateOption")
 
-	projectID, err := glc.projectService.Create(ctx, cfg, opt)
+	projectID, err := api.projectService.Create(ctx, cfg, opt)
 	if err != nil {
 		return "", fmt.Errorf("failed to create github project: %w", err)
 	}
@@ -37,12 +37,12 @@ func (glc APIClient) Create(ctx context.Context, cfg config.ProviderConfig, opt 
 	return projectID, nil
 }
 
-func (glc APIClient) DefaultBranch(ctx context.Context, owner, name, branch string) error {
+func (api APIClient) DefaultBranch(ctx context.Context, owner, repoName, branch string) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitLab:DefaultBranch")
-	logger.Debug().Str("branch", branch).Str("owner", owner).Str("name", name).Msg("GitLab:DefaultBranch")
+	logger.Debug().Str("branch", branch).Str("owner", owner).Str("repoName", repoName).Msg("GitLab:DefaultBranch")
 
-	err := glc.projectService.setDefaultBranch(ctx, owner, name, branch)
+	err := api.projectService.setDefaultBranch(ctx, owner, repoName, branch)
 	if err != nil {
 		return fmt.Errorf("failed to set default branch: %w", err)
 	}
@@ -50,51 +50,50 @@ func (glc APIClient) DefaultBranch(ctx context.Context, owner, name, branch stri
 	return nil
 }
 
-func (glc APIClient) Protect(ctx context.Context, _ string, branch string, projectIDStr string) error {
+func (api APIClient) Protect(ctx context.Context, _ string, branch string, projectIDstr string) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitLab:Protect")
-	logger.Debug().Str("projectID", projectIDStr).Str("branch", branch).Msg("GitLab:Protect")
+	logger.Debug().Str("projectIDStr", projectIDstr).Str("branch", branch).Msg("GitLab:Protect")
 
-	err := glc.protectionService.protect(ctx, branch, projectIDStr)
+	err := api.protectionService.protect(ctx, branch, projectIDstr)
 	if err != nil {
-		return fmt.Errorf("failed to to protect  %s: %w", projectIDStr, err)
+		return fmt.Errorf("failed to to protect  %s: %w", projectIDstr, err)
 	}
 
 	return nil
 }
 
-func (glc APIClient) Unprotect(ctx context.Context, branch string, projectIDStr string) error {
+func (api APIClient) Unprotect(ctx context.Context, branch string, projectIDStr string) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitLab:Unprotect")
-	logger.Debug().Str("projectID", projectIDStr).Str("branch", branch).Msg("GitLab:Unprotect")
+	logger.Debug().Str("projectIDStr", projectIDStr).Str("branch", branch).Msg("GitLab:Unprotect")
 
-	err := glc.protectionService.unprotect(ctx, branch, projectIDStr)
+	err := api.protectionService.unprotect(ctx, branch, projectIDStr)
 	if err != nil {
-		return fmt.Errorf("failed to to unprotect  %s: %w", projectIDStr, err)
+		return fmt.Errorf("failed to to unprotect %s: %w", projectIDStr, err)
 	}
 
 	return nil
 }
 
-func (glc APIClient) ProjectInfos(ctx context.Context, cfg config.ProviderConfig, filtering bool) ([]model.ProjectInfo, error) {
+func (api APIClient) ProjectInfos(ctx context.Context, cfg config.ProviderConfig, filtering bool) ([]model.ProjectInfo, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitLab:ProjectInfos")
 	logger.Debug().Bool("filtering", filtering).Msg("GitLab:ProjectInfos")
 
-	projectinfos, err := glc.projectService.getRepositoryProjectInfos(ctx, cfg)
+	projectinfos, err := api.projectService.getRepositoryProjectInfos(ctx, cfg)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get repository projectinfos: %w", err)
+		return nil, fmt.Errorf("failed to get repository infos: %w", err)
 	}
 
 	if filtering {
-		return glc.filterService.FilterProjectinfos(ctx, cfg, projectinfos, targetfilter.FilterIncludedExcludedGen(), targetfilter.IsInInterval)
+		return api.filterService.FilterProjectinfos(ctx, cfg, projectinfos, targetfilter.FilterIncludedExcludedGen(), targetfilter.IsInInterval)
 	}
 
 	return projectinfos, nil
 }
 
-// IsValidRepositoryName checks if the given name is a valid GitLab repository name.
-func (glc APIClient) IsValidRepositoryName(ctx context.Context, name string) bool {
+func (api APIClient) IsValidRepositoryName(ctx context.Context, name string) bool {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitLab:IsValidRepositoryName")
 	logger.Debug().Str("name", name).Msg("IsValidRepositoryName")
@@ -109,7 +108,7 @@ func (glc APIClient) IsValidRepositoryName(ctx context.Context, name string) boo
 	return true
 }
 
-func (glc APIClient) Name() string {
+func (APIClient) Name() string {
 	return config.GITLAB
 }
 

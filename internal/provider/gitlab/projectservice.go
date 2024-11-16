@@ -37,7 +37,14 @@ func (p ProjectService) Create(ctx context.Context, cfg config.ProviderConfig, o
 		return "", fmt.Errorf("get namespace ID: %w", err)
 	}
 
-	createdRepo, err := p.createProject(ctx, opt, namespaceID)
+	builder := p.opts
+	builder = builder.BasicOpts(builder, opt.Visibility, opt.RepositoryName, opt.Description, opt.DefaultBranch, namespaceID)
+
+	if opt.Disabled {
+		builder = p.opts.DisableOpts(builder)
+	}
+
+	createdRepo, _, err := p.client.Projects.CreateProject(builder.opts)
 	if err != nil {
 		return "", fmt.Errorf("failed to create %s: %w", opt.RepositoryName, err)
 	}
@@ -179,38 +186,18 @@ func (p ProjectService) getRepositoryProjectInfos(ctx context.Context, cfg confi
 	return projectinfos, nil
 }
 
-func (p ProjectService) setDefaultBranch(ctx context.Context, owner string, projectName string, branch string) error {
+func (p ProjectService) setDefaultBranch(ctx context.Context, owner string, repoName string, branch string) error {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering setDefaultBranch")
+	logger.Trace().Msg("Entering GitLab:setDefaultBranch")
 
-	_, _, err := p.client.Projects.EditProject(owner+"/"+projectName, &gitlab.EditProjectOptions{
+	_, _, err := p.client.Projects.EditProject(owner+"/"+repoName, &gitlab.EditProjectOptions{
 		DefaultBranch: gitlab.Ptr(branch),
 	})
 	if err != nil {
-		return fmt.Errorf("edit project default branch: %w", err)
+		return fmt.Errorf("failed to set default branch: %w", err)
 	}
 
 	return nil
-}
-
-func (p ProjectService) createProject(ctx context.Context, opt model.CreateOption, namespaceID int) (*gitlab.Project, error) {
-	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering createProject")
-	logger.Debug().Int("namespaceID", namespaceID).Msg("Entering createProject")
-
-	builder := p.opts
-	builder = builder.BasicOpts(builder, opt.Visibility, opt.RepositoryName, opt.Description, opt.DefaultBranch, namespaceID)
-
-	if opt.Disabled {
-		builder = p.opts.DisableOpts(builder)
-	}
-
-	createdRepo, _, err := p.client.Projects.CreateProject(builder.opts)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create %s: %w", opt.RepositoryName, err)
-	}
-
-	return createdRepo, nil
 }
 
 func getProjectPath(cfg config.ProviderConfig, name string) string {

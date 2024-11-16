@@ -18,6 +18,10 @@ import (
 // It provides methods to filter repository metadata based on configured rules.
 type FilterService struct{}
 
+func NewFilter() *FilterService {
+	return &FilterService{}
+}
+
 // FilterProjectinfos filters repository metadata based on configured rules.
 // It applies both inclusion/exclusion rules and date-based filtering.
 //

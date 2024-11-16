@@ -67,9 +67,9 @@ func Push(ctx context.Context, targetProviderCfg config.ProviderConfig, provider
 		return fmt.Errorf("%w: %w", ErrPushChanges, err)
 	}
 
-	owner := targetProviderCfg.Group
-	if len(targetProviderCfg.Group) == 0 {
-		owner = targetProviderCfg.User
+	owner := targetProviderCfg.User
+	if targetProviderCfg.IsGroup() {
+		owner = targetProviderCfg.Group
 	}
 
 	if err := provider.DefaultBranch(ctx, owner, repository.ProjectInfo().Name(ctx), repository.ProjectInfo().DefaultBranch); err != nil {
@@ -77,11 +77,6 @@ func Push(ctx context.Context, targetProviderCfg config.ProviderConfig, provider
 	}
 
 	if targetProviderCfg.Project.Disabled {
-		owner := targetProviderCfg.User
-		if targetProviderCfg.IsGroup() {
-			owner = targetProviderCfg.Group
-		}
-
 		err := provider.Protect(ctx, owner, repository.ProjectInfo().DefaultBranch, projectID)
 		if err != nil {
 			return fmt.Errorf("failed to protect the repository at provider: %w", err)
@@ -162,7 +157,6 @@ func buildDescription(gpsUpstreamRemote model.Remote, repository interfaces.GitR
 func exists(ctx context.Context, targetProviderCfg config.ProviderConfig, provider interfaces.GitProvider, sourceProviderType string, repository interfaces.GitRepository) (bool, context.Context, string, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering exists")
-	targetProviderCfg.DebugLog(logger).Msg("exists")
 
 	if isArchiveOrDirectory(targetProviderCfg.ProviderType) {
 		return false, ctx, "", nil

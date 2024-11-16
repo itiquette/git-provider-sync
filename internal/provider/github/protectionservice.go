@@ -20,30 +20,30 @@ func NewProtectionService(client *github.Client) *ProtectionService {
 	return &ProtectionService{client: client}
 }
 
-func (p ProtectionService) protect(ctx context.Context, owner, name string) error {
+func (p ProtectionService) protect(ctx context.Context, owner, repoName string) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitHub:protect")
-	logger.Debug().Str("owner", owner).Str("name", name).Msg("GitHub:protect")
+	logger.Debug().Str("owner", owner).Str("repoName", repoName).Msg("GitHub:protect")
 
 	permissions := &github.ActionsPermissionsRepository{
 		Enabled: github.Bool(false),
 	}
 
-	_, _, err := p.client.Repositories.EditActionsPermissions(ctx, owner, name, *permissions)
+	_, _, err := p.client.Repositories.EditActionsPermissions(ctx, owner, repoName, *permissions)
 	if err != nil {
 		if !strings.Contains(err.Error(), "404") {
 			return fmt.Errorf("failed to disable Actions for repository: %w", err)
 		}
 	}
 
-	err = p.enableBranchProtection(ctx, owner, name)
+	err = p.enableBranchProtection(ctx, owner, repoName)
 	if err != nil {
 		if !strings.Contains(err.Error(), "404") {
 			return fmt.Errorf("failed to enable branch protection: %w", err)
 		}
 	}
 
-	err = p.enableTagProtection(ctx, owner, name)
+	err = p.enableTagProtection(ctx, owner, repoName)
 	if err != nil {
 		if !strings.Contains(err.Error(), "404") {
 			return fmt.Errorf("failed to enable tag protection: %w", err)
@@ -64,7 +64,7 @@ func (p ProtectionService) enableTagProtection(ctx context.Context, owner, repo 
 
 func (p ProtectionService) enableBranchProtection(ctx context.Context, owner, repo string) error {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering enableBranchProtection")
+	logger.Trace().Msg("Entering GitHub:enableBranchProtection")
 	logger.Debug().Str("owner", owner).Str("repo", repo).Msg("enableBranchProtection")
 
 	protectionReq := &github.ProtectionRequest{
@@ -169,4 +169,13 @@ func (p ProtectionService) disableTagProtection(ctx context.Context, owner, repo
 	}
 
 	return nil
+}
+
+func splitProjectPath(path string) (string, string) {
+	parts := strings.Split(path, "/")
+	if len(parts) != 2 {
+		return "", ""
+	}
+
+	return parts[0], parts[1]
 }

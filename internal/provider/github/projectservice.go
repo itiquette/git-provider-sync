@@ -30,7 +30,22 @@ func (p ProjectService) Create(ctx context.Context, cfg config.ProviderConfig, o
 	logger.Trace().Msg("Entering GitHub:Create")
 	opt.DebugLog(logger).Msg("GitHub:CreateOption")
 
-	createdRepo, _ := p.createProject(ctx, cfg, opt)
+	builder := p.opts
+	builder = builder.BasicOpts(builder, opt.Visibility, opt.RepositoryName, opt.Description, opt.DefaultBranch)
+
+	if opt.Disabled {
+		builder = p.opts.DisableFeatures(builder)
+	}
+
+	groupName := ""
+	if cfg.IsGroup() {
+		groupName = cfg.Group
+	}
+
+	createdRepo, _, err := p.client.Repositories.Create(ctx, groupName, builder.opts)
+	if err != nil {
+		return "", fmt.Errorf("create: failed to create %s: %w", opt.RepositoryName, err)
+	}
 
 	logger.Trace().Msg("User repository created successfully")
 
@@ -144,43 +159,18 @@ func (p ProjectService) getRepositoryProjectInfos(ctx context.Context, cfg confi
 	return projectinfos, nil
 }
 
-func (p ProjectService) setDefaultBranch(ctx context.Context, owner string, name string, branch string) error {
+func (p ProjectService) setDefaultBranch(ctx context.Context, owner string, repoName string, branch string) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitHub:setDefaultBranch")
 
-	_, _, err := p.client.Repositories.Edit(ctx, owner, name, &github.Repository{
+	_, _, err := p.client.Repositories.Edit(ctx, owner, repoName, &github.Repository{
 		DefaultBranch: github.String(branch),
 	})
 	if err != nil {
-		return fmt.Errorf("%w", err)
+		return fmt.Errorf("failed to set default branch: %w", err)
 	}
 
 	return nil
-}
-
-func (p ProjectService) createProject(ctx context.Context, cfg config.ProviderConfig, opt model.CreateOption) (*github.Repository, error) {
-	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering createProject")
-
-	builder := p.opts
-	builder = builder.BasicOpts(builder, opt.Visibility, opt.RepositoryName, opt.Description, opt.DefaultBranch)
-
-	if opt.Disabled {
-		builder = p.opts.DisableFeatures(builder)
-	}
-
-	groupName := ""
-	if cfg.IsGroup() {
-		groupName = cfg.Group
-	}
-
-	createdRepo, _, err := p.client.Repositories.Create(ctx, groupName, builder.opts)
-
-	if err != nil {
-		return nil, fmt.Errorf("create: failed to create %s: %w", opt.RepositoryName, err)
-	}
-
-	return createdRepo, nil
 }
 
 // getValueOrEmpty is a helper function that returns the value of a string pointer if it's not nil,

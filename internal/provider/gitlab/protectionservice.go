@@ -24,8 +24,8 @@ func NewProtectionService(client *gitlab.Client) *ProtectionService {
 
 func (p ProtectionService) protect(ctx context.Context, branch string, projectIDStr string) error {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering protect")
-	logger.Debug().Str("projectID", projectIDStr).Str("branch", branch).Msg("protect")
+	logger.Trace().Msg("Entering GitLab:protect")
+	logger.Debug().Str("projectIDStr", projectIDStr).Str("branch", branch).Msg("protect")
 
 	projectID, _ := strconv.Atoi(projectIDStr)
 
@@ -59,7 +59,7 @@ func (p ProtectionService) enableTagProtection(ctx context.Context, projectID in
 
 func (p ProtectionService) enableBranchProtection(ctx context.Context, branch string, projectID int) error {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering enableBranchProtection")
+	logger.Trace().Msg("Entering GitLab:enableBranchProtection")
 	logger.Debug().Int("projectID", projectID).Str("branch", branch).Msg("enableBranchProtection")
 
 	if _, _, err := p.client.ProtectedBranches.ProtectRepositoryBranches(projectID, &gitlab.ProtectRepositoryBranchesOptions{
