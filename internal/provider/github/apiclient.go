@@ -23,83 +23,23 @@ type APIClient struct {
 	filterService     *filterService
 }
 
-func (api APIClient) Create(ctx context.Context, cfg config.ProviderConfig, opt model.CreateOption) (string, error) {
+func (api APIClient) CreateProject(ctx context.Context, cfg config.ProviderConfig, opt model.CreateProjectOption) (string, error) {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering GitHub:Create")
+	logger.Trace().Msg("Entering GitHub:CreateProject")
 	opt.DebugLog(logger).Msg("GitHub:CreateOption")
 
-	projectID, err := api.projectService.Create(ctx, cfg, opt)
+	projectID, err := api.projectService.createProject(ctx, cfg, opt)
 	if err != nil {
-		return "", fmt.Errorf("failed to create github project: %w", err)
+		return "", fmt.Errorf("failed to create GitHub project. err: %w", err)
 	}
 
 	return projectID, nil
 }
 
-func (api APIClient) DefaultBranch(ctx context.Context, owner string, repoName string, branch string) error {
+func (api APIClient) IsValidProjectName(ctx context.Context, name string) bool {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering GitHub:DefaultBranch")
-	logger.Debug().Str("branch", branch).Str("owner", owner).Str("repoName", repoName).Msg("GitHub:DefaultBranch")
-
-	err := api.projectService.setDefaultBranch(ctx, owner, repoName, branch)
-	if err != nil {
-		return fmt.Errorf("failed to set default branch: %w", err)
-	}
-
-	return nil
-}
-
-func (api APIClient) Protect(ctx context.Context, owner string, _, projectIDStr string) error {
-	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering GitHub:Protect")
-	logger.Debug().Str("projectIDStr", projectIDStr).Msg("GitHub:Protect")
-
-	_, repo := splitProjectPath(projectIDStr)
-
-	err := api.protectionService.protect(ctx, owner, repo)
-	if err != nil {
-		return fmt.Errorf("failed to to protect  %s: %w", projectIDStr, err)
-	}
-
-	return nil
-}
-
-func (api APIClient) Unprotect(ctx context.Context, branch, ownerRepoStr string) error {
-	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering GitHub:Unprotect")
-	logger.Debug().Str("ownerrepo", ownerRepoStr).Str("branch", branch).Msg("GitHub:Unprotect")
-
-	owner, repo := splitProjectPath(ownerRepoStr)
-
-	err := api.protectionService.unprotect(ctx, branch, owner, repo)
-	if err != nil {
-		return fmt.Errorf("failed to to unprotect  %s: %w", ownerRepoStr, err)
-	}
-
-	return nil
-}
-
-func (api APIClient) ProjectInfos(ctx context.Context, cfg config.ProviderConfig, filtering bool) ([]model.ProjectInfo, error) {
-	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering GitHub:ProjectInfos")
-	logger.Debug().Bool("filtering", filtering).Msg("GitHub:ProjectInfos")
-
-	projectinfos, err := api.projectService.getRepositoryProjectInfos(ctx, cfg)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get repository infos: %w", err)
-	}
-
-	if filtering {
-		return api.filterService.FilterProjectInfos(ctx, cfg, projectinfos)
-	}
-
-	return projectinfos, nil
-}
-
-func (api APIClient) IsValidRepositoryName(ctx context.Context, name string) bool {
-	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering GitHub:IsValidRepositoryName")
-	logger.Debug().Str("name", name).Msg("IsValidRepositoryName")
+	logger.Trace().Msg("Entering GitHub:IsValidProjectName")
+	logger.Debug().Str("name", name).Msg("GitHub:IsValidProjectName")
 
 	if !IsValidGitHubRepositoryName(name) {
 		logger.Debug().Str("name", name).Msg("Invalid GitHub repository name")
@@ -115,11 +55,73 @@ func (api APIClient) Name() string {
 	return config.GITHUB
 }
 
-func (api APIClient) Validate(ctx context.Context, name string) bool {
-	return api.IsValidRepositoryName(ctx, name)
+func (api APIClient) ProjectInfos(ctx context.Context, cfg config.ProviderConfig, filtering bool) ([]model.ProjectInfo, error) {
+	logger := log.Logger(ctx)
+	logger.Trace().Msg("Entering GitHub:ProjectInfos")
+	logger.Debug().Bool("filtering", filtering).Msg("GitHub:ProjectInfos")
+
+	projectinfos, err := api.projectService.getProjectInfos(ctx, cfg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get repository infos. err: %w", err)
+	}
+
+	if filtering {
+		return api.filterService.FilterProjectInfos(ctx, cfg, projectinfos)
+	}
+
+	return projectinfos, nil
 }
 
-func NewGitHubAPIClient(ctx context.Context, option model.GitProviderClientOption, httpClient *http.Client) (APIClient, error) {
+func (api APIClient) ProtectProject(ctx context.Context, owner string, _, projectIDStr string) error {
+	logger := log.Logger(ctx)
+	logger.Trace().Msg("Entering GitHub:Protect")
+	logger.Debug().Str("projectIDStr", projectIDStr).Msg("GitHub:Protect")
+
+	_, projectName, err := splitProjectPath(projectIDStr)
+	if err != nil {
+		return err
+	}
+
+	err = api.protectionService.protect(ctx, owner, projectName)
+	if err != nil {
+		return fmt.Errorf("failed to to protect. projectIDStr: %s, err: %w", projectIDStr, err)
+	}
+
+	return nil
+}
+
+func (api APIClient) SetDefaultBranch(ctx context.Context, owner string, projectName string, branch string) error {
+	logger := log.Logger(ctx)
+	logger.Trace().Msg("Entering GitHub:SetDefaultBranch")
+	logger.Debug().Str("branch", branch).Str("owner", owner).Str("projectName", projectName).Msg("GitHub:SetDefaultBranch")
+
+	err := api.projectService.setDefaultBranch(ctx, owner, projectName, branch)
+	if err != nil {
+		return fmt.Errorf("failed to set default branch: %w", err)
+	}
+
+	return nil
+}
+
+func (api APIClient) UnprotectProject(ctx context.Context, defaultBranch, projectIDStr string) error {
+	logger := log.Logger(ctx)
+	logger.Trace().Msg("Entering GitHub:UnprotectProject")
+	logger.Debug().Str("projectIDStr", projectIDStr).Str("defaultBranch", defaultBranch).Msg("GitHub:UnprotectProject:")
+
+	owner, project, err := splitProjectPath(projectIDStr)
+	if err != nil {
+		return err
+	}
+
+	err = api.protectionService.unprotect(ctx, defaultBranch, owner, project)
+	if err != nil {
+		return fmt.Errorf("failed to to unprotect project. projectIDStr: %s, err: %w", projectIDStr, err)
+	}
+
+	return nil
+}
+
+func NewGitHubAPIClient(ctx context.Context, opt model.GitProviderClientOption, httpClient *http.Client) (APIClient, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitHub:NewGitHubClient")
 
@@ -128,15 +130,15 @@ func NewGitHubAPIClient(ctx context.Context, option model.GitProviderClientOptio
 
 	rawClient := github.NewClient(httpClient)
 
-	if option.HTTPClient.Token != "" {
-		rawClient = rawClient.WithAuthToken(option.HTTPClient.Token)
+	if opt.HTTPClient.Token != "" {
+		rawClient = rawClient.WithAuthToken(opt.HTTPClient.Token)
 	}
 
-	if option.Domain == "" {
+	if opt.Domain == "" {
 		rawClient.BaseURL, _ = url.Parse(defaultBaseURL)
 	}
 
-	if option.UploadURL == "" {
+	if opt.UploadURL == "" {
 		rawClient.UploadURL, _ = url.Parse(uploadBaseURL)
 	}
 

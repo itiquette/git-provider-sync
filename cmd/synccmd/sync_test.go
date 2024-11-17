@@ -172,7 +172,7 @@ package synccmd
 // 			mockProvider := &mocks.GitProvider{}
 // 			mockRepo := &mocks.GitRepository{}
 
-// 			mockProvider.On("IsValidRepositoryName", ctx, tabletest.repoName).Return(tabletest.expected)
+// 			mockProvider.On("IsValidProjectName", ctx, tabletest.repoName).Return(tabletest.expected)
 // 			mockRepo.On("Metainfo").Return(model.RepositoryMetainfo{OriginalName: tabletest.repoName})
 
 // 			result := isValidRepository(ctx, mockProvider, mockRepo)
@@ -200,7 +200,7 @@ package synccmd
 // // 	return "provider"
 // // }
 // //
-// // func (m *mockGitProvider) IsValidRepositoryName(ctx context.Context, name string) bool {
+// // func (m *mockGitProvider) IsValidProjectName(ctx context.Context, name string) bool {
 // // 	args := m.Called(ctx, name)
 // //
 // // 	return args.Bool(0)

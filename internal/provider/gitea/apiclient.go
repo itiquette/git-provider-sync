@@ -23,25 +23,67 @@ type APIClient struct {
 	filterService     *FilterService
 }
 
-func (api APIClient) Create(ctx context.Context, cfg config.ProviderConfig, opt model.CreateOption) (string, error) {
+func (api APIClient) CreateProject(ctx context.Context, cfg config.ProviderConfig, opt model.CreateProjectOption) (string, error) {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering Gitea:Create")
+	logger.Trace().Msg("Entering Gitea:CreateProject")
 	opt.DebugLog(logger).Msg("Gitea:CreateOption")
 
-	projectID, err := api.projectService.Create(ctx, cfg, opt)
+	projectID, err := api.projectService.createProject(ctx, cfg, opt)
 	if err != nil {
-		return "", fmt.Errorf("failed to create gitea project: %w", err)
+		return "", fmt.Errorf("failed to create gitea project: err: %w", err)
 	}
 
 	return projectID, nil
 }
 
-func (api APIClient) DefaultBranch(ctx context.Context, owner string, repoName string, branch string) error {
+func (api APIClient) IsValidProjectName(ctx context.Context, name string) bool {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering Gitea:DefaultBranch")
-	logger.Debug().Str("branch", branch).Str("owner", owner).Str("repoName", repoName).Msg("Gitea:DefaultBranch")
+	logger.Trace().Msg("Entering Gitea:IsValidProjectName")
+	logger.Debug().Str("name", name).Msg("Gitea:Validate")
 
-	err := api.projectService.setDefaultBranch(ctx, owner, repoName, branch)
+	return IsValidGiteaRepositoryName(name)
+}
+
+func (APIClient) Name() string {
+	return config.GITEA
+}
+
+func (api APIClient) ProjectInfos(ctx context.Context, cfg config.ProviderConfig, filtering bool) ([]model.ProjectInfo, error) {
+	logger := log.Logger(ctx)
+	logger.Trace().Msg("Entering Gitea:ProjectInfos")
+	logger.Debug().Bool("filtering", filtering).Msg("Gitea:ProjectInfos")
+
+	projectinfos, err := api.projectService.getProjectInfos(ctx, cfg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get repository infos. err: %w", err)
+	}
+
+	if filtering {
+		return api.filterService.FilterProjectinfos(ctx, cfg, projectinfos)
+	}
+
+	return projectinfos, nil
+}
+
+func (api APIClient) ProtectProject(ctx context.Context, _ string, branch string, projectIDstr string) error {
+	logger := log.Logger(ctx)
+	logger.Trace().Msg("Entering Gitea:Protect")
+	logger.Debug().Str("projectIDStr", projectIDstr).Str("branch", branch).Msg("Gitea:Protect")
+
+	err := api.protectionService.protect(ctx, branch, projectIDstr)
+	if err != nil {
+		return fmt.Errorf("failed to to protect project. projectIDStr: %s, err: %w", projectIDstr, err)
+	}
+
+	return nil
+}
+
+func (api APIClient) SetDefaultBranch(ctx context.Context, owner string, projectName string, branch string) error {
+	logger := log.Logger(ctx)
+	logger.Trace().Msg("Entering Gitea:SetDefaultBranch")
+	logger.Debug().Str("branch", branch).Str("owner", owner).Str("projectName", projectName).Msg("Gitea:SetDefaultBranch")
+
+	err := api.projectService.setDefaultBranch(ctx, owner, projectName, branch)
 	if err != nil {
 		return fmt.Errorf("failed to set default branch: %w", err)
 	}
@@ -49,20 +91,7 @@ func (api APIClient) DefaultBranch(ctx context.Context, owner string, repoName s
 	return nil
 }
 
-func (api APIClient) Protect(ctx context.Context, _ string, branch string, projectIDstr string) error {
-	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering Gitea:Protect")
-	logger.Debug().Str("projectIDStr", projectIDstr).Str("branch", branch).Msg("Gitea:Protect")
-
-	err := api.protectionService.protect(ctx, branch, projectIDstr)
-	if err != nil {
-		return fmt.Errorf("failed to to protect  %s: %w", projectIDstr, err)
-	}
-
-	return nil
-}
-
-func (api APIClient) Unprotect(ctx context.Context, branch string, projectIDStr string) error {
+func (api APIClient) UnprotectProject(ctx context.Context, branch string, projectIDStr string) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Gitea:Unprotect")
 	logger.Debug().Str("projectIDStr", projectIDStr).Str("branch", branch).Msg("Gitea:Unprotect")
@@ -73,35 +102,6 @@ func (api APIClient) Unprotect(ctx context.Context, branch string, projectIDStr 
 	}
 
 	return nil
-}
-
-func (api APIClient) ProjectInfos(ctx context.Context, cfg config.ProviderConfig, filtering bool) ([]model.ProjectInfo, error) {
-	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering Gitea:ProjectInfos")
-	logger.Debug().Bool("filtering", filtering).Msg("Gitea:ProjectInfos")
-
-	projectinfos, err := api.projectService.getRepositoryProjectInfos(ctx, cfg)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get repository infos: %w", err)
-	}
-
-	if filtering {
-		return api.filterService.FilterProjectinfos(ctx, cfg, projectinfos)
-	}
-
-	return projectinfos, nil
-}
-
-func (api APIClient) IsValidRepositoryName(ctx context.Context, name string) bool {
-	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering Gitea:IsValidRepositoryName")
-	logger.Debug().Str("name", name).Msg("Gitea:Validate")
-
-	return IsValidGiteaRepositoryName(name)
-}
-
-func (APIClient) Name() string {
-	return config.GITEA
 }
 
 func NewGiteaAPIClient(ctx context.Context, option model.GitProviderClientOption, httpClient *http.Client) (APIClient, error) {

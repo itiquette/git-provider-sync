@@ -31,7 +31,7 @@ func (api APIClient) CreateProject(ctx context.Context, cfg config.ProviderConfi
 
 	projectIDStr, err := api.projectService.createProject(ctx, cfg, opt)
 	if err != nil {
-		return "", fmt.Errorf("failed to create a GitLab project. err: %w", err)
+		return "", fmt.Errorf("failed to create a GitLab project: %w", err)
 	}
 
 	return projectIDStr, nil
@@ -42,7 +42,7 @@ func (api APIClient) IsValidProjectName(ctx context.Context, name string) bool {
 	logger.Trace().Msg("Entering GitLab:IsValidProjectName")
 	logger.Debug().Str("name", name).Msg("GitLab:IsValidProjectName")
 
-	if !IsValidGitLabName(name) || !isValidGitLabNameCharacters(name) {
+	if !IsValidGitLabRepositoryName(name) || !isValidGitLabRepositoryNameCharacters(name) {
 		logger.Debug().Str("name", name).Msg("Invalid GitLab repository name")
 		logger.Debug().Msg("See https://docs.gitlab.com/ee/user/reserved_names.html")
 
@@ -61,7 +61,7 @@ func (api APIClient) ProjectInfos(ctx context.Context, cfg config.ProviderConfig
 	logger.Trace().Msg("Entering GitLab:ProjectInfos")
 	logger.Debug().Bool("filtering", filtering).Msg("GitLab:ProjectInfos")
 
-	projectInfos, err := api.projectService.getProjectInfos(ctx, cfg)
+	projectInfos, err := api.projectService.getRepositoryProjectInfos(ctx, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get project infos. err: %w", err)
 	}
@@ -80,48 +80,48 @@ func (api APIClient) ProtectProject(ctx context.Context, _ string, defaultBranch
 
 	err := api.protectionService.protect(ctx, defaultBranch, projectIDstr)
 	if err != nil {
-		return fmt.Errorf("failed to to protect project. defaultBranch: %s, projectIDstr: %s, err: %w", defaultBranch, projectIDstr, err)
+		return fmt.Errorf("failed to to protect  %s: %w", projectIDstr, err)
 	}
 
 	return nil
 }
 
-func (api APIClient) SetDefaultBranch(ctx context.Context, owner, projectName, branch string) error {
+func (api APIClient) SetDefaultBranch(ctx context.Context, owner, repo, branch string) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitLab:SetDefaultBranch")
-	logger.Debug().Str("owner", owner).Str("projectName", projectName).Str("branch", branch).Msg("GitLab:SetDefaultBranch")
+	logger.Debug().Str("owner", owner).Str("repo", repo).Str("branch", branch).Msg("GitLab:SetDefaultBranch")
 
-	err := api.projectService.setDefaultBranch(ctx, owner, projectName, branch)
+	err := api.projectService.setDefaultBranch(ctx, owner, repo, branch)
 	if err != nil {
-		return fmt.Errorf("failed to set default branch: %s, projectName: %s, owner: %s, err: %w", branch, projectName, owner, err)
+		return fmt.Errorf("failed to set default branch: %s, for repo: %s with owner: %s, err: %w", branch, repo, owner, err)
 	}
 
 	return nil
 }
 
-func (api APIClient) UnprotectProject(ctx context.Context, defaultBranch string, projectIDStr string) error {
+func (api APIClient) UnprotectProject(ctx context.Context, branch string, projectIDStr string) error {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering GitLab:UnprotectProject")
-	logger.Debug().Str("defaultBranch", defaultBranch).Str("projectIDStr", projectIDStr).Msg("GitLab:UnprotectProject")
+	logger.Trace().Msg("Entering GitLab:Unprotect")
+	logger.Debug().Str("projectIDStr", projectIDStr).Str("branch", branch).Msg("GitLab:Unprotect")
 
-	err := api.protectionService.unprotect(ctx, defaultBranch, projectIDStr)
+	err := api.protectionService.unprotect(ctx, branch, projectIDStr)
 	if err != nil {
-		return fmt.Errorf("failed to unprotect project. projectIDStr: %s, err: %w", projectIDStr, err)
+		return fmt.Errorf("failed to to unprotect %s: %w", projectIDStr, err)
 	}
 
 	return nil
 }
 
-func NewGitLabAPIClient(ctx context.Context, opt model.GitProviderClientOption, httpClient *http.Client) (APIClient, error) {
+func NewGitLabAPIClient(ctx context.Context, option model.GitProviderClientOption, httpClient *http.Client) (APIClient, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitLab:NewGitLabClient")
 
 	defaultBaseURL := "https://gitlab.com/"
-	if opt.Domain != "" {
-		defaultBaseURL = opt.DomainWithScheme(opt.HTTPClient.Scheme)
+	if option.Domain != "" {
+		defaultBaseURL = option.DomainWithScheme(option.HTTPClient.Scheme)
 	}
 
-	rawClient, err := gitlab.NewClient(opt.HTTPClient.Token,
+	rawClient, err := gitlab.NewClient(option.HTTPClient.Token,
 		gitlab.WithBaseURL(defaultBaseURL),
 		gitlab.WithHTTPClient(httpClient),
 	)

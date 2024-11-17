@@ -40,7 +40,7 @@ var invalidNames = map[string]bool{
 	"wikis":                true,
 }
 
-// IsValidGitLabRepositoryName checks if the given name is a valid GitLab repository name.
+// IsValidGitLabName checks if the given name is a valid GitLab repository name.
 // It returns true if the name:
 //  1. Contains only valid characters (defined by nameRegex)
 //  2. Is not in the list of invalid names (defined in invalidNames)
@@ -52,11 +52,11 @@ var invalidNames = map[string]bool{
 //
 // Returns:
 //   - bool: true if the name is valid, false otherwise
-func IsValidGitLabRepositoryName(name string) bool {
-	return isValidGitLabRepositoryNameCharacters(name) && !isInvalidGitLabRepositoryName(name)
+func IsValidGitLabName(name string) bool {
+	return isValidGitLabNameCharacters(name) && !isInvalidGitLabRepositoryName(name)
 }
 
-// isValidGitLabRepositoryNameCharacters checks if the given name contains only
+// isValidGitLabNameCharacters checks if the given name contains only
 // characters that are allowed in GitLab repository names.
 //
 // Parameters:
@@ -64,7 +64,7 @@ func IsValidGitLabRepositoryName(name string) bool {
 //
 // Returns:
 //   - bool: true if the name contains only valid characters, false otherwise
-func isValidGitLabRepositoryNameCharacters(name string) bool {
+func isValidGitLabNameCharacters(name string) bool {
 	return nameRegex.MatchString(name)
 }
 

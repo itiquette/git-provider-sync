@@ -17,24 +17,23 @@ import (
 
 type ProjectService struct {
 	client            *github.Client
-	opts              *ProjectOptionsBuilder
+	optBuilder        *ProjectOptionsBuilder
 	protectionService *ProtectionService
 }
 
 func NewProjectService(client *github.Client) *ProjectService {
-	return &ProjectService{client: client, opts: NewProjectOptionsBuilder(), protectionService: NewProtectionService(client)}
+	return &ProjectService{client: client, optBuilder: NewProjectOptionsBuilder(), protectionService: NewProtectionService(client)}
 }
 
-func (p ProjectService) Create(ctx context.Context, cfg config.ProviderConfig, opt model.CreateOption) (string, error) {
+func (p ProjectService) createProject(ctx context.Context, cfg config.ProviderConfig, opt model.CreateProjectOption) (string, error) {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering GitHub:Create")
+	logger.Trace().Msg("Entering GitHub:createProject")
 	opt.DebugLog(logger).Msg("GitHub:CreateOption")
 
-	builder := p.opts
-	builder = builder.BasicOpts(builder, opt.Visibility, opt.RepositoryName, opt.Description, opt.DefaultBranch)
+	p.optBuilder.basicOpts(opt.Visibility, opt.RepositoryName, opt.Description, opt.DefaultBranch)
 
 	if opt.Disabled {
-		builder = p.opts.DisableFeatures(builder)
+		p.optBuilder.disableFeatures()
 	}
 
 	groupName := ""
@@ -42,12 +41,12 @@ func (p ProjectService) Create(ctx context.Context, cfg config.ProviderConfig, o
 		groupName = cfg.Group
 	}
 
-	createdRepo, _, err := p.client.Repositories.Create(ctx, groupName, builder.opts)
+	createdRepo, _, err := p.client.Repositories.Create(ctx, groupName, p.optBuilder.opts)
 	if err != nil {
-		return "", fmt.Errorf("create: failed to create %s: %w", opt.RepositoryName, err)
+		return "", fmt.Errorf("create: failed to create project. name: %s, err: %w", opt.RepositoryName, err)
 	}
 
-	logger.Trace().Msg("User repository created successfully")
+	logger.Trace().Str("name", opt.RepositoryName).Msg("Project created successfully")
 
 	return *createdRepo.FullName, nil
 }
@@ -64,7 +63,7 @@ func (p ProjectService) newProjectInfo(ctx context.Context, cfg config.ProviderC
 
 	gitHubProject, _, err := p.client.Repositories.Get(ctx, owner, name)
 	if err != nil {
-		return model.ProjectInfo{}, fmt.Errorf("failed to get projectinfo for %s: %w", name, err)
+		return model.ProjectInfo{}, fmt.Errorf("failed to get projectInfo. name: %s, err: %w", name, err)
 	}
 
 	return model.ProjectInfo{
@@ -79,9 +78,9 @@ func (p ProjectService) newProjectInfo(ctx context.Context, cfg config.ProviderC
 	}, nil
 }
 
-func (p ProjectService) getRepositoryProjectInfos(ctx context.Context, cfg config.ProviderConfig) ([]model.ProjectInfo, error) {
+func (p ProjectService) getProjectInfos(ctx context.Context, cfg config.ProviderConfig) ([]model.ProjectInfo, error) {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering GitHub:Projectinfos")
+	logger.Trace().Msg("Entering GitHub:getProjectinfos")
 
 	var allRepos []*github.Repository
 
@@ -100,7 +99,7 @@ func (p ProjectService) getRepositoryProjectInfos(ctx context.Context, cfg confi
 		for {
 			repos, resp, err := p.client.Repositories.ListByOrg(ctx, cfg.Group, opt)
 			if err != nil {
-				return nil, fmt.Errorf("failed to fetch org repositories page %d: %w", opt.Page, err)
+				return nil, fmt.Errorf("failed to list org repositories. page: %d, err: %w", opt.Page, err)
 			}
 
 			allRepos = append(allRepos, repos...)
@@ -122,7 +121,7 @@ func (p ProjectService) getRepositoryProjectInfos(ctx context.Context, cfg confi
 		for {
 			repos, resp, err := p.client.Repositories.ListByAuthenticatedUser(ctx, opt)
 			if err != nil {
-				return nil, fmt.Errorf("failed to fetch user repositories page %d: %w", opt.Page, err)
+				return nil, fmt.Errorf("failed to list user repositories. page: %d, err: %w", opt.Page, err)
 			}
 
 			allRepos = append(allRepos, repos...)
@@ -159,15 +158,15 @@ func (p ProjectService) getRepositoryProjectInfos(ctx context.Context, cfg confi
 	return projectinfos, nil
 }
 
-func (p ProjectService) setDefaultBranch(ctx context.Context, owner string, repoName string, branch string) error {
+func (p ProjectService) setDefaultBranch(ctx context.Context, owner string, projectName string, branch string) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitHub:setDefaultBranch")
 
-	_, _, err := p.client.Repositories.Edit(ctx, owner, repoName, &github.Repository{
+	_, _, err := p.client.Repositories.Edit(ctx, owner, projectName, &github.Repository{
 		DefaultBranch: github.String(branch),
 	})
 	if err != nil {
-		return fmt.Errorf("failed to set default branch: %w", err)
+		return fmt.Errorf("failed to set default branch. err: %w", err)
 	}
 
 	return nil

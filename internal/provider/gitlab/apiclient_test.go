@@ -43,7 +43,7 @@ package gitlab
 // 			glc := Client{
 // 				providerClient: gitLabClientMock().Client(),
 // 			}
-// 			got := glc.IsValidRepositoryName(ctx, tableTest.args.repositoryName)
+// 			got := glc.IsValidProjectName(ctx, tableTest.args.repositoryName)
 // 			require.Equal(tableTest.want, got)
 // 		})
 // 	}
@@ -394,7 +394,7 @@ package gitlab
 // 	}
 // }
 //
-// func TestIsValidRepositoryName(t *testing.T) {
+// func TestIsValidProjectName(t *testing.T) {
 // 	tests := []struct {
 // 		name     string
 // 		repoName string
@@ -414,7 +414,7 @@ package gitlab
 // 		t.Run(tabletest.name, func(t *testing.T) {
 // 			client := Client{}
 // 			ctx := context.Background()
-// 			result := client.IsValidRepositoryName(ctx, tabletest.repoName)
+// 			result := client.IsValidProjectName(ctx, tabletest.repoName)
 // 			assert.Equal(t, tabletest.expected, result)
 // 		})
 // 	}

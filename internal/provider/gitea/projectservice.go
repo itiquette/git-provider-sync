@@ -16,33 +16,33 @@ import (
 
 type ProjectService struct {
 	client            *gitea.Client
-	opts              *ProjectOptionsBuilder
+	optBuilder        *ProjectOptionsBuilder
 	protectionService *ProtectionService
 }
 
 func NewProjectService(client *gitea.Client) *ProjectService {
-	return &ProjectService{client: client, opts: NewProjectOptionsBuilder(), protectionService: NewProtectionService(client)}
+	return &ProjectService{client: client, optBuilder: NewProjectOptionsBuilder(), protectionService: NewProtectionService(client)}
 }
 
-func (p ProjectService) Create(ctx context.Context, cfg config.ProviderConfig, opt model.CreateOption) (string, error) {
+func (p ProjectService) createProject(ctx context.Context, cfg config.ProviderConfig, opt model.CreateProjectOption) (string, error) {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering gitea:Create")
+	logger.Trace().Msg("Entering gitea:creatNeProject")
+	opt.DebugLog(logger).Msg("gitea:CreateOption")
 
-	builder := p.opts
-	builder = builder.BasicOpts(builder, opt.Visibility, opt.RepositoryName, opt.Description, opt.DefaultBranch)
+	p.optBuilder.BasicOpts(opt.Visibility, opt.RepositoryName, opt.Description, opt.DefaultBranch)
 
 	var createdRepo *gitea.Repository
 
 	var err error
 
 	if cfg.IsGroup() {
-		createdRepo, _, err = p.client.CreateOrgRepo(cfg.Group, *builder.opts)
+		createdRepo, _, err = p.client.CreateOrgRepo(cfg.Group, *p.optBuilder.opts)
 	} else {
-		createdRepo, _, err = p.client.CreateRepo(*builder.opts)
+		createdRepo, _, err = p.client.CreateRepo(*p.optBuilder.opts)
 	}
 
 	if err != nil {
-		return "", fmt.Errorf("failed to create %s: %w", opt.RepositoryName, err)
+		return "", fmt.Errorf("failed to create project. name: %s, err: %w", opt.RepositoryName, err)
 	}
 
 	if opt.Disabled {
@@ -57,9 +57,35 @@ func (p ProjectService) Create(ctx context.Context, cfg config.ProviderConfig, o
 	return createdRepo.FullName, nil
 }
 
-func (p ProjectService) getRepositoryProjectInfos(ctx context.Context, cfg config.ProviderConfig) ([]model.ProjectInfo, error) {
+func (p ProjectService) newProjectInfo(ctx context.Context, config config.ProviderConfig, rawClient *gitea.Client, repositoryName string) (model.ProjectInfo, error) {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering GitLab:getRepositoryProjectInfos")
+	logger.Trace().Msg("Entering Gitea:newProjectInfo")
+
+	owner := config.Group
+	if !config.IsGroup() {
+		owner = config.User
+	}
+
+	giteaProject, _, err := rawClient.GetRepo(owner, repositoryName)
+	if err != nil {
+		return model.ProjectInfo{}, fmt.Errorf("failed to get project info for %s: %w", repositoryName, err)
+	}
+
+	return model.ProjectInfo{
+		OriginalName:   repositoryName,
+		HTTPSURL:       giteaProject.CloneURL,
+		SSHURL:         giteaProject.SSHURL,
+		Description:    giteaProject.Description,
+		DefaultBranch:  giteaProject.DefaultBranch,
+		LastActivityAt: &giteaProject.Updated,
+		Visibility:     string(giteaProject.Owner.Visibility),
+		ProjectID:      giteaProject.FullName,
+	}, nil
+}
+
+func (p ProjectService) getProjectInfos(ctx context.Context, cfg config.ProviderConfig) ([]model.ProjectInfo, error) {
+	logger := log.Logger(ctx)
+	logger.Trace().Msg("Entering gitea:getProjectInfos")
 
 	var (
 		repositories []*gitea.Repository
@@ -105,44 +131,18 @@ func (p ProjectService) getRepositoryProjectInfos(ctx context.Context, cfg confi
 	return projectinfos, nil
 }
 
-func (p ProjectService) setDefaultBranch(ctx context.Context, owner string, repoName string, branch string) error {
+func (p ProjectService) setDefaultBranch(ctx context.Context, owner string, projectName string, branch string) error {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering GitLab:setDefaultBranch")
+	logger.Trace().Msg("Entering gitea:setDefaultBranch")
 
 	editOptions := gitea.EditRepoOption{
 		DefaultBranch: &branch,
 	}
 
-	_, _, err := p.client.EditRepo(owner, repoName, editOptions)
+	_, _, err := p.client.EditRepo(owner, projectName, editOptions)
 	if err != nil {
 		return fmt.Errorf("failed to set default branch: %w", err)
 	}
 
 	return nil
-}
-
-func (p ProjectService) newProjectInfo(ctx context.Context, config config.ProviderConfig, rawClient *gitea.Client, repositoryName string) (model.ProjectInfo, error) {
-	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering Gitea:newProjectInfo")
-
-	owner := config.Group
-	if !config.IsGroup() {
-		owner = config.User
-	}
-
-	giteaProject, _, err := rawClient.GetRepo(owner, repositoryName)
-	if err != nil {
-		return model.ProjectInfo{}, fmt.Errorf("failed to get project info for %s: %w", repositoryName, err)
-	}
-
-	return model.ProjectInfo{
-		OriginalName:   repositoryName,
-		HTTPSURL:       giteaProject.CloneURL,
-		SSHURL:         giteaProject.SSHURL,
-		Description:    giteaProject.Description,
-		DefaultBranch:  giteaProject.DefaultBranch,
-		LastActivityAt: &giteaProject.Updated,
-		Visibility:     string(giteaProject.Owner.Visibility),
-		ProjectID:      giteaProject.FullName,
-	}, nil
 }

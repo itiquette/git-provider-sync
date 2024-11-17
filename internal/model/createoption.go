@@ -10,10 +10,10 @@ import (
 	"github.com/rs/zerolog"
 )
 
-// CreateOption represents options for creating a new repository.
+// CreateProjectOption represents options for creating a new repository.
 // It includes the repository name, visibility settings, description,
 // and the name of the default branch.
-type CreateOption struct {
+type CreateProjectOption struct {
 	RepositoryName string // The name of the new repository
 	Visibility     string // The visibility setting (e.g., "public", "private")
 	Description    string // A description of the repository
@@ -22,7 +22,7 @@ type CreateOption struct {
 }
 
 // String provides a string representation of CreateOption.
-func (co CreateOption) String() string {
+func (co CreateProjectOption) String() string {
 	return fmt.Sprintf("CreateOption{RepositoryName: %s, Visibility: %s, Description: %s, DefaultBranch: %s, Disabled: %t}",
 		co.RepositoryName,
 		co.Visibility,
@@ -32,7 +32,7 @@ func (co CreateOption) String() string {
 }
 
 // DebugLog creates a debug log event with repository creation options.
-func (co CreateOption) DebugLog(logger *zerolog.Logger) *zerolog.Event {
+func (co CreateProjectOption) DebugLog(logger *zerolog.Logger) *zerolog.Event {
 	return logger.Debug(). //nolint:zerologlint
 				Str("repository_name", co.RepositoryName).
 				Str("visibility", co.Visibility).
@@ -42,8 +42,8 @@ func (co CreateOption) DebugLog(logger *zerolog.Logger) *zerolog.Event {
 }
 
 // NewCreateOption creates a new CreateOption.
-func NewCreateOption(repoName, visibility, description, defaultBranch string, disabled bool) CreateOption {
-	return CreateOption{
+func NewCreateOption(repoName, visibility, description, defaultBranch string, disabled bool) CreateProjectOption {
+	return CreateProjectOption{
 		RepositoryName: repoName,
 		Visibility:     visibility,
 		Description:    description,

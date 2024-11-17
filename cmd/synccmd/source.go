@@ -97,7 +97,7 @@ func validateRepository(ctx context.Context, client interfaces.GitProvider, repo
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering validateRepository")
 
-	if client.IsValidRepositoryName(ctx, repo.ProjectInfo().Name(ctx)) {
+	if client.IsValidProjectName(ctx, repo.ProjectInfo().Name(ctx)) {
 		return nil
 	}
 

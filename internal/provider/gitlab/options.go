@@ -19,7 +19,7 @@ func NewProjectOptionsBuilder() *ProjectOptionsBuilder {
 	return builder
 }
 
-func (ProjectOptionsBuilder) BasicOpts(builder *ProjectOptionsBuilder, visibility, name, description, defaultBranch string, namespaceID int) *ProjectOptionsBuilder {
+func (builder *ProjectOptionsBuilder) basicOpts(visibility, name, description, defaultBranch string, namespaceID int) {
 	builder.opts.Name = gitlab.Ptr(name)
 	builder.opts.Description = gitlab.Ptr(description)
 	builder.opts.DefaultBranch = gitlab.Ptr(defaultBranch)
@@ -28,11 +28,9 @@ func (ProjectOptionsBuilder) BasicOpts(builder *ProjectOptionsBuilder, visibilit
 	if namespaceID != 0 {
 		builder.opts.NamespaceID = gitlab.Ptr(namespaceID)
 	}
-
-	return builder
 }
 
-func (ProjectOptionsBuilder) DisableOpts(builder *ProjectOptionsBuilder) *ProjectOptionsBuilder {
+func (builder *ProjectOptionsBuilder) disableOpts() {
 	builder.opts.BuildsAccessLevel = gitlab.Ptr(gitlab.DisabledAccessControl)
 	builder.opts.AutoDevopsEnabled = gitlab.Ptr(false)
 	builder.opts.ContainerRegistryAccessLevel = gitlab.Ptr(gitlab.DisabledAccessControl)
@@ -57,6 +55,4 @@ func (ProjectOptionsBuilder) DisableOpts(builder *ProjectOptionsBuilder) *Projec
 	builder.opts.PackagesEnabled = gitlab.Ptr(false)
 	builder.opts.PagesAccessLevel = gitlab.Ptr(gitlab.DisabledAccessControl)
 	builder.opts.ModelExperimentsAccessLevel = gitlab.Ptr(gitlab.DisabledAccessControl)
-
-	return builder
 }

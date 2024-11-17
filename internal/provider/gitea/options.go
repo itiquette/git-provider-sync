@@ -24,19 +24,16 @@ func NewProjectOptionsBuilder() *ProjectOptionsBuilder {
 	return builder
 }
 
-func (ProjectOptionsBuilder) BasicOpts(builder *ProjectOptionsBuilder, _, name, description, defaultBranch string) *ProjectOptionsBuilder {
-	builder.opts.Name = name
-	builder.opts.Description = description
-	builder.opts.DefaultBranch = defaultBranch
-	//	builder.opts.Private = toVisibility(/* visibility */)
-
-	return builder
+func (p *ProjectOptionsBuilder) BasicOpts(_, name, description, defaultBranch string) {
+	p.opts.Name = name
+	p.opts.Description = description
+	p.opts.DefaultBranch = defaultBranch //	builder.opts.Private = toVisibility(/* visibility */)
 }
 
-func (p ProjectService) ApplyDisabledSettings(ctx context.Context, owner, repo string) error {
+func (p ProjectService) ApplyDisabledSettings(ctx context.Context, owner, projectName string) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering gitea:ApplyDisabledSettings")
-	logger.Debug().Str("owner", owner).Str("repo", repo).Msg("Entering gitea:ApplyDisabledSettings")
+	logger.Debug().Str("owner", owner).Str("repo", projectName).Msg("Entering gitea:ApplyDisabledSettings")
 
 	// These settings can only be applied after repository creation
 	editOpts := gitea.EditRepoOption{
@@ -56,9 +53,9 @@ func (p ProjectService) ApplyDisabledSettings(ctx context.Context, owner, repo s
 	*editOpts.HasReleases = false
 	*editOpts.HasActions = false
 
-	_, _, err := p.client.EditRepo(owner, repo, editOpts)
+	_, _, err := p.client.EditRepo(owner, projectName, editOpts)
 	if err != nil {
-		return fmt.Errorf("failed to edit repository settings: owner: %s, repo: %s, err: %w", owner, repo, err)
+		return fmt.Errorf("failed to edit repository settings: owner: %s, repo: %s, err: %w", owner, projectName, err)
 	}
 
 	return nil

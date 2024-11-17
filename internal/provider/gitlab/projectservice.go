@@ -20,43 +20,42 @@ import (
 
 type ProjectService struct {
 	client            *gitlab.Client
-	opts              *ProjectOptionsBuilder
+	optBuilder        *ProjectOptionsBuilder
 	protectionService *ProtectionService
 }
 
 func NewProjectService(client *gitlab.Client) *ProjectService {
-	return &ProjectService{client: client, opts: NewProjectOptionsBuilder(), protectionService: NewProtectionService(client)}
+	return &ProjectService{client: client, optBuilder: NewProjectOptionsBuilder(), protectionService: NewProtectionService(client)}
 }
 
-func (p ProjectService) Create(ctx context.Context, cfg config.ProviderConfig, opt model.CreateOption) (string, error) {
+func (p ProjectService) createProject(ctx context.Context, cfg config.ProviderConfig, opt model.CreateProjectOption) (string, error) {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering Create")
+	logger.Trace().Msg("Entering GitLab:createProject")
 
 	namespaceID, err := p.getNamespaceID(ctx, cfg)
 	if err != nil {
-		return "", fmt.Errorf("get namespace ID: %w", err)
+		return "", fmt.Errorf("failed to get namespaceID. err: %w", err)
 	}
 
-	builder := p.opts
-	builder = builder.BasicOpts(builder, opt.Visibility, opt.RepositoryName, opt.Description, opt.DefaultBranch, namespaceID)
+	p.optBuilder.basicOpts(opt.Visibility, opt.RepositoryName, opt.Description, opt.DefaultBranch, namespaceID)
 
 	if opt.Disabled {
-		builder = p.opts.DisableOpts(builder)
+		p.optBuilder.disableOpts()
 	}
 
-	createdRepo, _, err := p.client.Projects.CreateProject(builder.opts)
+	createdRepo, _, err := p.client.Projects.CreateProject(p.optBuilder.opts)
 	if err != nil {
-		return "", fmt.Errorf("failed to create %s: %w", opt.RepositoryName, err)
+		return "", fmt.Errorf("failed to create project. name: %s, err: %w", opt.RepositoryName, err)
 	}
 
-	logger.Debug().Msg("Repository created successfully")
+	logger.Debug().Str("name", opt.RepositoryName).Msg("Repository created successfully")
 
 	return strconv.Itoa(createdRepo.ID), nil
 }
 
 func (p ProjectService) getNamespaceID(ctx context.Context, cfg config.ProviderConfig) (int, error) {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering getNamespaceID")
+	logger.Trace().Msg("Entering GitLab:getNamespaceID")
 
 	if !cfg.IsGroup() {
 		return 0, nil
@@ -70,11 +69,11 @@ func (p ProjectService) getNamespaceID(ctx context.Context, cfg config.ProviderC
 			return 0, errors.New("authentication failed: please check your token permissions")
 		}
 
-		return 0, fmt.Errorf("search for group: %w", err)
+		return 0, fmt.Errorf("failed to list groups. err: %w", err)
 	}
 
 	if len(groups) == 0 {
-		return 0, fmt.Errorf("no group found with name: %s", cfg.Group)
+		return 0, fmt.Errorf("failed to find group name. group: %s", cfg.Group)
 	}
 
 	return groups[0].ID, nil
@@ -100,24 +99,24 @@ func (p ProjectService) newProjectInfo(ctx context.Context, cfg config.ProviderC
 			return model.ProjectInfo{}, nil
 		}
 
-		return model.ProjectInfo{}, fmt.Errorf("get gitlab project: %w", err)
+		return model.ProjectInfo{}, fmt.Errorf("failed to get GitLab project. projectPath: %s, err: %w", projectPath, err)
 	}
 
 	return model.ProjectInfo{
-		OriginalName:   name,
+		DefaultBranch:  gitlabProject.DefaultBranch,
 		Description:    gitlabProject.Description,
 		HTTPSURL:       gitlabProject.HTTPURLToRepo,
-		SSHURL:         gitlabProject.SSHURLToRepo,
-		DefaultBranch:  gitlabProject.DefaultBranch,
 		LastActivityAt: gitlabProject.LastActivityAt,
+		OriginalName:   name,
 		ProjectID:      strconv.Itoa(gitlabProject.ID),
+		SSHURL:         gitlabProject.SSHURLToRepo,
 		Visibility:     getVisibility(gitlabProject.Visibility),
 	}, nil
 }
 
-func (p ProjectService) getRepositoryProjectInfos(ctx context.Context, cfg config.ProviderConfig) ([]model.ProjectInfo, error) {
+func (p ProjectService) getProjectInfos(ctx context.Context, cfg config.ProviderConfig) ([]model.ProjectInfo, error) {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering GitLab:getRepositoryProjectInfos")
+	logger.Trace().Msg("Entering GitLab:getProjectInfos")
 
 	var allRepositories []*gitlab.Project
 
@@ -125,13 +124,13 @@ func (p ProjectService) getRepositoryProjectInfos(ctx context.Context, cfg confi
 		opt := &gitlab.ListGroupProjectsOptions{
 			OrderBy:     gitlab.Ptr("name"),
 			Sort:        gitlab.Ptr("asc"),
-			ListOptions: gitlab.ListOptions{PerPage: 100}, //TODO: add archived support, consider projectinfo struct
+			ListOptions: gitlab.ListOptions{PerPage: 100}, //TODO: add archived support,
 		}
 
 		for {
 			repositories, resp, err := p.client.Groups.ListGroupProjects(cfg.Group, opt)
 			if err != nil {
-				return nil, fmt.Errorf("fetch group repositories page %d: %w", opt.Page, err)
+				return nil, fmt.Errorf("failed to list group repositories. page: %d, err: %w", opt.Page, err)
 			}
 
 			allRepositories = append(allRepositories, repositories...)
@@ -153,7 +152,7 @@ func (p ProjectService) getRepositoryProjectInfos(ctx context.Context, cfg confi
 		for {
 			repositories, resp, err := p.client.Projects.ListUserProjects(cfg.User, opt)
 			if err != nil {
-				return nil, fmt.Errorf("fetch user repositories page %d: %w", opt.Page, err)
+				return nil, fmt.Errorf("failed to list user repositories. page: %d, err: %w", opt.Page, err)
 			}
 
 			allRepositories = append(allRepositories, repositories...)
@@ -175,26 +174,26 @@ func (p ProjectService) getRepositoryProjectInfos(ctx context.Context, cfg confi
 			continue
 		}
 
-		rm, err := p.newProjectInfo(ctx, cfg, repo.Path)
+		projectInfo, err := p.newProjectInfo(ctx, cfg, repo.Path)
 		if err != nil {
-			return nil, fmt.Errorf("init repository meta for %s: %w", repo.Path, err)
+			return nil, fmt.Errorf("failed to init projectInfo. path: %s, err: %w", repo.Path, err)
 		}
 
-		projectinfos = append(projectinfos, rm)
+		projectinfos = append(projectinfos, projectInfo)
 	}
 
 	return projectinfos, nil
 }
 
-func (p ProjectService) setDefaultBranch(ctx context.Context, owner string, repoName string, branch string) error {
+func (p ProjectService) setDefaultBranch(ctx context.Context, owner string, projectName string, defaultBranch string) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitLab:setDefaultBranch")
 
-	_, _, err := p.client.Projects.EditProject(owner+"/"+repoName, &gitlab.EditProjectOptions{
-		DefaultBranch: gitlab.Ptr(branch),
+	_, _, err := p.client.Projects.EditProject(owner+"/"+projectName, &gitlab.EditProjectOptions{
+		DefaultBranch: gitlab.Ptr(defaultBranch),
 	})
 	if err != nil {
-		return fmt.Errorf("failed to set default branch: %w", err)
+		return fmt.Errorf("failed to set default branch. err: %w", err)
 	}
 
 	return nil

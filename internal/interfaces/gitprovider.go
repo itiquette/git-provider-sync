@@ -10,15 +10,15 @@ import (
 	config "itiquette/git-provider-sync/internal/model/configuration"
 )
 
-// GitProvider defines the interface for interacting with a Git hosting service.
+// GitProvider defines the interface for interacting with a Git provider service.
 // This interface encapsulates operations such as creating repositories,
 // fetching repository metadata, and validating repository names.
 type GitProvider interface {
-	Create(ctx context.Context, config config.ProviderConfig, option model.CreateOption) (string, error)
-	DefaultBranch(ctx context.Context, owner string, projectname string, branch string) error
-	IsValidRepositoryName(ctx context.Context, name string) bool
+	CreateProject(ctx context.Context, cfg config.ProviderConfig, opt model.CreateProjectOption) (string, error)
+	IsValidProjectName(ctx context.Context, name string) bool
 	Name() string
-	ProjectInfos(ctx context.Context, config config.ProviderConfig, filtering bool) ([]model.ProjectInfo, error)
-	Protect(ctx context.Context, owner string, defaultBranch string, projectID string) error
-	Unprotect(ctx context.Context, defaultBranch string, projectID string) error
+	ProjectInfos(ctx context.Context, cfg config.ProviderConfig, filtering bool) ([]model.ProjectInfo, error)
+	ProtectProject(ctx context.Context, owner string, defaultBranch string, projectIDStr string) error
+	SetDefaultBranch(ctx context.Context, owner string, name string, branch string) error
+	UnprotectProject(ctx context.Context, defaultBranch string, projectIDStr string) error
 }

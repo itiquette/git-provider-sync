@@ -55,7 +55,7 @@ func Push(ctx context.Context, targetProviderCfg config.ProviderConfig, provider
 	}
 
 	if targetProviderCfg.Project.Disabled {
-		err := provider.Unprotect(ctx, repository.ProjectInfo().DefaultBranch, projectID)
+		err := provider.UnprotectProject(ctx, repository.ProjectInfo().DefaultBranch, projectID)
 		if err != nil {
 			return fmt.Errorf("failed to protect the repository at provider: %w", err)
 		}
@@ -72,12 +72,12 @@ func Push(ctx context.Context, targetProviderCfg config.ProviderConfig, provider
 		owner = targetProviderCfg.Group
 	}
 
-	if err := provider.DefaultBranch(ctx, owner, repository.ProjectInfo().Name(ctx), repository.ProjectInfo().DefaultBranch); err != nil {
+	if err := provider.SetDefaultBranch(ctx, owner, repository.ProjectInfo().Name(ctx), repository.ProjectInfo().DefaultBranch); err != nil {
 		return fmt.Errorf("%w: %w", ErrDefaultBranch, err)
 	}
 
 	if targetProviderCfg.Project.Disabled {
-		err := provider.Protect(ctx, owner, repository.ProjectInfo().DefaultBranch, projectID)
+		err := provider.ProtectProject(ctx, owner, repository.ProjectInfo().DefaultBranch, projectID)
 		if err != nil {
 			return fmt.Errorf("failed to protect the repository at provider: %w", err)
 		}
@@ -128,7 +128,7 @@ func create(ctx context.Context, targetProviderCfg config.ProviderConfig, provid
 
 	option := model.NewCreateOption(name, visibility, description, repository.ProjectInfo().DefaultBranch, disabled)
 
-	projectID, err := provider.Create(ctx, targetProviderCfg, option)
+	projectID, err := provider.CreateProject(ctx, targetProviderCfg, option)
 	if err != nil {
 		return "", fmt.Errorf("%w: %s. err: %w", ErrCreateRepository, name, err)
 	}

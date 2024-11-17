@@ -13,7 +13,7 @@ import (
 
 type Client struct{}
 
-func (Client) Create(_ context.Context, _ config.ProviderConfig, _ model.CreateOption) (string, error) {
+func (Client) CreateProject(_ context.Context, _ config.ProviderConfig, _ model.CreateProjectOption) (string, error) {
 	return "", nil
 }
 
@@ -21,11 +21,11 @@ func (Client) Name() string {
 	return config.DIRECTORY
 }
 
-func (Client) DefaultBranch(_ context.Context, _ string, _ string, _ string) error {
+func (Client) SetDefaultBranch(_ context.Context, _ string, _ string, _ string) error {
 	return nil
 }
 
-func (Client) IsValidRepositoryName(_ context.Context, _ string) bool {
+func (Client) IsValidProjectName(_ context.Context, _ string) bool {
 	return true
 }
 
@@ -33,10 +33,10 @@ func (Client) ProjectInfos(_ context.Context, _ config.ProviderConfig, _ bool) (
 	return nil, nil
 }
 
-func (Client) Protect(_ context.Context, _, _, _ string) error {
+func (Client) ProtectProject(_ context.Context, _, _, _ string) error {
 	return nil
 }
 
-func (Client) Unprotect(_ context.Context, _, _ string) error {
+func (Client) UnprotectProject(_ context.Context, _, _ string) error {
 	return nil
 }

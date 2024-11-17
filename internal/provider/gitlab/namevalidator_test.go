@@ -30,7 +30,7 @@ func TestIsValidGitLabRepositoryNameCharacters(t *testing.T) {
 
 	for _, tabletest := range tests {
 		t.Run(tabletest.name, func(t *testing.T) {
-			got := isValidGitLabRepositoryNameCharacters(tabletest.repoName)
+			got := isValidGitLabNameCharacters(tabletest.repoName)
 			assert.Equal(t, tabletest.want, got)
 		})
 	}
@@ -79,7 +79,7 @@ func TestIsValidGitLabRepositoryName(t *testing.T) {
 
 	for _, tabletest := range tests {
 		t.Run(tabletest.name, func(t *testing.T) {
-			got := IsValidGitLabRepositoryName(tabletest.repoName)
+			got := IsValidGitLabName(tabletest.repoName)
 			assert.Equal(t, tabletest.want, got)
 		})
 	}
