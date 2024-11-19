@@ -7,30 +7,26 @@ package gitlab
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"itiquette/git-provider-sync/internal/functiondefinition"
+	"itiquette/git-provider-sync/internal/interfaces"
 	"itiquette/git-provider-sync/internal/log"
 	"itiquette/git-provider-sync/internal/model"
 	config "itiquette/git-provider-sync/internal/model/configuration"
 	"itiquette/git-provider-sync/internal/provider/targetfilter"
 )
 
-type IsInIntervalFunc func(context.Context, time.Time) (bool, error)
-
 type filterService struct {
-	isInInterval IsInIntervalFunc
+	isInInterval interfaces.IsInIntervalFunc
 }
 
-func NewFilter(isInInterval IsInIntervalFunc) *filterService { //nolint
-	if isInInterval == nil {
-		isInInterval = targetfilter.IsInInterval
-	}
+func NewFilter() filterService { //nolint
+	isInInterval := targetfilter.IsInInterval
 
-	return &filterService{isInInterval: isInInterval}
+	return filterService{isInInterval: isInInterval}
 }
 
-func (filterService) FilterProjectinfos(ctx context.Context, cfg config.ProviderConfig, projectinfos []model.ProjectInfo, filterExcludedIncludedFunc functiondefinition.FilterIncludedExcludedFunc, isInInterval IsInIntervalFunc) ([]model.ProjectInfo, error) {
+func (filterService) FilterProjectinfos(ctx context.Context, cfg config.ProviderConfig, projectinfos []model.ProjectInfo, filterExcludedIncludedFunc functiondefinition.FilterIncludedExcludedFunc, isInInterval interfaces.IsInIntervalFunc) ([]model.ProjectInfo, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitLab:FilterProjectinfos")
 
@@ -42,7 +38,7 @@ func (filterService) FilterProjectinfos(ctx context.Context, cfg config.Provider
 	return filterByDate(ctx, filteredURLs, isInInterval)
 }
 
-func filterByDate(ctx context.Context, projectinfos []model.ProjectInfo, isInInterval IsInIntervalFunc) ([]model.ProjectInfo, error) {
+func filterByDate(ctx context.Context, projectinfos []model.ProjectInfo, isInInterval interfaces.IsInIntervalFunc) ([]model.ProjectInfo, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitLab:filterByDate")
 

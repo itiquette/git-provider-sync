@@ -79,5 +79,9 @@ func isValidGitLabNameCharacters(name string) bool {
 // Returns:
 //   - bool: true if the name is invalid, false otherwise
 func isInvalidGitLabRepositoryName(name string) bool {
+	if len(name) > 256 {
+		return true
+	}
+
 	return invalidNames[strings.ToLower(name)]
 }

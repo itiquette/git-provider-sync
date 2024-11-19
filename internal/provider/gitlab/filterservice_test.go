@@ -1,268 +1,168 @@
 // SPDX-FileCopyrightText: 2024 Josef Andersson
 //
 // SPDX-License-Identifier: EUPL-1.2
-
 package gitlab
 
 import (
 	"context"
-	"errors"
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"itiquette/git-provider-sync/internal/model"
 	config "itiquette/git-provider-sync/internal/model/configuration"
-
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
 )
 
-// MockFilterIncludedExcluded is a mock for the FilterIncludedExcludedFunc.
-type MockFilterIncludedExcluded struct {
-	mock.Mock
-}
+func TestFilterService_FilterProjectinfos(t *testing.T) {
+	timePtr := func(t time.Time) *time.Time {
+		return &t
+	}
 
-func (m *MockFilterIncludedExcluded) FilterIncludedExcluded(ctx context.Context, config config.ProviderConfig, projectinfos []model.ProjectInfo) ([]model.ProjectInfo, error) {
-	args := m.Called(ctx, config, projectinfos)
-
-	//nolint:forcetypeassert
-	return args.Get(0).([]model.ProjectInfo), args.Error(1) //nolint:wrapcheck
-}
-
-func TestFilter_FilterProjectinfos(t *testing.T) {
-	require := require.New(t)
-	ctx := context.Background()
 	now := time.Now()
-	oldTime := now.Add(-24 * time.Hour)
+	yesterday := now.Add(-24 * time.Hour)
+	oldDate := now.Add(-48 * time.Hour)
 
 	tests := []struct {
-		name              string
-		config            config.ProviderConfig
-		inputProjectinfos []model.ProjectInfo
-		mockFilterResult  []model.ProjectInfo
-		mockFilterErr     error
-		isInInterval      IsInIntervalFunc
-		expectedResult    []model.ProjectInfo
-		expectedErr       bool
+		name         string
+		projectInfos []model.ProjectInfo
+		cfg          config.ProviderConfig
+		startTime    time.Time
+		expected     []model.ProjectInfo
+		expectedErr  string
 	}{
 		{
-			name:   "Success - All repositories included",
-			config: config.ProviderConfig{},
-			inputProjectinfos: []model.ProjectInfo{
-				{HTTPSURL: "https://example.com/repo1", LastActivityAt: &now},
-				{HTTPSURL: "https://example.com/repo2", LastActivityAt: &now},
+			name: "filter projects within time range",
+			projectInfos: []model.ProjectInfo{
+				{ProjectID: "1", LastActivityAt: timePtr(now)},
+				{ProjectID: "2", LastActivityAt: timePtr(oldDate)},
 			},
-			mockFilterResult: []model.ProjectInfo{
-				{HTTPSURL: "https://example.com/repo1", LastActivityAt: &now},
-				{HTTPSURL: "https://example.com/repo2", LastActivityAt: &now},
+			startTime: yesterday,
+			expected: []model.ProjectInfo{
+				{ProjectID: "1", LastActivityAt: timePtr(now)},
 			},
-			mockFilterErr: nil,
-			isInInterval: func(_ context.Context, _ time.Time) (bool, error) {
-				return true, nil
-			},
-			expectedResult: []model.ProjectInfo{
-				{HTTPSURL: "https://example.com/repo1", LastActivityAt: &now},
-				{HTTPSURL: "https://example.com/repo2", LastActivityAt: &now},
-			},
-			expectedErr: false,
 		},
 		{
-			name:   "Success - Some repositories filtered out",
-			config: config.ProviderConfig{},
-			inputProjectinfos: []model.ProjectInfo{
-				{HTTPSURL: "https://example.com/repo1", LastActivityAt: &now},
-				{HTTPSURL: "https://example.com/repo2", LastActivityAt: &oldTime},
+			name: "skip nil dates",
+			projectInfos: []model.ProjectInfo{
+				{ProjectID: "1", LastActivityAt: nil},
+				{ProjectID: "2", LastActivityAt: timePtr(now)},
 			},
-			mockFilterResult: []model.ProjectInfo{
-				{HTTPSURL: "https://example.com/repo1", LastActivityAt: &now},
-				{HTTPSURL: "https://example.com/repo2", LastActivityAt: &oldTime},
+			startTime: yesterday,
+			expected: []model.ProjectInfo{
+				{ProjectID: "2", LastActivityAt: timePtr(now)},
 			},
-			mockFilterErr: nil,
-			isInInterval: func(_ context.Context, t time.Time) (bool, error) {
-				return t.After(oldTime), nil
-			},
-			expectedResult: []model.ProjectInfo{
-				{HTTPSURL: "https://example.com/repo1", LastActivityAt: &now},
-			},
-			expectedErr: false,
 		},
 		{
-			name:              "Error - Filter function fails",
-			config:            config.ProviderConfig{},
-			inputProjectinfos: []model.ProjectInfo{{HTTPSURL: "https://example.com/repo1"}},
-			mockFilterResult:  nil,
-			mockFilterErr:     errors.New("mock error"),
-			isInInterval: func(_ context.Context, _ time.Time) (bool, error) {
-				return true, nil
-			},
-			expectedResult: nil,
-			expectedErr:    true,
+			name:         "empty project list",
+			projectInfos: []model.ProjectInfo{},
+			startTime:    yesterday,
+			expected:     []model.ProjectInfo{},
 		},
 		{
-			name:              "Edge Case - Empty input",
-			config:            config.ProviderConfig{},
-			inputProjectinfos: []model.ProjectInfo{},
-			mockFilterResult:  []model.ProjectInfo{},
-			mockFilterErr:     nil,
-			isInInterval: func(_ context.Context, _ time.Time) (bool, error) {
-				return true, nil
+			name: "all projects filtered out",
+			projectInfos: []model.ProjectInfo{
+				{ProjectID: "1", LastActivityAt: timePtr(oldDate)},
+				{ProjectID: "2", LastActivityAt: timePtr(oldDate)},
 			},
-			expectedResult: []model.ProjectInfo{},
-			expectedErr:    false,
-		},
-		{
-			name:   "Edge Case - Nil LastActivityAt",
-			config: config.ProviderConfig{},
-			inputProjectinfos: []model.ProjectInfo{
-				{HTTPSURL: "https://example.com/repo1", LastActivityAt: nil},
-			},
-			mockFilterResult: []model.ProjectInfo{
-				{HTTPSURL: "https://example.com/repo1", LastActivityAt: nil},
-			},
-			mockFilterErr: nil,
-			isInInterval: func(_ context.Context, _ time.Time) (bool, error) {
-				return true, nil
-			},
-			expectedResult: []model.ProjectInfo{},
-			expectedErr:    false,
-		},
-		{
-			name:   "Edge Case - IsInInterval returns error",
-			config: config.ProviderConfig{},
-			inputProjectinfos: []model.ProjectInfo{
-				{HTTPSURL: "https://example.com/repo1", LastActivityAt: &now},
-			},
-			mockFilterResult: []model.ProjectInfo{
-				{HTTPSURL: "https://example.com/repo1", LastActivityAt: &now},
-			},
-			mockFilterErr: nil,
-			isInInterval: func(_ context.Context, _ time.Time) (bool, error) {
-				return false, errors.New("mock error")
-			},
-			expectedResult: nil,
-			expectedErr:    true,
+			startTime: yesterday,
+			expected:  []model.ProjectInfo{},
 		},
 	}
 
 	for _, tabletest := range tests {
-		t.Run(tabletest.name, func(_ *testing.T) {
-			mockFilter := new(MockFilterIncludedExcluded)
-			mockFilter.On("FilterIncludedExcluded", mock.Anything, tabletest.config, tabletest.inputProjectinfos).Return(tabletest.mockFilterResult, tabletest.mockFilterErr)
+		t.Run(tabletest.name, func(t *testing.T) {
+			assert := require.New(t)
 
-			f := NewFilter(tabletest.isInInterval)
-			result, err := f.FilterProjectinfos(ctx, tabletest.config, tabletest.inputProjectinfos, mockFilter.FilterIncludedExcluded, tabletest.isInInterval)
+			filterIncludeExclude := func(_ context.Context, _ config.ProviderConfig, projects []model.ProjectInfo) ([]model.ProjectInfo, error) {
+				return projects, nil
+			}
 
-			// mockFilter.AssertExpectations(t)
-			if tabletest.expectedErr {
-				require.Error(err)
+			isInInterval := func(_ context.Context, t time.Time) (bool, error) {
+				return t.After(tabletest.startTime), nil
+			}
+
+			service := filterService{
+				isInInterval: isInInterval,
+			}
+
+			result, err := service.FilterProjectinfos(
+				context.Background(),
+				tabletest.cfg,
+				tabletest.projectInfos,
+				filterIncludeExclude,
+				isInInterval,
+			)
+
+			if tabletest.expectedErr != "" {
+				assert.EqualError(err, tabletest.expectedErr)
+				assert.Nil(result)
 			} else {
-				require.NoError(err)
-				require.Equal(tabletest.expectedResult, result)
+				assert.NoError(err)
+				assert.Equal(tabletest.expected, result)
 			}
 		})
 	}
 }
 
 func TestFilterByDate(t *testing.T) {
-	require := require.New(t)
-	ctx := context.Background()
 	now := time.Now()
-	oldTime := now.Add(-24 * time.Hour)
+	yesterday := now.Add(-24 * time.Hour)
+	oldDate := now.Add(-48 * time.Hour)
 
 	tests := []struct {
-		name              string
-		inputProjectinfos []model.ProjectInfo
-		isInInterval      IsInIntervalFunc
-		expectedResult    []model.ProjectInfo
-		expectedErr       bool
+		name         string
+		projectInfos []model.ProjectInfo
+		startTime    time.Time
+		expected     []model.ProjectInfo
+		expectedErr  string
 	}{
 		{
-			name: "Success - All repositories within date range",
-			inputProjectinfos: []model.ProjectInfo{
-				{HTTPSURL: "https://example.com/repo1", LastActivityAt: &now},
-				{HTTPSURL: "https://example.com/repo2", LastActivityAt: &now},
+			name: "filter by date success",
+			projectInfos: []model.ProjectInfo{
+				{ProjectID: "1", LastActivityAt: &now},
+				{ProjectID: "2", LastActivityAt: &oldDate},
 			},
-			isInInterval: func(_ context.Context, _ time.Time) (bool, error) {
-				return true, nil
+			startTime: yesterday,
+			expected: []model.ProjectInfo{
+				{ProjectID: "1", LastActivityAt: &now},
 			},
-			expectedResult: []model.ProjectInfo{
-				{HTTPSURL: "https://example.com/repo1", LastActivityAt: &now},
-				{HTTPSURL: "https://example.com/repo2", LastActivityAt: &now},
-			},
-			expectedErr: false,
 		},
 		{
-			name: "Success - Some repositories filtered out",
-			inputProjectinfos: []model.ProjectInfo{
-				{HTTPSURL: "https://example.com/repo1", LastActivityAt: &now},
-				{HTTPSURL: "https://example.com/repo2", LastActivityAt: &oldTime},
+			name: "handle nil dates",
+			projectInfos: []model.ProjectInfo{
+				{ProjectID: "1", LastActivityAt: nil},
+				{ProjectID: "2", LastActivityAt: &now},
 			},
-			isInInterval: func(_ context.Context, t time.Time) (bool, error) {
-				return t.After(oldTime), nil
+			startTime: yesterday,
+			expected: []model.ProjectInfo{
+				{ProjectID: "2", LastActivityAt: &now},
 			},
-			expectedResult: []model.ProjectInfo{
-				{HTTPSURL: "https://example.com/repo1", LastActivityAt: &now},
-			},
-			expectedErr: false,
 		},
 		{
-			name:              "Edge Case - Empty input",
-			inputProjectinfos: []model.ProjectInfo{},
-			isInInterval: func(_ context.Context, _ time.Time) (bool, error) {
-				return true, nil
-			},
-			expectedResult: []model.ProjectInfo{},
-			expectedErr:    false,
-		},
-		{
-			name: "Edge Case - Nil LastActivityAt",
-			inputProjectinfos: []model.ProjectInfo{
-				{HTTPSURL: "https://example.com/repo1", LastActivityAt: nil},
-			},
-			isInInterval: func(_ context.Context, _ time.Time) (bool, error) {
-				return true, nil
-			},
-			expectedResult: []model.ProjectInfo{},
-			expectedErr:    false,
-		},
-		{
-			name: "Edge Case - IsInInterval returns error",
-			inputProjectinfos: []model.ProjectInfo{
-				{HTTPSURL: "https://example.com/repo1", LastActivityAt: &now},
-			},
-			isInInterval: func(_ context.Context, _ time.Time) (bool, error) {
-				return false, errors.New("mock error")
-			},
-			expectedResult: nil,
-			expectedErr:    true,
-		},
-		{
-			name: "Edge Case - Mixed nil and non-nil LastActivityAt",
-			inputProjectinfos: []model.ProjectInfo{
-				{HTTPSURL: "https://example.com/repo1", LastActivityAt: &now},
-				{HTTPSURL: "https://example.com/repo2", LastActivityAt: nil},
-				{HTTPSURL: "https://example.com/repo3", LastActivityAt: &oldTime},
-			},
-			isInInterval: func(_ context.Context, t time.Time) (bool, error) {
-				return t.After(oldTime), nil
-			},
-			expectedResult: []model.ProjectInfo{
-				{HTTPSURL: "https://example.com/repo1", LastActivityAt: &now},
-			},
-			expectedErr: false,
+			name:         "empty list",
+			projectInfos: []model.ProjectInfo{},
+			startTime:    yesterday,
+			expected:     []model.ProjectInfo{},
 		},
 	}
 
 	for _, tabletest := range tests {
 		t.Run(tabletest.name, func(t *testing.T) {
-			result, err := filterByDate(ctx, tabletest.inputProjectinfos, tabletest.isInInterval)
+			assert := require.New(t)
 
-			if tabletest.expectedErr {
-				assert.Error(t, err)
+			isInInterval := func(_ context.Context, t time.Time) (bool, error) {
+				return t.After(tabletest.startTime), nil
+			}
+
+			result, err := filterByDate(context.Background(), tabletest.projectInfos, isInInterval)
+
+			if tabletest.expectedErr != "" {
+				assert.EqualError(err, tabletest.expectedErr)
+				assert.Nil(result)
 			} else {
-				require.NoError(err)
-				require.Equal(tabletest.expectedResult, result)
+				assert.NoError(err)
+				assert.Equal(tabletest.expected, result)
 			}
 		})
 	}

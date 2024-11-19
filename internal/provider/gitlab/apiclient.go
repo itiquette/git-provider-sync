@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"itiquette/git-provider-sync/internal/interfaces"
 	"itiquette/git-provider-sync/internal/log"
 	"itiquette/git-provider-sync/internal/model"
 	config "itiquette/git-provider-sync/internal/model/configuration"
@@ -19,9 +20,9 @@ import (
 // APIClient represents a facade to GitLab API operations.
 type APIClient struct {
 	raw               *gitlab.Client
-	projectService    *ProjectService
-	protectionService *ProtectionService
-	filterService     *filterService
+	projectService    interfaces.ProjectServicer
+	protectionService interfaces.ProtectionServicer
+	filterService     interfaces.FilterServicer
 }
 
 func (api APIClient) CreateProject(ctx context.Context, cfg config.ProviderConfig, opt model.CreateProjectOption) (string, error) {
@@ -29,7 +30,7 @@ func (api APIClient) CreateProject(ctx context.Context, cfg config.ProviderConfi
 	logger.Trace().Msg("Entering GitLab:CreateProject")
 	opt.DebugLog(logger).Msg("GitLab:CreateOption")
 
-	projectIDStr, err := api.projectService.createProject(ctx, cfg, opt)
+	projectIDStr, err := api.projectService.CreateProject(ctx, cfg, opt)
 	if err != nil {
 		return "", fmt.Errorf("failed to create a GitLab project. err: %w", err)
 	}
@@ -61,13 +62,13 @@ func (api APIClient) ProjectInfos(ctx context.Context, cfg config.ProviderConfig
 	logger.Trace().Msg("Entering GitLab:ProjectInfos")
 	logger.Debug().Bool("filtering", filtering).Msg("GitLab:ProjectInfos")
 
-	projectInfos, err := api.projectService.getProjectInfos(ctx, cfg)
+	projectInfos, err := api.projectService.GetProjectInfos(ctx, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get project infos. err: %w", err)
 	}
 
 	if filtering {
-		return api.filterService.FilterProjectinfos(ctx, cfg, projectInfos, targetfilter.FilterIncludedExcludedGen(), targetfilter.IsInInterval)
+		return api.filterService.FilterProjectinfos(ctx, cfg, projectInfos, targetfilter.FilterIncludedExcludedGen(), targetfilter.IsInInterval) //nolint
 	}
 
 	return projectInfos, nil
@@ -78,7 +79,7 @@ func (api APIClient) ProtectProject(ctx context.Context, _ string, defaultBranch
 	logger.Trace().Msg("Entering GitLab:ProtectProject")
 	logger.Debug().Str("defaultBranch", defaultBranch).Str("projectIDStr", projectIDstr).Msg("GitLab:ProtectProject")
 
-	err := api.protectionService.protect(ctx, defaultBranch, projectIDstr)
+	err := api.protectionService.Protect(ctx, defaultBranch, projectIDstr)
 	if err != nil {
 		return fmt.Errorf("failed to to protect project. defaultBranch: %s, projectIDstr: %s, err: %w", defaultBranch, projectIDstr, err)
 	}
@@ -91,7 +92,7 @@ func (api APIClient) SetDefaultBranch(ctx context.Context, owner, projectName, b
 	logger.Trace().Msg("Entering GitLab:SetDefaultBranch")
 	logger.Debug().Str("owner", owner).Str("projectName", projectName).Str("branch", branch).Msg("GitLab:SetDefaultBranch")
 
-	err := api.projectService.setDefaultBranch(ctx, owner, projectName, branch)
+	err := api.projectService.SetDefaultBranch(ctx, owner, projectName, branch)
 	if err != nil {
 		return fmt.Errorf("failed to set default branch: %s, projectName: %s, owner: %s, err: %w", branch, projectName, owner, err)
 	}
@@ -104,7 +105,7 @@ func (api APIClient) UnprotectProject(ctx context.Context, defaultBranch string,
 	logger.Trace().Msg("Entering GitLab:UnprotectProject")
 	logger.Debug().Str("defaultBranch", defaultBranch).Str("projectIDStr", projectIDStr).Msg("GitLab:UnprotectProject")
 
-	err := api.protectionService.unprotect(ctx, defaultBranch, projectIDStr)
+	err := api.protectionService.Unprotect(ctx, defaultBranch, projectIDStr)
 	if err != nil {
 		return fmt.Errorf("failed to unprotect project. projectIDStr: %s, err: %w", projectIDStr, err)
 	}
@@ -133,6 +134,6 @@ func NewGitLabAPIClient(ctx context.Context, opt model.GitProviderClientOption, 
 		raw:               rawClient,
 		projectService:    NewProjectService(rawClient),
 		protectionService: NewProtectionService(rawClient),
-		filterService:     NewFilter(nil),
+		filterService:     NewFilter(),
 	}, nil
 }

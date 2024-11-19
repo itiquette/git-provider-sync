@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"itiquette/git-provider-sync/internal/interfaces"
 	"itiquette/git-provider-sync/internal/log"
 	"itiquette/git-provider-sync/internal/model"
 	config "itiquette/git-provider-sync/internal/model/configuration"
@@ -21,14 +22,14 @@ import (
 type ProjectService struct {
 	client            *gitlab.Client
 	optBuilder        *ProjectOptionsBuilder
-	protectionService *ProtectionService
+	protectionService interfaces.ProtectionServicer
 }
 
-func NewProjectService(client *gitlab.Client) *ProjectService {
-	return &ProjectService{client: client, optBuilder: NewProjectOptionsBuilder(), protectionService: NewProtectionService(client)}
+func NewProjectService(client *gitlab.Client) ProjectService {
+	return ProjectService{client: client, optBuilder: NewProjectOptionsBuilder(), protectionService: NewProtectionService(client)}
 }
 
-func (p ProjectService) createProject(ctx context.Context, cfg config.ProviderConfig, opt model.CreateProjectOption) (string, error) {
+func (p ProjectService) CreateProject(ctx context.Context, cfg config.ProviderConfig, opt model.CreateProjectOption) (string, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitLab:createProject")
 
@@ -114,7 +115,7 @@ func (p ProjectService) newProjectInfo(ctx context.Context, cfg config.ProviderC
 	}, nil
 }
 
-func (p ProjectService) getProjectInfos(ctx context.Context, cfg config.ProviderConfig) ([]model.ProjectInfo, error) {
+func (p ProjectService) GetProjectInfos(ctx context.Context, cfg config.ProviderConfig) ([]model.ProjectInfo, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitLab:getProjectInfos")
 
@@ -185,7 +186,7 @@ func (p ProjectService) getProjectInfos(ctx context.Context, cfg config.Provider
 	return projectinfos, nil
 }
 
-func (p ProjectService) setDefaultBranch(ctx context.Context, owner string, projectName string, defaultBranch string) error {
+func (p ProjectService) SetDefaultBranch(ctx context.Context, owner string, projectName string, defaultBranch string) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitLab:setDefaultBranch")
 

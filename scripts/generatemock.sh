@@ -57,6 +57,9 @@ INTERNAL_INTERFACES=(
   "TargetWriter"
   "GitProvider"
   "GitInterface"
+  "FilterServicer"
+  "ProjectServicer"
+  "ProtectionServicer"
 )
 for interface in "${INTERNAL_INTERFACES[@]}"; do
   echo -e "${BLUE}Generating mock for ${interface}...${NC}"
