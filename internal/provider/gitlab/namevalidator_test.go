@@ -48,6 +48,8 @@ func TestIsInvalidGitLabRepositoryName(t *testing.T) {
 		{"invalid name - create", "create", true},
 		{"invalid name - gitlab-lfs/objects", "gitlab-lfs/objects", true},
 		{"valid name similar to invalid", "commitsrepo", false},
+		{"valid name length under 256", "commitsrepo", false},
+		{"invalid name length over 256", "commitsriiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiepoaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", false},
 	}
 
 	for _, tabletest := range tests {

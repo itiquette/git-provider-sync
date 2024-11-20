@@ -30,5 +30,9 @@ func (r RepositoriesOption) ExcludedRepositories() []string {
 }
 
 func splitAndTrim(s string) []string {
+	if s == "" {
+		return []string{}
+	}
+
 	return strings.Split(strings.ReplaceAll(s, " ", ""), ",")
 }

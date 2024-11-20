@@ -6,16 +6,18 @@ package gitlab
 
 import "github.com/xanzy/go-gitlab"
 
+var PUBLIC = "public"
+
 func getVisibility(vis gitlab.VisibilityValue) string {
 	switch vis {
 	case gitlab.PublicVisibility:
-		return "public"
+		return PUBLIC
 	case gitlab.PrivateVisibility:
 		return "private"
 	case gitlab.InternalVisibility:
 		return "internal"
 	default:
-		return "public"
+		return PUBLIC
 	}
 }
 
@@ -25,7 +27,9 @@ func toVisibility(vis string) gitlab.VisibilityValue {
 		return gitlab.PrivateVisibility
 	case "internal":
 		return gitlab.InternalVisibility
-	default:
+	case PUBLIC:
 		return gitlab.PublicVisibility
+	default:
+		return gitlab.InternalVisibility
 	}
 }

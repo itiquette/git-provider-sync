@@ -38,10 +38,10 @@ func (p ProjectService) CreateProject(ctx context.Context, cfg config.ProviderCo
 		return "", fmt.Errorf("failed to get namespaceID. err: %w", err)
 	}
 
-	p.optBuilder.basicOpts(opt.Visibility, opt.RepositoryName, opt.Description, opt.DefaultBranch, namespaceID)
+	p.optBuilder.WithBasicOpts(opt.Visibility, opt.RepositoryName, opt.Description, opt.DefaultBranch, namespaceID)
 
 	if opt.Disabled {
-		p.optBuilder.disableOpts()
+		p.optBuilder.WithDisabledFeatures()
 	}
 
 	createdRepo, _, err := p.client.Projects.CreateProject(p.optBuilder.opts)
