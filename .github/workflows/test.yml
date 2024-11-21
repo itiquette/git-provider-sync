@@ -40,4 +40,18 @@ jobs:
           go mod tidy
           ./scripts/generatemock.sh
           # shellcheck disable=SC2046
-          go test -count=1 $(go list './...' | grep -v generated)
+          go test -count=1 $(go list './...' | grep -v generated) -v -coverprofile=coverage.txt 
+          go tool cover -func=coverage.txt -o=coverage.out
+          # shellcheck disable=SC2002
+          # shellcheck disable=SC2086
+          echo "COVERAGE=$(cat coverage.out | grep total | grep -Eo '[0-9]+\.[0-9]+')" >> $GITHUB_ENV
+
+      - name: Create Coverage Badge
+        uses: schneegans/dynamic-badges-action@v1.7.0
+        with:
+          auth: ${{ secrets.GIST_SECRET }}
+          gistID: 87d513c639cf65c02ecc31c1670cbcd1
+          filename: go-coverage.json
+          label: Coverage
+          message: ${{ env.COVERAGE }}%
+          color: purple
