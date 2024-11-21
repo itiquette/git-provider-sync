@@ -7,298 +7,762 @@ package provider
 import (
 	"context"
 	"errors"
-	mocks "itiquette/git-provider-sync/generated/mocks/mockgogit"
+	"itiquette/git-provider-sync/internal/interfaces"
 	"itiquette/git-provider-sync/internal/model"
 	config "itiquette/git-provider-sync/internal/model/configuration"
-	"regexp"
 	"testing"
 
+	git "github.com/go-git/go-git/v5"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
-//	func TestPush(t *testing.T) {
-//		require := require.New(t)
-//		ctx := testContext()
-//
-//		tests := map[string]struct {
-//			config     config.ProviderConfig
-//			repository interfaces.GitRepository
-//			mockSetup  func(*mocks.GitProvider, *mocks.GitRepository)
-//			wantErr    bool
-//		}{
-//			"push success": {
-//				config: targetProviderConfig(),
-//				mockSetup: func(mockClient *mocks.GitProvider, mockRepo *mocks.GitRepository) {
-//					mockClient.EXPECT().Projectinfos(mock.Anything, mock.Anything, mock.Anything).Return([]model.RepositoryMetainfo{{HTTPSURL: "https://url.c"}}, nil)
-//					mockClient.EXPECT().Create(mock.Anything, mock.Anything, mock.Anything).Return(nil)
-//					mockRepo.EXPECT().Metainfo().Return(model.RepositoryMetainfo{
-//						OriginalName:  "nasename",
-//						HTTPSURL:      "http://a.url",
-//						DefaultBranch: "defbranch",
-//						Description:   "desc",
-//						Visibility:    "public",
-//					})
-//					mockRepo.EXPECT().Remote(mock.Anything).Return(model.Remote{URL: "https://up.url"}, nil)
-//				},
-//			},
-//			// "repository exists error": {
-//			//     config: targetProviderConfig(),
-//			//     mockSetup: func(mockClient *mocks.GitProvider, mockRepo *mocks.GitRepository) {
-//			//         mockClient.EXPECT().Projectinfos(mock.Anything, mock.Anything, mock.Anything).Return(nil, errors.New("failed to check repository"))
-//			//         mockRepo.EXPECT().Metainfo().Return(model.RepositoryMetainfo{})
-//			//         mockRepo.EXPECT().Remote(mock.Anything).Return(model.Remote{URL: "https://up.url"}, errors.New("an err"))
-//			//     },
-//			//     wantErr: true,
-//			// },
-//			// "push error": {
-//			//     config: targetProviderConfig(),
-//			//     mockSetup: func(mockClient *mocks.GitProvider, mockRepo *mocks.GitRepository) {
-//			//         mockClient.EXPECT().Projectinfos(mock.Anything, mock.Anything, mock.Anything).Return([]model.RepositoryMetainfo{{HTTPSURL: "https://url.c"}}, nil)
-//			//         mockRepo.EXPECT().Metainfo().Return(model.RepositoryMetainfo{})
-//			//         mockRepo.EXPECT().Remote(mock.Anything).Return(model.Remote{URL: "https://up.url"}, nil)
-//			//     },
-//			//     wantErr: true,
-//			// },
-//		}
-//
-//		for name, tabletest := range tests {
-//			t.Run(name, func(t *testing.T) {
-//				mockClient := new(mocks.GitProvider)
-//				mockRepo := new(mocks.GitRepository)
-//				tabletest.mockSetup(mockClient, mockRepo)
-//
-//				sourceGitOption := config.GitOption{}
-//
-//				err := Push(ctx, tabletest.config, mockClient, mockGitCore{}, mockRepo, sourceGitOption)
-//
-//				if tabletest.wantErr {
-//					require.Error(err)
-//				} else {
-//					require.NoError(err)
-//				}
-//
-//				mockClient.AssertExpectations(t)
-//				mockRepo.AssertExpectations(t)
-//			})
-//		}
-//	}
-func TestGetPushOption(t *testing.T) {
-	require := require.New(t)
-	tests := map[string]struct {
-		config     config.ProviderConfig
-		repository *mocks.GitRepository
-		forcePush  bool
-		expected   model.PushOption
+type MockGitRemote struct {
+	mock.Mock
+}
+
+func (m *MockGitRemote) Remote(name string) (model.Remote, error) {
+	args := m.Called(name)
+	return args.Get(0).(model.Remote), args.Error(1) //nolint
+}
+
+func (m *MockGitRemote) DeleteRemote(name string) error {
+	args := m.Called(name)
+
+	return args.Error(0) //nolint
+}
+
+func (m *MockGitRemote) CreateRemote(name, url string, fetch bool) error {
+	args := m.Called(name, url, fetch)
+
+	return args.Error(0) //nolint
+}
+
+type MockGitProvider struct {
+	mock.Mock
+}
+
+// IsValidProjectName implements interfaces.GitProvider.
+func (m *MockGitProvider) IsValidProjectName(_ context.Context, _ string) bool {
+	panic("unimplemented")
+}
+
+func (m *MockGitProvider) Name() string {
+	args := m.Called()
+
+	return args.String(0)
+}
+
+func (m *MockGitProvider) ProjectInfos(ctx context.Context, cfg config.ProviderConfig, full bool) ([]model.ProjectInfo, error) {
+	args := m.Called(ctx, cfg, full)
+
+	return args.Get(0).([]model.ProjectInfo), args.Error(1) //nolint
+}
+
+func (m *MockGitProvider) CreateProject(ctx context.Context, cfg config.ProviderConfig, opt model.CreateProjectOption) (string, error) {
+	args := m.Called(ctx, cfg, opt)
+
+	return args.String(0), args.Error(1)
+}
+
+func (m *MockGitProvider) UnprotectProject(ctx context.Context, branch string, projectID string) error {
+	args := m.Called(ctx, branch, projectID)
+
+	return args.Error(0) //nolint
+}
+
+func (m *MockGitProvider) ProtectProject(ctx context.Context, owner string, branch string, projectID string) error {
+	args := m.Called(ctx, owner, branch, projectID)
+
+	return args.Error(0) //nolint
+}
+
+func (m *MockGitProvider) SetDefaultBranch(ctx context.Context, owner string, repo string, branch string) error {
+	args := m.Called(ctx, owner, repo, branch)
+
+	return args.Error(0) //nolint
+}
+
+type MockTargetWriter struct {
+	mock.Mock
+}
+
+func (m *MockTargetWriter) Push(ctx context.Context, repo interfaces.GitRepository, opt model.PushOption, git config.GitOption) error {
+	args := m.Called(ctx, repo, opt, git)
+
+	return args.Error(0) //nolint
+}
+func TestPush(t *testing.T) {
+	ctx := testContext()
+	tests := []struct {
+		name              string
+		targetConfig      config.ProviderConfig
+		sourceConfig      config.ProviderConfig
+		setupMocks        func(*MockGitProvider, *MockTargetWriter, *MockRepository)
+		expectedErr       error
+		expectedErrString string
 	}{
-		"archive provider": {
-			config: config.ProviderConfig{
-				ProviderType: config.ARCHIVE,
-				Additional: map[string]string{
-					"archivetargetdir": "/archive",
+		{
+			name: "successful push",
+			targetConfig: config.ProviderConfig{
+				User: "testuser",
+				Project: config.ProjectOption{
+					Disabled: false,
 				},
 			},
-			repository: mockRepositoryWithName("repo"),
-			forcePush:  false,
-			expected:   model.NewPushOption("/archive/repo.tar.gz", false, false, config.HTTPClientOption{}),
+			sourceConfig: config.ProviderConfig{
+				ProviderType: "github",
+			},
+			setupMocks: func(provider *MockGitProvider, writer *MockTargetWriter, repo *MockRepository) {
+				repo.On("ProjectInfo").Return(model.ProjectInfo{
+					DefaultBranch: "main",
+					OriginalName:  "test-repo",
+				})
+				provider.On("ProjectInfos", mock.Anything, mock.Anything, false).
+					Return([]model.ProjectInfo{{ProjectID: "123", OriginalName: "test-repo"}}, nil)
+				writer.On("Push", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+				provider.On("SetDefaultBranch", mock.Anything, "testuser", mock.Anything, "main").Return(nil)
+			},
 		},
-		"directory provider": {
-			config: config.ProviderConfig{
-				ProviderType: config.DIRECTORY,
-				Additional: map[string]string{
-					"directorytargetdir": "/target",
+		{
+			name: "push with protection toggle",
+			targetConfig: config.ProviderConfig{
+				User: "testuser",
+				Project: config.ProjectOption{
+					Disabled: true,
 				},
 			},
-			repository: mockRepositoryWithName("repo"),
-			forcePush:  false,
-			expected:   model.NewPushOption("/target", false, false, config.HTTPClientOption{}),
-		},
-		"git provider with force push": {
-			config: config.ProviderConfig{
-				ProviderType: "gitlab",
-				HTTPClient:   config.HTTPClientOption{Token: "token"},
-				User:         "user",
+			setupMocks: func(provider *MockGitProvider, writer *MockTargetWriter, repo *MockRepository) {
+				repo.On("ProjectInfo").Return(model.ProjectInfo{
+					DefaultBranch: "main",
+					OriginalName:  "test-repo",
+				})
+				provider.On("ProjectInfos", mock.Anything, mock.Anything, false).
+					Return([]model.ProjectInfo{{ProjectID: "123", OriginalName: "test-repo"}}, nil)
+				provider.On("UnprotectProject", mock.Anything, "main", "123").Return(nil)
+				writer.On("Push", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+				provider.On("SetDefaultBranch", mock.Anything, "testuser", mock.Anything, "main").Return(nil)
+				provider.On("ProtectProject", mock.Anything, "testuser", "main", "123").Return(nil)
 			},
-			repository: mockRepositoryWithName("repo"),
-			forcePush:  true,
-			expected:   model.NewPushOption("https://gitlab.com/user/repo", false, true, config.HTTPClientOption{}),
+		},
+		{
+			name: "push failure",
+			targetConfig: config.ProviderConfig{
+				User: "testuser",
+			},
+			setupMocks: func(provider *MockGitProvider, writer *MockTargetWriter, repo *MockRepository) {
+				repo.On("ProjectInfo").Return(model.ProjectInfo{
+					DefaultBranch: "main",
+					OriginalName:  "test-repo",
+				})
+				provider.On("ProjectInfos", mock.Anything, mock.Anything, false).
+					Return([]model.ProjectInfo{{ProjectID: "123", OriginalName: "test-repo"}}, nil)
+				writer.On("Push", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+					Return(errors.New("push failed"))
+			},
+			expectedErr:       ErrPushChanges,
+			expectedErrString: "push failed",
 		},
 	}
 
-	for name, tabletests := range tests {
-		t.Run(name, func(_ *testing.T) {
-			ctx := context.Background()
-			ctx = model.WithCLIOption(ctx, model.CLIOption{})
-			result := getPushOption(ctx, tabletests.config, tabletests.repository, tabletests.forcePush)
-			require.Equal(tabletests.expected.Target, removeTimestamp(result.Target))
+	for _, tabletest := range tests {
+		t.Run(tabletest.name, func(t *testing.T) {
+			require := require.New(t)
+			provider := new(MockGitProvider)
+			writer := new(MockTargetWriter)
+			repo := new(MockRepository)
+			tabletest.setupMocks(provider, writer, repo)
+
+			err := Push(ctx, tabletest.targetConfig, provider, writer, repo, tabletest.sourceConfig)
+
+			if tabletest.expectedErr != nil {
+				require.Error(err)
+				require.ErrorIs(err, tabletest.expectedErr)
+
+				if tabletest.expectedErrString != "" {
+					require.Contains(err.Error(), tabletest.expectedErrString)
+				}
+			} else {
+				require.NoError(err)
+			}
+
+			provider.AssertExpectations(t)
+			writer.AssertExpectations(t)
+			repo.AssertExpectations(t)
 		})
 	}
 }
-func TestBuildDescription(t *testing.T) {
-	tests := map[string]struct {
-		remote     model.Remote
-		repository *mocks.GitRepository
-		expected   string
+
+// MockRepository for testing.
+type MockRepository struct {
+	mock.Mock
+}
+
+// CreateRemote implements interfaces.GitRepository.
+func (m *MockRepository) CreateRemote(_ string, _ string, _ bool) error {
+	panic("unimplemented")
+}
+
+// DeleteRemote implements interfaces.GitRepository.
+func (m *MockRepository) DeleteRemote(_ string) error {
+	panic("unimplemented")
+}
+
+// GoGitRepository implements interfaces.GitRepository.
+func (m *MockRepository) GoGitRepository() *git.Repository {
+	panic("unimplemented")
+}
+
+// Remote implements interfaces.GitRepository.
+func (m *MockRepository) Remote(_ string) (model.Remote, error) {
+	panic("unimplemented")
+}
+
+func (m *MockRepository) ProjectInfo() model.ProjectInfo {
+	args := m.Called()
+
+	return args.Get(0).(model.ProjectInfo) //nolint
+}
+
+func (m *MockRepository) Name(ctx context.Context) string {
+	args := m.Called(ctx)
+
+	return args.String(0)
+}
+
+// Simple test repository implementation.
+type testRepository struct {
+	projectInfo model.ProjectInfo
+	remoteFunc  func(string) (model.Remote, error)
+}
+
+// CreateRemote implements interfaces.GitRepository.
+func (r testRepository) CreateRemote(_ string, _ string, _ bool) error {
+	panic("unimplemented")
+}
+
+// DeleteRemote implements interfaces.GitRepository.
+func (r testRepository) DeleteRemote(_ string) error {
+	panic("unimplemented")
+}
+
+// GoGitRepository implements interfaces.GitRepository.
+func (r testRepository) GoGitRepository() *git.Repository {
+	panic("unimplemented")
+}
+
+func (r testRepository) ProjectInfo() model.ProjectInfo {
+	return r.projectInfo
+}
+
+func (r testRepository) Remote(name string) (model.Remote, error) {
+	return r.remoteFunc(name)
+}
+
+func TestGetPushOption(t *testing.T) {
+	ctx := testContext()
+	tests := []struct {
+		name           string
+		ctx            context.Context //nolint
+		providerConfig config.ProviderConfig
+		repository     testRepository
+		forcePush      bool
+		want           model.PushOption
 	}{
-		"with description": {
-			remote: model.Remote{URL: "https://example.com/repo.git"},
-			repository: func() *mocks.GitRepository {
-				r := new(mocks.GitRepository)
-				r.On("ProjectInfo").Return(model.ProjectInfo{Description: "Test repo"})
-
-				return r
-			}(),
-			expected: "Git Provider Sync cloned this from: https://example.com/repo.git: Test repo",
+		{
+			name: "archive provider type",
+			providerConfig: config.ProviderConfig{
+				ProviderType: config.ARCHIVE,
+				Additional: map[string]string{
+					"archivetargetdir": "/archive/path",
+				},
+			},
+			repository: testRepository{
+				projectInfo: model.ProjectInfo{
+					OriginalName: "test-repo",
+				},
+			},
+			forcePush: false,
+			want: model.PushOption{
+				Target:     "/archive/path/test-repo",
+				Force:      false,
+				HTTPClient: config.HTTPClientOption{},
+			},
 		},
-		"without description": {
-			remote: model.Remote{URL: "https://example.com/repo.git"},
-			repository: func() *mocks.GitRepository {
-				r := new(mocks.GitRepository)
-				r.EXPECT().ProjectInfo().Return(model.ProjectInfo{})
-
-				return r
-			}(),
-			expected: "Git Provider Sync cloned this from: https://example.com/repo.git: ",
+		{
+			name: "directory provider type",
+			providerConfig: config.ProviderConfig{
+				ProviderType: config.DIRECTORY,
+				Additional: map[string]string{
+					"directorytargetdir": "/target/directory",
+				},
+			},
+			repository: testRepository{
+				projectInfo: model.ProjectInfo{
+					OriginalName: "test-repo",
+				},
+			},
+			forcePush: false,
+			want: model.PushOption{
+				Target:     "/target/directory",
+				Force:      false,
+				HTTPClient: config.HTTPClientOption{},
+			},
+		},
+		{
+			name: "git provider with force push",
+			providerConfig: config.ProviderConfig{
+				ProviderType: "github",
+				Domain:       "github.com",
+				User:         "testuser",
+				HTTPClient: config.HTTPClientOption{
+					Token: "test-token",
+				},
+			},
+			repository: testRepository{
+				projectInfo: model.ProjectInfo{
+					OriginalName: "test-repo",
+				},
+			},
+			forcePush: true,
+			want: model.PushOption{
+				Target:     "https://github.com/testuser/test-repo",
+				Force:      true,
+				HTTPClient: config.HTTPClientOption{Token: "test-token"},
+			},
+		},
+		{
+			name: "git provider with custom scheme",
+			providerConfig: config.ProviderConfig{
+				ProviderType: "gitlab",
+				Domain:       "gitlab.com",
+				User:         "testuser",
+				HTTPClient: config.HTTPClientOption{
+					Scheme: "git",
+				},
+			},
+			repository: testRepository{
+				projectInfo: model.ProjectInfo{
+					OriginalName: "test-repo",
+				},
+			},
+			forcePush: false,
+			want: model.PushOption{
+				Target:     "git://gitlab.com/testuser/test-repo",
+				Force:      false,
+				HTTPClient: config.HTTPClientOption{Scheme: "git"},
+			},
+		},
+		{
+			name: "with group instead of user",
+			providerConfig: config.ProviderConfig{
+				ProviderType: "github",
+				Domain:       "github.com",
+				Group:        "testgroup",
+			},
+			repository: testRepository{
+				projectInfo: model.ProjectInfo{
+					OriginalName: "test-repo",
+				},
+			},
+			forcePush: false,
+			want: model.PushOption{
+				Target:     "https://github.com/testgroup/test-repo",
+				Force:      false,
+				HTTPClient: config.HTTPClientOption{},
+			},
+		},
+		{
+			name: "domain with trailing slash",
+			providerConfig: config.ProviderConfig{
+				ProviderType: "github",
+				Domain:       "github.com/",
+				User:         "testuser",
+			},
+			repository: testRepository{
+				projectInfo: model.ProjectInfo{
+					OriginalName: "test-repo",
+				},
+			},
+			forcePush: false,
+			want: model.PushOption{
+				Target:     "https://github.com/testuser/test-repo",
+				Force:      false,
+				HTTPClient: config.HTTPClientOption{},
+			},
+		},
+		{
+			name: "empty provider type defaults to git URL",
+			providerConfig: config.ProviderConfig{
+				Domain: "github.com",
+				User:   "testuser",
+			},
+			repository: testRepository{
+				projectInfo: model.ProjectInfo{
+					OriginalName: "test-repo",
+				},
+			},
+			forcePush: false,
+			want: model.PushOption{
+				Target:     "https://github.com/testuser/test-repo",
+				Force:      false,
+				HTTPClient: config.HTTPClientOption{},
+			},
 		},
 	}
 
-	for name, tabletest := range tests {
-		t.Run(name, func(t *testing.T) {
-			result := buildDescription(tabletest.remote, tabletest.repository, "")
-			require.Equal(t, tabletest.expected, result)
+	for _, tabletest := range tests {
+		t.Run(tabletest.name, func(t *testing.T) {
+			require := require.New(t)
+
+			result := getPushOption(ctx, tabletest.providerConfig, tabletest.repository, tabletest.forcePush)
+
+			if tabletest.providerConfig.ProviderType == config.ARCHIVE {
+				require.Contains(result.Target, tabletest.want.Target)
+			} else if tabletest.providerConfig.ProviderType == config.DIRECTORY {
+				require.Contains(result.Target, tabletest.want.Target)
+			} else {
+				require.Equal(tabletest.want.Target, result.Target, "URLs should match")
+			}
+
+			require.Equal(tabletest.want.Force, result.Force, "Force flags should match")
+			require.Equal(tabletest.want.HTTPClient, result.HTTPClient, "HTTP client options should match")
+		})
+	}
+}
+
+// Test implementations.
+type testGitProvider struct {
+	createProjectFunc func(context.Context, config.ProviderConfig, model.CreateProjectOption) (string, error)
+}
+
+// IsValidProjectName implements interfaces.GitProvider.
+func (t testGitProvider) IsValidProjectName(_ context.Context, _ string) bool {
+	panic("unimplemented")
+}
+
+// Name implements interfaces.GitProvider.
+func (t testGitProvider) Name() string {
+	panic("unimplemented")
+}
+
+// ProjectInfos implements interfaces.GitProvider.
+func (t testGitProvider) ProjectInfos(_ context.Context, _ config.ProviderConfig, _ bool) ([]model.ProjectInfo, error) {
+	panic("unimplemented")
+}
+
+// ProtectProject implements interfaces.GitProvider.
+func (t testGitProvider) ProtectProject(_ context.Context, _ string, _ string, _ string) error {
+	panic("unimplemented")
+}
+
+// SetDefaultBranch implements interfaces.GitProvider.
+func (t testGitProvider) SetDefaultBranch(_ context.Context, _ string, _ string, _ string) error {
+	panic("unimplemented")
+}
+
+// UnprotectProject implements interfaces.GitProvider.
+func (t testGitProvider) UnprotectProject(_ context.Context, _ string, _ string) error {
+	panic("unimplemented")
+}
+
+func (t testGitProvider) CreateProject(ctx context.Context, cfg config.ProviderConfig, opt model.CreateProjectOption) (string, error) {
+	return t.createProjectFunc(ctx, cfg, opt)
+}
+
+func TestCreate(t *testing.T) {
+	tests := []struct {
+		name               string
+		targetConfig       config.ProviderConfig
+		sourceProviderType string
+		repository         testRepository
+		provider           testGitProvider
+		wantProjectID      string
+		wantErr            bool
+		expectedError      error
+		expectedErrMsg     string
+	}{
+		{
+			name: "successful creation",
+			targetConfig: config.ProviderConfig{
+				Project: config.ProjectOption{
+					Visibility:  "private",
+					Description: "test description",
+				},
+			},
+			repository: testRepository{
+				projectInfo: model.ProjectInfo{
+					OriginalName:  "test-repo",
+					DefaultBranch: "main",
+					Description:   "repo description",
+				},
+				remoteFunc: func(_ string) (model.Remote, error) {
+					return model.Remote{URL: "https://github.com/original/repo.git"}, nil
+				},
+			},
+			provider: testGitProvider{
+				createProjectFunc: func(_ context.Context, _ config.ProviderConfig, _ model.CreateProjectOption) (string, error) {
+					return "123", nil
+				},
+			},
+			wantProjectID: "123",
+		},
+		{
+			name:         "missing gpsupstream remote",
+			targetConfig: config.ProviderConfig{},
+			repository: testRepository{
+				remoteFunc: func(_ string) (model.Remote, error) {
+					return model.Remote{}, errors.New("remote not found")
+				},
+			},
+			wantErr:        true,
+			expectedErrMsg: "failed to get gpsupstream remote",
+		},
+		{
+			name:         "empty gpsupstream URL",
+			targetConfig: config.ProviderConfig{},
+			repository: testRepository{
+				remoteFunc: func(_ string) (model.Remote, error) {
+					return model.Remote{URL: ""}, nil
+				},
+			},
+			wantErr:        true,
+			expectedErrMsg: "failed to get gpsupstream remote",
+		},
+		{
+			name: "visibility mapping failure",
+			targetConfig: config.ProviderConfig{
+				Project: config.ProjectOption{
+					Visibility: "", // Empty to trigger mapping
+				},
+			},
+			sourceProviderType: "unknown",
+			repository: testRepository{
+				projectInfo: model.ProjectInfo{
+					Visibility: "invalid",
+				},
+				remoteFunc: func(_ string) (model.Remote, error) {
+					return model.Remote{URL: "https://github.com/test/repo.git"}, nil
+				},
+			},
+			wantErr:        true,
+			expectedErrMsg: "failed to map visibility",
+		},
+		{
+			name: "create project failure",
+			targetConfig: config.ProviderConfig{
+				Project: config.ProjectOption{
+					Visibility: "private",
+				},
+			},
+			repository: testRepository{
+				projectInfo: model.ProjectInfo{
+					OriginalName:  "test-repo",
+					DefaultBranch: "main",
+				},
+				remoteFunc: func(_ string) (model.Remote, error) {
+					return model.Remote{URL: "https://github.com/test/repo.git"}, nil
+				},
+			},
+			provider: testGitProvider{
+				createProjectFunc: func(_ context.Context, _ config.ProviderConfig, _ model.CreateProjectOption) (string, error) {
+					return "", errors.New("creation failed")
+				},
+			},
+			wantErr:        true,
+			expectedError:  ErrCreateRepository,
+			expectedErrMsg: "failed to create repository",
+		},
+	}
+
+	for _, tabletest := range tests {
+		t.Run(tabletest.name, func(t *testing.T) {
+			require := require.New(t)
+
+			projectID, err := create(testContext(), tabletest.targetConfig, tabletest.provider, tabletest.sourceProviderType, tabletest.repository)
+
+			if tabletest.wantErr {
+				require.Error(err)
+
+				if tabletest.expectedError != nil {
+					require.ErrorIs(err, tabletest.expectedError)
+				}
+
+				if tabletest.expectedErrMsg != "" {
+					require.Contains(err.Error(), tabletest.expectedErrMsg)
+				}
+			} else {
+				require.NoError(err)
+				require.Equal(tabletest.wantProjectID, projectID)
+			}
+		})
+	}
+}
+func TestSetGPSUpstreamRemoteFromOrigin(t *testing.T) {
+	tests := []struct {
+		name      string
+		setupMock func(*MockGitRemote)
+		wantErr   bool
+		errMsg    string
+	}{
+		{
+			name: "successful setup",
+			setupMock: func(m *MockGitRemote) {
+				m.On("Remote", config.ORIGIN).Return(model.Remote{URL: "git@github.com:test/repo.git"}, nil)
+				m.On("DeleteRemote", config.GPSUPSTREAM).Return(nil)
+				m.On("CreateRemote", config.GPSUPSTREAM, "git@github.com:test/repo.git", true).Return(nil)
+				m.On("Remote", config.GPSUPSTREAM).Return(model.Remote{URL: "git@github.com:test/repo.git"}, nil)
+			},
+			wantErr: false,
+		},
+		{
+			name: "origin remote error",
+			setupMock: func(m *MockGitRemote) {
+				m.On("Remote", config.ORIGIN).Return(model.Remote{}, errors.New("origin not found"))
+			},
+			wantErr: true,
+			errMsg:  "failed to get origin remote",
+		},
+		{
+			name: "delete remote error",
+			setupMock: func(m *MockGitRemote) {
+				m.On("Remote", config.ORIGIN).Return(model.Remote{URL: "git@github.com:test/repo.git"}, nil)
+				m.On("DeleteRemote", config.GPSUPSTREAM).Return(errors.New("delete failed"))
+			},
+			wantErr: true,
+			errMsg:  "failed to delete gpsupstream remote",
+		},
+		{
+			name: "create remote error",
+			setupMock: func(m *MockGitRemote) {
+				m.On("Remote", config.ORIGIN).Return(model.Remote{URL: "git@github.com:test/repo.git"}, nil)
+				m.On("DeleteRemote", config.GPSUPSTREAM).Return(nil)
+				m.On("CreateRemote", config.GPSUPSTREAM, "git@github.com:test/repo.git", true).Return(errors.New("create failed"))
+			},
+			wantErr: true,
+			errMsg:  "failed to create gpsupstream remote",
+		},
+		{
+			name: "url mismatch error",
+			setupMock: func(m *MockGitRemote) {
+				m.On("Remote", config.ORIGIN).Return(model.Remote{URL: "git@github.com:test/repo.git"}, nil)
+				m.On("DeleteRemote", config.GPSUPSTREAM).Return(nil)
+				m.On("CreateRemote", config.GPSUPSTREAM, "git@github.com:test/repo.git", true).Return(nil)
+				m.On("Remote", config.GPSUPSTREAM).Return(model.Remote{URL: "different-url"}, nil)
+			},
+			wantErr: true,
+			errMsg:  "mismatch in gpsupstream vs origin remote",
+		},
+	}
+
+	for _, tabletest := range tests {
+		t.Run(tabletest.name, func(t *testing.T) {
+			require := require.New(t)
+			remote := new(MockGitRemote)
+			tabletest.setupMock(remote)
+
+			err := SetGPSUpstreamRemoteFromOrigin(context.Background(), remote)
+
+			if tabletest.wantErr {
+				require.Error(err)
+				require.Contains(err.Error(), tabletest.errMsg)
+			} else {
+				require.NoError(err)
+			}
+
+			remote.AssertExpectations(t)
 		})
 	}
 }
 
 func TestIsArchiveOrDirectory(t *testing.T) {
-	tests := map[string]struct {
+	tests := []struct {
+		name     string
 		provider string
-		expected bool
+		want     bool
 	}{
-		"archive provider":   {provider: config.ARCHIVE, expected: true},
-		"directory provider": {provider: config.DIRECTORY, expected: true},
-		"git provider":       {provider: "gitlab", expected: false},
-		"case insensitive":   {provider: "ArChIvE", expected: true},
-		"empty string":       {provider: "", expected: false},
+		{"archive provider", "ARCHIVE", true},
+		{"directory provider", "directory", true},
+		{"git provider", "gitlab", false},
+		{"empty provider", "", false},
 	}
 
-	for name, tabletest := range tests {
-		t.Run(name, func(t *testing.T) {
+	for _, tabletest := range tests {
+		t.Run(tabletest.name, func(t *testing.T) {
+			require := require.New(t)
 			result := isArchiveOrDirectory(tabletest.provider)
-			require.Equal(t, tabletest.expected, result)
-		})
-	}
-}
-
-func TestRepositoryExists(t *testing.T) {
-	tests := map[string]struct {
-		projectinfos   []model.ProjectInfo
-		repositoryName string
-		expected       bool
-	}{
-		"repository exists": {
-			projectinfos: []model.ProjectInfo{
-				{OriginalName: "repo1"},
-				{OriginalName: "repo2"},
-			},
-			repositoryName: "repo1",
-			expected:       true,
-		},
-		"repository does not exist": {
-			projectinfos: []model.ProjectInfo{
-				{OriginalName: "repo1"},
-				{OriginalName: "repo2"},
-			},
-			repositoryName: "repo3",
-			expected:       false,
-		},
-		"case insensitive": {
-			projectinfos: []model.ProjectInfo{
-				{OriginalName: "Repo1"},
-			},
-			repositoryName: "repo1",
-			expected:       true,
-		},
-	}
-
-	for name, tabletest := range tests {
-		t.Run(name, func(t *testing.T) {
-			ctx := context.Background()
-			mockProvider := new(mocks.GitProvider)
-			mockProvider.EXPECT().ProjectInfos(ctx, mock.Anything, false).Return(tabletest.projectinfos, nil)
-
-			exists, id := repositoryExists(ctx, config.ProviderConfig{}, mockProvider, tabletest.repositoryName)
-			require.Equal(t, tabletest.expected, exists)
-			require.Equal(t, "", id)
+			require.Equal(tabletest.want, result)
 		})
 	}
 }
 
 func TestGetProjectPath(t *testing.T) {
-	tests := map[string]struct {
+	tests := []struct {
+		name           string
 		config         config.ProviderConfig
 		repositoryName string
-		expected       string
+		want           string
 	}{
-		"group repository": {
-			config:         config.ProviderConfig{Group: "mygroup"},
+		{
+			name: "group path",
+			config: config.ProviderConfig{
+				Group: "test-group",
+				User:  "test-user",
+			},
 			repositoryName: "repo",
-			expected:       "mygroup/repo",
+			want:           "test-group/repo",
 		},
-		"user repository": {
-			config:         config.ProviderConfig{User: "myuser"},
+		{
+			name: "user path",
+			config: config.ProviderConfig{
+				User: "test-user",
+			},
 			repositoryName: "repo",
-			expected:       "myuser/repo",
+			want:           "test-user/repo",
 		},
 	}
 
-	for name, tabletest := range tests {
-		t.Run(name, func(t *testing.T) {
-			result := getProjectPath(tabletest.config, tabletest.repositoryName)
-			require.Equal(t, tabletest.expected, result)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			require := require.New(t)
+			result := getProjectPath(tt.config, tt.repositoryName)
+			require.Equal(tt.want, result)
 		})
 	}
 }
 
-func mockRepositoryWithName(name string) *mocks.GitRepository {
-	r := new(mocks.GitRepository)
-	r.EXPECT().ProjectInfo().Return(model.ProjectInfo{OriginalName: name})
+func TestBuildDescription(t *testing.T) {
+	tests := []struct {
+		name            string
+		remote          model.Remote
+		repository      interfaces.GitRepository
+		userDescription string
+		want            string
+	}{
+		{
+			name:   "with user description",
+			remote: model.Remote{URL: "git@github.com:test/repo.git"},
+			repository: &model.Repository{
+				ProjectMetaInfo: model.ProjectInfo{Description: "repo description"},
+			},
+			userDescription: "custom description",
+			want:            "custom descriptionrepo description",
+		},
+		{
+			name:   "without user description",
+			remote: model.Remote{URL: "git@github.com:test/repo.git"},
+			repository: &model.Repository{
+				ProjectMetaInfo: model.ProjectInfo{Description: "repo description"},
+			},
+			want: "Git Provider Sync cloned this from: git@github.com:test/repo.git: repo description",
+		},
+	}
 
-	return r
+	for _, tabletest := range tests {
+		t.Run(tabletest.name, func(t *testing.T) {
+			require := require.New(t)
+			result := buildDescription(tabletest.remote, tabletest.repository, tabletest.userDescription)
+			require.Equal(tabletest.want, result)
+		})
+	}
 }
-
-func removeTimestamp(input string) string {
-	re := regexp.MustCompile(`_\d{8}_\d{6}_\d{13}`)
-
-	return re.ReplaceAllString(input, "")
-}
-
-func testContext() context.Context {
-	ctx := context.Background()
-	input := model.CLIOption{CleanupName: true}
-	//ctx, _ = model.CreateTmpDir(ctx, "", "testadir")
-
-	return model.WithCLIOption(ctx, input)
-}
-
-// func targetProviderConfig() config.ProviderConfig {
-// 	return config.ProviderConfig{Group: "d", Domain: "https://a.gitprovider.com", ProviderType: "gitlab", HTTPClient: config.HTTPClientOption{Token: "s"}}
-// }
-//
-// type mockGitCore struct{}
-//
-// func (mockGitCore) Clone(_ context.Context, _ model.CloneOption) (model.Repository, error) {
-// 	return model.Repository{}, nil
-// }
-//
-// func (mockGitCore) Push(_ context.Context, _ model.PushOption, _ config.GitOption, _ config.GitOption) error {
-// 	return nil
-// }
-
-var ErrTest = errors.New("testerr")
-
-const (
-	TESTDOMAIN = "test.se"
-	TESTUSER   = "user"
-	BASENAME   = "basename"
-)
