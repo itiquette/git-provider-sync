@@ -21,6 +21,7 @@ link:LICENSE[image:https://img.shields.io/badge/EUPL-European%20Union%20Public%2
 image:https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fapi.reuse.software%2Fstatus%2Fgithub.com%2Fitiquette%2Fgit-provider-sync&query=status&style=for-the-badge&label=REUSE[REUSE,link=https://api.reuse.software/info/github.com/itiquette/git-provider-sync]
 https://scorecard.dev/viewer/?uri=github.com/itiquette/git-provider-sync[image:https://api.scorecard.dev/projects/github.com/itiquette/git-provider-sync/badge?style=for-the-badge[OpenSSF Scorecard]]
 image:https://img.shields.io/cii/level/9434?style=for-the-badge&label=OPENSSF%20BEST%20PRACTICES[OPEN SSF BEST PRACTICES,link=https://www.bestpractices.dev/projects/9434]
+image:https://img.shields.io/endpoint?style=for-the-badge&url=https://gist.githubusercontent.com/janderssonse/87d513c639cf65c02ecc31c1670cbcd1/raw/go-coverage.json[Coverage]
 
 ifdef::env-github[]
 ++++

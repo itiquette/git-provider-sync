@@ -17,6 +17,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func testContext() context.Context {
+	ctx := context.Background()
+	input := model.CLIOption{CleanupName: true}
+	//ctx, _ = model.CreateTmpDir(ctx, "", "testadir")
+
+	return model.WithCLIOption(ctx, input)
+}
 func TestClone(t *testing.T) {
 	require := require.New(t)
 	ctx := testContext()
