@@ -21,19 +21,19 @@ import (
 	gpsconfig "itiquette/git-provider-sync/internal/model/configuration"
 )
 
-type gitLib struct {
-	gitLibOperation GitLibOperation
-	authProv        authProvider
+type GitLib struct {
+	Op       GitLibOperation
+	authProv authProvider
 }
 
-func NewGitLib() *gitLib { //nolint
-	return &gitLib{
-		gitLibOperation: newGitLibOperation(),
-		authProv:        newAuthProvider(),
+func NewGitLib() *GitLib {
+	return &GitLib{
+		Op:       newGitLibOperation(),
+		authProv: newAuthProvider(),
 	}
 }
 
-func (g gitLib) Clone(ctx context.Context, opt model.CloneOption) (model.Repository, error) {
+func (g GitLib) Clone(ctx context.Context, opt model.CloneOption) (model.Repository, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitLib:Clone")
 	opt.DebugLog(logger).Msg("GitLib:Clone")
@@ -58,22 +58,22 @@ func (g gitLib) Clone(ctx context.Context, opt model.CloneOption) (model.Reposit
 	return model.NewRepository(repo) //nolint
 }
 
-func (g gitLib) Pull(ctx context.Context, opt model.PullOption, targetDir string) error {
+func (g GitLib) Pull(ctx context.Context, opt model.PullOption, targetDir string) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitLib:Pull")
 	opt.DebugLog(logger).Str("targetDir", targetDir).Msg("GitLib:Pull")
 
-	repo, err := g.gitLibOperation.Open(ctx, targetDir)
+	repo, err := g.Op.Open(ctx, targetDir)
 	if err != nil {
 		return err //nolint
 	}
 
-	worktree, err := g.gitLibOperation.GetWorktree(ctx, repo)
+	worktree, err := g.Op.GetWorktree(ctx, repo)
 	if err != nil {
 		return err //nolint
 	}
 
-	if err := g.gitLibOperation.WorktreeStatus(ctx, worktree); err != nil {
+	if err := g.Op.WorktreeStatus(ctx, worktree); err != nil {
 		return fmt.Errorf("%w: %s", err, targetDir)
 	}
 
@@ -95,10 +95,10 @@ func (g gitLib) Pull(ctx context.Context, opt model.PullOption, targetDir string
 		return fmt.Errorf("%w: %w", ErrPullRepository, err)
 	}
 
-	return g.gitLibOperation.FetchBranches(ctx, repo, auth, filepath.Dir(targetDir)) //nolint
+	return g.Op.FetchBranches(ctx, repo, auth, filepath.Dir(targetDir)) //nolint
 }
 
-func (g gitLib) Push(ctx context.Context, repo interfaces.GitRepository, opt model.PushOption, gitOpt gpsconfig.GitOption) error {
+func (g GitLib) Push(ctx context.Context, repo interfaces.GitRepository, opt model.PushOption, gitOpt gpsconfig.GitOption) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitLib:Push")
 	opt.DebugLog(logger).Str("gitOpt", gitOpt.String()).Msg("GitLib:Push")
@@ -112,9 +112,8 @@ func (g gitLib) Push(ctx context.Context, repo interfaces.GitRepository, opt mod
 
 	if err := repo.GoGitRepository().Push(&pushOpts); err != nil {
 		if errors.Is(err, git.NoErrAlreadyUpToDate) {
-			name := repo.ProjectInfo().Name(ctx)
-			logger.Debug().Str("name", name).Msg("repository already up-to-date")
-			g.updateSyncRunMetainfo(ctx, "uptodate", name)
+			logger.Debug().Str("name", "name").Msg("repository already up-to-date")
+			g.updateSyncRunMetainfo(ctx, "uptodate", "name")
 
 			return nil
 		}
@@ -125,7 +124,34 @@ func (g gitLib) Push(ctx context.Context, repo interfaces.GitRepository, opt mod
 	return nil
 }
 
-func (g gitLib) updateSyncRunMetainfo(ctx context.Context, key, targetDir string) {
+// func (g GitLib) PushRaw(ctx context.Context, repo *git.Repository, opt model.PushOption, gitOpt gpsconfig.GitOption) error {
+// 	logger := log.Logger(ctx)
+// 	logger.Trace().Msg("Entering GitLib:PushRaw")
+// 	opt.DebugLog(logger).Str("gitOpt", gitOpt.String()).Msg("GitLib:PushRaw")
+
+// 	auth, err := g.authProv.getAuthMethod(ctx, gitOpt, opt.HTTPClient, opt.SSHClient)
+// 	if err != nil {
+// 		return fmt.Errorf("%w: %w", ErrAuthMethod, err)
+// 	}
+
+// 	pushOpts := newGitLibPushOption(opt.Target, opt.RefSpecs, opt.Prune, auth)
+
+// 	if err := repo.Push(&pushOpts); err != nil {
+// 		if errors.Is(err, git.NoErrAlreadyUpToDate) {
+
+// 			logger.Debug().Str("name", "name").Msg("repository already up-to-date")
+// 			g.updateSyncRunMetainfo(ctx, "uptodate", "name")
+
+// 			return nil
+// 		}
+
+// 		return fmt.Errorf("%w: %w", ErrPushRepository, err)
+// 	}
+
+// 	return nil
+// }
+
+func (g GitLib) updateSyncRunMetainfo(ctx context.Context, key, targetDir string) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitLib:updateSyncRunMetainfo")
 	logger.Debug().Str("key", key).Str("targetDir", targetDir).Msg("GitLib:updateSyncRunMetainfo")

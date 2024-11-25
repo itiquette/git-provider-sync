@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"itiquette/git-provider-sync/internal/interfaces"
 	"itiquette/git-provider-sync/internal/log"
+	"itiquette/git-provider-sync/internal/model"
 	gpsconfig "itiquette/git-provider-sync/internal/model/configuration"
 
 	"github.com/go-git/go-git/v5"
@@ -25,6 +26,7 @@ type GitLibOperation interface {
 	FetchBranches(ctx context.Context, repo *git.Repository, auth transport.AuthMethod, name string) error
 	SetDefaultBranch(ctx context.Context, repo *git.Repository, branchName string) error
 	CreateRemote(ctx context.Context, repo *git.Repository, name string, urls []string) error
+	SetRemoteAndBranch(ctx context.Context, repository interfaces.GitRepository, targetDirPath string) error
 }
 
 type gitLibOperation struct {
@@ -75,10 +77,16 @@ func (r *gitLibOperation) WorktreeStatus(ctx context.Context, wt *git.Worktree) 
 	return nil
 }
 
-func setRemoteAndBranch(ctx context.Context, repository interfaces.GitRepository, targetDirPath string) error {
+func (r *gitLibOperation) SetRemoteAndBranch(ctx context.Context, repository interfaces.GitRepository, targetDirPath string) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering setRemoteAndBranch")
 	logger.Debug().Str("targetDirPath", targetDirPath).Msg("setRemoteAndBranch")
+
+	if model.CLIOptions(ctx).DryRun {
+		logger.Info().Str("pushOpts", targetDirPath).Msg("dryRun. Ignored SetRemoteAndBranch.")
+
+		return nil
+	}
 
 	repo, err := git.PlainOpen(targetDirPath)
 	if err != nil {

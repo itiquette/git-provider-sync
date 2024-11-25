@@ -15,7 +15,7 @@ import (
 	"itiquette/git-provider-sync/internal/model"
 	config "itiquette/git-provider-sync/internal/model/configuration"
 	"itiquette/git-provider-sync/internal/provider/stringconvert"
-	"itiquette/git-provider-sync/internal/target"
+	a "itiquette/git-provider-sync/internal/target/archive"
 )
 
 // Error variables for common failure scenarios.
@@ -93,7 +93,7 @@ func getPushOption(ctx context.Context, providerConfig config.ProviderConfig, re
 	case config.ARCHIVE:
 		name := repository.ProjectInfo().Name(ctx)
 
-		return model.NewPushOption(target.ArchiveTargetPath(name, providerConfig.ArchiveTargetDir()), false, false, config.HTTPClientOption{})
+		return model.NewPushOption(a.TargetPath(name, providerConfig.ArchiveTargetDir()), false, false, config.HTTPClientOption{})
 	case config.DIRECTORY:
 		return model.NewPushOption(providerConfig.DirectoryTargetDir(), false, false, config.HTTPClientOption{})
 	default:

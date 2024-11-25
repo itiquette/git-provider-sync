@@ -35,6 +35,7 @@ func newGitLibPushOption(url string, refSpec []string, prune bool, auth transpor
 	}
 
 	return git.PushOptions{
+
 		Auth:      auth,
 		RemoteURL: url,
 		RefSpecs:  refSpecs,

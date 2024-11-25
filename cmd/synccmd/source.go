@@ -15,6 +15,7 @@ import (
 	gpsconfig "itiquette/git-provider-sync/internal/model/configuration"
 	"itiquette/git-provider-sync/internal/provider"
 	"itiquette/git-provider-sync/internal/target"
+	"itiquette/git-provider-sync/internal/target/directory"
 )
 
 func sourceRepositories(ctx context.Context, sourceCfg gpsconfig.ProviderConfig) ([]interfaces.GitRepository, error) {
@@ -85,7 +86,11 @@ func processRepository(ctx context.Context, targetCfg gpsconfig.ProviderConfig, 
 	}
 
 	if targetCfg.ProviderType == gpsconfig.DIRECTORY {
-		if err := target.NewDirectory().Pull(ctx, sourceCfg, targetCfg.DirectoryTargetDir(), repo); err != nil {
+		gitHandler := directory.NewGitHandler(target.NewGitLib())
+		storageHandler := directory.NewStorageHandler()
+		dirService := directory.NewService(gitHandler, storageHandler)
+
+		if err := dirService.Pull(ctx, sourceCfg, targetCfg.DirectoryTargetDir(), repo); err != nil {
 			return fmt.Errorf("failed to pull repository for directory target: %w", err)
 		}
 	}

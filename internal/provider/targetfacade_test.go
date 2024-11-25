@@ -722,11 +722,11 @@ func TestGetProjectPath(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, tabletest := range tests {
+		t.Run(tabletest.name, func(t *testing.T) {
 			require := require.New(t)
-			result := getProjectPath(tt.config, tt.repositoryName)
-			require.Equal(tt.want, result)
+			result := getProjectPath(tabletest.config, tabletest.repositoryName)
+			require.Equal(tabletest.want, result)
 		})
 	}
 }

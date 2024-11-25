@@ -22,16 +22,18 @@ type PushOption struct {
 	Force      bool     // Whether to force push (overwrite remote history)
 	HTTPClient model.HTTPClientOption
 	SSHClient  model.SSHClientOption
+	DryRun     bool
 }
 
 func (po PushOption) String() string {
-	return fmt.Sprintf("PushOption{Target: %s, RefSpecs: %v, Prune: %t, Force: %t, HTTPClient: %s, SSHClient: %s}",
+	return fmt.Sprintf("PushOption{Target: %s, RefSpecs: %v, Prune: %t, Force: %t, HTTPClient: %s, SSHClient: %s, DryRun: %t}",
 		po.Target,
 		po.RefSpecs,
 		po.Prune,
 		po.Force,
 		po.HTTPClient.String(),
-		po.SSHClient.String())
+		po.SSHClient.String(),
+		po.DryRun)
 }
 
 func (po PushOption) DebugLog(logger *zerolog.Logger) *zerolog.Event {
@@ -39,6 +41,7 @@ func (po PushOption) DebugLog(logger *zerolog.Logger) *zerolog.Event {
 				Str("target", po.Target).
 				Strs("refspecs", po.RefSpecs).
 				Bool("prune", po.Prune).
+				Bool("dryrun", po.DryRun).
 				Bool("force", po.Force).
 				Str("http_client", po.HTTPClient.String()).
 				Str("ssh_client", po.SSHClient.String())

@@ -16,6 +16,8 @@ import (
 	gpsconfig "itiquette/git-provider-sync/internal/model/configuration"
 	"itiquette/git-provider-sync/internal/provider"
 	"itiquette/git-provider-sync/internal/target"
+	"itiquette/git-provider-sync/internal/target/archive"
+	"itiquette/git-provider-sync/internal/target/directory"
 )
 
 func toTarget(ctx context.Context, sourceCfg, targetCfg gpsconfig.ProviderConfig, repositories []interfaces.GitRepository) error {
@@ -59,9 +61,16 @@ func pushRepository(ctx context.Context, sourceCfg, targetCfg gpsconfig.Provider
 func getTargetWriter(cfg gpsconfig.ProviderConfig) (interfaces.TargetWriter, error) {
 	switch strings.ToLower(cfg.ProviderType) {
 	case gpsconfig.ARCHIVE:
-		return target.NewArchive(), nil
+		gitHandler := archive.NewGitHandler(target.NewGitLib())
+		storageHandler := archive.NewStorageHandler()
+		archiverHandler := archive.NewHandler()
+
+		return archive.NewService(*gitHandler, storageHandler, archiverHandler), nil
 	case gpsconfig.DIRECTORY:
-		return target.NewDirectory(), nil
+		gitHandler := directory.NewGitHandler(target.NewGitLib())
+		storageHandler := directory.NewStorageHandler()
+
+		return directory.NewService(gitHandler, storageHandler), nil
 	default:
 		if cfg.Git.UseGitBinary {
 			writer, err := target.NewGitBinary()
