@@ -14,8 +14,9 @@ import (
 	"itiquette/git-provider-sync/internal/model"
 	gpsconfig "itiquette/git-provider-sync/internal/model/configuration"
 	"itiquette/git-provider-sync/internal/provider"
-	"itiquette/git-provider-sync/internal/target"
 	"itiquette/git-provider-sync/internal/target/directory"
+	"itiquette/git-provider-sync/internal/target/gitbinary"
+	"itiquette/git-provider-sync/internal/target/gitlib"
 )
 
 func sourceRepositories(ctx context.Context, sourceCfg gpsconfig.ProviderConfig) ([]interfaces.GitRepository, error) {
@@ -53,10 +54,10 @@ func sourceRepositories(ctx context.Context, sourceCfg gpsconfig.ProviderConfig)
 
 func getSourceReader(cfg gpsconfig.ProviderConfig) (interfaces.SourceReader, error) {
 	if !cfg.Git.UseGitBinary {
-		return target.NewGitLib(), nil
+		return gitlib.NewService(), nil
 	}
 
-	reader, err := target.NewGitBinary()
+	reader, err := gitbinary.NewService()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create git binary source reader: %w", err)
 	}
@@ -86,7 +87,7 @@ func processRepository(ctx context.Context, targetCfg gpsconfig.ProviderConfig, 
 	}
 
 	if targetCfg.ProviderType == gpsconfig.DIRECTORY {
-		gitHandler := directory.NewGitHandler(target.NewGitLib())
+		gitHandler := directory.NewGitHandler(gitlib.NewService())
 		storageHandler := directory.NewStorageHandler()
 		dirService := directory.NewService(gitHandler, storageHandler)
 

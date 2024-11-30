@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"itiquette/git-provider-sync/internal/interfaces"
 	"itiquette/git-provider-sync/internal/model"
-	"itiquette/git-provider-sync/internal/target"
+	"itiquette/git-provider-sync/internal/target/gitlib"
 
 	gpsconfig "itiquette/git-provider-sync/internal/model/configuration"
 
@@ -17,10 +17,10 @@ import (
 )
 
 type GitHandler struct {
-	client *target.GitLib
+	client *gitlib.Service
 }
 
-func NewGitHandler(client *target.GitLib) GitHandler {
+func NewGitHandler(client *gitlib.Service) GitHandler {
 	return GitHandler{client: client}
 }
 
@@ -35,11 +35,11 @@ func (h *GitHandler) InitializeRepository(ctx context.Context, targetDir string,
 		return fmt.Errorf("%w: %w", ErrPushRepository, err)
 	}
 
-	if err := h.client.Op.SetRemoteAndBranch(ctx, repo, targetDir); err != nil {
+	if err := h.client.Ops.SetRemoteAndBranch(ctx, repo, targetDir); err != nil {
 		return fmt.Errorf("failed to set remote and branch: %w", err)
 	}
 
-	if err := h.client.Op.SetDefaultBranch(ctx, initializedRepo, repo.ProjectInfo().DefaultBranch); err != nil {
+	if err := h.client.Ops.SetDefaultBranch(ctx, initializedRepo, repo.ProjectInfo().DefaultBranch); err != nil {
 		return fmt.Errorf("failed to set default branch: %w", err)
 	}
 

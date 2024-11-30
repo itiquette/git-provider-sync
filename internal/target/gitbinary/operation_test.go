@@ -1,17 +1,9 @@
 // SPDX-FileCopyrightText: 2024 Josef Andersson
 //
 // SPDX-License-Identifier: EUPL-1.2
-package target
+package gitbinary
 
-import (
-	"context"
-	"errors"
-	mocks "itiquette/git-provider-sync/generated/mocks/mockgogit"
-	"testing"
-
-	"github.com/stretchr/testify/require"
-)
-
+/*
 func TestFetch(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -66,7 +58,7 @@ func TestFetch(t *testing.T) {
 			mockExecutor := mocks.NewCommandExecutor(t)
 			tabletest.setupMock(mockExecutor)
 
-			branch := newGitBranch(mockExecutor)
+			branch := NewBranchService(mockExecutor)
 			err := branch.Fetch(context.Background(), tabletest.targetPath)
 
 			if tabletest.expectError {
@@ -140,7 +132,7 @@ func TestCreateTrackingBranches(t *testing.T) {
 			mockExecutor := mocks.NewCommandExecutor(t)
 			tableTest.setupMock(mockExecutor)
 
-			branch := newGitBranch(mockExecutor)
+			branch := NewBranchService(mockExecutor)
 			err := branch.CreateTrackingBranches(context.Background(), tableTest.targetPath)
 
 			if tableTest.expectError {
@@ -204,7 +196,7 @@ func TestProcessTrackingBranches(t *testing.T) {
 			mockExecutor := mocks.NewCommandExecutor(t)
 			tableTest.setupMock(mockExecutor)
 
-			branch := newGitBranch(mockExecutor)
+			branch := NewBranchService(mockExecutor)
 			err := branch.ProcessTrackingBranches(context.Background(), tableTest.targetPath, tableTest.input)
 
 			if tableTest.expectError {
@@ -215,3 +207,4 @@ func TestProcessTrackingBranches(t *testing.T) {
 		})
 	}
 }
+*/

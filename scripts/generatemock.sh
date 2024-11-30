@@ -73,9 +73,6 @@ run_mockery --all --srcpkg=github.com/xanzy/go-gitlab --output "${OUTPUT_DIR}"/m
 # Generate mocks for internal interfaces
 echo -e "${YELLOW}Generating mocks for target interfaces...${NC}"
 TARGET_INTERFACES=(
-  "GitLibOperation"
-  "CommandExecutor"
-  "BranchManager"
 )
 for interface in "${TARGET_INTERFACES[@]}"; do
   echo -e "${BLUE}Generating mock for ${interface}...${NC}"

@@ -16,7 +16,7 @@ import (
 	"time"
 
 	config "itiquette/git-provider-sync/internal/model/configuration"
-	"itiquette/git-provider-sync/internal/target"
+	"itiquette/git-provider-sync/internal/target/gitbinary"
 
 	"golang.org/x/crypto/ssh/agent"
 )
@@ -124,7 +124,7 @@ func validateSourceProvider(provider config.ProviderConfig) error {
 	}
 
 	if provider.Git.UseGitBinary {
-		if _, err := target.ValidateGitBinary(); err != nil {
+		if _, err := gitbinary.ValidateGitBinary(); err != nil {
 			return ErrNoGitBinaryFound
 		}
 	}
@@ -181,7 +181,7 @@ func validateTargetProvider(providerConfig config.ProviderConfig) error {
 		}
 
 		if providerConfig.Git.UseGitBinary {
-			if _, err := target.ValidateGitBinary(); err != nil {
+			if _, err := gitbinary.ValidateGitBinary(); err != nil {
 				return ErrNoGitBinaryFound
 			}
 		}

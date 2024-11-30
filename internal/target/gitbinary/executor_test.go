@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2024 Josef Andersson
 //
 // SPDX-License-Identifier: EUPL-1.2
-package target
+package gitbinary
 
 import (
 	"context"
@@ -126,7 +126,7 @@ func TestRunCommand(t *testing.T) {
 				}
 			}
 
-			executor := newExecService("ls")
+			executor := NewExecutorService("ls")
 			err := executor.RunGitCommand(tabletest.ctx, tabletest.env, tabletest.workingDir, tabletest.args...)
 
 			if tabletest.wantErr {
@@ -234,7 +234,7 @@ func TestRunCommandWithOutput(t *testing.T) {
 				}
 			}
 
-			executor := newExecService("ls")
+			executor := NewExecutorService("ls")
 			output, err := executor.RunGitCommandWithOutput(tabletest.ctx, tabletest.workingDir, tabletest.args...)
 
 			if tabletest.wantErr {
@@ -282,7 +282,7 @@ func TestCommandTimeout(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), tabletest.timeout)
 			defer cancel()
 
-			executor := newExecService("ls")
+			executor := NewExecutorService("ls")
 			_, err := executor.RunGitCommandWithOutput(ctx, "", tabletest.args...)
 
 			if tabletest.wantErr != nil {

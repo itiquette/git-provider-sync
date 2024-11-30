@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-package target
+package gitbinary
 
 import (
 	"context"
@@ -14,25 +14,19 @@ import (
 	"time"
 )
 
-// CommandExecutor handles git command execution.
-type CommandExecutor interface {
-	RunGitCommand(ctx context.Context, env []string, workingDir string, args ...string) error
-	RunGitCommandWithOutput(ctx context.Context, workingDir string, args ...string) ([]byte, error)
-}
-
-type gitBinaryExec struct {
+type executorService struct {
 	gitBinaryPath string
 }
 
-func newExecService(binaryPath string) CommandExecutor {
-	return &gitBinaryExec{
+func NewExecutorService(binaryPath string) *executorService { //nolint
+	return &executorService{
 		gitBinaryPath: binaryPath,
 	}
 }
 
-func (e *gitBinaryExec) RunGitCommand(ctx context.Context, env []string, workingDir string, args ...string) error {
+func (e *executorService) RunGitCommand(ctx context.Context, env []string, workingDir string, args ...string) error {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering runGitCommand")
+	logger.Trace().Msg("Entering RunGitCommand")
 
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Minute)
 	defer cancel()
@@ -40,6 +34,7 @@ func (e *gitBinaryExec) RunGitCommand(ctx context.Context, env []string, working
 	cmd := exec.CommandContext(ctx, e.gitBinaryPath, args...) //nolint:gosec
 
 	cmd.Env = append(os.Environ(), env...)
+
 	if len(workingDir) != 0 {
 		cmd.Dir = workingDir
 	}
@@ -54,7 +49,7 @@ func (e *gitBinaryExec) RunGitCommand(ctx context.Context, env []string, working
 	return nil
 }
 
-func (e *gitBinaryExec) RunGitCommandWithOutput(ctx context.Context, workingDir string, args ...string) ([]byte, error) {
+func (e *executorService) RunGitCommandWithOutput(ctx context.Context, workingDir string, args ...string) ([]byte, error) {
 	cmd := exec.CommandContext(ctx, e.gitBinaryPath, args...) //nolint:gosec
 	if len(workingDir) != 0 {
 		cmd.Dir = workingDir

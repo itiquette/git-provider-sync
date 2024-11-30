@@ -13,14 +13,14 @@ import (
 	"itiquette/git-provider-sync/internal/interfaces"
 	"itiquette/git-provider-sync/internal/model"
 	gpsconfig "itiquette/git-provider-sync/internal/model/configuration"
-	"itiquette/git-provider-sync/internal/target"
+	"itiquette/git-provider-sync/internal/target/gitlib"
 )
 
 type GitHandler struct {
-	client *target.GitLib
+	client *gitlib.Service
 }
 
-func NewGitHandler(client *target.GitLib) *GitHandler {
+func NewGitHandler(client *gitlib.Service) *GitHandler {
 	return &GitHandler{client: client}
 }
 
@@ -48,11 +48,11 @@ func (h *GitHandler) Push(ctx context.Context, repo interfaces.GitRepository, op
 
 // configureRepository handles the internal repository configuration.
 func (h *GitHandler) configureRepository(ctx context.Context, repo interfaces.GitRepository, initializedRepo *git.Repository, path string) error {
-	if err := h.client.Op.SetRemoteAndBranch(ctx, repo, path); err != nil {
+	if err := h.client.Ops.SetRemoteAndBranch(ctx, repo, path); err != nil {
 		return fmt.Errorf("failed to set remote and branch: %w", err)
 	}
 
-	if err := h.client.Op.SetDefaultBranch(ctx, initializedRepo, repo.ProjectInfo().DefaultBranch); err != nil {
+	if err := h.client.Ops.SetDefaultBranch(ctx, initializedRepo, repo.ProjectInfo().DefaultBranch); err != nil {
 		return fmt.Errorf("failed to set default branch: %w", err)
 	}
 

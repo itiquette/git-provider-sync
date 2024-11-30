@@ -15,9 +15,10 @@ import (
 	"itiquette/git-provider-sync/internal/model"
 	gpsconfig "itiquette/git-provider-sync/internal/model/configuration"
 	"itiquette/git-provider-sync/internal/provider"
-	"itiquette/git-provider-sync/internal/target"
 	"itiquette/git-provider-sync/internal/target/archive"
 	"itiquette/git-provider-sync/internal/target/directory"
+	"itiquette/git-provider-sync/internal/target/gitbinary"
+	"itiquette/git-provider-sync/internal/target/gitlib"
 )
 
 func toTarget(ctx context.Context, sourceCfg, targetCfg gpsconfig.ProviderConfig, repositories []interfaces.GitRepository) error {
@@ -61,19 +62,19 @@ func pushRepository(ctx context.Context, sourceCfg, targetCfg gpsconfig.Provider
 func getTargetWriter(cfg gpsconfig.ProviderConfig) (interfaces.TargetWriter, error) {
 	switch strings.ToLower(cfg.ProviderType) {
 	case gpsconfig.ARCHIVE:
-		gitHandler := archive.NewGitHandler(target.NewGitLib())
+		gitHandler := archive.NewGitHandler(gitlib.NewService())
 		storageHandler := archive.NewStorageHandler()
 		archiverHandler := archive.NewHandler()
 
 		return archive.NewService(*gitHandler, storageHandler, archiverHandler), nil
 	case gpsconfig.DIRECTORY:
-		gitHandler := directory.NewGitHandler(target.NewGitLib())
+		gitHandler := directory.NewGitHandler(gitlib.NewService())
 		storageHandler := directory.NewStorageHandler()
 
 		return directory.NewService(gitHandler, storageHandler), nil
 	default:
 		if cfg.Git.UseGitBinary {
-			writer, err := target.NewGitBinary()
+			writer, err := gitbinary.NewService()
 			if err != nil {
 				return nil, fmt.Errorf("create git binary writer: %w", err)
 			}
@@ -81,7 +82,7 @@ func getTargetWriter(cfg gpsconfig.ProviderConfig) (interfaces.TargetWriter, err
 			return writer, nil
 		}
 
-		return target.NewGitLib(), nil
+		return gitlib.NewService(), nil
 	}
 }
 

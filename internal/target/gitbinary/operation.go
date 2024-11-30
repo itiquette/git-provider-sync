@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-package target
+package gitbinary
 
 import (
 	"context"
@@ -11,27 +11,20 @@ import (
 	"strings"
 )
 
-// BranchManager handles branch-related operations.
-type BranchManager interface {
-	CreateTrackingBranches(ctx context.Context, repoPath string) error
-	Fetch(ctx context.Context, workingDirPath string) error
-	ProcessTrackingBranches(ctx context.Context, targetPath string, input []byte) error
+type operation struct {
+	executor *executorService
 }
 
-type gitBinaryBranch struct {
-	executor CommandExecutor
-}
-
-func newGitBranch(executor CommandExecutor) BranchManager {
-	return &gitBinaryBranch{
+func NewOperation(executor *executorService) *operation { //nolint
+	return &operation{
 		executor: executor,
 	}
 }
 
-func (b *gitBinaryBranch) Fetch(ctx context.Context, targetPath string) error {
+func (b *operation) Fetch(ctx context.Context, targetPath string) error {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering GitBinary:fetch")
-	logger.Debug().Str("targetPath", targetPath).Msg("GitBinary:fetch")
+	logger.Trace().Msg("Entering Fetch")
+	logger.Debug().Str("targetPath", targetPath).Msg("Fetch")
 
 	commands := [][]string{
 		{"fetch", "--all", "--prune"},
@@ -40,17 +33,17 @@ func (b *gitBinaryBranch) Fetch(ctx context.Context, targetPath string) error {
 
 	for _, cmd := range commands {
 		if err := b.executor.RunGitCommand(ctx, nil, targetPath, cmd...); err != nil {
-			return err //nolint
+			return err
 		}
 	}
 
 	return b.CreateTrackingBranches(ctx, targetPath)
 }
 
-func (b *gitBinaryBranch) CreateTrackingBranches(ctx context.Context, targetPath string) error {
+func (b *operation) CreateTrackingBranches(ctx context.Context, targetPath string) error {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering GitBinary:CreateTrackingBranches")
-	logger.Debug().Str("targetPath", targetPath).Msg("GitBinary:CreateTrackingBranches")
+	logger.Trace().Msg("Entering CreateTrackingBranches")
+	logger.Debug().Str("targetPath", targetPath).Msg("CreateTrackingBranches")
 
 	output, err := b.executor.RunGitCommandWithOutput(ctx, targetPath, "branch", "-r")
 	if err != nil {
@@ -60,10 +53,10 @@ func (b *gitBinaryBranch) CreateTrackingBranches(ctx context.Context, targetPath
 	return b.ProcessTrackingBranches(ctx, targetPath, output)
 }
 
-func (b *gitBinaryBranch) ProcessTrackingBranches(ctx context.Context, targetPath string, output []byte) error {
+func (b *operation) ProcessTrackingBranches(ctx context.Context, targetPath string, output []byte) error {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering GitBinary:processTrackingBranches")
-	logger.Debug().Str("targetPath", targetPath).Msg("GitBinary:processTrackingBranches")
+	logger.Trace().Msg("Entering ProcessTrackingBranches")
+	logger.Debug().Str("targetPath", targetPath).Msg("ProcessTrackingBranches")
 
 	for _, branch := range strings.Split(strings.TrimSpace(string(output)), "\n") {
 		branch = strings.TrimSpace(branch)

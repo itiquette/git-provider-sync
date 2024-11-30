@@ -10,7 +10,7 @@ import (
 	"io"
 	"itiquette/git-provider-sync/internal/model"
 	gpsconfig "itiquette/git-provider-sync/internal/model/configuration"
-	"itiquette/git-provider-sync/internal/target"
+	"itiquette/git-provider-sync/internal/target/gitlib"
 	"os"
 	"path/filepath"
 	"testing"
@@ -236,7 +236,7 @@ func TestInitializeRepository(t *testing.T) {
 	for _, tabletest := range tests {
 		t.Run(tabletest.name, func(t *testing.T) {
 			bareRepo := tabletest.setupRepo(t)
-			handler := NewGitHandler(target.NewGitLib())
+			handler := NewGitHandler(gitlib.NewService())
 
 			bareRepository, err := model.NewRepository(bareRepo)
 			require.NoError(t, err)
