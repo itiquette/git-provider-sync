@@ -12,7 +12,7 @@ import (
 	config "itiquette/git-provider-sync/internal/model/configuration"
 	"time"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v67/github"
 )
 
 type ProjectService struct {

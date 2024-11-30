@@ -9,7 +9,7 @@ import (
 	"itiquette/git-provider-sync/internal/log"
 	"strings"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v67/github"
 )
 
 type ProtectionService struct {
@@ -53,8 +53,9 @@ func (p ProtectionService) protect(ctx context.Context, owner, projectName strin
 	return nil
 }
 
+//nolint
 func (p ProtectionService) enableTagProtection(ctx context.Context, owner, projectName string) error {
-	_, _, err := p.client.Repositories.CreateTagProtection(ctx, owner, projectName, "*")
+	_, _, err := p.client.Repositories.CreateTagProtection(ctx, owner, projectName, "*") //lint:ignore SA1019 we will fix
 	if err != nil {
 		return fmt.Errorf("failed to protect tags: %w", err)
 	}
