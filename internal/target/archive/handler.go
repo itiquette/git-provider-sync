@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/mholt/archiver/v4"
+	"github.com/mholt/archives"
 )
 
 type Handler struct{}
@@ -47,8 +47,8 @@ func TargetPath(name, targetDir string) string {
 	return filepath.Join(targetDir, tarArchive)
 }
 
-func (h *Handler) mapFilesToArchive(_ context.Context, sourceDir, targetName string) ([]archiver.File, error) {
-	files, err := archiver.FilesFromDisk(nil, map[string]string{
+func (h *Handler) mapFilesToArchive(ctx context.Context, sourceDir, targetName string) ([]archives.FileInfo, error) {
+	files, err := archives.FilesFromDisk(ctx, nil, map[string]string{
 		sourceDir: targetName,
 	})
 	if err != nil {
@@ -62,7 +62,7 @@ func (h *Handler) mapFilesToArchive(_ context.Context, sourceDir, targetName str
 	return files, nil
 }
 
-func (h *Handler) compress(ctx context.Context, targetPath string, files []archiver.File) error {
+func (h *Handler) compress(ctx context.Context, targetPath string, files []archives.FileInfo) error {
 	file, err := os.Create(targetPath)
 	if err != nil {
 		return fmt.Errorf("%w: %s: %w", ErrArchiveCreation, targetPath, err)
@@ -73,9 +73,9 @@ func (h *Handler) compress(ctx context.Context, targetPath string, files []archi
 		return fmt.Errorf("failed to set permissions on %s: %w", targetPath, err)
 	}
 
-	format := archiver.CompressedArchive{
-		Compression: archiver.Gz{},
-		Archival:    archiver.Tar{},
+	format := archives.CompressedArchive{
+		Compression: archives.Gz{},
+		Archival:    archives.Tar{},
 	}
 
 	if err := format.Archive(ctx, file, files); err != nil {
