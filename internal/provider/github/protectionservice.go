@@ -52,11 +52,35 @@ func (p ProtectionService) protect(ctx context.Context, owner, projectName strin
 
 	return nil
 }
+func (p *ProtectionService) enableTagProtection(ctx context.Context, owner, projectName string) error {
+	ruleset := &github.Ruleset{
+		Name:        "TagProtectionRule",
+		Target:      github.String("tag"),
+		Enforcement: "active",
+		Rules: []*github.RepositoryRule{
+			// github.NewTagNamePatternRule(&github.RulePatternParameters{
+			// 	Operator: "starts_with", // Required operator field
+			// 	Pattern:  *github.String("v")}),
+			github.NewCreationRule(),  // Restrict tag creation
+			github.NewUpdateRule(nil), // Restrict tag updates
+			github.NewDeletionRule(),  // Restrict tag deletion}),
+		},
+		// Apply to all tags by default
+		Conditions: &github.RulesetConditions{
+			RefName: &github.RulesetRefConditionParameters{
+				Include: []string{"refs/tags/*"},
+				Exclude: []string{},
+			},
+		},
+	}
 
-//nolint
-func (p ProtectionService) enableTagProtection(ctx context.Context, owner, projectName string) error {
-	_, _, err := p.client.Repositories.CreateTagProtection(ctx, owner, projectName, "*") //lint:ignore SA1019 we will fix
+	_, _, err := p.client.Repositories.CreateRuleset(ctx, owner, projectName, ruleset)
 	if err != nil {
+		if strings.Contains(err.Error(), "403") && strings.Contains(err.Error(), "Upgrade to GitHub Pro") {
+			// This is expected for non-Pro repositories, return nil to continue
+			return nil
+		}
+
 		return fmt.Errorf("failed to protect tags: %w", err)
 	}
 
@@ -65,40 +89,51 @@ func (p ProtectionService) enableTagProtection(ctx context.Context, owner, proje
 
 func (p ProtectionService) enableBranchProtection(ctx context.Context, owner, projectName string) error {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering GitHub:enableBranchProtection")
-	logger.Debug().Str("owner", owner).Str("projectName", projectName).Msg("enableBranchProtection")
+	logger.Trace().Msg("Entering GitHub:enableRulesetProtection")
+	logger.Debug().Str("owner", owner).Str("projectName", projectName).Msg("enableRulesetProtection")
 
-	protectionReq := &github.ProtectionRequest{
-		RequiredStatusChecks: &github.RequiredStatusChecks{
-			Strict:   true,
-			Contexts: &[]string{},
+	ruleset := &github.Ruleset{
+		Name:        "BranchProtectionRules",
+		Target:      github.String("branch"),
+		Enforcement: "active",
+
+		// Match all branches by default
+		Conditions: &github.RulesetConditions{
+			RefName: &github.RulesetRefConditionParameters{
+				Include: []string{"~ALL"},
+				Exclude: []string{},
+			},
 		},
-		RequiredPullRequestReviews: &github.PullRequestReviewsEnforcementRequest{
-			RequiredApprovingReviewCount: *github.Int(1),
-			RequireCodeOwnerReviews:      *github.Bool(true),
-			DismissStaleReviews:          *github.Bool(true),
+		BypassActors: []*github.BypassActor{},
+
+		Rules: []*github.RepositoryRule{
+			github.NewRequiredStatusChecksRule(&github.RequiredStatusChecksRuleParameters{
+				RequiredStatusChecks:             []github.RuleRequiredStatusChecks{},
+				StrictRequiredStatusChecksPolicy: true,
+			}),
+			github.NewPullRequestRule(&github.PullRequestRuleParameters{
+				DismissStaleReviewsOnPush:      true,
+				RequireCodeOwnerReview:         true,
+				RequiredApprovingReviewCount:   1,
+				RequiredReviewThreadResolution: true,
+			}),
+			github.NewCreationRule(),
+			github.NewUpdateRule(&github.UpdateAllowsFetchAndMergeRuleParameters{
+				UpdateAllowsFetchAndMerge: false,
+			}),
+			github.NewNonFastForwardRule(),
+			github.NewDeletionRule(),
 		},
-		EnforceAdmins:    *github.Bool(true),
-		AllowForcePushes: github.Bool(false),
-		AllowDeletions:   github.Bool(false),
 	}
 
-	branches, _, err := p.client.Repositories.ListBranches(ctx, owner, projectName, &github.BranchListOptions{})
+	_, _, err := p.client.Repositories.CreateRuleset(ctx, owner, projectName, ruleset)
 	if err != nil {
-		return fmt.Errorf("failed to list branches. projectName: %s. err: %w", projectName, err)
-	}
-
-	//TODO
-	// Restrictions: &github.BranchRestrictionsRequest{
-	// 	Users: []string{},
-	// 	Teams: []string{},
-	// 	Apps:  []string{},
-	// },
-	for _, branch := range branches {
-		_, _, err := p.client.Repositories.UpdateBranchProtection(ctx, owner, projectName, *branch.Name, protectionReq)
-		if err != nil {
-			return fmt.Errorf("failed to protect branch. branch: %s. err: %w", *branch.Name, err)
+		if strings.Contains(err.Error(), "403") && strings.Contains(err.Error(), "Upgrade to GitHub Pro") {
+			// This is expected for non-Pro repositories, return nil to continue
+			return nil
 		}
+
+		return fmt.Errorf("failed to create ruleset protection. projectName: %s. err: %w", projectName, err)
 	}
 
 	return nil
@@ -109,64 +144,40 @@ func (p ProtectionService) unprotect(ctx context.Context, branch, owner, project
 	logger.Trace().Msg("Entering GitHub:unprotect")
 	logger.Debug().Str("owner", owner).Str("projectName", projectName).Str("branch", branch).Msg("GitHub:unprotect")
 
-	err := p.disableBranchProtection(ctx, branch, owner, projectName)
+	err := p.deleteAllRulesets(ctx, owner, projectName)
 	if err != nil {
-		if !strings.Contains(err.Error(), "404") {
-			return fmt.Errorf("failed to disable protected branches. projectName: %s. err: %w", projectName, err)
-		}
+		return fmt.Errorf("failed to disable protected branches. projectName: %s. err: %w", projectName, err)
 	}
 
-	err = p.disableTagProtection(ctx, owner, projectName)
-	if err != nil {
-		if !strings.Contains(err.Error(), "404") {
-			return fmt.Errorf("failed to disable protected tags. projectName: %s. err: %w", projectName, err)
+	return nil
+}
+func (p *ProtectionService) deleteAllRulesets(ctx context.Context, owner, projectName string) error {
+	// Get all rulesets
+	rulesets, _, err := p.client.Repositories.GetAllRulesets(ctx, owner, projectName, false)
+	if err != nil { // Check for upgrade requirement or 404 errors
+		if strings.Contains(err.Error(), "403") && strings.Contains(err.Error(), "Upgrade to GitHub Pro") {
+			// This is expected for non-Pro repositories, return nil to continue
+			return nil
+		}
+
+		return fmt.Errorf("failed to list rulesets. projectName: %s, err: %w", projectName, err)
+	}
+
+	// Delete each ruleset
+	for _, ruleset := range rulesets {
+		if err := p.deleteRuleset(ctx, owner, projectName, *ruleset.ID); err != nil {
+			return err
 		}
 	}
 
 	return nil
 }
 
-func (p ProtectionService) disableBranchProtection(ctx context.Context, branch, owner, projectName string) error {
-	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering GitHub:disableBranchProtection")
-	logger.Debug().Str("owner", owner).Str("projectName", projectName).Msg("GitHub:disableBranchProtection")
-
-	branches, _, err := p.client.Repositories.ListBranches(ctx, owner, projectName, &github.BranchListOptions{})
+func (p *ProtectionService) deleteRuleset(ctx context.Context, owner, projectName string, rulesetID int64) error {
+	_, err := p.client.Repositories.DeleteRuleset(ctx, owner, projectName, rulesetID)
 	if err != nil {
-		return fmt.Errorf("failed to list branches. projectName: %s. err: %w", projectName, err)
-	}
-
-	for _, b := range branches {
-		_, err := p.client.Repositories.RemoveBranchProtection(ctx, owner, projectName, b.GetName())
-		if err != nil {
-			return fmt.Errorf("failed to remove branch protection. projectName: %s. err: %w", projectName, err)
-		}
-	}
-
-	_, err = p.client.Repositories.RemoveBranchProtection(ctx, owner, projectName, branch)
-	if err != nil {
-		return fmt.Errorf("failed to remove branch protection: projectName: %s. err: %w", projectName, err)
-	}
-
-	return nil
-}
-
-func (p ProtectionService) disableTagProtection(ctx context.Context, owner, projectName string) error {
-	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering GitHub:disableTagProtection")
-	logger.Debug().Str("owner", owner).Str("projectName", projectName).Msg("GitHub:disableTagProtection")
-
-	tags, _, err := p.client.Repositories.ListTags(ctx, owner, projectName, &github.ListOptions{})
-	if err != nil {
-		return fmt.Errorf("failed to list tags: %w", err)
-	}
-
-	for _, tag := range tags {
-		// Remove protection if it exists
-		_, err := p.client.Repositories.RemoveBranchProtection(ctx, owner, projectName, tag.GetName())
-		if err != nil {
-			return fmt.Errorf("failed to remove tag. tag: %s. err: %w", *tag.Name, err)
-		}
+		return fmt.Errorf("failed to delete ruleset. projectName: %s, rulesetID: %d, err: %w",
+			projectName, rulesetID, err)
 	}
 
 	return nil
