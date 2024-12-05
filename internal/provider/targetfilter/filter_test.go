@@ -74,8 +74,8 @@ func TestIsInInterval(t *testing.T) {
 				return
 			}
 
-			assert.NoError(err)
-			assert.Equal(tabletest.expected, result)
+			require.NoError(t, err)
+			require.Equal(t, tabletest.expected, result)
 		})
 	}
 }

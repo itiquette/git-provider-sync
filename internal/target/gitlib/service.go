@@ -21,9 +21,9 @@ import (
 )
 
 type Service struct {
-	authService *authService
+	authService AuthService
 	Ops         operation
-	metadata    MetadataHandler
+	metadata    MetadataHandlerer
 }
 
 func NewService() *Service {
@@ -34,16 +34,16 @@ func NewService() *Service {
 	return &Service{
 		Ops:         *ops,
 		authService: auth,
-		metadata:    *metadata,
+		metadata:    metadata,
 	}
 }
 
-func (s *Service) Clone(ctx context.Context, opt model.CloneOption) (model.Repository, error) {
+func (serv *Service) Clone(ctx context.Context, opt model.CloneOption) (model.Repository, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitService:Clone")
 	opt.DebugLog(logger).Msg("GitService:Clone")
 
-	auth, err := s.authService.GetAuthMethod(ctx, opt.Git, opt.HTTPClient, opt.SSHClient)
+	auth, err := serv.authService.GetAuthMethod(ctx, opt.Git, opt.HTTPClient, opt.SSHClient)
 	if err != nil {
 		return model.Repository{}, fmt.Errorf("%w: %w", ErrAuthMethod, err)
 	}
@@ -53,7 +53,7 @@ func (s *Service) Clone(ctx context.Context, opt model.CloneOption) (model.Repos
 		fileSys = memfs.New()
 	}
 
-	cloneOpt := s.buildCloneOptions(opt.URL, opt.Mirror, auth)
+	cloneOpt := serv.buildCloneOptions(opt.URL, opt.Mirror, auth)
 
 	repo, err := git.Clone(memory.NewStorage(), fileSys, cloneOpt)
 	if err != nil {
@@ -63,45 +63,45 @@ func (s *Service) Clone(ctx context.Context, opt model.CloneOption) (model.Repos
 	return model.NewRepository(repo) //nolint
 }
 
-func (s *Service) Pull(ctx context.Context, opt model.PullOption, targetDir string) error {
+func (serv *Service) Pull(ctx context.Context, opt model.PullOption, targetDir string) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitService:Pull")
 	opt.DebugLog(logger).Str("targetDir", targetDir).Msg("GitService:Pull")
 
-	repo, worktree, err := s.prepareRepository(ctx, targetDir)
+	repo, worktree, err := serv.prepareRepository(ctx, targetDir)
 	if err != nil {
 		return err
 	}
 
-	auth, err := s.authService.GetAuthMethod(ctx, opt.GitOption, opt.HTTPClient, opt.SSHClient)
+	auth, err := serv.authService.GetAuthMethod(ctx, opt.GitOption, opt.HTTPClient, opt.SSHClient)
 	if err != nil {
 		return fmt.Errorf("%w: %w", ErrAuthMethod, err)
 	}
 
-	pullOpts := s.buildPullOptions(gpsconfig.ORIGIN, targetDir, auth)
-	if err := s.performPull(ctx, worktree, pullOpts, targetDir); err != nil {
+	pullOpts := serv.buildPullOptions(gpsconfig.ORIGIN, targetDir, auth)
+	if err := serv.performPull(ctx, worktree, pullOpts, targetDir); err != nil {
 		return err
 	}
 
-	return s.Ops.FetchBranches(ctx, repo, auth, filepath.Dir(targetDir))
+	return serv.Ops.FetchBranches(ctx, repo, auth, filepath.Dir(targetDir))
 }
 
-func (s *Service) Push(ctx context.Context, repo interfaces.GitRepository, opt model.PushOption, gitOpt gpsconfig.GitOption) error {
+func (serv *Service) Push(ctx context.Context, repo interfaces.GitRepository, opt model.PushOption, gitOpt gpsconfig.GitOption) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitService:Push")
 	opt.DebugLog(logger).Str("gitOpt", gitOpt.String()).Msg("GitService:Push")
 
-	auth, err := s.authService.GetAuthMethod(ctx, gitOpt, opt.HTTPClient, opt.SSHClient)
+	auth, err := serv.authService.GetAuthMethod(ctx, gitOpt, opt.HTTPClient, opt.SSHClient)
 	if err != nil {
 		return fmt.Errorf("%w: %w", ErrAuthMethod, err)
 	}
 
-	pushOpts := s.buildPushOptions(opt.Target, opt.RefSpecs, opt.Prune, auth)
+	pushOpts := serv.buildPushOptions(opt.Target, opt.RefSpecs, opt.Prune, auth)
 
 	if err := repo.GoGitRepository().Push(&pushOpts); err != nil {
 		if errors.Is(err, git.NoErrAlreadyUpToDate) {
 			logger.Debug().Str("targetDir", opt.Target).Msg("repository already up-to-date")
-			s.metadata.UpdateSyncMetadata(ctx, "uptodate", opt.Target)
+			serv.metadata.UpdateSyncMetadata(ctx, "uptodate", opt.Target)
 
 			return nil
 		}
@@ -112,28 +112,28 @@ func (s *Service) Push(ctx context.Context, repo interfaces.GitRepository, opt m
 	return nil
 }
 
-func (s *Service) prepareRepository(ctx context.Context, targetDir string) (*git.Repository, *git.Worktree, error) {
-	repo, err := s.Ops.Open(ctx, targetDir)
+func (serv *Service) prepareRepository(ctx context.Context, targetDir string) (*git.Repository, *git.Worktree, error) {
+	repo, err := serv.Ops.Open(ctx, targetDir)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	worktree, err := s.Ops.GetWorktree(ctx, repo)
+	worktree, err := serv.Ops.GetWorktree(ctx, repo)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	if err := s.Ops.WorktreeStatus(ctx, worktree); err != nil {
+	if err := serv.Ops.WorktreeStatus(ctx, worktree); err != nil {
 		return nil, nil, fmt.Errorf("%w: %s", err, targetDir)
 	}
 
 	return repo, worktree, nil
 }
 
-func (s *Service) performPull(ctx context.Context, worktree *git.Worktree, opts *git.PullOptions, targetDir string) error {
+func (serv *Service) performPull(ctx context.Context, worktree *git.Worktree, opts *git.PullOptions, targetDir string) error {
 	if err := worktree.Pull(opts); err != nil {
 		if errors.Is(err, git.NoErrAlreadyUpToDate) {
-			s.metadata.UpdateSyncMetadata(ctx, "uptodate", targetDir)
+			serv.metadata.UpdateSyncMetadata(ctx, "uptodate", targetDir)
 
 			return nil
 		}

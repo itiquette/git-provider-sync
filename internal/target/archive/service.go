@@ -28,19 +28,19 @@ func NewService(git GitHandler, storage StorageHandler, archiver Handlerer) *Ser
 	}
 }
 
-func (s *Service) Push(ctx context.Context, repo interfaces.GitRepository, opt model.PushOption, _ gpsconfig.GitOption) error {
+func (serv *Service) Push(ctx context.Context, repo interfaces.GitRepository, opt model.PushOption, _ gpsconfig.GitOption) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Archive:Push")
 	opt.DebugLog(logger).Msg("Archive:Push")
 
-	storagePath, err := s.storage.GetStoragePath(ctx, opt)
+	storagePath, err := serv.storage.GetStoragePath(ctx, opt)
 	if err != nil {
 		return err
 	}
 
-	if err := s.git.InitializeRepository(ctx, storagePath, repo); err != nil {
+	if err := serv.git.InitializeRepository(ctx, storagePath, repo); err != nil {
 		return fmt.Errorf("failed to initialize target repository: %w", err)
 	}
 
-	return s.archiver.CreateArchive(ctx, storagePath, opt.Target, repo.ProjectInfo().Name(ctx)) //nolint
+	return serv.archiver.CreateArchive(ctx, storagePath, opt.Target, repo.ProjectInfo().Name(ctx)) //nolint
 }

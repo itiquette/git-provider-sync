@@ -33,7 +33,7 @@ func (h *operation) Open(ctx context.Context, path string) (*git.Repository, err
 
 	repo, err := git.PlainOpen(path)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrRepositoryOpen, err)
+		return nil, fmt.Errorf("%w: %w", ErrOpenRepository, err)
 	}
 
 	return repo, nil

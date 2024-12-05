@@ -17,6 +17,10 @@ import (
 	gpsconfig "itiquette/git-provider-sync/internal/model/configuration"
 )
 
+type AuthService interface {
+	GetAuthMethod(ctx context.Context, gitOpt gpsconfig.GitOption, httpOpt gpsconfig.HTTPClientOption, _ gpsconfig.SSHClientOption) (transport.AuthMethod, error)
+}
+
 type authService struct {
 }
 

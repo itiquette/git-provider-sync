@@ -9,7 +9,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/transport"
 )
 
-func (s *Service) buildCloneOptions(url string, mirror bool, auth transport.AuthMethod) *git.CloneOptions {
+func (serv *Service) buildCloneOptions(url string, mirror bool, auth transport.AuthMethod) *git.CloneOptions {
 	return &git.CloneOptions{
 		Auth:   auth,
 		Mirror: mirror,
@@ -17,7 +17,7 @@ func (s *Service) buildCloneOptions(url string, mirror bool, auth transport.Auth
 	}
 }
 
-func (s *Service) buildPullOptions(remote string, url string, auth transport.AuthMethod) *git.PullOptions {
+func (serv *Service) buildPullOptions(remote string, url string, auth transport.AuthMethod) *git.PullOptions {
 	return &git.PullOptions{
 		Auth:       auth,
 		RemoteURL:  url,
@@ -25,19 +25,7 @@ func (s *Service) buildPullOptions(remote string, url string, auth transport.Aut
 	}
 }
 
-// func (s *Service) buildPushOptions(target string, refSpecs []string, prune bool, auth transport.AuthMethod) *git.PushOptions {
-// 	return &git.PushOptions{
-// 		RemoteName: "origin",
-// 		//		RefSpecs:        refSpecs,
-// 		Auth:            auth,
-// 		Progress:        nil,
-// 		Prune:           prune,
-// 		Force:           false,
-// 		InsecureSkipTLS: false,
-// 	}
-// }
-
-func (s *Service) buildPushOptions(url string, refSpec []string, prune bool, auth transport.AuthMethod) git.PushOptions {
+func (serv *Service) buildPushOptions(url string, refSpec []string, prune bool, auth transport.AuthMethod) git.PushOptions {
 	refSpecs := make([]gogitconfig.RefSpec, 0, 20)
 
 	for _, r := range refSpec {

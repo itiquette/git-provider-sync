@@ -9,6 +9,10 @@ import (
 	"itiquette/git-provider-sync/internal/model"
 )
 
+type MetadataHandlerer interface {
+	UpdateSyncMetadata(ctx context.Context, key, targetDir string)
+}
+
 type MetadataHandler struct {
 }
 

@@ -19,6 +19,5 @@ var (
 	ErrPullRepository   = errors.New("failed to pull repository")
 	ErrPushRepository   = errors.New("failed to push repository")
 	ErrRemoteCreation   = errors.New("failed to set remote in target repository")
-	ErrRepositoryOpen   = errors.New("failed to open repository")
 	ErrWorktreeStatus   = errors.New("failed to get worktree status")
 )
