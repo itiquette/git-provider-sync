@@ -39,4 +39,4 @@ jobs:
         with:
           skip-cache: true
           skip-save-cache: true
-          version: v1.61.0
+          version: v1.62.2
