@@ -1,210 +1,310 @@
 // SPDX-FileCopyrightText: 2024 Josef Andersson
 //
 // SPDX-License-Identifier: EUPL-1.2
+
+//nolint:wrapcheck
 package gitbinary
 
-/*
-func TestFetch(t *testing.T) {
+import (
+	"context"
+	"errors"
+	"strings"
+	"testing"
+
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
+)
+
+// Test constants for common values.
+const (
+	testPath = "/test/repo/path"
+)
+
+// Common errors for git operations.
+var (
+	errNetworkTimeout = errors.New("network timeout")
+	errLockFailed     = errors.New("unable to create lock file")
+	errRemoteUnreach  = errors.New("remote unreachable")
+)
+
+type mockExecutor struct {
+	mock.Mock
+	calls []string
+}
+
+func (m *mockExecutor) RunGitCommand(ctx context.Context, env []string, workingDir string, args ...string) error {
+	m.calls = append(m.calls, strings.Join(args, " "))
+	callArgs := append([]interface{}{ctx, env, workingDir}, toInterfaces(args)...)
+
+	return m.Called(callArgs...).Error(0)
+}
+
+func (m *mockExecutor) RunGitCommandWithOutput(ctx context.Context, workingDir string, args ...string) ([]byte, error) {
+	callArgs := append([]interface{}{ctx, workingDir}, toInterfaces(args)...)
+	call := m.Called(callArgs...)
+
+	return call.Get(0).([]byte), call.Error(1) //nolint
+}
+
+func (m *mockExecutor) getCalls() []string {
+	return m.calls
+}
+
+func newMockExecutor(t *testing.T) *mockExecutor {
+	t.Helper()
+
+	return &mockExecutor{
+		calls: make([]string, 0),
+	}
+}
+
+func TestOperation_Fetch(t *testing.T) {
 	tests := []struct {
 		name        string
 		targetPath  string
-		setupMock   func(*mocks.CommandExecutor)
-		expectError bool
+		setupMock   func(*mockExecutor)
+		expectCalls []string
+		expectError error
+		verifyFunc  func(*testing.T, *mockExecutor)
 	}{
 		{
 			name:       "successful fetch and pull",
-			targetPath: "/test/path",
-			setupMock: func(moc *mocks.CommandExecutor) {
-				// Expect fetch command
-				moc.EXPECT().
-					RunGitCommand(context.Background(), []string(nil), "/test/path", "fetch", "--all", "--prune").
+			targetPath: testPath,
+			setupMock: func(mockE *mockExecutor) {
+				t.Helper()
+				// Fetch command
+				mockE.On("RunGitCommand", mock.Anything, []string(nil), testPath, "fetch", "--all", "--prune").
 					Return(nil)
-
-				// Expect pull command
-				moc.EXPECT().
-					RunGitCommand(context.Background(), []string(nil), "/test/path", "pull", "--all").
+				// Pull command
+				mockE.On("RunGitCommand", mock.Anything, []string(nil), testPath, "pull", "--all").
 					Return(nil)
-
-				// Mock the branch -r command
-				moc.EXPECT().
-					RunGitCommandWithOutput(context.Background(), "/test/path", "branch", "-r").
+				// Get branches
+				mockE.On("RunGitCommandWithOutput", mock.Anything, testPath, "branch", "-r").
 					Return([]byte("origin/main\norigin/develop"), nil)
-
-				// Mock tracking branch creation
-				moc.EXPECT().
-					RunGitCommand(context.Background(), []string(nil), "/test/path", "branch", "--track", "main", "origin/main").
+				// Create tracking branches
+				mockE.On("RunGitCommand", mock.Anything, []string(nil), testPath, "branch", "--track", "main", "origin/main").
 					Return(nil)
-
-				moc.EXPECT().
-					RunGitCommand(context.Background(), []string(nil), "/test/path", "branch", "--track", "develop", "origin/develop").
+				mockE.On("RunGitCommand", mock.Anything, []string(nil), testPath, "branch", "--track", "develop", "origin/develop").
 					Return(nil)
 			},
-			expectError: false,
+			expectCalls: []string{
+				"fetch --all --prune",
+				"pull --all",
+				"branch --track main origin/main",
+				"branch --track develop origin/develop",
+			},
 		},
 		{
-			name:       "fetch command fails",
-			targetPath: "/test/path",
-			setupMock: func(m *mocks.CommandExecutor) {
-				m.EXPECT().
-					RunGitCommand(context.Background(), []string(nil), "/test/path", "fetch", "--all", "--prune").
-					Return(errors.New("fetch failed"))
+			name:       "network timeout during fetch",
+			targetPath: testPath,
+			setupMock: func(m *mockExecutor) {
+				m.On("RunGitCommand", mock.Anything, []string(nil), testPath, "fetch", "--all", "--prune").
+					Return(errNetworkTimeout)
 			},
-			expectError: true,
+			expectError: errNetworkTimeout,
+			expectCalls: []string{"fetch --all --prune"},
+		},
+		{
+			name:       "lock file error during pull",
+			targetPath: testPath,
+			setupMock: func(m *mockExecutor) {
+				m.On("RunGitCommand", mock.Anything, []string(nil), testPath, "fetch", "--all", "--prune").
+					Return(nil)
+				m.On("RunGitCommand", mock.Anything, []string(nil), testPath, "pull", "--all").
+					Return(errLockFailed)
+			},
+			expectError: errLockFailed,
+			expectCalls: []string{
+				"fetch --all --prune",
+				"pull --all",
+			},
 		},
 	}
 
 	for _, tabletest := range tests {
 		t.Run(tabletest.name, func(t *testing.T) {
-			mockExecutor := mocks.NewCommandExecutor(t)
-			tabletest.setupMock(mockExecutor)
+			mockE := newMockExecutor(t)
+			if tabletest.setupMock != nil {
+				tabletest.setupMock(mockE)
+			}
 
-			branch := NewBranchService(mockExecutor)
-			err := branch.Fetch(context.Background(), tabletest.targetPath)
+			op := NewOperation(mockE)
+			err := op.Fetch(context.Background(), tabletest.targetPath)
 
-			if tabletest.expectError {
+			if tabletest.expectError != nil {
 				require.Error(t, err)
+				require.ErrorIs(t, err, tabletest.expectError)
 			} else {
 				require.NoError(t, err)
 			}
+
+			if tabletest.expectCalls != nil {
+				require.Equal(t, tabletest.expectCalls, mockE.getCalls())
+			}
+
+			if tabletest.verifyFunc != nil {
+				tabletest.verifyFunc(t, mockE)
+			}
+
+			mockE.AssertExpectations(t)
 		})
 	}
 }
 
-func TestCreateTrackingBranches(t *testing.T) {
+func TestOperation_CreateTrackingBranches(t *testing.T) {
 	tests := []struct {
-		name         string
-		targetPath   string
-		branchOutput string
-		setupMock    func(*mocks.CommandExecutor)
-		expectError  bool
+		name        string
+		targetPath  string
+		setupMock   func(*mockExecutor)
+		expectCalls []string
+		expectError error
 	}{
 		{
-			name:         "successful tracking branch creation",
-			targetPath:   "/test/path",
-			branchOutput: "origin/main\norigin/develop",
-			setupMock: func(moc *mocks.CommandExecutor) {
-				moc.EXPECT().
-					RunGitCommandWithOutput(context.Background(), "/test/path", "branch", "-r").
-					Return([]byte("origin/main\norigin/develop"), nil)
-
-				// Expect tracking branch creation for main
-				moc.EXPECT().
-					RunGitCommand(context.Background(), []string(nil), "/test/path", "branch", "--track", "main", "origin/main").
+			name:       "create tracking branches for multiple remotes",
+			targetPath: testPath,
+			setupMock: func(m *mockExecutor) {
+				m.On("RunGitCommandWithOutput", mock.Anything, testPath, "branch", "-r").
+					Return([]byte("origin/main\norigin/develop\nupstream/main"), nil)
+				m.On("RunGitCommand", mock.Anything, []string(nil), testPath, "branch", "--track", mock.Anything, mock.Anything).
 					Return(nil)
-
-				// Expect tracking branch creation for develop
-				moc.EXPECT().
-					RunGitCommand(context.Background(), []string(nil), "/test/path", "branch", "--track", "develop", "origin/develop").
+				m.On("RunGitCommand", mock.Anything, []string(nil), testPath, "branch", "--track", mock.Anything, mock.Anything).
 					Return(nil)
 			},
-			expectError: false,
-		},
-		{
-			name:       "branch command fails",
-			targetPath: "/test/path",
-			setupMock: func(m *mocks.CommandExecutor) {
-				m.EXPECT().
-					RunGitCommandWithOutput(context.Background(), "/test/path", "branch", "-r").
-					Return([]byte{}, errors.New("branch command failed"))
+			expectCalls: []string{
+				"branch --track main origin/main",
+				"branch --track develop origin/develop",
+				"branch --track upstream/main upstream/main",
 			},
-			expectError: true,
 		},
 		{
-			name:         "handle branch with arrow",
-			targetPath:   "/test/path",
-			branchOutput: "origin/HEAD -> origin/main\norigin/develop",
-			setupMock: func(moc *mocks.CommandExecutor) {
-				moc.EXPECT().
-					RunGitCommandWithOutput(context.Background(), "/test/path", "branch", "-r").
+			name:       "handle detached HEAD reference",
+			targetPath: testPath,
+			setupMock: func(m *mockExecutor) {
+				m.On("RunGitCommandWithOutput", mock.Anything, testPath, "branch", "-r").
 					Return([]byte("origin/HEAD -> origin/main\norigin/develop"), nil)
-
-				// Only expect tracking branch creation for develop
-				moc.EXPECT().
-					RunGitCommand(context.Background(), []string(nil), "/test/path", "branch", "--track", "develop", "origin/develop").
+				m.On("RunGitCommand", mock.Anything, []string(nil), testPath, "branch", "--track", "develop", "origin/develop").
 					Return(nil)
 			},
-			expectError: false,
+			expectCalls: []string{
+				"branch --track develop origin/develop",
+			},
+		},
+		{
+			name:       "handle no remote branches",
+			targetPath: testPath,
+			setupMock: func(m *mockExecutor) {
+				m.On("RunGitCommandWithOutput", mock.Anything, testPath, "branch", "-r").
+					Return([]byte(""), nil)
+				m.On("RunGitCommand", mock.Anything, []string(nil), testPath, "branch", "--track", mock.Anything, mock.Anything).
+					Return(nil)
+			},
+			expectCalls: []string{"branch --track  "},
+		},
+		{
+			name:       "handle remote unreachable",
+			targetPath: testPath,
+			setupMock: func(m *mockExecutor) {
+				m.On("RunGitCommandWithOutput", mock.Anything, testPath, "branch", "-r").
+					Return([]byte{}, errRemoteUnreach)
+			},
+			expectError: ErrGetRemoteBranches,
+			expectCalls: []string{},
 		},
 	}
 
-	for _, tableTest := range tests {
-		t.Run(tableTest.name, func(t *testing.T) {
-			mockExecutor := mocks.NewCommandExecutor(t)
-			tableTest.setupMock(mockExecutor)
+	for _, tabletest := range tests {
+		t.Run(tabletest.name, func(t *testing.T) {
+			mockE := newMockExecutor(t)
+			tabletest.setupMock(mockE)
 
-			branch := NewBranchService(mockExecutor)
-			err := branch.CreateTrackingBranches(context.Background(), tableTest.targetPath)
+			op := NewOperation(mockE)
+			err := op.CreateTrackingBranches(context.Background(), tabletest.targetPath)
 
-			if tableTest.expectError {
+			if tabletest.expectError != nil {
 				require.Error(t, err)
+				require.ErrorIs(t, err, tabletest.expectError)
 			} else {
 				require.NoError(t, err)
 			}
+
+			require.Equal(t, tabletest.expectCalls, mockE.getCalls())
+			mockE.AssertExpectations(t)
 		})
 	}
 }
 
-func TestProcessTrackingBranches(t *testing.T) {
+func TestOperation_ProcessTrackingBranches(t *testing.T) {
 	tests := []struct {
 		name        string
 		targetPath  string
 		input       []byte
-		setupMock   func(*mocks.CommandExecutor)
-		expectError bool
+		setupMock   func(*mockExecutor)
+		expectCalls []string
 	}{
 		{
-			name:       "process multiple branches",
-			targetPath: "/test/path",
-			input:      []byte("origin/main\norigin/develop\norigin/feature"),
-			setupMock: func(m *mocks.CommandExecutor) {
-				// Expect tracking branch creation for all branches
-				branches := []string{"main", "develop", "feature"}
-				for _, branch := range branches {
-					m.EXPECT().
-						RunGitCommand(context.Background(), []string(nil), "/test/path", "branch", "--track", branch, "origin/"+branch).
+			name:       "process feature branches with special characters",
+			targetPath: testPath,
+			input:      []byte("origin/feature/ABC-123\norigin/feature/DEF-456\norigin/bugfix/GHI-789"),
+			setupMock: func(mockE *mockExecutor) {
+				branches := []struct{ local, remote string }{
+					{"feature/ABC-123", "origin/feature/ABC-123"},
+					{"feature/DEF-456", "origin/feature/DEF-456"},
+					{"bugfix/GHI-789", "origin/bugfix/GHI-789"},
+				}
+				for _, b := range branches {
+					mockE.On("RunGitCommand", mock.Anything, []string(nil), testPath, "branch", "--track", b.local, b.remote).
 						Return(nil)
 				}
 			},
-			expectError: false,
-		},
-		{
-			name:       "handle already existing branch",
-			targetPath: "/test/path",
-			input:      []byte("origin/main"),
-			setupMock: func(m *mocks.CommandExecutor) {
-				m.EXPECT().
-					RunGitCommand(context.Background(), []string(nil), "/test/path", "branch", "--track", "main", "origin/main").
-					Return(errors.New("fatal: branch 'main' already exists"))
+			expectCalls: []string{
+				"branch --track feature/ABC-123 origin/feature/ABC-123",
+				"branch --track feature/DEF-456 origin/feature/DEF-456",
+				"branch --track bugfix/GHI-789 origin/bugfix/GHI-789",
 			},
-			expectError: false,
 		},
 		{
-			name:       "handle branch with arrow",
-			targetPath: "/test/path",
-			input:      []byte("origin/HEAD -> origin/main\norigin/develop"),
-			setupMock: func(m *mocks.CommandExecutor) {
-				m.EXPECT().
-					RunGitCommand(context.Background(), []string(nil), "/test/path", "branch", "--track", "develop", "origin/develop").
+			name:       "handle existing branches gracefully",
+			targetPath: testPath,
+			input:      []byte("origin/main\norigin/develop"),
+			setupMock: func(mockE *mockExecutor) {
+				mockE.On("RunGitCommand", mock.Anything, []string(nil), testPath, "branch", "--track", "main", "origin/main").
+					Return(errors.New("fatal: branch 'main' already exists"))
+				mockE.On("RunGitCommand", mock.Anything, []string(nil), testPath, "branch", "--track", "develop", "origin/develop").
 					Return(nil)
 			},
-			expectError: false,
+			expectCalls: []string{
+				"branch --track main origin/main",
+				"branch --track develop origin/develop",
+			},
 		},
 	}
 
-	for _, tableTest := range tests {
-		t.Run(tableTest.name, func(t *testing.T) {
-			mockExecutor := mocks.NewCommandExecutor(t)
-			tableTest.setupMock(mockExecutor)
-
-			branch := NewBranchService(mockExecutor)
-			err := branch.ProcessTrackingBranches(context.Background(), tableTest.targetPath, tableTest.input)
-
-			if tableTest.expectError {
-				require.Error(t, err)
-			} else {
-				require.NoError(t, err)
+	for _, tabletest := range tests {
+		t.Run(tabletest.name, func(t *testing.T) {
+			mockE := newMockExecutor(t)
+			if tabletest.setupMock != nil {
+				tabletest.setupMock(mockE)
 			}
+
+			op := NewOperation(mockE)
+			err := op.ProcessTrackingBranches(context.Background(), tabletest.targetPath, tabletest.input)
+			require.NoError(t, err)
+
+			if tabletest.expectCalls != nil {
+				require.Equal(t, tabletest.expectCalls, mockE.getCalls())
+			}
+
+			mockE.AssertExpectations(t)
 		})
 	}
 }
-*/
+
+// Helper function to convert string slice to interface slice.
+func toInterfaces(ss []string) []interface{} {
+	is := make([]interface{}, len(ss))
+	for i, s := range ss {
+		is[i] = s
+	}
+
+	return is
+}

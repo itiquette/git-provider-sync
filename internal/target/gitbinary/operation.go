@@ -11,11 +11,16 @@ import (
 	"strings"
 )
 
-type operation struct {
-	executor *executorService
+type ExecutorService interface {
+	RunGitCommand(ctx context.Context, env []string, workingDir string, args ...string) error
+	RunGitCommandWithOutput(ctx context.Context, workingDir string, args ...string) ([]byte, error)
 }
 
-func NewOperation(executor *executorService) *operation { //nolint
+type operation struct {
+	executor ExecutorService
+}
+
+func NewOperation(executor ExecutorService) *operation { //nolint
 	return &operation{
 		executor: executor,
 	}
@@ -33,7 +38,7 @@ func (b *operation) Fetch(ctx context.Context, targetPath string) error {
 
 	for _, cmd := range commands {
 		if err := b.executor.RunGitCommand(ctx, nil, targetPath, cmd...); err != nil {
-			return err
+			return err //nolint
 		}
 	}
 

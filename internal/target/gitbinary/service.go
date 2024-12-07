@@ -20,7 +20,7 @@ import (
 
 type Service struct {
 	authService     *authService
-	executorService *executorService
+	executorService ExecutorService
 	branchService   *operation
 	binaryPath      string
 }
@@ -153,7 +153,7 @@ func (g *Service) Push(ctx context.Context, _ interfaces.GitRepository, opt mode
 	env := SetupSSHCommandEnv(opt.SSHClient.SSHCommand, opt.SSHClient.RewriteSSHURLFrom, opt.SSHClient.RewriteSSHURLTo)
 	args := append([]string{"push", opt.Target}, opt.RefSpecs...)
 
-	return g.executorService.RunGitCommand(ctx, env, "", args...)
+	return g.executorService.RunGitCommand(ctx, env, "", args...) //nolint
 }
 
 func ValidateGitBinary() (string, error) {

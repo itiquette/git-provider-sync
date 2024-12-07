@@ -40,8 +40,8 @@ func TestClone(t *testing.T) {
 				{HTTPSURL: "https://github.com/user/repo1.git", OriginalName: "repo1"},
 				{HTTPSURL: "https://github.com/user/repo2.git", OriginalName: "repo2"},
 			},
-			mockSetup: func(m *mocks.SourceReader) {
-				m.EXPECT().Clone(mock.Anything, mock.Anything).Return(model.Repository{}, nil).Twice()
+			mockSetup: func(srcR *mocks.SourceReader) {
+				srcR.EXPECT().Clone(mock.Anything, mock.Anything).Return(model.Repository{}, nil).Twice()
 			},
 			wantErr: false,
 		},
@@ -50,8 +50,8 @@ func TestClone(t *testing.T) {
 			projectinfos: []model.ProjectInfo{
 				{HTTPSURL: "https://github.com/user/repo1.git", OriginalName: "repo1"},
 			},
-			mockSetup: func(m *mocks.SourceReader) {
-				m.EXPECT().Clone(mock.Anything, mock.Anything).Return(model.Repository{}, errors.New("clone failed"))
+			mockSetup: func(srcR *mocks.SourceReader) {
+				srcR.EXPECT().Clone(mock.Anything, mock.Anything).Return(model.Repository{}, errors.New("clone failed"))
 			},
 			wantErr: true,
 		},
@@ -95,9 +95,9 @@ func TestFetchMetainfo(t *testing.T) {
 		{
 			name:   "Successful fetch of metainfo",
 			config: config.ProviderConfig{},
-			mockSetup: func(m *mocks.GitProvider) {
-				m.On("Name").Return("GitHub")
-				m.On("ProjectInfos", mock.Anything, mock.AnythingOfType("model.ProviderConfig"), true).
+			mockSetup: func(gitP *mocks.GitProvider) {
+				gitP.On("Name").Return("GitHub")
+				gitP.On("ProjectInfos", mock.Anything, mock.AnythingOfType("model.ProviderConfig"), true).
 					Return([]model.ProjectInfo{
 						{OriginalName: "repo1"},
 						{OriginalName: "repo2"},
@@ -109,9 +109,9 @@ func TestFetchMetainfo(t *testing.T) {
 		{
 			name:   "Failure to fetch metainfo",
 			config: config.ProviderConfig{},
-			mockSetup: func(m *mocks.GitProvider) {
-				m.On("Name").Return("GitLab")
-				m.On("ProjectInfos", mock.Anything, mock.AnythingOfType("model.ProviderConfig"), true).
+			mockSetup: func(gitP *mocks.GitProvider) {
+				gitP.On("Name").Return("GitLab")
+				gitP.On("ProjectInfos", mock.Anything, mock.AnythingOfType("model.ProviderConfig"), true).
 					Return(nil, errors.New("failed to fetch metainfo"))
 			},
 			wantLength: 0,
