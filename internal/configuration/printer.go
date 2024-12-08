@@ -19,7 +19,7 @@ func PrintConfiguration(config config.AppConfiguration, writer io.Writer) {
 	fmt.Fprintln(writer, "Git Provider Sync")
 	fmt.Fprintln(writer, "----------------------------")
 
-	for name, configuration := range config.Configurations {
+	for name, configuration := range config.GitProviderSyncConfs {
 		printConfigurationSection(name, configuration.SourceProvider, configuration.ProviderTargets, writer)
 	}
 }

@@ -25,7 +25,7 @@ func sync(ctx context.Context, cfg *gpsconfig.AppConfiguration) error {
 
 	//defer cleanup(ctx)
 
-	for _, config := range cfg.Configurations {
+	for _, config := range cfg.GitProviderSyncConfs {
 		if err := sourceToTarget(ctx, config); err != nil {
 			return fmt.Errorf("failed source to target: %w", err)
 		}

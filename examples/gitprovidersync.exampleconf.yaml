@@ -5,7 +5,7 @@
 # Complete reference of all available configuration options for Git Provider Sync
 # Each option is documented with its requirements and description
 
-configurations: # MANDATORY: Root configuration object containing all project configurations
+gitprovidersync: # MANDATORY: Root configuration object containing all project configurations
   myexampleconfiguration: # MANDATORY: At least one configuration (letters and digits only)
     source: # MANDATORY: Source repository configuration
       providertype: gitlab # MANDATORY: Git provider type (supported: gitlab, github, gitea)

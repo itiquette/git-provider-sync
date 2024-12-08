@@ -149,7 +149,7 @@ func TestProviderConfig_Methods(t *testing.T) {
 
 func TestAppConfiguration_DebugLog(t *testing.T) {
 	config := AppConfiguration{
-		Configurations: map[string]ProvidersConfig{
+		GitProviderSyncConfs: map[string]ProvidersConfig{
 			"test": {
 				SourceProvider: ProviderConfig{
 					ProviderType: "github",

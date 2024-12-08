@@ -124,14 +124,14 @@ Priority order (highest to lowest):
 
 * Prefix: `GPS_`
 * Format: Uppercase with underscores
-* Example: `GPS_CONFIGURATIONS_SOURCE_PROVIDER=envconfprovider`
+* Example: `GPS_GITPROVIDERSYNC_SOURCE_PROVIDER=envconfprovider`
 
 === 4.4 Configuration Examples
 
 .Simple: A sync from github to gitlab, in the simplest way. All public repos. Default github.com and gitlab.com domains.
 [source,yaml]
 ----
-configurations: 
+gitprovidersync: 
   mysimplesourceonfig: 
     source: 
       providertype: github
@@ -149,7 +149,7 @@ configurations:
 .Extended: A sync from github to gitlab, archive dir, and a dir. Because we can. NOTE DONT PUT SECRETS IN CONFIG FILES OTHER THAN FOR TESTING, use envs or alike
 [source,yaml]
 ----
-configurations: 
+gitprovidersync: 
   myextendedsourceconfig: 
     source: 
       providertype: github
@@ -183,7 +183,7 @@ configurations:
 .Git-Binary: A sync from gitlab to github. special case, uses gitbinary, sshagent and custom ssh-client to push ssh through githubs https endpoint. It also uses corkscrew on the host.
 [source,yaml]
 ----
-configurations: 
+gitprovidersync: 
   myexamplesourceconfig: 
     source: 
       providertype: gitlab
@@ -429,27 +429,27 @@ variables:
     value: "path/to/gitprovidersync/image:version"
   # Source provider configuration example
 
-  GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_PROVIDERTYPE:
+  GPS_C:ONFIGURATIONS_EXAMPLECONF1_SOURCE_PROVIDERTYPE:
     description: "Source provider for the configuration (e.g., gitlab, github,gitea see docs)"
     value: "gitlab"
-  GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_DOMAIN:
+  GPS_GITPROVIDERSYNC_EXAMPLECONF1_SOURCE_DOMAIN:
     description: "Domain of the source provider (gitlab.com,github.com etc)"
     value: "gitlab.com"
-  GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_USER:
+  GPS_GITPROVIDERSYNC_EXAMPLECONF1_SOURCE_USER:
     description: "Username for the source provider"
     value: "auser"
-  GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_REPOSITORIES_INCLUDE:
+  GPS_GITPROVIDERSYNC_EXAMPLECONF1_SOURCE_REPOSITORIES_INCLUDE:
     description: "Comma-separated list of repositories to include (of empty, all are fetched)"
     value: "areponame,anotherreponame"
 
   # Source provider configuration example
-  GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_PROVIDERTYPE:
+  GPS_GITPROVIDERSYNC_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_PROVIDERTYPE:
     description: "Target provider for the configuration (e.g., gitlab, github, directory, tar, directory etc)"
     value: "gitlab"
-  GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_DOMAIN:
+  GPS_GITPROVIDERSYNC_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_DOMAIN:
     description: "Domain of the target provider (e.g., gitlab.com, yourgitlab.domainname)"
     value: "gitlab.com"
-  GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_USER:
+  GPS_GITPROVIDERSYNC_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_USER:
     description: "Target group or namespace in the target provider"
     value: "ausername"
   ACTIVE_FROM_LIMIT:
@@ -458,7 +458,7 @@ variables:
 
   # There would be a masked token/secret with correct write acccess
   # Never commit that, use it as a secret from you CI/CD env
-  #GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_TOKEN: <asecrettoken>
+  #GPS_GITPROVIDERSYNC_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_TOKEN: <asecrettoken>
 
 # Template for the script part
 .git-provider-sync-script-template: &sync_script
@@ -513,37 +513,37 @@ on:
       #    required: true
       #    default: "path/to/gitprovidersync/image:version"
 
-        GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_PROVIDERTYPE:
+        GPS_GITPROVIDERSYNC_EXAMPLECONF1_SOURCE_PROVIDERTYPE:
           description: "Source provider for the configuration (e.g., gitlab, github, gitea see docs)"
           required: true
           default: "gitlab"
 
-        GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_DOMAIN:
+        GPS_GITPROVIDERSYNC_EXAMPLECONF1_SOURCE_DOMAIN:
           description: "Domain of the source provider (gitlab.com, github.com, etc.)"
           required: true
           default: "gitlab.com"
 
-        GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_USER:
+        GPS_GITPROVIDERSYNC_EXAMPLECONF1_SOURCE_USER:
           description: "Username for the source provider"
           required: true
           default: "auser"
 
-        GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_INCLUDE:
+        GPS_GITPROVIDERSYNC_EXAMPLECONF1_SOURCE_INCLUDE:
           description: "Comma-separated list of repositories to include (if empty, all are fetched)"
           required: false
           default: "areponame,anotherreponame"
 
-        GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_PROVIDERTYPE:
+        GPS_GITPROVIDERSYNC_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_PROVIDERTYPE:
           description: "Target provider for the configuration (e.g., gitlab, github, directory, archive, etc.)"
           required: true
           default: "gitlab"
 
-        GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_DOMAIN:
+        GPS_GITPROVIDERSYNC_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_DOMAIN:
           description: "Domain of the target provider (e.g., gitlab.com, yourgitlab.domainname)"
           required: true
           default: "gitlab.com"
 
-        GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_USER:
+        GPS_GITPROVIDERSYNC_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_USER:
           description: "Target group or namespace in the target provider"
           required: true
           default: "ausername"
@@ -554,7 +554,7 @@ on:
           default: "-30000h"
 
   # You would set secret tokens in GitHub Secrets 
-  # Example: GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_TOKEN: ${{ secrets.YOUR_SECRET_NAME }}
+  # Example: GPS_GITPROVIDERSYNC_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_TOKEN: ${{ secrets.YOUR_SECRET_NAME }}
 
 jobs:
   scheduled-sync:
@@ -568,16 +568,16 @@ jobs:
       # IMAGE: path/to/gitprovidersync/image:version
 
       # Source provider configuration example
-      GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_PROVIDERTYPE: gitlab
-      GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_DOMAIN: gitlab.com
-      GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_USER: auser
-      GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_REPOSITORIES_INCLUDE: areponame,anotherreponame
+      GPS_GITPROVIDERSYNC_EXAMPLECONF1_SOURCE_PROVIDERTYPE: gitlab
+      GPS_GITPROVIDERSYNC_EXAMPLECONF1_SOURCE_DOMAIN: gitlab.com
+      GPS_GITPROVIDERSYNC_EXAMPLECONF1_SOURCE_USER: auser
+      GPS_GITPROVIDERSYNC_EXAMPLECONF1_SOURCE_REPOSITORIES_INCLUDE: areponame,anotherreponame
 
       # Target provider configuration example
-      GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_PROVIDERTYPE: gitlab
-      GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_DOMAIN: gitlab.com
-      GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_USER: ausername
-      GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_TOKEN: ${{ secrets.EXAMPLETARGET1_TOKEN }}
+      GPS_GITPROVIDERSYNC_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_PROVIDERTYPE: gitlab
+      GPS_GITPROVIDERSYNC_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_DOMAIN: gitlab.com
+      GPS_GITPROVIDERSYNC_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_USER: ausername
+      GPS_GITPROVIDERSYNC_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_TOKEN: ${{ secrets.EXAMPLETARGET1_TOKEN }}
       
       ACTIVE_FROM_LIMIT: "-30000h"
 
@@ -597,16 +597,16 @@ jobs:
       image: "path/to/gitprovidersync/image:version"
     env:
       # Source provider configuration example
-      GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_PROVIDERTYPE: ${{ inputs.GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_PROVIDER }}
-      GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_DOMAIN: ${{ inputs.GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_DOMAIN }}
-      GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_USER: ${{ inputs.GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_USER }}
-      GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_REPOSITORIES_INCLUDE: ${{ inputs.GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_REPOSITORIES_INCLUDE }}
+      GPS_GITPROVIDERSYNC_EXAMPLECONF1_SOURCE_PROVIDERTYPE: ${{ inputs.GPS_GITPROVIDERSYNC_EXAMPLECONF1_SOURCE_PROVIDER }}
+      GPS_GITPROVIDERSYNC_EXAMPLECONF1_SOURCE_DOMAIN: ${{ inputs.GPS_GITPROVIDERSYNC_EXAMPLECONF1_SOURCE_DOMAIN }}
+      GPS_GITPROVIDERSYNC_EXAMPLECONF1_SOURCE_USER: ${{ inputs.GPS_GITPROVIDERSYNC_EXAMPLECONF1_SOURCE_USER }}
+      GPS_GITPROVIDERSYNC_EXAMPLECONF1_SOURCE_REPOSITORIES_INCLUDE: ${{ inputs.GPS_GITPROVIDERSYNC_EXAMPLECONF1_SOURCE_REPOSITORIES_INCLUDE }}
       
       # Target provider configuration example
-      GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_PROVIDERTYPE: ${{ inputs.GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_PROVIDER }}
-      GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_DOMAIN: ${{ inputs.GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_DOMAIN }}
-      GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_USER: ${{ inputs.GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_USER }}
-      GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_TOKEN: ${{ secrets.EXAMPLETARGET1_TOKEN }}
+      GPS_GITPROVIDERSYNC_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_PROVIDERTYPE: ${{ inputs.GPS_GITPROVIDERSYNC_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_PROVIDER }}
+      GPS_GITPROVIDERSYNC_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_DOMAIN: ${{ inputs.GPS_GITPROVIDERSYNC_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_DOMAIN }}
+      GPS_GITPROVIDERSYNC_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_USER: ${{ inputs.GPS_GITPROVIDERSYNC_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_USER }}
+      GPS_GITPROVIDERSYNC_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_TOKEN: ${{ secrets.EXAMPLETARGET1_TOKEN }}
       
       ACTIVE_FROM_LIMIT: ${{ inputs.ACTIVE_FROM_LIMIT }}
     
@@ -644,35 +644,35 @@ spec:
       description: "Path to container image"
       default: "path/to/gitprovidersync/image:version"
 
-    - name: GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_PROVIDER
+    - name: GPS_GITPROVIDERSYNC_EXAMPLECONF1_SOURCE_PROVIDER
       description: "Source provider for the configuration (e.g., gitlab, github, gitea)"
       default: "gitlab"
 
-    - name: GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_DOMAIN
+    - name: GPS_GITPROVIDERSYNC_EXAMPLECONF1_SOURCE_DOMAIN
       description: "Domain of the source provider"
       default: "gitlab.com"
 
-    - name: GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_USER
+    - name: GPS_GITPROVIDERSYNC_EXAMPLECONF1_SOURCE_USER
       description: "Username for the source provider"
       default: "auser"
 
-    - name: GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_REPOSITORIES_INCLUDE
+    - name: GPS_GITPROVIDERSYNC_EXAMPLECONF1_SOURCE_REPOSITORIES_INCLUDE
       description: "Comma-separated list of repositories to include"
       default: "areponame,anotherreponame"
 
-    - name: GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_PROVIDER
+    - name: GPS_GITPROVIDERSYNC_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_PROVIDER
       description: "Target provider for the configuration"
       default: "gitlab"
 
-    - name: GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_DOMAIN
+    - name: GPS_GITPROVIDERSYNC_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_DOMAIN
       description: "Domain of the target provider"
       default: "gitlab.com"
 
-    - name: GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_USER
+    - name: GPS_GITPROVIDERSYNC_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_USER
       description: "Target group or namespace in the target provider"
       default: "ausername"
 
-    - name: GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_TOKEN
+    - name: GPS_GITPROVIDERSYNC_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_TOKEN
       description: "Target token"
       default: "ausername"
 
@@ -687,22 +687,22 @@ spec:
       params:
         - name: IMAGE
           value: $(params.IMAGE)
-        - name: GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_PROVIDER
-          value: $(params.GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_PROVIDER)
-        - name: GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_DOMAIN
-          value: $(params.GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_DOMAIN)
-        - name: GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_USER
-          value: $(params.GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_USER)
-        - name: GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_REPOSITORIES_INCLUDE
-          value: $(params.GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_REPOSITORIES_INCLUDE)
-        - name: GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_PROVIDER
-          value: $(params.GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_PROVIDER)
-        - name: GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_DOMAIN
-          value: $(params.GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_DOMAIN)
-        - name: GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_USER
-          value: $(params.GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_USER)
-        - name: GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_TOKEN
-          value: $(params.GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_TOKEN)
+        - name: GPS_GITPROVIDERSYNC_EXAMPLECONF1_SOURCE_PROVIDER
+          value: $(params.GPS_GITPROVIDERSYNC_EXAMPLECONF1_SOURCE_PROVIDER)
+        - name: GPS_GITPROVIDERSYNC_EXAMPLECONF1_SOURCE_DOMAIN
+          value: $(params.GPS_GITPROVIDERSYNC_EXAMPLECONF1_SOURCE_DOMAIN)
+        - name: GPS_GITPROVIDERSYNC_EXAMPLECONF1_SOURCE_USER
+          value: $(params.GPS_GITPROVIDERSYNC_EXAMPLECONF1_SOURCE_USER)
+        - name: GPS_GITPROVIDERSYNC_EXAMPLECONF1_SOURCE_REPOSITORIES_INCLUDE
+          value: $(params.GPS_GITPROVIDERSYNC_EXAMPLECONF1_SOURCE_REPOSITORIES_INCLUDE)
+        - name: GPS_GITPROVIDERSYNC_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_PROVIDER
+          value: $(params.GPS_GITPROVIDERSYNC_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_PROVIDER)
+        - name: GPS_GITPROVIDERSYNC_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_DOMAIN
+          value: $(params.GPS_GITPROVIDERSYNC_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_DOMAIN)
+        - name: GPS_GITPROVIDERSYNC_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_USER
+          value: $(params.GPS_GITPROVIDERSYNC_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_USER)
+        - name: GPS_GITPROVIDERSYNC_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_TOKEN
+          value: $(params.GPS_GITPROVIDERSYNC_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_TOKEN)
         - name: ACTIVE_FROM_LIMIT
           value: $(params.ACTIVE_FROM_LIMIT)
 ----
@@ -718,36 +718,36 @@ metadata:
 spec:
   params:
     - name: IMAGE
-    - name: GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_PROVIDER
-    - name: GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_DOMAIN
-    - name: GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_USER
-    - name: GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_REPOSITORIES_INCLUDE
-    - name: GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_PROVIDER
-    - name: GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_DOMAIN
-    - name: GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_USER
-    - name: GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_TOKEN
+    - name: GPS_GITPROVIDERSYNC_EXAMPLECONF1_SOURCE_PROVIDER
+    - name: GPS_GITPROVIDERSYNC_EXAMPLECONF1_SOURCE_DOMAIN
+    - name: GPS_GITPROVIDERSYNC_EXAMPLECONF1_SOURCE_USER
+    - name: GPS_GITPROVIDERSYNC_EXAMPLECONF1_SOURCE_REPOSITORIES_INCLUDE
+    - name: GPS_GITPROVIDERSYNC_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_PROVIDER
+    - name: GPS_GITPROVIDERSYNC_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_DOMAIN
+    - name: GPS_GITPROVIDERSYNC_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_USER
+    - name: GPS_GITPROVIDERSYNC_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_TOKEN
     - name: ACTIVE_FROM_LIMIT
 
   steps:
     - name: print-configuration
       image: $(params.IMAGE)
       env:
-        - name: GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_PROVIDER
-          value: $(params.GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_PROVIDER)
-        - name: GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_DOMAIN
-          value: $(params.GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_DOMAIN)
-        - name: GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_USER
-          value: $(params.GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_USER)
-        - name: GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_REPOSITORIES_INCLUDE
-          value: $(params.GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_REPOSITORIES_INCLUDE)
-        - name: GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_PROVIDER
-          value: $(params.GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_PROVIDER)
-        - name: GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_DOMAIN
-          value: $(params.GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_DOMAIN)
-        - name: GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_USER
-          value: $(params.GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_USER)
-        - name: GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_TOKEN
-          value: $(params.GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_TOKEN)
+        - name: GPS_GITPROVIDERSYNC_EXAMPLECONF1_SOURCE_PROVIDER
+          value: $(params.GPS_GITPROVIDERSYNC_EXAMPLECONF1_SOURCE_PROVIDER)
+        - name: GPS_GITPROVIDERSYNC_EXAMPLECONF1_SOURCE_DOMAIN
+          value: $(params.GPS_GITPROVIDERSYNC_EXAMPLECONF1_SOURCE_DOMAIN)
+        - name: GPS_GITPROVIDERSYNC_EXAMPLECONF1_SOURCE_USER
+          value: $(params.GPS_GITPROVIDERSYNC_EXAMPLECONF1_SOURCE_USER)
+        - name: GPS_GITPROVIDERSYNC_EXAMPLECONF1_SOURCE_REPOSITORIES_INCLUDE
+          value: $(params.GPS_GITPROVIDERSYNC_EXAMPLECONF1_SOURCE_REPOSITORIES_INCLUDE)
+        - name: GPS_GITPROVIDERSYNC_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_PROVIDER
+          value: $(params.GPS_GITPROVIDERSYNC_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_PROVIDER)
+        - name: GPS_GITPROVIDERSYNC_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_DOMAIN
+          value: $(params.GPS_GITPROVIDERSYNC_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_DOMAIN)
+        - name: GPS_GITPROVIDERSYNC_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_USER
+          value: $(params.GPS_GITPROVIDERSYNC_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_USER)
+        - name: GPS_GITPROVIDERSYNC_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_TOKEN
+          value: $(params.GPS_GITPROVIDERSYNC_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_TOKEN)
         - name: ACTIVE_FROM_LIMIT
           value: $(params.ACTIVE_FROM_LIMIT)
       script: |
@@ -756,22 +756,22 @@ spec:
     - name: sync-configuration
       image: $(params.IMAGE)
       env:
-        - name: GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_PROVIDER
-          value: $(params.GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_PROVIDER)
-        - name: GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_DOMAIN
-          value: $(params.GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_DOMAIN)
-        - name: GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_USER
-          value: $(params.GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_USER)
-        - name: GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_REPOSITORIES_INCLUDE
-          value: $(params.GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_REPOSITORIES_INCLUDE)
-        - name: GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_PROVIDER
-          value: $(params.GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_PROVIDER)
-        - name: GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_DOMAIN
-          value: $(params.GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_DOMAIN)
-        - name: GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_USER
-          value: $(params.GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_USER)
-        - name: GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_TOKEN
-          value: $(params.GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_TOKEN)
+        - name: GPS_GITPROVIDERSYNC_EXAMPLECONF1_SOURCE_PROVIDER
+          value: $(params.GPS_GITPROVIDERSYNC_EXAMPLECONF1_SOURCE_PROVIDER)
+        - name: GPS_GITPROVIDERSYNC_EXAMPLECONF1_SOURCE_DOMAIN
+          value: $(params.GPS_GITPROVIDERSYNC_EXAMPLECONF1_SOURCE_DOMAIN)
+        - name: GPS_GITPROVIDERSYNC_EXAMPLECONF1_SOURCE_USER
+          value: $(params.GPS_GITPROVIDERSYNC_EXAMPLECONF1_SOURCE_USER)
+        - name: GPS_GITPROVIDERSYNC_EXAMPLECONF1_SOURCE_REPOSITORIES_INCLUDE
+          value: $(params.GPS_GITPROVIDERSYNC_EXAMPLECONF1_SOURCE_REPOSITORIES_INCLUDE)
+        - name: GPS_GITPROVIDERSYNC_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_PROVIDER
+          value: $(params.GPS_GITPROVIDERSYNC_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_PROVIDER)
+        - name: GPS_GITPROVIDERSYNC_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_DOMAIN
+          value: $(params.GPS_GITPROVIDERSYNC_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_DOMAIN)
+        - name: GPS_GITPROVIDERSYNC_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_USER
+          value: $(params.GPS_GITPROVIDERSYNC_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_USER)
+        - name: GPS_GITPROVIDERSYNC_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_TOKEN
+          value: $(params.GPS_GITPROVIDERSYNC_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_TOKEN)
         - name: ACTIVE_FROM_LIMIT
           value: $(params.ACTIVE_FROM_LIMIT)
       script: |
@@ -801,19 +801,19 @@ spec:
               env:
                 - name: IMAGE
                   value: "path/to/gitprovidersync/image:version"
-                - name: GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_PROVIDER
+                - name: GPS_GITPROVIDERSYNC_EXAMPLECONF1_SOURCE_PROVIDER
                   value: "gitlab"
-                - name: GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_DOMAIN
+                - name: GPS_GITPROVIDERSYNC_EXAMPLECONF1_SOURCE_DOMAIN
                   value: "gitlab.com"
-                - name: GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_USER
+                - name: GPS_GITPROVIDERSYNC_EXAMPLECONF1_SOURCE_USER
                   value: "auser"
-                - name: GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_REPOSITORIES_INCLUDE
+                - name: GPS_GITPROVIDERSYNC_EXAMPLECONF1_SOURCE_REPOSITORIES_INCLUDE
                   value: "areponame,anotherreponame"
-                - name: GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_PROVIDER
+                - name: GPS_GITPROVIDERSYNC_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_PROVIDER
                   value: "gitlab"
-                - name: GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_DOMAIN
+                - name: GPS_GITPROVIDERSYNC_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_DOMAIN
                   value: "gitlab.com"
-                - name: GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_USER
+                - name: GPS_GITPROVIDERSYNC_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_USER
                   value: "ausername"
                 - name: ACTIVE_FROM_LIMIT
                   value: "-30000h"
@@ -836,21 +836,21 @@ spec:
   params:
     - name: IMAGE
       value: "path/to/gitprovidersync/image:version"
-    - name: GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_PROVIDER
+    - name: GPS_GITPROVIDERSYNC_EXAMPLECONF1_SOURCE_PROVIDER
       value: "gitlab"
-    - name: GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_DOMAIN
+    - name: GPS_GITPROVIDERSYNC_EXAMPLECONF1_SOURCE_DOMAIN
       value: "gitlab.com"
-    - name: GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_USER
+    - name: GPS_GITPROVIDERSYNC_EXAMPLECONF1_SOURCE_USER
       value: "auser"
-    - name: GPS_CONFIGURATIONS_EXAMPLECONF1_SOURCE_REPOSITORIES_INCLUDE
+    - name: GPS_GITPROVIDERSYNC_EXAMPLECONF1_SOURCE_REPOSITORIES_INCLUDE
       value: "areponame,anotherreponame"
-    - name: GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_PROVIDER
+    - name: GPS_GITPROVIDERSYNC_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_PROVIDER
       value: "gitlab"
-    - name: GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_DOMAIN
+    - name: GPS_GITPROVIDERSYNC_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_DOMAIN
       value: "gitlab.com"
-    - name: GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_USER
+    - name: GPS_GITPROVIDERSYNC_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_USER
       value: "ausername"
-    - name: GPS_CONFIGURATIONS_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_TOKEN
+    - name: GPS_GITPROVIDERSYNC_EXAMPLECONF1_TARGETS_EXAMPLETARGET1_TOKEN
       value: "token"
     - name: ACTIVE_FROM_LIMIT
       value: "-30000h"
@@ -905,19 +905,19 @@ Listed is how they will be synced.
 |===
 |Property Path |Description |Required |Extra Notes |Default Value
 
-|configurations
+|gitprovidersync
 |Root configuration object containing all project configurations
 |Mandatory
 a|Must contain at least one named configuration.
 
 [literal]
-configurations:
+gitprovidersync:
   myconfig:
     source: ...
-    targets: ...
+    targets: :...
 |N/A
 
-|configurations.<name>
+|gitprovidersync.<name>
 |Named configuration group
 |Mandatory
 a|Must contain only letters and digits and include source and targets sections.
@@ -928,7 +928,7 @@ myconfig:
   targets: ...
 |N/A
 
-|configurations.<name>.source.providertype
+|gitprovidersync.<name>.source.providertype
 |Git provider type
 |Mandatory
 a|Must be one of: gitlab, github, gitea.
@@ -937,7 +937,7 @@ a|Must be one of: gitlab, github, gitea.
 providertype: gitlab
 |N/A
 
-|configurations.<name>.source.domain
+|gitprovidersync.<name>.source.domain
 |FQDN Domain name of the Git provider
 |Optional
 a|Must not include protocol scheme.
@@ -946,7 +946,7 @@ a|Must not include protocol scheme.
 domain: gitlab.com
 a|Providertype=DefaultDomain: gitlab=gitlab.com github=github.com gitea=gitea.com
 
-|configurations.<name>.source.user
+|gitprovidersync.<name>.source.user
 |Repository owner username
 |Mandatory if group not set
 a|Mutually exclusive with group. Length: 1-39 characters. Valid chars: alphanumeric, -, _.
@@ -955,7 +955,7 @@ a|Mutually exclusive with group. Length: 1-39 characters. Valid chars: alphanume
 user: user123-dev
 |N/A
 
-|configurations.<name>.source.group
+|gitprovidersync.<name>.source.group
 |Repository owner group/organization name
 |Mandatory if user not set
 a|Mutually exclusive with user. Length: 1-255 characters. Can include path segments.
@@ -964,7 +964,7 @@ a|Mutually exclusive with user. Length: 1-255 characters. Can include path segme
 group: org/subgroup/team
 |N/A
 
-|configurations.<name>.source.httpclient.token
+|gitprovidersync.<name>.source.httpclient.token
 |Git provider API token
 |Optional
 a|Required for private repositories and higher API limits.
@@ -974,7 +974,7 @@ httpclient:
   token: ${GIT_TOKEN}
 |Empty
 
-|configurations.<name>.source.httpclient.scheme
+|gitprovidersync.<name>.source.httpclient.scheme
 |Protocol scheme
 |Optional
 a|Must be http or https. HTTP not recommended for production.
@@ -984,7 +984,7 @@ httpclient:
   scheme: https
 |https
 
-|configurations.<name>.source.httpclient.proxyurl
+|gitprovidersync.<name>.source.httpclient.proxyurl
 |Proxy URL
 |Optional
 a|Must be valid URL. Environment vars HTTP_PROXY etc. also supported.
@@ -994,7 +994,7 @@ httpclient:
   proxyurl: http://proxy.company.com:8080
 |Empty
 
-|configurations.<name>.source.httpclient.certdirpath
+|gitprovidersync.<name>.source.httpclient.certdirpath
 |Directory path for custom certificates
 |Optional
 a|Must be absolute path and directory must exist.
@@ -1004,7 +1004,7 @@ httpclient:
   certdirpath: /etc/ssl/certs
 |Empty
 
-|configurations.<name>.source.sshclient.sshcommand
+|gitprovidersync.<name>.source.sshclient.sshcommand
 |Custom SSH proxy command
 |Optional
 a|Must start with 'ssh'. Requires git.usegitbinary: true.
@@ -1014,7 +1014,7 @@ sshclient:
   sshcommand: ssh -F /custom/ssh/config
 |Empty
 
-|configurations.<name>.source.sshclient.rewritesshurlfrom
+|gitprovidersync.<name>.source.sshclient.rewritesshurlfrom
 |Original SSH URL pattern to rewrite
 |Optional
 a|Must be set if rewritesshurlto is set.
@@ -1024,7 +1024,7 @@ sshclient:
   rewritesshurlfrom: git@github.com:
 |Empty
 
-|configurations.<name>.source.sshclient.rewritesshurlto
+|gitprovidersync.<name>.source.sshclient.rewritesshurlto
 |Target SSH URL pattern
 |Optional
 a|Must be set if rewritesshurlfrom is set.
@@ -1034,7 +1034,7 @@ sshclient:
   rewritesshurlto: git@github-internal:
 |Empty
 
-|configurations.<name>.source.git.includeforks
+|gitprovidersync.<name>.source.git.includeforks
 |Whether to include forked repositories
 |Optional
 a|Only valid for source provider.
@@ -1044,7 +1044,7 @@ git:
   includeforks: false
 |false
 
-|configurations.<name>.source.git.type
+|gitprovidersync.<name>.source.git.type
 |Authentication type
 |Optional
 a|Must be https or sshagent. SSH agent requires running SSH agent.
@@ -1054,7 +1054,7 @@ git:
   type: sshagent
 |https
 
-|configurations.<name>.source.git.usegitbinary
+|gitprovidersync.<name>.source.git.usegitbinary
 |Use system git binary instead of go-git library
 |Optional
 a|Required for SSH proxy command. Git must be installed.
@@ -1064,7 +1064,7 @@ git:
   usegitbinary: true
 |false
 
-|configurations.<name>.source.repositories.include
+|gitprovidersync.<name>.source.repositories.include
 |Repositories to include
 |Optional
 a|Cannot be empty if specified. Supports wildcards.
@@ -1074,7 +1074,7 @@ repositories:
   include: repo1,repo2,project-*
 |All repos
 
-|configurations.<name>.source.repositories.exclude
+|gitprovidersync.<name>.source.repositories.exclude
 |Repositories to exclude
 |Optional
 a|Cannot be empty if specified. Applied after include filter.
@@ -1084,7 +1084,7 @@ repositories:
   exclude: test-*,temp-repo
 |None
 
-|configurations.<name>.source.repositories.description
+|gitprovidersync.<name>.source.repositories.description
 |Description prefix for mirrored repositories
 |Optional
 a|Max length: 1000 characters.
@@ -1094,7 +1094,7 @@ repositories:
   description: "[Mirror] "
 |Empty
 
-|configurations.<name>.source.syncrun.activefromlimit
+|gitprovidersync.<name>.source.syncrun.activefromlimit
 |Age limit for repositories to sync
 |Optional
 a|Valid Go duration format.
@@ -1104,7 +1104,7 @@ syncrun:
   activefromlimit: 24h
 |Empty
 
-|configurations.<name>.targets
+|gitprovidersync.<name>.targets
 |Target repository configurations
 |Mandatory
 a|Must contain at least one target.
@@ -1117,7 +1117,7 @@ targets:
     providertype: archive
 |N/A
 
-|configurations.<name>.targets.<targetname>.providertype
+|gitprovidersync.<name>.targets.<targetname>.providertype
 |Target Git provider type
 |Mandatory
 a|Must be: gitlab, github, gitea, archive, or directory.
@@ -1126,7 +1126,7 @@ a|Must be: gitlab, github, gitea, archive, or directory.
 providertype: gitlab
 |N/A
 
-|configurations.<name>.targets.<targetname>.domain
+|gitprovidersync.<name>.targets.<targetname>.domain
 |Target domain name
 |Mandatory for Git providers
 a|Not needed for archive/directory types.
@@ -1135,7 +1135,7 @@ a|Not needed for archive/directory types.
 domain: gitlab.internal.com
 |N/A
 
-|configurations.<name>.targets.<targetname>.user
+|gitprovidersync.<name>.targets.<targetname>.user
 |Target repository owner username
 |Mandatory if group not set
 a|Same rules as source user.
@@ -1144,7 +1144,7 @@ a|Same rules as source user.
 user: mirror-user
 |N/A
 
-|configurations.<name>.targets.<targetname>.group
+|gitprovidersync.<name>.targets.<targetname>.group
 |Target repository owner group/organization
 |Mandatory if user not set
 a|Same rules as source group.
@@ -1153,7 +1153,7 @@ a|Same rules as source group.
 group: mirror-org/team
 |N/A
 
-|configurations.<name>.targets.<targetname>.git.type
+|gitprovidersync.<name>.targets.<targetname>.git.type
 |Authentication type for target
 |Optional
 a|Same rules as source git.type.
@@ -1163,7 +1163,7 @@ git:
   type: https
 |https
 
-|configurations.<name>.targets.<targetname>.git.usegitbinary
+|gitprovidersync.<name>.targets.<targetname>.git.usegitbinary
 |Use system git binary for target
 |Optional
 a|Same rules as source git.usegitbinary.
@@ -1173,7 +1173,7 @@ git:
   usegitbinary: true
 |false
 
-|configurations.<name>.targets.<targetname>.httpclient
+|gitprovidersync.<name>.targets.<targetname>.httpclient
 |HTTP client configuration for target
 |Optional
 a|Same rules as source httpclient.
@@ -1184,7 +1184,7 @@ httpclient:
   scheme: https
 |N/A
 
-|configurations.<name>.targets.<targetname>.sshclient
+|gitprovidersync.<name>.targets.<targetname>.sshclient
 |SSH client configuration for target
 |Optional
 a|Same rules as source sshclient.
@@ -1194,7 +1194,7 @@ sshclient:
   sshcommand: ssh -F /target/ssh/config
 |N/A
 
-|configurations.<name>.targets.<targetname>.syncrun.forcepush
+|gitprovidersync.<name>.targets.<targetname>.syncrun.forcepush
 |Always use force push
 |Optional
 a|Only valid for target providers.
@@ -1204,7 +1204,7 @@ syncrun:
   forcepush: true
 |false
 
-|configurations.<name>.targets.<targetname>.syncrun.ignoreinvalidname
+|gitprovidersync.<name>.targets.<targetname>.syncrun.ignoreinvalidname
 |Don't abort on invalid repository names
 |Optional
 a|Only valid for target providers.
@@ -1214,7 +1214,7 @@ syncrun:
   ignoreinvalidname: true
 |false
 
-|configurations.<name>.targets.<targetname>.syncrun.cleanupinvalidname
+|gitprovidersync.<name>.targets.<targetname>.syncrun.cleanupinvalidname
 |Clean repository names (alphanumeric only)
 |Optional
 a|Only valid for target providers.
@@ -1224,7 +1224,7 @@ syncrun:
   cleanupinvalidname: true
 |false
 
-|configurations.<name>.targets.<targetname>.additional.archivetargetdir
+|gitprovidersync.<name>.targets.<targetname>.additional.archivetargetdir
 |Directory for tar file storage
 |Mandatory for archive type
 a|Must be absolute path.
@@ -1234,7 +1234,7 @@ additional:
   archivetargetdir: /path/to/archives
 |N/A
 
-|configurations.<name>.targets.<targetname>.additional.directorytargetdir
+|gitprovidersync.<name>.targets.<targetname>.additional.directorytargetdir
 |Directory for repository storage
 |Mandatory for directory type
 a|Must be absolute path.

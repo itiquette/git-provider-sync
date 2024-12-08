@@ -21,47 +21,47 @@ func TestReadConfigFileMergedOptionsInOrderXDGLocalDotEnvEnvVarSuccess(t *testin
 	cwd, _ := os.Getwd()
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(cwd, "testdata"))
 	t.Setenv("GPS_TESTCONFIG_HOME", filepath.Join(cwd, "testdata"))
-	t.Setenv("GPS_CONFIGURATIONS_CONFXDG_TARGETS_ATARGET_GROUP", "envgroup")
-	t.Setenv("GPS_CONFIGURATIONS_CONF1_TARGETS_ANOTHERTARGET_DOMAIN", "envdomain")
+	t.Setenv("GPS_GITPROVIDERSYNC_CONFXDG_TARGETS_ATARGET_GROUP", "envgroup")
+	t.Setenv("GPS_GITPROVIDERSYNC_CONF1_TARGETS_ANOTHERTARGET_DOMAIN", "envdomain")
 
-	t.Setenv("GPS_CONFIGURATIONS_CONFENV_SOURCE_PROVIDERTYPE", "envconfprovider")
-	t.Setenv("GPS_CONFIGURATIONS_CONFENV_SOURCE_DOMAIN", "confenvdomain")
-	t.Setenv("GPS_CONFIGURATIONS_CONFENV_SOURCE_USER", "envconfuser")
-	t.Setenv("GPS_CONFIGURATIONS_CONFENV_SOURCE_REPOSITORIES_INCLUDE", "envconfrepo")
-	t.Setenv("GPS_CONFIGURATIONS_CONFENV_TARGETS_ATARGET_PROVIDERTYPE", "envconftarget")
-	t.Setenv("GPS_CONFIGURATIONS_CONFENV_TARGETS_ATARGET_DOMAIN", "envconfdomain")
-	t.Setenv("GPS_CONFIGURATIONS_CONFENV_TARGETS_ATARGET_GROUP", "envconfgroup")
+	t.Setenv("GPS_GITPROVIDERSYNC_CONFENV_SOURCE_PROVIDERTYPE", "envconfprovider")
+	t.Setenv("GPS_GITPROVIDERSYNC_CONFENV_SOURCE_DOMAIN", "confenvdomain")
+	t.Setenv("GPS_GITPROVIDERSYNC_CONFENV_SOURCE_USER", "envconfuser")
+	t.Setenv("GPS_GITPROVIDERSYNC_CONFENV_SOURCE_REPOSITORIES_INCLUDE", "envconfrepo")
+	t.Setenv("GPS_GITPROVIDERSYNC_CONFENV_TARGETS_ATARGET_PROVIDERTYPE", "envconftarget")
+	t.Setenv("GPS_GITPROVIDERSYNC_CONFENV_TARGETS_ATARGET_DOMAIN", "envconfdomain")
+	t.Setenv("GPS_GITPROVIDERSYNC_CONFENV_TARGETS_ATARGET_GROUP", "envconfgroup")
 
 	appConfiguration := &config.AppConfiguration{}
 	_ = ReadConfigurationFile(appConfiguration, "testdata/testconfig.yaml", false)
 
-	require.Len(appConfiguration.Configurations, 6)
+	require.Len(appConfiguration.GitProviderSyncConfs, 6)
 
 	// a xdg file only defined conf
-	require.Equal("xdgconfdomain", appConfiguration.Configurations["confxdg"].SourceProvider.GetDomain())
+	require.Equal("xdgconfdomain", appConfiguration.GitProviderSyncConfs["confxdg"].SourceProvider.GetDomain())
 
 	// a local file only defined conf
-	require.Equal("localconfdomain", appConfiguration.Configurations["conflocal"].SourceProvider.GetDomain())
+	require.Equal("localconfdomain", appConfiguration.GitProviderSyncConfs["conflocal"].SourceProvider.GetDomain())
 
 	// a dotenv file only defined conf
-	require.Equal("dotenvdomain", appConfiguration.Configurations["confdotenv"].SourceProvider.GetDomain())
+	require.Equal("dotenvdomain", appConfiguration.GitProviderSyncConfs["confdotenv"].SourceProvider.GetDomain())
 
 	// a env var only defined conf
-	require.Equal("confenvdomain", appConfiguration.Configurations["confenv"].SourceProvider.GetDomain())
+	require.Equal("confenvdomain", appConfiguration.GitProviderSyncConfs["confenv"].SourceProvider.GetDomain())
 
 	// xdg spec value is read
-	require.Equal("xdguser1", appConfiguration.Configurations["conf1"].SourceProvider.User)
+	require.Equal("xdguser1", appConfiguration.GitProviderSyncConfs["conf1"].SourceProvider.User)
 
 	// local confile prop without overriding
 	// local conffile, which overrides a xdg prop
-	require.Equal("conf1domain", appConfiguration.Configurations["conf1"].SourceProvider.GetDomain())
-	require.Equal("gitea", appConfiguration.Configurations["conf2"].SourceProvider.ProviderType)
+	require.Equal("conf1domain", appConfiguration.GitProviderSyncConfs["conf1"].SourceProvider.GetDomain())
+	require.Equal("gitea", appConfiguration.GitProviderSyncConfs["conf2"].SourceProvider.ProviderType)
 
 	// a prop was overridden from xdg to local then by .env file
-	require.Equal("dotenvprovider", appConfiguration.Configurations["conf1"].ProviderTargets["atarget"].ProviderType)
+	require.Equal("dotenvprovider", appConfiguration.GitProviderSyncConfs["conf1"].ProviderTargets["atarget"].ProviderType)
 
 	// a prop was overridden from xdg to local then by .env then by env var
-	require.Equal("envdomain", appConfiguration.Configurations["conf1"].ProviderTargets["anothertarget"].GetDomain())
+	require.Equal("envdomain", appConfiguration.GitProviderSyncConfs["conf1"].ProviderTargets["anothertarget"].GetDomain())
 }
 func TestLoadConfiguration_InvalidConfig(t *testing.T) {
 	tests := []struct {

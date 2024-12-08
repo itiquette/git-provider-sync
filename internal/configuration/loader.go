@@ -35,7 +35,7 @@ func (DefaultConfigLoader) LoadConfiguration(ctx context.Context) (*config.AppCo
 		return nil, fmt.Errorf("failed to read configuration file: %w", err)
 	}
 
-	for _, config := range appConfig.Configurations {
+	for _, config := range appConfig.GitProviderSyncConfs {
 		if err := validateConfiguration(config); err != nil {
 			return nil, fmt.Errorf("failed to validate configuration: %w", err)
 		}
@@ -92,7 +92,7 @@ func ReadConfigurationFile(appConfiguration *config.AppConfiguration, configfile
 		panic(fmt.Errorf("error unmarshalling yaml config: %w", err))
 	}
 
-	if len(appConfiguration.Configurations) == 0 {
+	if len(appConfiguration.GitProviderSyncConfs) == 0 {
 		panic("No configuration could be found!")
 	}
 

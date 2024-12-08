@@ -67,7 +67,7 @@ type ProvidersConfig struct {
 
 // AppConfiguration represents the entire application configuration.
 type AppConfiguration struct {
-	Configurations map[string]ProvidersConfig `koanf:"configurations"`
+	GitProviderSyncConfs map[string]ProvidersConfig `koanf:"gitprovidersync"`
 }
 
 // ArchiveTargetDir returns the archive target directory.
@@ -109,7 +109,7 @@ func (p ProviderConfig) IsGroup() bool {
 
 // DebugLog logs the AppConfiguration details at debug level.
 func (a AppConfiguration) DebugLog(logger *zerolog.Logger) {
-	for name, config := range a.Configurations {
+	for name, config := range a.GitProviderSyncConfs {
 		config.SourceProvider.DebugLog(logger).Msg(name + ":SourceProvider")
 
 		for key, target := range config.ProviderTargets {
