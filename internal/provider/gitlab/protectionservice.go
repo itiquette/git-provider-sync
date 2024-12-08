@@ -24,8 +24,8 @@ func NewProtectionService(client *gitlab.Client) ProtectionService {
 
 func (p ProtectionService) Protect(ctx context.Context, branch string, projectIDStr string) error {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering GitLab:protect")
-	logger.Debug().Str("projectIDStr", projectIDStr).Str("branch", branch).Msg("GitLab:protect")
+	logger.Trace().Msg("Entering GitLab:Protect")
+	logger.Debug().Str("projectIDStr", projectIDStr).Str("branch", branch).Msg("GitLab:Protect")
 
 	projectID, _ := strconv.Atoi(projectIDStr)
 
@@ -69,6 +69,12 @@ func (p ProtectionService) enableBranchProtection(ctx context.Context, branch st
 		AllowForcePush:            gitlab.Ptr(false),
 		CodeOwnerApprovalRequired: gitlab.Ptr(true),
 	}); err != nil {
+		if strings.Contains(err.Error(), "409") {
+			logger.Trace().Str("branch", "*").Str("err", err.Error()).Msg("failed to protect branch, normal upon project creation due to branches being protected upon project creation")
+
+			return nil
+		}
+
 		return fmt.Errorf("failed to protect branches. err: %w", err)
 	}
 
@@ -79,7 +85,13 @@ func (p ProtectionService) enableBranchProtection(ctx context.Context, branch st
 		AllowForcePush:            gitlab.Ptr(false),
 		CodeOwnerApprovalRequired: gitlab.Ptr(true),
 	}); err != nil {
-		return fmt.Errorf("failed to protect default branch. err: %w", err)
+		if strings.Contains(err.Error(), "409") {
+			logger.Trace().Str("branch", branch).Str("err", err.Error()).Msg("failed to protect branch, normal upon project creation due to branches being protected upon project creation")
+
+			return nil
+		}
+
+		return fmt.Errorf("failed to protect branches. err: %w", err)
 	}
 
 	return nil

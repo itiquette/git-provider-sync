@@ -9,10 +9,10 @@ import (
 )
 
 type SyncRunOption struct {
-	ForcePush          bool   `koanf:"forcepush"`
-	IgnoreInvalidName  bool   `koanf:"ignoreinvalidname"`
-	CleanupInvalidName bool   `koanf:"cleanupinvalidname"`
-	ActiveFromLimit    string `koanf:"activefromlimit"`
+	ForcePush         bool   `koanf:"forcepush"`
+	IgnoreInvalidName bool   `koanf:"ignoreinvalidname"`
+	ASCIIName         bool   `koanf:"asciiname"`
+	ActiveFromLimit   string `koanf:"activefromlimit"`
 }
 
 func (p SyncRunOption) String() string {
@@ -20,7 +20,7 @@ func (p SyncRunOption) String() string {
 	parts = append(parts, "SyncRunOption{")
 	parts = append(parts, "ForcePush: "+strconv.FormatBool(p.ForcePush))
 	parts = append(parts, "IgnoreInvalidName: "+strconv.FormatBool(p.IgnoreInvalidName))
-	parts = append(parts, "CleanupInvalidName: "+strconv.FormatBool(p.CleanupInvalidName))
+	parts = append(parts, "ASCIIName: "+strconv.FormatBool(p.ASCIIName))
 
 	if p.ActiveFromLimit != "" {
 		parts = append(parts, "ActiveFromLimit: "+p.ActiveFromLimit)

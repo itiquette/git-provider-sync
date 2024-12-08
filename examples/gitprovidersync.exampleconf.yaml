@@ -67,7 +67,7 @@ gitprovidersync: # MANDATORY: Root configuration object containing all project c
         syncrun: # OPTIONAL: Sync operation settings
           forcepush: true # OPTIONAL: Always use force push
           ignoreinvalidname: true # OPTIONAL: Don't abort on invalid repository names
-          cleanupinvalidname: true # OPTIONAL: Clean repository names (alphanumeric only)
+          asciiname: true # OPTIONAL: Clean repository names (alphanumeric only)
 
       # Archive target example
       tartargetexample:

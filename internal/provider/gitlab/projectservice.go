@@ -31,7 +31,7 @@ func NewProjectService(client *gitlab.Client) ProjectService {
 
 func (p ProjectService) CreateProject(ctx context.Context, cfg config.ProviderConfig, opt model.CreateProjectOption) (string, error) {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering GitLab:createProject")
+	logger.Trace().Msg("Entering GitLab:CreateProject")
 
 	namespaceID, err := p.getNamespaceID(ctx, cfg)
 	if err != nil {

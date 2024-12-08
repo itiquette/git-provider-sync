@@ -64,7 +64,7 @@ func addFlagsToContext(ctx context.Context, flags *syncFlags) context.Context {
 
 	opts.ForcePush = flags.forcePush
 	opts.IgnoreInvalidName = flags.ignoreInvalidName
-	opts.CleanupName = flags.cleanupName
+	opts.ASCIIName = flags.asciiName
 	opts.DryRun = flags.dryRun
 	opts.ActiveFromLimit = flags.activeFromLimit
 

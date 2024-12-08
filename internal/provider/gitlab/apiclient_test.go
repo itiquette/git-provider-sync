@@ -348,7 +348,7 @@ func TestAPIClient_IsValidProjectName(t *testing.T) {
 		{
 			name:     "valid project name with underscores",
 			projName: "project_name_123",
-			want:     true,
+			want:     false,
 		},
 		{
 			name:     "invalid characters - slash",

@@ -19,7 +19,7 @@ import (
 
 func testContext() context.Context {
 	ctx := context.Background()
-	input := model.CLIOption{CleanupName: true}
+	input := model.CLIOption{ASCIIName: true}
 	//ctx, _ = model.CreateTmpDir(ctx, "", "testadir")
 
 	return model.WithCLIOption(ctx, input)

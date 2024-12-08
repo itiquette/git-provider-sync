@@ -18,7 +18,7 @@ import (
 // It includes flags for cleaning up names, mirroring, and specifies
 // the source URL and target path.
 type CloneOption struct {
-	CleanupName bool                   // Whether to clean up the repository name
+	ASCIIName   bool                   // Whether to clean up the repository name
 	URL         string                 // The URL of the repository to clone
 	Mirror      bool                   // Whether to create a mirror clone
 	Git         model.GitOption        // Git configuration options
@@ -30,10 +30,10 @@ type CloneOption struct {
 
 // String provides a string representation of CloneOption.
 func (co CloneOption) String() string {
-	return fmt.Sprintf("CloneOption{Name: %s, URL: %s, CleanupName: %t, Mirror: %t, NonBareRepo: %t, Git: %s, HTTPClient: %s, SSHClient: %s}",
+	return fmt.Sprintf("CloneOption{Name: %s, URL: %s, ASCIIName: %t, Mirror: %t, NonBareRepo: %t, Git: %s, HTTPClient: %s, SSHClient: %s}",
 		co.Name,
 		co.URL,
-		co.CleanupName,
+		co.ASCIIName,
 		co.Mirror,
 		co.NonBareRepo,
 		co.Git.String(),
@@ -46,7 +46,7 @@ func (co CloneOption) DebugLog(logger *zerolog.Logger) *zerolog.Event {
 	return logger.Debug(). //nolint:zerologlint
 				Str("name", co.Name).
 				Str("url", co.URL).
-				Bool("cleanup_name", co.CleanupName).
+				Bool("ASCIIName", co.ASCIIName).
 				Bool("mirror", co.Mirror).
 				Bool("nonbare_repo", co.NonBareRepo).
 				Str("git", co.Git.String()).

@@ -30,7 +30,7 @@ import (
 // 				Repositories: RepositoriesOption{Exclude: "excluded", Include: "included"},
 // 				Additional:   map[string]string{"key": "value"},
 // 			},
-// 			expected: "ProviderConfig: ProviderType: github, Domain: github.com, UploadDomain: , User: user1, Group: group1, Repositories: RepositoryOption: Exclude excluded, Include: included, Git: GitOption: Type: , IncludeForks: false, UseGitBinary: false, Project: ProjectOption: Type: , HTTPClient: HTTPClientOption: ProxyURL , Token: **cret, SSHClient: SSHClientOption{ }, SyncRun: SyncRunOption{ ForcePush: false IgnoreInvalidName: false CleanupInvalidName: false }, Additional: map[key:value]",
+// 			expected: "ProviderConfig: ProviderType: github, Domain: github.com, UploadDomain: , User: user1, Group: group1, Repositories: RepositoryOption: Exclude excluded, Include: included, Git: GitOption: Type: , IncludeForks: false, UseGitBinary: false, Project: ProjectOption: Type: , HTTPClient: HTTPClientOption: ProxyURL , Token: **cret, SSHClient: SSHClientOption{ }, SyncRun: SyncRunOption{ ForcePush: false IgnoreInvalidName: false ASCIIName: false }, Additional: map[key:value]",
 // 		},
 // 		{
 // 			name: "Minimal config",
@@ -38,7 +38,7 @@ import (
 // 				ProviderType: "gitlab",
 // 				Domain:       "gitlab.com",
 // 			},
-// 			expected: "ProviderConfig: ProviderType: gitlab, Domain: gitlab.com, UploadDomain: , User: , Group: , Repositories: RepositoryOption: Exclude , Include: , Git: GitOption: Type: , IncludeForks: false, UseGitBinary: false, Project: ProjectOption: Type: , HTTPClient: HTTPClientOption: ProxyURL , Token: , SSHClient: SSHClientOption{ }, SyncRun: SyncRunOption{ ForcePush: false IgnoreInvalidName: false CleanupInvalidName: false }, Additional: map[]",
+// 			expected: "ProviderConfig: ProviderType: gitlab, Domain: gitlab.com, UploadDomain: , User: , Group: , Repositories: RepositoryOption: Exclude , Include: , Git: GitOption: Type: , IncludeForks: false, UseGitBinary: false, Project: ProjectOption: Type: , HTTPClient: HTTPClientOption: ProxyURL , Token: , SSHClient: SSHClientOption{ }, SyncRun: SyncRunOption{ ForcePush: false IgnoreInvalidName: false ASCIIName: false }, Additional: map[]",
 // 		},
 // 		{
 // 			name: "Config with empty token",
@@ -47,7 +47,7 @@ import (
 // 				Domain:       "bitbucket.org",
 // 				HTTPClient:   HTTPClientOption{Token: ""},
 // 			},
-// 			expected: "ProviderConfig: ProviderType: bitbucket, Domain: bitbucket.org, UploadDomain: , User: , Group: , Repositories: RepositoryOption: Exclude , Include: , Git: GitOption: Type: , IncludeForks: false, UseGitBinary: false, Project: ProjectOption: Type: , HTTPClient: HTTPClientOption: ProxyURL , Token: , SSHClient: SSHClientOption{ }, SyncRun: SyncRunOption{ ForcePush: false IgnoreInvalidName: false CleanupInvalidName: false }, Additional: map[]",
+// 			expected: "ProviderConfig: ProviderType: bitbucket, Domain: bitbucket.org, UploadDomain: , User: , Group: , Repositories: RepositoryOption: Exclude , Include: , Git: GitOption: Type: , IncludeForks: false, UseGitBinary: false, Project: ProjectOption: Type: , HTTPClient: HTTPClientOption: ProxyURL , Token: , SSHClient: SSHClientOption{ }, SyncRun: SyncRunOption{ ForcePush: false IgnoreInvalidName: false ASCIIName: false }, Additional: map[]",
 // 		},
 // 	}
 

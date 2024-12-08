@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	nonAlphanumericRegex = regexp.MustCompile(`[^a-zA-Z0-9_-]+`)
+	nonAlphanumericRegex = regexp.MustCompile(`[^a-zA-Z0-9-]+`)
 	linebreakReplacer    = strings.NewReplacer(
 		"\r\n", " ", "\r", " ", "\n", " ", "\v", " ",
 		"\f", " ", "\u0085", " ", "\u2028", " ", "\u2029", " ",

@@ -7,7 +7,7 @@
 :toc-title: Table of Contents
 :revdate: {docdatetime}
 :doctype: article
-:imagesdir: assets
+:imagesdir: ../assets
 :source-highlighter: rouge
 
 ifdef::env-github[]
@@ -26,13 +26,14 @@ Git Provider Sync is a tool that enables repository synchronization across diffe
 
 Git Provider Sync enables:
 
-* Multi-source Git provider configuration
+* Multi-source Git provider configurations
 * Multiple target types per source:
   - Git provider (user/organization)
   - Archive storage
   - Directory storage
 
 == 2. Getting Started
+
 
 === 2.1 Installation
 
@@ -63,13 +64,30 @@ gitprovidersync sync
 
 == 3. Command Line Interface
 
+
 === 3.1 Basic Usage
 
-* Display available options:
+
+* Example: CLI Help Output 
+
+.Display available options:
 [source,console]
 ----
 gitprovidersync --help
 ----
+
+image::gpshelp.png[]
+
+* CLI Sync Command Help Output
+
+.Display available sync options:
+[source,console]
+----
+gitprovidersync sync --help
+----
+
+image::gpssynchelp.png[]
+
 
 * Access manual (package installations only):
 [source,console]
@@ -77,10 +95,6 @@ gitprovidersync --help
 man gitprovidersync
 ----
 
-[NOTE]
-====
-Time duration parameters in CLI (i.e --from) should follow https://pkg.go.dev/time#ParseDuration[Go duration string format]
-====
 
 === 3.2 CLI Usage Examples
 
@@ -98,7 +112,7 @@ gitprovidersync print --config-file /custom/path/config.yaml
 _Sync, using force push, fetch recent update (3 hours to now)_
 [source,console]
 ----
-gitprovidersync --force-push --from='-3h' --cleanup-name --config-file /path/config.yaml
+gitprovidersync --force-push --from='-3h' --ascii-name --config-file /path/config.yaml
 ----
 
 == 4. Configuration Specific
@@ -1214,14 +1228,14 @@ syncrun:
   ignoreinvalidname: true
 |false
 
-|gitprovidersync.<name>.targets.<targetname>.syncrun.cleanupinvalidname
+|gitprovidersync.<name>.targets.<targetname>.syncrun.asciiname
 |Clean repository names (alphanumeric only)
 |Optional
 a|Only valid for target providers.
 
 [literal]
 syncrun:
-  cleanupinvalidname: true
+  asciiname: true
 |false
 
 |gitprovidersync.<name>.targets.<targetname>.additional.archivetargetdir

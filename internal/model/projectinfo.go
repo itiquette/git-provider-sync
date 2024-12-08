@@ -41,11 +41,11 @@ type ProjectInfo struct {
 
 	ProjectID string
 
-	CleanupName bool
+	ASCIIName bool
 }
 
 // Name returns the repository name, optionally cleaned up based on CLI options.
-// If the CleanupName option is set in the context, it removes non-alphanumeric
+// If the ASCIIName option is set in the context, it removes non-alphanumeric
 // characters from the original name.
 //
 // Parameters:
@@ -54,7 +54,7 @@ type ProjectInfo struct {
 // Returns:
 //   - A string representing the (possibly cleaned) repository name.
 func (rm ProjectInfo) Name(ctx context.Context) string {
-	if CLIOptions(ctx).CleanupName {
+	if CLIOptions(ctx).ASCIIName {
 		return stringconvert.RemoveNonAlphaNumericChars(ctx, rm.OriginalName)
 	}
 

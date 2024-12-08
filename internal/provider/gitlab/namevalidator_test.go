@@ -16,15 +16,18 @@ func TestIsValidGitLabRepositoryNameCharacters(t *testing.T) {
 		repoName string
 		want     bool
 	}{
-		{"valid name", "valid-repo_name", true},
+		{"valid name", "valid-repo-name", true},
 		{"valid name with numbers", "repo123", true},
 		{"valid name with dots", "repo.name", true},
 		{"valid name with plus", "repo+name", true},
 		{"valid name with space", "repo name", true},
+		{"invalid name with underscore", "repo_name", false}, //todo, for now dont allow underscores as gitlab have a possible bug with repos nameed for example a-_b-c
 		{"invalid name with exclamation", "invalid!", false},
 		{"invalid name with at symbol", "invalid@repo", false},
 		{"invalid name starting with dot", ".invalidrepo", false},
 		{"invalid name starting with hyphen", "-invalidrepo", false},
+		{"invalid name starting with underscore", "_invalidrepo", false},
+		{"invalid name ending with underscore", "invalidrepo_", false},
 		{"empty name", "", false},
 	}
 
@@ -66,7 +69,7 @@ func TestIsValidGitLabRepositoryName(t *testing.T) {
 		repoName string
 		want     bool
 	}{
-		{"valid name", "valid-repo_name", true},
+		{"valid name", "valid-repo-name", true},
 		{"valid name with numbers", "repo123", true},
 		{"valid name with dots", "repo.name", true},
 		{"invalid character", "invalid!", false},

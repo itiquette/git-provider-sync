@@ -17,7 +17,7 @@ type CLIOptionKey struct{}
 type CLIOption struct {
 	ForcePush           bool   // Whether to force push changesj
 	IgnoreInvalidName   bool   // Whether to ignore invalid repository names
-	CleanupName         bool   // Whether to clean up repository names
+	ASCIIName           bool   // Whether to clean up repository names
 	ActiveFromLimit     string // Time limit for considering repositories as active
 	DryRun              bool   // Whether to perform a dry run without making changes
 	ConfigFilePath      string // Path to the configuration file
@@ -63,10 +63,10 @@ func WithCLIOption(ctx context.Context, option CLIOption) context.Context {
 
 // String provides a string representation of CLIOption.
 func (c CLIOption) String() string {
-	return fmt.Sprintf("CLIOption{ForcePush: %v, IgnoreInvalidName: %v, CleanupName: %v, "+
+	return fmt.Sprintf("CLIOption{ForcePush: %v, IgnoreInvalidName: %v, ASCIIName: %v, "+
 		"ActiveFromLimit: %s, DryRun: %v, ConfigFilePath: %s, ConfigFileOnly: %v, "+
 		"Quiet: %v, OutputFormat: %v}",
-		c.ForcePush, c.IgnoreInvalidName, c.CleanupName, c.ActiveFromLimit,
+		c.ForcePush, c.IgnoreInvalidName, c.ASCIIName, c.ActiveFromLimit,
 		c.DryRun, c.ConfigFilePath, c.ConfigFileOnly, c.Quiet, c.OutputFormat)
 }
 

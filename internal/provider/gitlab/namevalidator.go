@@ -12,7 +12,7 @@ import (
 // Regular expression for valid GitLab repository name characters.
 // It allows names that start with a letter, number, or underscore,
 // followed by any number of letters, numbers, underscores, dots, plus signs, hyphens, or spaces.
-var nameRegex = regexp.MustCompile(`^[a-zA-Z0-9_][a-zA-Z0-9_.+\- ]*$`)
+var nameRegex = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9.+\- ]*$`)
 
 // invalidNames is a set of repository names that are not allowed in GitLab.
 // These names are reserved for GitLab's internal use or have special meanings.
