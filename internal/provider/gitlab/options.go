@@ -1,11 +1,10 @@
 // SPDX-FileCopyrightText: 2024 Josef Andersson
 //
 // SPDX-License-Identifier: EUPL-1.2
+
 package gitlab
 
-import (
-	"github.com/xanzy/go-gitlab"
-)
+import gitlab "gitlab.com/gitlab-org/api/client-go"
 
 type ProjectOptionsBuilder struct {
 	opts *gitlab.CreateProjectOptions

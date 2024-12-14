@@ -68,7 +68,7 @@ done
 
 # Generate mocks for go-gitlab
 echo -e "${YELLOW}Generating mocks for go-gitlab...${NC}"
-run_mockery --all --srcpkg=github.com/xanzy/go-gitlab --output "${OUTPUT_DIR}"/mockgitlab
+run_mockery --all --srcpkg=gitlab.com/gitlab-org/api/client-go --output "${OUTPUT_DIR}"/mockgitlab
 
 # Generate mocks for internal interfaces
 echo -e "${YELLOW}Generating mocks for target interfaces...${NC}"
