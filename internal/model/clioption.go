@@ -15,16 +15,16 @@ type CLIOptionKey struct{}
 
 // CLIOption represents the set of command-line options available in the application.
 type CLIOption struct {
-	ForcePush           bool   // Whether to force push changesj
-	IgnoreInvalidName   bool   // Whether to ignore invalid repository names
 	ASCIIName           bool   // Whether to clean up repository names
 	ActiveFromLimit     string // Time limit for considering repositories as active
-	DryRun              bool   // Whether to perform a dry run without making changes
-	ConfigFilePath      string // Path to the configuration file
 	ConfigFileOnly      bool   // Whether to use only the configuration file
+	ConfigFilePath      string // Path to the configuration file
+	DryRun              bool   // Whether to perform a dry run without making changes
+	ForcePush           bool   // Whether to force push changesj
+	IgnoreInvalidName   bool   // Whether to ignore invalid repository names
+	OutputFormat        string // Output format for log
 	Quiet               bool   // Whether to suppress non-essential output
 	VerbosityWithCaller bool   // Whether to add caller information to log output
-	OutputFormat        string // Output format for log
 }
 
 // CLIOptions retrieves the CLIOption from the given context.

@@ -34,7 +34,14 @@ func sourceRepositories(ctx context.Context, sourceCfg gpsconfig.ProviderConfig)
 	}
 
 	if model.CLIOptions(ctx).DryRun {
-		logDryRun(ctx, sourceCfg, metainfo)
+		for _, meta := range metainfo {
+			meta.DebugLog(logger).Msg("fetched repository metadata")
+		}
+
+		logger.Info().
+			Str("domain", sourceCfg.Domain).
+			Strs("user/group", []string{sourceCfg.User, sourceCfg.Group}).
+			Msg("option dry-run enabled, skipping local clone")
 
 		return nil, nil
 	}
@@ -74,8 +81,15 @@ func processRepository(ctx context.Context, targetCfg gpsconfig.ProviderConfig, 
 		return ErrEmptyMetainfo
 	}
 
-	if err := validateRepository(ctx, client, repo, targetCfg); err != nil {
+	ignoreRepository, err := validateRepository(ctx, client, repo, targetCfg)
+	if err != nil {
 		return err
+	}
+
+	if ignoreRepository {
+		logger.Warn().Str("name", repo.ProjectInfo().Name(ctx)).Msg("Ignoring invalid repository")
+
+		return nil
 	}
 
 	if err := prepareRepository(ctx, targetCfg, repo); err != nil {
@@ -99,20 +113,28 @@ func processRepository(ctx context.Context, targetCfg gpsconfig.ProviderConfig, 
 	return nil
 }
 
-func validateRepository(ctx context.Context, client interfaces.GitProvider, repo interfaces.GitRepository, targetCfg gpsconfig.ProviderConfig) error {
+func validateRepository(ctx context.Context, client interfaces.GitProvider, repo interfaces.GitRepository, targetCfg gpsconfig.ProviderConfig) (bool, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering validateRepository")
 
+	ignoreRepository := false
 	if client.IsValidProjectName(ctx, repo.ProjectInfo().Name(ctx)) {
-		return nil
+		return ignoreRepository, nil
 	}
 
-	name := repo.ProjectInfo().OriginalName
-	markRepositoryInvalid(ctx, name)
-
 	opts := model.CLIOptions(ctx)
+
+	name := repo.ProjectInfo().OriginalName
+	if meta, ok := ctx.Value(model.SyncRunMetainfoKey{}).(*model.SyncRunMetainfo); ok {
+		(*meta.Fail)["invalid"] = append((*meta.Fail)["invalid"], name)
+
+		if opts.IgnoreInvalidName || targetCfg.SyncRun.IgnoreInvalidName {
+			return true, nil
+		}
+	}
+
 	if !opts.IgnoreInvalidName && !targetCfg.SyncRun.IgnoreInvalidName {
-		return fmt.Errorf("%w: %s", ErrInvalidRepoName, name)
+		return ignoreRepository, fmt.Errorf("%w: %s", ErrInvalidRepoName, name)
 	}
 
 	log.Logger(ctx).Debug().
@@ -120,13 +142,7 @@ func validateRepository(ctx context.Context, client interfaces.GitProvider, repo
 		Bool("ignoreInvalidName", opts.IgnoreInvalidName).
 		Msg("invalid repository name, ignoring")
 
-	return nil
-}
-
-func markRepositoryInvalid(ctx context.Context, repoName string) {
-	if meta, ok := ctx.Value(model.SyncRunMetainfoKey{}).(model.SyncRunMetainfo); ok {
-		meta.Fail["invalid"] = append(meta.Fail["invalid"], repoName)
-	}
+	return ignoreRepository, nil
 }
 
 func prepareRepository(ctx context.Context, targetCfg gpsconfig.ProviderConfig, repo interfaces.GitRepository) error {

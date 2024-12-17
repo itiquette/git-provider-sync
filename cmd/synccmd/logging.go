@@ -72,34 +72,22 @@ func summary(ctx context.Context, sourceProvider gpsconfig.ProviderConfig) {
 }
 
 func logFailures(logger *zerolog.Logger, meta *model.SyncRunMetainfo) {
-	if len(meta.Fail) == 0 {
+	metaFailPtr := (*meta.Fail)
+	if len(metaFailPtr) == 0 {
 		return
 	}
 
-	if invalidCount := len(meta.Fail["invalid"]); invalidCount > 0 {
+	if invalidCount := len(metaFailPtr); invalidCount > 0 {
 		logger.Info().
 			Int("count", invalidCount).
-			Strs("repositories", meta.Fail["invalid"]).
+			Strs("repositories", metaFailPtr["invalid"]).
 			Msg("skipped repositories due to invalid naming")
 	}
 
-	if upToDateCount := len(meta.Fail["uptodate"]); upToDateCount > 0 {
+	if upToDateCount := len(metaFailPtr["uptodate"]); upToDateCount > 0 {
 		logger.Info().
 			Int("count", upToDateCount).
-			Strs("repositories", meta.Fail["uptodate"]).
+			Strs("repositories", metaFailPtr["uptodate"]).
 			Msg("ignored up-to-date repositories")
-	}
-}
-
-func logDryRun(ctx context.Context, cfg gpsconfig.ProviderConfig, metainfo []model.ProjectInfo) {
-	logger := log.Logger(ctx)
-
-	logger.Info().
-		Str("domain", cfg.GetDomain()).
-		Strs("user/group", []string{cfg.User, cfg.Group}).
-		Msg("dry-run enabled, skipping local clone")
-
-	for _, meta := range metainfo {
-		meta.DebugLog(logger).Msg("fetched repository metadata")
 	}
 }

@@ -14,35 +14,43 @@ import (
 )
 
 type syncFlags struct {
+	activeFromLimit   string
+	asciiName         bool
+	dryRun            bool
 	forcePush         bool
 	ignoreInvalidName bool
-	asciiName         bool
-	activeFromLimit   string
-	dryRun            bool
 }
 
 func addSyncFlags(cmd *cobra.Command) {
 	flags := cmd.Flags()
+	flags.Bool("ascii-name", false, "Remove non-alphanumeric characters from repository names")
+	flags.Bool("dry-run", false, "Simulate sync run without performing clone and push actions")
 	flags.Bool("force-push", false, "Overwrite any existing target")
 	flags.Bool("ignore-invalid-name", false, "Ignore repositories with invalid names")
-	flags.Bool("ascii-name", false, "Remove non-alphanumeric characters from repository names")
 	flags.String("active-from-limit", "", "A negative time duration (e.g., '-1h') to consider repositories active from")
-	flags.Bool("dry-run", false, "Simulate sync run without performing clone and push actions")
 }
 
 func (syn syncFlags) DebugLog(logger *zerolog.Logger) *zerolog.Event {
 	return logger.Debug(). //nolint:zerologlint
+				Bool("asciiName", syn.asciiName).
+				Bool("dryRun", syn.dryRun).
 				Bool("forcePush", syn.forcePush).
 				Bool("ignoreInvalidName", syn.ignoreInvalidName).
-				Bool("asciiName", syn.asciiName).
-				Str("activeFromLimit", syn.activeFromLimit).
-				Bool("dryRun", syn.dryRun)
+				Str("activeFromLimit", syn.activeFromLimit)
 }
 
 func getSyncFlags(_ context.Context, cmd *cobra.Command) (*syncFlags, error) {
 	flags := &syncFlags{}
 
 	var err error
+
+	if flags.asciiName, err = cmd.Flags().GetBool("ascii-name"); err != nil {
+		return nil, fmt.Errorf("get ascii-name flag: %w", err)
+	}
+
+	if flags.dryRun, err = cmd.Flags().GetBool("dry-run"); err != nil {
+		return nil, fmt.Errorf("get dry-run flag: %w", err)
+	}
 
 	if flags.forcePush, err = cmd.Flags().GetBool("force-push"); err != nil {
 		return nil, fmt.Errorf("get force-push flag: %w", err)
@@ -52,16 +60,8 @@ func getSyncFlags(_ context.Context, cmd *cobra.Command) (*syncFlags, error) {
 		return nil, fmt.Errorf("get ignore-invalid-name flag: %w", err)
 	}
 
-	if flags.asciiName, err = cmd.Flags().GetBool("ascii-name"); err != nil {
-		return nil, fmt.Errorf("get ascii-name flag: %w", err)
-	}
-
 	if flags.activeFromLimit, err = cmd.Flags().GetString("active-from-limit"); err != nil {
 		return nil, fmt.Errorf("get active-from-limit flag: %w", err)
-	}
-
-	if flags.dryRun, err = cmd.Flags().GetBool("dry-run"); err != nil {
-		return nil, fmt.Errorf("get dry-run flag: %w", err)
 	}
 
 	return flags, nil

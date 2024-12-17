@@ -34,6 +34,8 @@ func toTarget(ctx context.Context, sourceCfg, targetCfg gpsconfig.ProviderConfig
 	}
 
 	for _, repo := range repositories {
+		repo.ProjectInfo().Name(ctx)
+
 		if err := processRepository(ctx, targetCfg, client, repo, sourceCfg); err != nil {
 			return fmt.Errorf("process repository: %w", err)
 		}

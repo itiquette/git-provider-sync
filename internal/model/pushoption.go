@@ -16,24 +16,22 @@ import (
 // It encapsulates the target repository, reference specifications,
 // and flags for pruning and force pushing.
 type PushOption struct {
-	Target     string   // The URL of the target repository
-	RefSpecs   []string // The reference specifications to push
-	Prune      bool     // Whether to prune remote branches that no longer exist locally
-	Force      bool     // Whether to force push (overwrite remote history)
+	Force      bool // Whether to force push (overwrite remote history)
 	HTTPClient model.HTTPClientOption
+	Prune      bool     // Whether to prune remote branches that no longer exist locally
+	RefSpecs   []string // The reference specifications to push
 	SSHClient  model.SSHClientOption
-	DryRun     bool
+	Target     string // The URL of the target repository
 }
 
 func (po PushOption) String() string {
-	return fmt.Sprintf("PushOption{Target: %s, RefSpecs: %v, Prune: %t, Force: %t, HTTPClient: %s, SSHClient: %s, DryRun: %t}",
+	return fmt.Sprintf("PushOption{Target: %s, RefSpecs: %v, Prune: %t, Force: %t, HTTPClient: %s, SSHClient: %s}",
 		po.Target,
 		po.RefSpecs,
 		po.Prune,
 		po.Force,
 		po.HTTPClient.String(),
-		po.SSHClient.String(),
-		po.DryRun)
+		po.SSHClient.String())
 }
 
 func (po PushOption) DebugLog(logger *zerolog.Logger) *zerolog.Event {
@@ -41,7 +39,6 @@ func (po PushOption) DebugLog(logger *zerolog.Logger) *zerolog.Event {
 				Str("target", po.Target).
 				Strs("refspecs", po.RefSpecs).
 				Bool("prune", po.Prune).
-				Bool("dryrun", po.DryRun).
 				Bool("force", po.Force).
 				Str("http_client", po.HTTPClient.String()).
 				Str("ssh_client", po.SSHClient.String())
@@ -69,10 +66,10 @@ func NewPushOption(target string, prune, force bool, httpClient model.HTTPClient
 	}
 
 	return PushOption{
-		Target:     target,
-		RefSpecs:   refSpecs,
-		Prune:      prune,
 		Force:      force,
 		HTTPClient: httpClient,
+		Prune:      prune,
+		RefSpecs:   refSpecs,
+		Target:     target,
 	}
 }

@@ -26,6 +26,6 @@ func (h *MetadataHandler) UpdateSyncMetadata(ctx context.Context, key, targetDir
 	logger.Debug().Str("key", key).Str("targetDir", targetDir).Msg("GitLib:updateSyncRunMetainfo")
 
 	if syncRunMeta, ok := ctx.Value(model.SyncRunMetainfoKey{}).(model.SyncRunMetainfo); ok {
-		syncRunMeta.Fail[key] = append(syncRunMeta.Fail[key], targetDir)
+		(*syncRunMeta.Fail)[key] = append((*syncRunMeta.Fail)[key], targetDir)
 	}
 }

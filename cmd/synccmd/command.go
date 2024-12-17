@@ -62,11 +62,11 @@ func addFlagsToContext(ctx context.Context, flags *syncFlags) context.Context {
 
 	opts := model.CLIOptions(ctx)
 
+	opts.ASCIIName = flags.asciiName
+	opts.ActiveFromLimit = flags.activeFromLimit
+	opts.DryRun = flags.dryRun
 	opts.ForcePush = flags.forcePush
 	opts.IgnoreInvalidName = flags.ignoreInvalidName
-	opts.ASCIIName = flags.asciiName
-	opts.DryRun = flags.dryRun
-	opts.ActiveFromLimit = flags.activeFromLimit
 
 	return model.WithCLIOption(ctx, opts)
 }

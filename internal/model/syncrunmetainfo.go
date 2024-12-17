@@ -5,7 +5,9 @@
 package model
 
 import (
+	"context"
 	"fmt"
+	"slices"
 	"strings"
 )
 
@@ -33,7 +35,7 @@ type SyncRunMetainfo struct {
 	// Fail is a map that stores any failures encountered during synchronization.
 	// The key is typically an identifier for the failure type or location,
 	// and the value is a slice of strings providing details about the failures.
-	Fail map[string][]string
+	Fail *map[string][]string
 }
 
 // String provides a string representation of SyncRunMetainfo.
@@ -45,9 +47,9 @@ type SyncRunMetainfo struct {
 func (s SyncRunMetainfo) String() string {
 	var failInfo string
 
-	if len(s.Fail) > 0 {
+	if len(*s.Fail) > 0 {
 		var failures []string
-		for key, values := range s.Fail {
+		for key, values := range *s.Fail {
 			failures = append(failures, fmt.Sprintf("%s: %s", key, strings.Join(values, ", ")))
 		}
 
@@ -73,12 +75,14 @@ func (s SyncRunMetainfo) String() string {
 // Returns:
 //   - A pointer to a new SyncRunMetainfo instance.
 func NewSyncRunMetainfo(ctxID int, source, target string, total int) *SyncRunMetainfo {
+	failMap := make(map[string][]string, 200)
+
 	return &SyncRunMetainfo{
 		CtxID:  ctxID,
 		Source: source,
 		Target: target,
 		Total:  total,
-		Fail:   make(map[string][]string, 200),
+		Fail:   &failMap,
 	}
 }
 
@@ -90,11 +94,25 @@ func NewSyncRunMetainfo(ctxID int, source, target string, total int) *SyncRunMet
 //   - value: A string providing details about the failure.
 //
 // Note: This method modifies the Fail map of the SyncRunMetainfo instance.
-// If an entry for the given key already exists, the new value is appended to the existing slice.
 func (s *SyncRunMetainfo) AddFailure(key, value string) {
-	s.Fail[key] = append(s.Fail[key], value)
+	if s.Fail == nil {
+		s.Fail = &map[string][]string{}
+	}
+
+	(*s.Fail)[key] = append((*s.Fail)[key], value)
 }
 
+func ContainsFailure(ctx context.Context, name string) bool {
+	if meta, ok := ctx.Value(SyncRunMetainfoKey{}).(SyncRunMetainfo); ok {
+		failList := (*meta.Fail)["invalid"]
+
+		return slices.Contains(failList, name)
+	}
+
+	return false
+}
+
+// If an entry for the given key already exists, the new value is appended to the existing slice.
 // Example usage:
 //
 //	metainfo := NewSyncRunMetainfo(1, "database_a", "database_b", 1000)
