@@ -104,7 +104,7 @@ func validateConfiguration(providersConfig config.ProvidersConfig) error {
 // validateSourceProvider validates the source provider configuration.
 func validateSourceProvider(provider config.ProviderConfig) error {
 	if !isValidSourceProviderType(provider.ProviderType) {
-		return fmt.Errorf("source provider: must be one of %v: %w", ValidSourceGitProviders, ErrUnsupportedProvider)
+		return fmt.Errorf("source provider: must be one of %v, was %s. err: %w", ValidSourceGitProviders, provider.ProviderType, ErrUnsupportedProvider)
 	}
 
 	if err := validateDomainName(provider.GetDomain()); err != nil {
@@ -168,7 +168,7 @@ func validateSourceProvider(provider config.ProviderConfig) error {
 
 func validateTargetProvider(providerConfig config.ProviderConfig) error {
 	if !isValidTargetProviderType(providerConfig.ProviderType) {
-		return fmt.Errorf("target provider: must be one of %v: %w", ValidTargetGitProviders, ErrUnsupportedProvider)
+		return fmt.Errorf("target provider: must be one of %v, was %s. err: %w", ValidTargetGitProviders, providerConfig.ProviderType, ErrUnsupportedProvider)
 	}
 
 	if providerConfig.ProviderType != config.ARCHIVE && providerConfig.ProviderType != config.DIRECTORY {

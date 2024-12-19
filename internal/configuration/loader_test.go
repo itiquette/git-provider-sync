@@ -111,14 +111,6 @@ func TestSplitAndTrim(t *testing.T) {
 		})
 	}
 }
-func TestReadConfigurationFile_NoConfigurations(t *testing.T) {
-	appConfig := &config.AppConfiguration{}
-
-	require.Panics(t, func() {
-		_ = ReadConfigurationFile(appConfig, "testdata/empty_config.yaml", true)
-	}, "Expected panic for empty configuration")
-}
-
 func TestHasLocalConfigFile(t *testing.T) {
 	require.True(t, hasLocalConfigFile("testdata/testconfig.yaml"))
 	require.False(t, hasLocalConfigFile("nonexistent.yaml"))

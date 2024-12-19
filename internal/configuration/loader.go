@@ -6,7 +6,9 @@ package configuration
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"itiquette/git-provider-sync/internal/log"
 	"itiquette/git-provider-sync/internal/model"
 	config "itiquette/git-provider-sync/internal/model/configuration"
 	"os"
@@ -28,6 +30,9 @@ type DefaultConfigLoader struct{}
 
 // LoadConfiguration loads the application configuration from various sources.
 func (DefaultConfigLoader) LoadConfiguration(ctx context.Context) (*config.AppConfiguration, error) {
+	logger := log.Logger(ctx)
+	logger.Trace().Msg("Entering LoadConfiguration")
+
 	cliOption := model.CLIOptions(ctx)
 	appConfig := &config.AppConfiguration{}
 
@@ -35,10 +40,19 @@ func (DefaultConfigLoader) LoadConfiguration(ctx context.Context) (*config.AppCo
 		return nil, fmt.Errorf("failed to read configuration file: %w", err)
 	}
 
+	nrOfConfigs := len(appConfig.GitProviderSyncConfs)
+	currentConf := 1
+
 	for _, config := range appConfig.GitProviderSyncConfs {
+		logger.Debug().Msgf("Validating configuration %v of %v", currentConf, nrOfConfigs)
+
 		if err := validateConfiguration(config); err != nil {
 			return nil, fmt.Errorf("failed to validate configuration: %w", err)
 		}
+
+		logger.Debug().Msgf("Validated configuration %v of %v", currentConf, nrOfConfigs)
+
+		currentConf++
 	}
 
 	return appConfig, nil
@@ -89,11 +103,13 @@ func ReadConfigurationFile(appConfiguration *config.AppConfiguration, configfile
 
 	// Unmarshal the YAML data into the config struct
 	if err := koanfConf.Unmarshal("", appConfiguration); err != nil {
-		panic(fmt.Errorf("error unmarshalling yaml config: %w", err))
+		return fmt.Errorf("error unmarshalling yaml config: %w", err)
 	}
 
+	//fmt.Println(appConfiguration.GitProviderSyncConfs)
+
 	if len(appConfiguration.GitProviderSyncConfs) == 0 {
-		panic("No configuration could be found!")
+		return errors.New("failed to find a configuration")
 	}
 
 	return nil
