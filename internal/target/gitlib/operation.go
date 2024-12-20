@@ -118,6 +118,27 @@ func (h *operation) SetRemoteAndBranch(ctx context.Context, repository interface
 	return nil
 }
 
+func (h *operation) SetDefaultBranchBare(ctx context.Context, repo *git.Repository, branch string) error {
+	logger := log.Logger(ctx)
+	logger.Trace().Msg("Entering setDefaultBranchBare")
+	logger.Debug().Str("branch", branch).Msg("setDefaultBranchBare")
+
+	branchRef := plumbing.ReferenceName("refs/heads/" + branch)
+
+	_, err := repo.Reference(branchRef, false)
+	if err != nil {
+		return fmt.Errorf("branch does not exist: %w", err)
+	}
+
+	// Set HEAD to point to the branch
+	ref := plumbing.NewSymbolicReference(plumbing.HEAD, branchRef)
+	if err := repo.Storer.SetReference(ref); err != nil {
+		return fmt.Errorf("%w: %w", ErrHeadSet, err)
+	}
+
+	return nil
+}
+
 func (h *operation) SetDefaultBranch(ctx context.Context, repo *git.Repository, branch string) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering setDefaultBranch")
