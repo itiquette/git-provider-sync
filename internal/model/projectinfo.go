@@ -20,6 +20,8 @@ type ProjectInfo struct {
 	// OriginalName is the repository's name as it appears in the source system.
 	OriginalName string
 
+	CleanName string
+
 	// HTTPSURL is the HTTPS URL for cloning the repository.
 	HTTPSURL string
 
@@ -44,6 +46,10 @@ type ProjectInfo struct {
 	ASCIIName bool
 }
 
+func (rm *ProjectInfo) SetCleanName(name string) {
+	rm.CleanName = name
+}
+
 // Name returns the repository name, optionally cleaned up based on CLI options.
 // If the ASCIIName option is set in the context, it removes non-alphanumeric
 // characters from the original name.
@@ -53,9 +59,9 @@ type ProjectInfo struct {
 //
 // Returns:
 //   - A string representing the (possibly cleaned) repository name.
-func (rm ProjectInfo) Name(ctx context.Context) string {
-	if CLIOptions(ctx).ASCIIName {
-		return stringconvert.RemoveNonAlphaNumericChars(ctx, rm.OriginalName)
+func (rm ProjectInfo) Name(_ context.Context) string {
+	if rm.CleanName != "" {
+		return rm.CleanName
 	}
 
 	return rm.OriginalName

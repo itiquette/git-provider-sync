@@ -32,7 +32,7 @@ type GitRepository interface {
 	//
 	// Returns:
 	//   - model.RepositoryMetainfo: A struct containing metadata about the repository.
-	ProjectInfo() model.ProjectInfo
+	ProjectInfo() *model.ProjectInfo
 }
 
 // Note: The GitRemote interface is not defined in this snippet.

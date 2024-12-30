@@ -40,22 +40,44 @@ func (DefaultConfigLoader) LoadConfiguration(ctx context.Context) (*config.AppCo
 		return nil, fmt.Errorf("failed to read configuration file: %w", err)
 	}
 
-	nrOfConfigs := len(appConfig.GitProviderSyncConfs)
-	currentConf := 1
-
-	for _, config := range appConfig.GitProviderSyncConfs {
-		logger.Debug().Msgf("Validating configuration %v of %v", currentConf, nrOfConfigs)
-
-		if err := validateConfiguration(config); err != nil {
-			return nil, fmt.Errorf("failed to validate configuration: %w", err)
-		}
-
-		logger.Debug().Msgf("Validated configuration %v of %v", currentConf, nrOfConfigs)
-
-		currentConf++
+	if err := validateConfiguration(ctx, appConfig); err != nil {
+		return nil, fmt.Errorf("failed to validate configuration: %w", err)
 	}
 
 	return appConfig, nil
+}
+
+func processEnvKey(str string, prefix string) string {
+	var fieldKeywords = []string{
+		"provider_type",
+		"owner_type",
+		"active_from_limit",
+		"include_forks",
+		"use_git_binary",
+		"cert_dir_path",
+		"http_scheme",
+		"proxy_url",
+		"ssh_command",
+		"ssh_url_rewrite_from",
+		"ssh_url_rewrite_to",
+		"ascii_name",
+		"description_prefix",
+		"force_push",
+		"github_uploadurl",
+		"ignore_invalid_name",
+	}
+
+	lowered := strings.ToLower(strings.TrimPrefix(str, prefix))
+
+	for _, keyword := range fieldKeywords {
+		if strings.HasSuffix(lowered, "_"+keyword) {
+			prefix := strings.TrimSuffix(lowered, "_"+keyword)
+
+			return strings.ReplaceAll(prefix, "_", ".") + "." + keyword
+		}
+	}
+
+	return strings.ReplaceAll(lowered, "_", ".")
 }
 
 func ReadConfigurationFile(appConfiguration *config.AppConfiguration, configfile string, configfileOnly bool) error {
@@ -86,31 +108,31 @@ func ReadConfigurationFile(appConfiguration *config.AppConfiguration, configfile
 
 	// .env file
 	if dotEnvFileExists && !configfileOnly {
-		err := koanfConf.Load(file.Provider(dotEnvFilePath), dotenv.ParserEnv("", "_", strings.ToLower))
+		err := koanfConf.Load(file.Provider(dotEnvFilePath), dotenv.ParserEnv("", ".", func(s string) string {
+			return processEnvKey(s, "")
+		}))
 		if err != nil {
 			return fmt.Errorf("error loading dotenvfile config: %w", err)
 		}
 	}
-	// env variable (prefix: GPS_)
+
 	if !configfileOnly {
 		if err := koanfConf.Load(env.Provider("GPS_", ".", func(s string) string {
-			return strings.ReplaceAll(strings.ToLower(
-				strings.TrimPrefix(s, "GPS_")), "_", ".")
+			return processEnvKey(s, "GPS_")
 		}), nil); err != nil {
 			return fmt.Errorf("failed to read environment conf: %w", err)
 		}
 	}
 
-	// Unmarshal the YAML data into the config struct
 	if err := koanfConf.Unmarshal("", appConfiguration); err != nil {
 		return fmt.Errorf("error unmarshalling yaml config: %w", err)
 	}
 
-	//fmt.Println(appConfiguration.GitProviderSyncConfs)
-
 	if len(appConfiguration.GitProviderSyncConfs) == 0 {
 		return errors.New("failed to find a configuration")
 	}
+
+	appConfiguration.FillDefaults()
 
 	return nil
 }

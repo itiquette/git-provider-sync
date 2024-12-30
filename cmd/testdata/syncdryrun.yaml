@@ -3,17 +3,15 @@
 # SPDX-License-Identifier: CC0-1.0
 
 gitprovidersync:
-  conf1:
-    source:
-      providertype: gitlab
+  env1:
+    conf1:
+      provider_type: gitlab
       domain: conf1domain
-      user: user
+      owner: user
       repositories:
-        include:
-          repositories: aproject
+        include: aproject
 
-    targets:
-      tar:
-        providertype: archive
-        additional:
-          archivetargetdir: /tmp/mytest
+      mirrors:
+        tar:
+          provider_type: archive
+          path: /tmp/mytest

@@ -10,7 +10,6 @@ package functiondefinition
 import (
 	"context"
 	"itiquette/git-provider-sync/internal/model"
-	config "itiquette/git-provider-sync/internal/model/configuration"
 )
 
 // FilterIncludedExcludedFunc defines a function type for filtering repository metadata
@@ -33,7 +32,7 @@ import (
 //   - Applying exclusion patterns to remove repositories from the selection.
 //   - Handling edge cases such as conflicting inclusion and exclusion patterns.
 //   - Efficient processing of potentially large sets of repository metadata.
-type FilterIncludedExcludedFunc func(ctx context.Context, config config.ProviderConfig, projectinfos []model.ProjectInfo) ([]model.ProjectInfo, error)
+type FilterIncludedExcludedFunc func(ctx context.Context, opt model.ProviderOption, projectinfos []model.ProjectInfo) ([]model.ProjectInfo, error)
 
 // Example usage:
 //

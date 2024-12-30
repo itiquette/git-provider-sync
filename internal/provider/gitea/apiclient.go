@@ -23,17 +23,31 @@ type APIClient struct {
 	filterService     *FilterService
 }
 
-func (api APIClient) CreateProject(ctx context.Context, cfg config.ProviderConfig, opt model.CreateProjectOption) (string, error) {
+func (api APIClient) CreateProject(ctx context.Context, opt model.CreateProjectOption) (string, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Gitea:CreateProject")
 	opt.DebugLog(logger).Msg("Gitea:CreateOption")
 
-	projectID, err := api.projectService.createProject(ctx, cfg, opt)
+	projectID, err := api.projectService.createProject(ctx, opt)
 	if err != nil {
 		return "", fmt.Errorf("failed to create gitea project: err: %w", err)
 	}
 
 	return projectID, nil
+}
+
+func (api APIClient) ProjectExists(ctx context.Context, owner, repo string) (bool, string) {
+	logger := log.Logger(ctx)
+	logger.Trace().Msg("Entering gitea:ProjectExists")
+
+	exists, projectID, err := api.projectService.Exists(ctx, owner, repo)
+	if err != nil {
+		logger.Error().Msg("failed to see if project existed. err:" + err.Error())
+
+		return false, ""
+	}
+
+	return exists, projectID
 }
 
 func (api APIClient) IsValidProjectName(ctx context.Context, name string) bool {
@@ -48,18 +62,18 @@ func (APIClient) Name() string {
 	return config.GITEA
 }
 
-func (api APIClient) ProjectInfos(ctx context.Context, cfg config.ProviderConfig, filtering bool) ([]model.ProjectInfo, error) {
+func (api APIClient) ProjectInfos(ctx context.Context, opt model.ProviderOption, filtering bool) ([]model.ProjectInfo, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Gitea:ProjectInfos")
 	logger.Debug().Bool("filtering", filtering).Msg("Gitea:ProjectInfos")
 
-	projectinfos, err := api.projectService.getProjectInfos(ctx, cfg)
+	projectinfos, err := api.projectService.getProjectInfos(ctx, opt)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get repository infos. err: %w", err)
 	}
 
 	if filtering {
-		return api.filterService.FilterProjectinfos(ctx, cfg, projectinfos)
+		return api.filterService.FilterProjectinfos(ctx, opt, projectinfos)
 	}
 
 	return projectinfos, nil
@@ -109,7 +123,7 @@ func NewGiteaAPIClient(ctx context.Context, option model.GitProviderClientOption
 	logger.Trace().Msg("Entering Gitea:NewGiteaClient")
 
 	clientOptions := []gitea.ClientOption{
-		gitea.SetToken(option.HTTPClient.Token),
+		gitea.SetToken(option.AuthCfg.Token),
 	}
 
 	clientOptions = append(clientOptions, gitea.SetHTTPClient(httpClient))
@@ -117,7 +131,7 @@ func NewGiteaAPIClient(ctx context.Context, option model.GitProviderClientOption
 	defaultBaseURL := "https://gitea.com"
 
 	if option.Domain != "" {
-		defaultBaseURL = option.DomainWithScheme(option.HTTPClient.Scheme)
+		defaultBaseURL = option.DomainWithScheme(option.AuthCfg.HTTPScheme)
 	}
 
 	rawClient, err := gitea.NewClient(

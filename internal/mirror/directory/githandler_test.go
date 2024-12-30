@@ -8,9 +8,9 @@ package directory
 import (
 	"context"
 	"io"
+	"itiquette/git-provider-sync/internal/mirror/gitlib"
 	"itiquette/git-provider-sync/internal/model"
 	gpsconfig "itiquette/git-provider-sync/internal/model/configuration"
-	"itiquette/git-provider-sync/internal/target/gitlib"
 	"os"
 	"path/filepath"
 	"testing"
@@ -204,7 +204,7 @@ func validateConfig(t *testing.T, repo *git.Repository) {
 }
 
 func testContext() context.Context {
-	return model.WithCLIOption(context.Background(), model.CLIOption{
+	return model.WithCLIOpt(context.Background(), model.CLIOption{
 		ASCIIName: true,
 		DryRun:    false,
 	})
@@ -240,6 +240,8 @@ func TestInitializeRepository(t *testing.T) {
 
 			bareRepository, err := model.NewRepository(bareRepo)
 			require.NoError(t, err)
+
+			bareRepository.ProjectMetaInfo = &model.ProjectInfo{}
 
 			bareRepository.ProjectMetaInfo.DefaultBranch = "main"
 

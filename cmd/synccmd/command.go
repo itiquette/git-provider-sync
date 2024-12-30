@@ -9,7 +9,7 @@ import (
 	"context"
 	"errors"
 
-	"itiquette/git-provider-sync/cmd/baseoption"
+	baseOpt "itiquette/git-provider-sync/cmd/baseoption"
 	"itiquette/git-provider-sync/internal/configuration"
 	"itiquette/git-provider-sync/internal/log"
 	"itiquette/git-provider-sync/internal/model"
@@ -40,7 +40,7 @@ It allows for various options to control the synchronization process.`,
 
 func runSync(cmd *cobra.Command, _ []string) {
 	ctx := cmd.Root().Context()
-	ctx = baseoption.AddRootInputOptionsToContext(ctx, cmd)
+	ctx = baseOpt.AddRootInputOptionsToContext(ctx, cmd)
 
 	flags, err := getSyncFlags(ctx, cmd)
 	model.HandleError(ctx, err)
@@ -60,15 +60,15 @@ func addFlagsToContext(ctx context.Context, flags *syncFlags) context.Context {
 	logger.Trace().Msg("Entering addInputOptionsToContext")
 	flags.DebugLog(logger).Msg("addInputOptionsToContext")
 
-	opts := model.CLIOptions(ctx)
+	cliOpts := model.CLIOptions(ctx)
 
-	opts.ASCIIName = flags.asciiName
-	opts.ActiveFromLimit = flags.activeFromLimit
-	opts.DryRun = flags.dryRun
-	opts.ForcePush = flags.forcePush
-	opts.IgnoreInvalidName = flags.ignoreInvalidName
+	cliOpts.ASCIIName = flags.asciiName
+	cliOpts.ActiveFromLimit = flags.activeFromLimit
+	cliOpts.DryRun = flags.dryRun
+	cliOpts.ForcePush = flags.forcePush
+	cliOpts.IgnoreInvalidName = flags.ignoreInvalidName
 
-	return model.WithCLIOption(ctx, opts)
+	return model.WithCLIOpt(ctx, cliOpts)
 }
 
 func initLogger(ctx context.Context, cmd *cobra.Command) context.Context {

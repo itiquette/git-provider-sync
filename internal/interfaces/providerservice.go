@@ -8,13 +8,13 @@ import (
 	"context"
 	"itiquette/git-provider-sync/internal/functiondefinition"
 	"itiquette/git-provider-sync/internal/model"
-	config "itiquette/git-provider-sync/internal/model/configuration"
 	"time"
 )
 
 type ProjectServicer interface {
-	CreateProject(ctx context.Context, cfg config.ProviderConfig, opt model.CreateProjectOption) (string, error)
-	GetProjectInfos(ctx context.Context, cfg config.ProviderConfig) ([]model.ProjectInfo, error)
+	CreateProject(ctx context.Context, opt model.CreateProjectOption) (string, error)
+	Exists(ctx context.Context, owner, repo string) (bool, string, error)
+	GetProjectInfos(ctx context.Context, opt model.ProviderOption) ([]model.ProjectInfo, error)
 	SetDefaultBranch(ctx context.Context, owner, projectName, branch string) error
 }
 
@@ -24,7 +24,7 @@ type ProtectionServicer interface {
 }
 
 type FilterServicer interface {
-	FilterProjectinfos(ctx context.Context, cfg config.ProviderConfig, projectinfos []model.ProjectInfo, filterExcludedIncludedFunc functiondefinition.FilterIncludedExcludedFunc, isInInterval IsInIntervalFunc) ([]model.ProjectInfo, error)
+	FilterProjectinfos(ctx context.Context, opt model.ProviderOption, projectinfos []model.ProjectInfo, filterExcludedIncludedFunc functiondefinition.FilterIncludedExcludedFunc, isInInterval IsInIntervalFunc) ([]model.ProjectInfo, error)
 }
 
 type IsInIntervalFunc func(context.Context, time.Time) (bool, error)

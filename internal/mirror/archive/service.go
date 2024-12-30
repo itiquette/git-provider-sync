@@ -11,7 +11,6 @@ import (
 	"itiquette/git-provider-sync/internal/interfaces"
 	"itiquette/git-provider-sync/internal/log"
 	"itiquette/git-provider-sync/internal/model"
-	gpsconfig "itiquette/git-provider-sync/internal/model/configuration"
 )
 
 type Service struct {
@@ -28,7 +27,7 @@ func NewService(git GitHandler, storage StorageHandler, archiver Handlerer) *Ser
 	}
 }
 
-func (serv *Service) Push(ctx context.Context, repo interfaces.GitRepository, opt model.PushOption, _ gpsconfig.GitOption) error {
+func (serv *Service) Push(ctx context.Context, repo interfaces.GitRepository, opt model.PushOption) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Archive:Push")
 	opt.DebugLog(logger).Msg("Archive:Push")

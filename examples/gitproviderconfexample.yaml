@@ -1,0 +1,79 @@
+# SPDX-FileCopyrightText: 2024 Josef Andersson
+#
+# SPDX-License-Identifier: CC0-1.0
+
+# Complete reference of all available configuration options for Git Provider Sync
+# Each option is documented with its requirements and description
+# Everything OPTIONAL will have a default value.
+
+gitprovidersync: # MANDATORY: Root configuration object containing all project configurations
+  production: # MANDATORY: An environment name. Can be anything. At least one.
+    gitlab-main: # MANDATORY_ And configuration in the environment. At least one.
+      active_from_limit: 24h # OPTIONAL: Discard items older than duration (golang format)
+      domain: gitlab.com # OPTIONAL: FQDN Domain name of the Git provider, (defaults: github.com, gitlab.com, gitea.com depending on providertype)
+      include_forks: false # OPTIONAL: Whether to include forked repositories
+      owner: username # MANDATORY: (if no owner_type group) Repository owner username
+      owner_type: user # MANDATORY: Repository owner type (user or group)
+      repositories: # OPTIONAL: Repository filtering options
+        exclude: [repo3, repo4] # OPTIONAL: Comma-separated list of repositories to exclude
+        include: [repo1, repo2] # OPTIONAL: Comma-separated list of repositories to include (default: all)
+      provider_type: gitlab # MANDATORY: Git provider type (supported: gitlab, github, gitea)
+      use_git_binary: false # OPTIONAL: Use system git binary instead of go-git library
+      auth:
+        cert_dir_path: /path/certs # OPTIONAL: Directory path for custom certificates
+        http_scheme: https # OPTIONAL: Protocol scheme (https or http, defaults to https)
+        token: token123 # OPTIONAL: Git provider API token - recommended for API limits, required for private repos
+        protocol: tls # OPTIONAL: Authentication type (tls or ssh, defaults to tls)
+        proxy_url: proxyurl # OPTIONAL: Proxy URL (environment HTTP_PROXY etc, is also supported)
+        ssh_command: command # OPTIONAL: Custom SSH proxy command
+        ssh_url_rewrite_from: url1 # OPTIONAL: Original SSH URL pattern to rewrite
+        ssh_url_rewrite_to: url2 # OPTIONAL: Target SSH URL pattern
+      mirrors:
+        gitlabtargetexample: # MANDATORY: Target configuration name. At least one.
+          provider_type: gitea # MANDATORY: Target Git provider type
+          domain: gitea.com # OPTIONAL: Target domain name
+          owner: username # MANDATORY: (if no owner_type group) Target repository owner username
+          owner_type: user # MANDATORY: Target repository owner type (user or group)
+          auth:
+            cert_dir_path: /path/certs # OPTIONAL: Custom certificates directory
+            token: token123 # OPTIONAL: Git provider API token
+            http_scheme: https # OPTIONAL: Protocol scheme
+            protocol: tls # OPTIONAL: Authentication type (tls or ssh, defaults to tls)
+            proxy_url: proxyurl # OPTIONAL: Proxy URL
+            ssh_command: command # OPTIONAL: Custom SSH proxy command
+            ssh_url_rewrite_from: url1 # OPTIONAL: Original SSH URL pattern to rewrite
+            ssh_url_rewrite_to: url2 # OPTIONAL: Target SSH URL pattern
+          settings:
+            ascii_name: true # OPTIONAL: Clean repository names (alphanumeric only)
+            description_prefix: prefix # OPTIONAL: Description prefix for mirrored repositories
+            disabled: true # OPTIONAL: Disables as much project settings as possible -  enabled on target (Default: true)
+            force_push: true # OPTIONAL: Always use force push
+            ignore_invalid_name: true # OPTIONAL: Don't abort on invalid repository names
+            visibility: something # OPTIONAL: Default visibiltiy for target repo. (Default: use source setting)
+        second-mirror: # Another mirror for the same source
+          provider_type: github
+          # ... similar structure
+        tartargetexample:
+          provider_type: archive # MANDATORY: Must be 'archive' for tar files
+          path: /path/to/tars # MANDATORY: Directory for tar file storage
+        dirtargetexample:
+          provider_type: directory # MANDATORY: Must be 'directory' for direct file storage
+          path: /path/to/dirs # MANDATORY: Directory for repository storage
+    github-source: # Another source with its own mirrors/backups
+      provider_type: github
+      # ... similar source configuration
+      mirrors:
+        gitlab-mirror:
+          provider_type: gitlab
+          # ... mirror configuration
+        github-backup:
+          provider_type: archive
+          path: /path/to/github-backup
+  staging: # Another complete configuration
+    staging-source:
+      provider_type: gitlab
+      # ... source configuration
+      mirrors:
+        # ... mirrors for staging
+      backups:
+        # ... backups for staging

@@ -14,6 +14,8 @@ import (
 // It includes the repository name, visibility settings, description,
 // and the name of the default branch.
 type CreateProjectOption struct {
+	Owner          string
+	IsGroup        bool
 	RepositoryName string // The name of the new repository
 	Visibility     string // The visibility setting (e.g., "public", "private")
 	Description    string // A description of the repository

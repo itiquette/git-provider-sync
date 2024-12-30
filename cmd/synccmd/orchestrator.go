@@ -25,9 +25,11 @@ func sync(ctx context.Context, cfg *gpsconfig.AppConfiguration) error {
 
 	//defer cleanup(ctx)
 
-	for _, config := range cfg.GitProviderSyncConfs {
-		if err := sourceToTarget(ctx, config); err != nil {
-			return fmt.Errorf("failed source to target: %w", err)
+	for envName, environments := range cfg.GitProviderSyncConfs {
+		for syncCfgName, syncCfg := range environments {
+			if err := sourceToMirror(ctx, syncCfg); err != nil {
+				return fmt.Errorf("failed to mirror environment: %s, syncCfg: %s, %w", envName, syncCfgName, err)
+			}
 		}
 	}
 
@@ -36,18 +38,18 @@ func sync(ctx context.Context, cfg *gpsconfig.AppConfiguration) error {
 	return nil
 }
 
-func sourceToTarget(ctx context.Context, config gpsconfig.ProvidersConfig) error {
+func sourceToMirror(ctx context.Context, syncCfg gpsconfig.SyncConfig) error {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering sourceToTarget")
+	logger.Trace().Msg("Entering sourceToMirror")
 
-	repositories, err := sourceRepositories(ctx, config.SourceProvider)
+	repositories, err := sourceRepositories(ctx, syncCfg)
 	if err != nil {
 		return fmt.Errorf("failed to fetch source repositories: %w", err)
 	}
 
-	for _, targetProvider := range config.ProviderTargets {
-		if err := toTarget(ctx, config.SourceProvider, targetProvider, repositories); err != nil {
-			return fmt.Errorf("failed to sync to target: %w", err)
+	for _, mirrorCfg := range syncCfg.Mirrors {
+		if err := toMirror(ctx, syncCfg, mirrorCfg, repositories); err != nil {
+			return fmt.Errorf("failed to sync to mirror: %w", err)
 		}
 	}
 

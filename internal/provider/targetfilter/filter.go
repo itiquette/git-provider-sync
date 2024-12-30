@@ -15,7 +15,6 @@ import (
 
 	"itiquette/git-provider-sync/internal/log"
 	"itiquette/git-provider-sync/internal/model"
-	config "itiquette/git-provider-sync/internal/model/configuration"
 )
 
 // IsInInterval checks if the given updatedAt time is within the specified interval.
@@ -62,13 +61,13 @@ func IsInInterval(ctx context.Context, updatedAt time.Time) (bool, error) {
 // Returns:
 //   - A function that takes a context, provider configuration, and a slice of RepositoryMetainfo,
 //     and returns a filtered slice of RepositoryMetainfo and any error encountered.
-func FilterIncludedExcludedGen() func(context.Context, config.ProviderConfig, []model.ProjectInfo) ([]model.ProjectInfo, error) {
-	return func(ctx context.Context, config config.ProviderConfig, projectinfos []model.ProjectInfo) ([]model.ProjectInfo, error) {
+func FilterIncludedExcludedGen() func(context.Context, model.ProviderOption, []model.ProjectInfo) ([]model.ProjectInfo, error) {
+	return func(ctx context.Context, opt model.ProviderOption, projectinfos []model.ProjectInfo) ([]model.ProjectInfo, error) {
 		logger := log.Logger(ctx)
 		logger.Trace().Msg("Entering FilterIncludeExcluded")
 
-		included := config.Repositories.IncludedRepositories()
-		excluded := config.Repositories.ExcludedRepositories()
+		included := opt.IncludedRepositories
+		excluded := opt.ExcludedRepositories
 
 		// Use slices.DeleteFunc to efficiently filter the projectinfos slice
 		return slices.DeleteFunc(projectinfos, func(m model.ProjectInfo) bool {

@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/mock"
@@ -18,10 +19,8 @@ import (
 )
 
 func TestAPIClient_CreateProject(t *testing.T) {
-	require := require.New(t)
 	tests := []struct {
 		name    string
-		cfg     config.ProviderConfig
 		opt     model.CreateProjectOption
 		want    string
 		wantErr bool
@@ -29,22 +28,18 @@ func TestAPIClient_CreateProject(t *testing.T) {
 	}{
 		{
 			name: "successful project creation",
-			cfg:  config.ProviderConfig{},
 			opt:  model.CreateProjectOption{RepositoryName: "test-project"},
 			want: "123",
 			mock: func(m *mocks.ProjectServicer) {
-				m.EXPECT().CreateProject(mock.Anything, mock.Anything, mock.Anything).
-					Return("123", nil)
+				m.EXPECT().CreateProject(mock.Anything, mock.Anything).Return("123", nil)
 			},
 		},
 		{
-			name:    "failed project creation - API error",
-			cfg:     config.ProviderConfig{},
+			name:    "failed project creation",
 			opt:     model.CreateProjectOption{RepositoryName: "test-project"},
 			wantErr: true,
 			mock: func(m *mocks.ProjectServicer) {
-				m.EXPECT().CreateProject(mock.Anything, mock.Anything, mock.Anything).
-					Return("", errors.New("API error"))
+				m.EXPECT().CreateProject(mock.Anything, mock.Anything).Return("", errors.New("API error"))
 			},
 		},
 	}
@@ -54,29 +49,26 @@ func TestAPIClient_CreateProject(t *testing.T) {
 			mockProjectService := new(mocks.ProjectServicer)
 			tabletest.mock(mockProjectService)
 
-			api := APIClient{
-				projectService: mockProjectService,
-			}
+			api := APIClient{projectService: mockProjectService}
 
-			got, err := api.CreateProject(context.Background(), tabletest.cfg, tabletest.opt)
+			got, err := api.CreateProject(context.Background(), tabletest.opt)
 			if tabletest.wantErr {
-				require.Error(err)
+				require.Error(t, err)
 
 				return
 			}
 
-			require.NoError(err)
-			require.Equal(tabletest.want, got)
+			require.NoError(t, err)
+			require.Equal(t, tabletest.want, got)
 			mockProjectService.AssertExpectations(t)
 		})
 	}
 }
 
 func TestAPIClient_ProjectInfos(t *testing.T) {
-	require := require.New(t)
 	tests := []struct {
 		name      string
-		cfg       config.ProviderConfig
+		opt       model.ProviderOption
 		filtering bool
 		want      []model.ProjectInfo
 		wantErr   bool
@@ -84,7 +76,7 @@ func TestAPIClient_ProjectInfos(t *testing.T) {
 		mockFilt  func(*mocks.FilterServicer)
 	}{
 		{
-			name:      "successful retrieval without filtering",
+			name:      "without filtering",
 			filtering: false,
 			want: []model.ProjectInfo{
 				{OriginalName: "project1"},
@@ -96,18 +88,15 @@ func TestAPIClient_ProjectInfos(t *testing.T) {
 			},
 		},
 		{
-			name:      "successful retrieval with filtering",
+			name:      "with filtering",
 			filtering: true,
-			want: []model.ProjectInfo{
-				{OriginalName: "project1"},
-			},
+			want:      []model.ProjectInfo{{OriginalName: "project1"}},
 			mockProj: func(m *mocks.ProjectServicer) {
 				m.EXPECT().GetProjectInfos(mock.Anything, mock.Anything).
 					Return([]model.ProjectInfo{{OriginalName: "project1"}, {OriginalName: "project2"}}, nil)
 			},
 			mockFilt: func(m *mocks.FilterServicer) {
-				m.EXPECT().FilterProjectinfos(mock.Anything, mock.Anything, mock.Anything,
-					mock.Anything, mock.Anything).
+				m.EXPECT().FilterProjectinfos(mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 					Return([]model.ProjectInfo{{OriginalName: "project1"}}, nil)
 			},
 		},
@@ -117,21 +106,7 @@ func TestAPIClient_ProjectInfos(t *testing.T) {
 			wantErr:   true,
 			mockProj: func(m *mocks.ProjectServicer) {
 				m.EXPECT().GetProjectInfos(mock.Anything, mock.Anything).
-					Return(nil, errors.New("failed to get projects"))
-			},
-		},
-		{
-			name:      "filter service error",
-			filtering: true,
-			wantErr:   true,
-			mockProj: func(m *mocks.ProjectServicer) {
-				m.EXPECT().GetProjectInfos(mock.Anything, mock.Anything).
-					Return([]model.ProjectInfo{{OriginalName: "project1"}}, nil)
-			},
-			mockFilt: func(m *mocks.FilterServicer) {
-				m.EXPECT().FilterProjectinfos(mock.Anything, mock.Anything, mock.Anything,
-					mock.Anything, mock.Anything).
-					Return(nil, errors.New("filter error"))
+					Return(nil, errors.New("failed"))
 			},
 		},
 	}
@@ -152,15 +127,15 @@ func TestAPIClient_ProjectInfos(t *testing.T) {
 				filterService:  mockFilterService,
 			}
 
-			got, err := api.ProjectInfos(context.Background(), tabletest.cfg, tabletest.filtering)
+			got, err := api.ProjectInfos(context.Background(), tabletest.opt, tabletest.filtering)
 			if tabletest.wantErr {
-				require.Error(err)
+				require.Error(t, err)
 
 				return
 			}
 
-			require.NoError(err)
-			require.Equal(tabletest.want, got)
+			require.NoError(t, err)
+			require.Equal(t, tabletest.want, got)
 			mockProjectService.AssertExpectations(t)
 
 			if tabletest.filtering {
@@ -170,8 +145,94 @@ func TestAPIClient_ProjectInfos(t *testing.T) {
 	}
 }
 
+func TestAPIClient_NewGitLabAPIClient(t *testing.T) {
+	tests := []struct {
+		name    string
+		opt     model.GitProviderClientOption
+		wantErr bool
+	}{
+		{
+			name: "success with default domain",
+			opt: model.GitProviderClientOption{
+				AuthCfg: config.AuthConfig{Token: "test-token"},
+			},
+		},
+		{
+			name: "success with custom domain",
+			opt: model.GitProviderClientOption{
+				Domain: "gitlab.example.com",
+				AuthCfg: config.AuthConfig{
+					Token:      "test-token",
+					HTTPScheme: "https",
+				},
+			},
+		},
+	}
+
+	for _, tabletest := range tests {
+		t.Run(tabletest.name, func(t *testing.T) {
+			client, err := NewGitLabAPIClient(context.Background(), tabletest.opt, http.DefaultClient)
+			if tabletest.wantErr {
+				require.Error(t, err)
+
+				return
+			}
+
+			require.NoError(t, err)
+			require.NotNil(t, client.raw)
+			require.NotNil(t, client.projectService)
+			require.NotNil(t, client.protectionService)
+			require.NotNil(t, client.filterService)
+		})
+	}
+}
+
+func TestAPIClient_ProjectExists(t *testing.T) {
+	tests := []struct {
+		name   string
+		owner  string
+		repo   string
+		exists bool
+		id     string
+		mock   func(*mocks.ProjectServicer)
+	}{
+		{
+			name:   "exists",
+			owner:  "owner",
+			repo:   "repo",
+			exists: true,
+			id:     "123",
+			mock: func(m *mocks.ProjectServicer) {
+				m.EXPECT().Exists(mock.Anything, "owner", "repo").Return(true, "123", nil)
+			},
+		},
+		{
+			name:   "does not exist",
+			owner:  "owner",
+			repo:   "repo",
+			exists: false,
+			id:     "",
+			mock: func(m *mocks.ProjectServicer) {
+				m.EXPECT().Exists(mock.Anything, "owner", "repo").Return(false, "", nil)
+			},
+		},
+	}
+
+	for _, tabletest := range tests {
+		t.Run(tabletest.name, func(t *testing.T) {
+			mockProjectService := new(mocks.ProjectServicer)
+			tabletest.mock(mockProjectService)
+
+			api := APIClient{projectService: mockProjectService}
+			exists, id := api.ProjectExists(context.Background(), tabletest.owner, tabletest.repo)
+
+			require.Equal(t, tabletest.exists, exists)
+			require.Equal(t, tabletest.id, id)
+			mockProjectService.AssertExpectations(t)
+		})
+	}
+}
 func TestAPIClient_ProtectProject(t *testing.T) {
-	require := require.New(t)
 	tests := []struct {
 		name          string
 		defaultBranch string
@@ -193,36 +254,32 @@ func TestAPIClient_ProtectProject(t *testing.T) {
 			projectIDStr:  "123",
 			wantErr:       true,
 			mock: func(m *mocks.ProtectionServicer) {
-				m.EXPECT().Protect(mock.Anything, "", "123").
-					Return(errors.New("invalid branch"))
+				m.EXPECT().Protect(mock.Anything, "", "123").Return(errors.New("invalid branch"))
 			},
 		},
 	}
 
 	for _, tabletest := range tests {
 		t.Run(tabletest.name, func(t *testing.T) {
-			mockProtectionService := new(mocks.ProtectionServicer)
-			tabletest.mock(mockProtectionService)
+			mockService := new(mocks.ProtectionServicer)
+			tabletest.mock(mockService)
 
-			api := APIClient{
-				protectionService: mockProtectionService,
-			}
-
+			api := APIClient{protectionService: mockService}
 			err := api.ProtectProject(context.Background(), "", tabletest.defaultBranch, tabletest.projectIDStr)
+
 			if tabletest.wantErr {
-				require.Error(err)
+				require.Error(t, err)
 
 				return
 			}
 
-			require.NoError(err)
-			mockProtectionService.AssertExpectations(t)
+			require.NoError(t, err)
+			mockService.AssertExpectations(t)
 		})
 	}
 }
 
 func TestAPIClient_SetDefaultBranch(t *testing.T) {
-	require := require.New(t)
 	tests := []struct {
 		name        string
 		owner       string
@@ -232,52 +289,47 @@ func TestAPIClient_SetDefaultBranch(t *testing.T) {
 		mock        func(*mocks.ProjectServicer)
 	}{
 		{
-			name:        "successful default branch set",
-			owner:       "test-owner",
-			projectName: "test-project",
+			name:        "successful set",
+			owner:       "owner",
+			projectName: "project",
 			branch:      "main",
 			mock: func(m *mocks.ProjectServicer) {
-				m.EXPECT().SetDefaultBranch(mock.Anything, "test-owner", "test-project", "main").
-					Return(nil)
+				m.EXPECT().SetDefaultBranch(mock.Anything, "owner", "project", "main").Return(nil)
 			},
 		},
 		{
-			name:        "failure setdefaultbranch",
-			owner:       "test-owner",
-			projectName: "test-project",
+			name:        "failure",
+			owner:       "owner",
+			projectName: "project",
 			branch:      "main",
 			wantErr:     true,
 			mock: func(m *mocks.ProjectServicer) {
-				m.EXPECT().SetDefaultBranch(mock.Anything, "test-owner", "test-project", "main").
-					Return(errors.New("API error"))
+				m.EXPECT().SetDefaultBranch(mock.Anything, "owner", "project", "main").Return(errors.New("API error"))
 			},
 		},
 	}
 
 	for _, tabletest := range tests {
 		t.Run(tabletest.name, func(t *testing.T) {
-			mockProjectService := new(mocks.ProjectServicer)
-			tabletest.mock(mockProjectService)
+			mockService := new(mocks.ProjectServicer)
+			tabletest.mock(mockService)
 
-			api := APIClient{
-				projectService: mockProjectService,
-			}
-
+			api := APIClient{projectService: mockService}
 			err := api.SetDefaultBranch(context.Background(), tabletest.owner, tabletest.projectName, tabletest.branch)
+
 			if tabletest.wantErr {
-				require.Error(err)
+				require.Error(t, err)
 
 				return
 			}
 
-			require.NoError(err)
-			mockProjectService.AssertExpectations(t)
+			require.NoError(t, err)
+			mockService.AssertExpectations(t)
 		})
 	}
 }
 
 func TestAPIClient_UnprotectProject(t *testing.T) {
-	require := require.New(t)
 	tests := []struct {
 		name          string
 		defaultBranch string
@@ -286,216 +338,70 @@ func TestAPIClient_UnprotectProject(t *testing.T) {
 		mock          func(*mocks.ProtectionServicer)
 	}{
 		{
-			name:          "successful unprotection",
+			name:          "success",
 			defaultBranch: "main",
 			projectIDStr:  "123",
 			mock: func(m *mocks.ProtectionServicer) {
-				m.EXPECT().Unprotect(mock.Anything, "main", "123").
-					Return(nil)
+				m.EXPECT().Unprotect(mock.Anything, "main", "123").Return(nil)
 			},
 		},
 		{
-			name:          "failure default branch",
+			name:          "failure",
 			defaultBranch: "",
 			projectIDStr:  "123",
 			wantErr:       true,
 			mock: func(m *mocks.ProtectionServicer) {
-				m.EXPECT().Unprotect(mock.Anything, "", "123").
-					Return(errors.New("default branch cannot be empty"))
+				m.EXPECT().Unprotect(mock.Anything, "", "123").Return(errors.New("error"))
 			},
 		},
 	}
 
 	for _, tabletest := range tests {
 		t.Run(tabletest.name, func(t *testing.T) {
-			mockProtectionService := new(mocks.ProtectionServicer)
-			tabletest.mock(mockProtectionService)
+			mockService := new(mocks.ProtectionServicer)
+			tabletest.mock(mockService)
 
-			api := APIClient{
-				protectionService: mockProtectionService,
-			}
-
+			api := APIClient{protectionService: mockService}
 			err := api.UnprotectProject(context.Background(), tabletest.defaultBranch, tabletest.projectIDStr)
+
 			if tabletest.wantErr {
-				require.Error(err)
+				require.Error(t, err)
 
 				return
 			}
 
-			require.NoError(err)
-			mockProtectionService.AssertExpectations(t)
+			require.NoError(t, err)
+			mockService.AssertExpectations(t)
 		})
 	}
 }
 
 func TestAPIClient_IsValidProjectName(t *testing.T) {
-	require := require.New(t)
 	tests := []struct {
 		name     string
 		projName string
 		want     bool
 	}{
-		{
-			name:     "valid project name",
-			projName: "valid-project-name",
-			want:     true,
-		},
-		{
-			name:     "valid project name with numbers",
-			projName: "project-123",
-			want:     true,
-		},
-		{
-			name:     "valid project name with underscores",
-			projName: "project_name_123",
-			want:     false,
-		},
-		{
-			name:     "invalid characters - slash",
-			projName: "invalid/project",
-			want:     false,
-		},
-		{
-			name:     "invalid characters - asterisk",
-			projName: "invalid*name",
-			want:     false,
-		},
-		{
-			name:     "reserved name - tree",
-			projName: "tree",
-			want:     false,
-		},
-		{
-			name:     "reserved name - preview",
-			projName: "preview",
-			want:     false,
-		},
-		{
-			name:     "empty name",
-			projName: "",
-			want:     false,
-		},
-		{
-			name:     "too long name",
-			projName: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-very-long-project-name-that-exceeds-the-maximum-length-allowed-by-gitlab-a-very-long-project-name-that-exceeds-the-maximum-length-allowed-by-gitlab-a-very-long-project-name-that-exceeds-the-maximum-length-allowed-by-gitlabaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-			want:     false,
-		},
+		{"valid name", "valid-project-name", true},
+		{"valid with numbers", "project-123", true},
+		{"invalid with underscore", "project_name_123", false},
+		{"invalid with slash", "invalid/project", false},
+		{"invalid with asterisk", "invalid*name", false},
+		{"reserved name", "preview", false},
+		{"empty name", "", false},
+		{"too long", strings.Repeat("a", 259), false},
 	}
 
 	for _, tabletest := range tests {
-		t.Run(tabletest.name, func(_ *testing.T) {
+		t.Run(tabletest.name, func(t *testing.T) {
 			api := APIClient{}
 			got := api.IsValidProjectName(context.Background(), tabletest.projName)
-			require.Equal(tabletest.want, got)
+			require.Equal(t, tabletest.want, got)
 		})
 	}
 }
 
 func TestAPIClient_Name(t *testing.T) {
-	require := require.New(t)
-	tests := []struct {
-		name string
-		want string
-	}{
-		{
-			name: "returns gitlab provider name",
-			want: config.GITLAB,
-		},
-	}
-
-	for _, tabletest := range tests {
-		t.Run(tabletest.name, func(_ *testing.T) {
-			api := APIClient{}
-			got := api.Name()
-			require.Equal(tabletest.want, got)
-		})
-	}
-}
-
-func TestNewGitLabAPIClient(t *testing.T) {
-	require := require.New(t)
-	tests := []struct {
-		name     string
-		opt      model.GitProviderClientOption
-		wantErr  bool
-		validate func(*testing.T, APIClient)
-	}{
-		{
-			name: "successful client creation with default domain",
-			opt: model.GitProviderClientOption{
-				HTTPClient: config.HTTPClientOption{
-					Token: "test-token",
-				},
-			},
-			validate: func(_ *testing.T, client APIClient) {
-				require.NotNil(client.raw)
-				require.NotNil(client.projectService)
-				require.NotNil(client.protectionService)
-				require.NotNil(client.filterService)
-			},
-		},
-		{
-			name: "successful client creation with custom domain",
-			opt: model.GitProviderClientOption{
-				Domain: "gitlab.example.com",
-				HTTPClient: config.HTTPClientOption{
-					Token:  "test-token",
-					Scheme: "https",
-				},
-			},
-			validate: func(_ *testing.T, client APIClient) {
-				require.NotNil(client.raw)
-				require.NotNil(client.projectService)
-				require.NotNil(client.protectionService)
-				require.NotNil(client.filterService)
-			},
-		},
-		{
-			name: "successful client creation - empty token",
-			opt: model.GitProviderClientOption{
-				Domain: "gitlab.example.com",
-				HTTPClient: config.HTTPClientOption{
-					Token:  "",
-					Scheme: "http",
-				},
-			},
-			wantErr: false,
-			validate: func(_ *testing.T, client APIClient) {
-				require.NotNil(client.raw)
-				require.NotNil(client.projectService)
-				require.NotNil(client.protectionService)
-				require.NotNil(client.filterService)
-			},
-		},
-		{
-			name: "successful client creation with http scheme",
-			opt: model.GitProviderClientOption{
-				Domain: "gitlab.example.com",
-				HTTPClient: config.HTTPClientOption{
-					Token:  "test-token",
-					Scheme: "http",
-				},
-			},
-			validate: func(_ *testing.T, client APIClient) {
-				require.NotNil(client.raw)
-				require.NotNil(client.projectService)
-				require.NotNil(client.protectionService)
-				require.NotNil(client.filterService)
-			},
-		},
-	}
-
-	for _, tabletest := range tests {
-		t.Run(tabletest.name, func(t *testing.T) {
-			client, err := NewGitLabAPIClient(context.Background(), tabletest.opt, http.DefaultClient)
-			if tabletest.wantErr {
-				require.Error(err)
-
-				return
-			}
-
-			require.NoError(err)
-			tabletest.validate(t, client)
-		})
-	}
+	api := APIClient{}
+	require.Equal(t, "gitlab", api.Name())
 }

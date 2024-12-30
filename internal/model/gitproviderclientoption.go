@@ -19,7 +19,7 @@ type GitProviderClientOption struct {
 	// ProviderType is the name or identifier of the git provider service (e.g., "github", "gitlab").
 	ProviderType string
 
-	HTTPClient model.HTTPClientOption
+	AuthCfg model.AuthConfig
 
 	// Domain is the domain of the git provider service (e.g., "github.com", "gitlab.com").
 	Domain string
@@ -31,10 +31,10 @@ type GitProviderClientOption struct {
 
 // String provides a safe string representation without exposing sensitive data.
 func (gpo GitProviderClientOption) String() string {
-	return fmt.Sprintf("GitProviderClientOption{type: %s, domain: %s, httpClient: %v}",
+	return fmt.Sprintf("GitProviderClientOption{type: %s, domain: %s, AuthCfg: %v}",
 		gpo.ProviderType,
 		gpo.Domain,
-		gpo.HTTPClient.String(),
+		gpo.AuthCfg.String(),
 	)
 }
 
@@ -70,10 +70,10 @@ func (gpo GitProviderClientOption) DomainWithScheme(scheme string) string {
 //
 // Returns:
 //   - A new GitProviderClientOption instance.
-func NewGitProviderClientOption(providerType string, httpClient model.HTTPClientOption, domain string) GitProviderClientOption {
+func NewGitProviderClientOption(providerType string, auth model.AuthConfig, domain string) GitProviderClientOption {
 	return GitProviderClientOption{
 		ProviderType: providerType,
-		HTTPClient:   httpClient,
+		AuthCfg:      auth,
 		Domain:       domain,
 	}
 }

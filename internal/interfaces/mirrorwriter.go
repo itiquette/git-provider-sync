@@ -7,13 +7,12 @@ package interfaces
 import (
 	"context"
 	"itiquette/git-provider-sync/internal/model"
-	config "itiquette/git-provider-sync/internal/model/configuration"
 )
 
-// TargetWriter defines the interface for pushing data to a target git provider.
+// MirrorWriter defines the interface for pushing data to a target git provider.
 // Implementations of this interface are responsible for handling the specifics
 // of pushing data to different git hosting services or local repositories.
-type TargetWriter interface {
+type MirrorWriter interface {
 	// Push performs the operation of pushing data to a target.
 	//
 	// Parameters:
@@ -30,7 +29,7 @@ type TargetWriter interface {
 	//   2. Prepare the data to be pushed based on the PushOption.
 	//   3. Perform the actual push operation.
 	//   4. Handle any errors or conflicts that may arise during the push.
-	Push(ctx context.Context, repository GitRepository, option model.PushOption, targetGitOption config.GitOption) error
+	Push(ctx context.Context, repository GitRepository, opt model.PushOption) error
 }
 
 // Example usage:
@@ -44,7 +43,7 @@ type TargetWriter interface {
 //		// ...
 //	}
 //
-//	func SomeFunction(ctx context.Context, writer TargetWriter) error {
+//	func SomeFunction(ctx context.Context, writer MirrorWriter) error {
 //		option := model.PushOption{
 //			// Configure push options
 //		}

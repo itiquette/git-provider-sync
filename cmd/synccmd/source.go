@@ -11,47 +11,47 @@ import (
 
 	"itiquette/git-provider-sync/internal/interfaces"
 	"itiquette/git-provider-sync/internal/log"
+	"itiquette/git-provider-sync/internal/mirror/gitbinary"
+	"itiquette/git-provider-sync/internal/mirror/gitlib"
 	"itiquette/git-provider-sync/internal/model"
 	gpsconfig "itiquette/git-provider-sync/internal/model/configuration"
 	"itiquette/git-provider-sync/internal/provider"
-	"itiquette/git-provider-sync/internal/target/directory"
-	"itiquette/git-provider-sync/internal/target/gitbinary"
-	"itiquette/git-provider-sync/internal/target/gitlib"
 )
 
-func sourceRepositories(ctx context.Context, sourceCfg gpsconfig.ProviderConfig) ([]interfaces.GitRepository, error) {
+func sourceRepositories(ctx context.Context, syncCfg gpsconfig.SyncConfig) ([]interfaces.GitRepository, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering sourceRepositories")
 
-	providerClient, err := createProviderClient(ctx, sourceCfg)
+	providerClient, err := createProviderClient(ctx, syncCfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create provider client: %w", err)
 	}
 
-	metainfo, err := provider.FetchProjectInfo(ctx, sourceCfg, providerClient)
+	projectInfo, err := provider.FetchProjectInfo(ctx, syncCfg, providerClient)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch repository metainfo for %s: %w", sourceCfg.ProviderType, err)
+		return nil, fmt.Errorf("failed to fetch repository metainfo for %s: %w", syncCfg.ProviderType, err)
 	}
 
 	if model.CLIOptions(ctx).DryRun {
-		for _, meta := range metainfo {
+		for _, meta := range projectInfo {
 			meta.DebugLog(logger).Msg("fetched repository metadata")
 		}
 
 		logger.Info().
-			Str("domain", sourceCfg.Domain).
-			Strs("user/group", []string{sourceCfg.User, sourceCfg.Group}).
+			Str("Domain", syncCfg.Domain).
+			Str("Owner", syncCfg.Owner).
+			Str("OwnerType", syncCfg.OwnerType).
 			Msg("option dry-run enabled, skipping local clone")
 
 		return nil, nil
 	}
 
-	reader, err := getSourceReader(sourceCfg)
+	reader, err := getSourceReader(syncCfg)
 	if err != nil {
 		return nil, fmt.Errorf("get source reader: %w", err)
 	}
 
-	repositories, err := provider.Clone(ctx, reader, sourceCfg, metainfo)
+	repositories, err := provider.Clone(ctx, reader, syncCfg, projectInfo)
 	if err != nil {
 		return nil, fmt.Errorf("clone repositories: %w", err)
 	}
@@ -59,8 +59,8 @@ func sourceRepositories(ctx context.Context, sourceCfg gpsconfig.ProviderConfig)
 	return repositories, nil
 }
 
-func getSourceReader(cfg gpsconfig.ProviderConfig) (interfaces.SourceReader, error) {
-	if !cfg.Git.UseGitBinary {
+func getSourceReader(syncCfg gpsconfig.SyncConfig) (interfaces.SourceReader, error) {
+	if !syncCfg.UseGitBinary {
 		return gitlib.NewService(), nil
 	}
 
@@ -72,104 +72,15 @@ func getSourceReader(cfg gpsconfig.ProviderConfig) (interfaces.SourceReader, err
 	return reader, nil
 }
 
-func processRepository(ctx context.Context, targetCfg gpsconfig.ProviderConfig, client interfaces.GitProvider, repo interfaces.GitRepository, sourceCfg gpsconfig.ProviderConfig) error {
-	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering processRepository")
-	repo.ProjectInfo().DebugLog(logger).Msg("processRepository")
-
-	if repo.ProjectInfo().OriginalName == "" {
-		return ErrEmptyMetainfo
-	}
-
-	ignoreRepository, err := validateRepository(ctx, client, repo, targetCfg)
-	if err != nil {
-		return err
-	}
-
-	if ignoreRepository {
-		logger.Warn().Str("name", repo.ProjectInfo().Name(ctx)).Msg("Ignoring invalid repository")
-
-		return nil
-	}
-
-	if err := prepareRepository(ctx, targetCfg, repo); err != nil {
-		return fmt.Errorf("failed to prepare repository: %w", err)
-	}
-
-	if err := pushRepository(ctx, sourceCfg, targetCfg, client, repo); err != nil {
-		return fmt.Errorf("failed to push repository: %w", err)
-	}
-
-	if targetCfg.ProviderType == gpsconfig.DIRECTORY {
-		gitHandler := directory.NewGitHandler(gitlib.NewService())
-		storageHandler := directory.NewStorageHandler()
-		dirService := directory.NewService(gitHandler, storageHandler)
-
-		if err := dirService.Pull(ctx, sourceCfg, targetCfg.DirectoryTargetDir(), repo); err != nil {
-			return fmt.Errorf("failed to pull repository for directory target: %w", err)
-		}
-	}
-
-	return nil
-}
-
-func validateRepository(ctx context.Context, client interfaces.GitProvider, repo interfaces.GitRepository, targetCfg gpsconfig.ProviderConfig) (bool, error) {
-	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering validateRepository")
-
-	ignoreRepository := false
-	if client.IsValidProjectName(ctx, repo.ProjectInfo().Name(ctx)) {
-		return ignoreRepository, nil
-	}
-
-	opts := model.CLIOptions(ctx)
-
-	name := repo.ProjectInfo().OriginalName
-	if meta, ok := ctx.Value(model.SyncRunMetainfoKey{}).(*model.SyncRunMetainfo); ok {
-		(*meta.Fail)["invalid"] = append((*meta.Fail)["invalid"], name)
-
-		if opts.IgnoreInvalidName || targetCfg.SyncRun.IgnoreInvalidName {
-			return true, nil
-		}
-	}
-
-	if !opts.IgnoreInvalidName && !targetCfg.SyncRun.IgnoreInvalidName {
-		return ignoreRepository, fmt.Errorf("%w: %s", ErrInvalidRepoName, name)
-	}
-
-	log.Logger(ctx).Debug().
-		Str("name", name).
-		Bool("ignoreInvalidName", opts.IgnoreInvalidName).
-		Msg("invalid repository name, ignoring")
-
-	return ignoreRepository, nil
-}
-
-func prepareRepository(ctx context.Context, targetCfg gpsconfig.ProviderConfig, repo interfaces.GitRepository) error {
-	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering prepareRepository")
-
-	if targetCfg.ProviderType == gpsconfig.ARCHIVE {
-		return nil
-	}
-
-	if err := provider.SetGPSUpstreamRemoteFromOrigin(ctx, repo); err != nil {
-		return fmt.Errorf("create gpsupstream remote: %w", err)
-	}
-
-	return nil
-}
-
-func createProviderClient(ctx context.Context, cfg gpsconfig.ProviderConfig) (interfaces.GitProvider, error) {
+func createProviderClient(ctx context.Context, syncCfg gpsconfig.SyncConfig) (interfaces.GitProvider, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering createProviderClient")
 
 	client, err := provider.NewGitProviderClient(ctx, model.GitProviderClientOption{
-		ProviderType: cfg.ProviderType,
-		HTTPClient:   cfg.HTTPClient,
-		Domain:       cfg.GetDomain(),
-		Repositories: cfg.Repositories,
-		UploadURL:    cfg.GitHubUploadURL(),
+		ProviderType: syncCfg.ProviderType,
+		AuthCfg:      syncCfg.Auth,
+		Domain:       syncCfg.GetDomain(),
+		Repositories: syncCfg.Repositories,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize provider client: %w", err)

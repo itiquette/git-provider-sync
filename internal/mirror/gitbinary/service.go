@@ -52,7 +52,7 @@ func (g *Service) Clone(ctx context.Context, opt model.CloneOption) (model.Repos
 	logger.Trace().Msg("Entering Clone")
 	opt.DebugLog(logger).Msg("Clone")
 
-	env := SetupSSHCommandEnv(opt.SSHClient.SSHCommand, opt.SSHClient.RewriteSSHURLFrom, opt.SSHClient.RewriteSSHURLTo)
+	env := SetupSSHCommandEnv(opt.AuthCfg.SSHCommand, opt.AuthCfg.SSHURLRewriteFrom, opt.AuthCfg.SSHURLRewriteTo)
 
 	tmpDirPath, err := model.GetTmpDirPath(ctx)
 	if err != nil {
@@ -76,7 +76,7 @@ func (g *Service) Clone(ctx context.Context, opt model.CloneOption) (model.Repos
 		logger.Warn().Err(err).Msg("fetch after clone failed")
 	}
 
-	return g.finalizeClone(ctx, destinationDir, cloneURL, opt.Git.Type)
+	return g.finalizeClone(ctx, destinationDir, cloneURL, opt.SourceCfg.ProviderType)
 }
 
 func (g *Service) prepareCloneURL(ctx context.Context, opt model.CloneOption) string {
@@ -85,8 +85,8 @@ func (g *Service) prepareCloneURL(ctx context.Context, opt model.CloneOption) st
 	opt.DebugLog(logger).Msg("prepareCloneURL")
 
 	url := opt.URL
-	if !strings.EqualFold(opt.Git.Type, gpsconfig.SSHAGENT) {
-		url = g.authService.AddBasicAuthToURL(ctx, opt.URL, "anyuser", opt.HTTPClient.Token)
+	if !strings.EqualFold(opt.SourceCfg.ProviderType, gpsconfig.SSH) {
+		url = g.authService.AddBasicAuthToURL(ctx, opt.URL, "anyuser", opt.AuthCfg.Token)
 	}
 
 	return url
@@ -106,7 +106,7 @@ func (g *Service) finalizeClone(ctx context.Context, destinationDir, cloneURL, g
 		return model.Repository{}, fmt.Errorf("%w: %w", ErrOpenRepository, err)
 	}
 
-	if !strings.EqualFold(gitType, gpsconfig.SSHAGENT) {
+	if !strings.EqualFold(gitType, gpsconfig.SSH) {
 		if err := g.updateRepoConfig(ctx, repo, cloneURL); err != nil {
 			return model.Repository{}, err
 		}
@@ -136,7 +136,7 @@ func (g *Service) Pull(ctx context.Context, pullDirPath string, opt model.PullOp
 	logger.Trace().Msg("Entering Pull")
 	opt.DebugLog(logger).Str("pullDirPath", pullDirPath).Msg("Pull")
 
-	env := SetupSSHCommandEnv(opt.SSHClient.SSHCommand, opt.SSHClient.RewriteSSHURLFrom, opt.SSHClient.RewriteSSHURLTo)
+	env := SetupSSHCommandEnv(opt.AuthCfg.SSHCommand, opt.AuthCfg.SSHURLRewriteFrom, opt.AuthCfg.SSHURLRewriteTo)
 
 	if err := g.executorService.RunGitCommand(ctx, env, pullDirPath, "pull"); err != nil {
 		return fmt.Errorf("%w: %w", ErrPullRepository, err)
@@ -145,12 +145,12 @@ func (g *Service) Pull(ctx context.Context, pullDirPath string, opt model.PullOp
 	return g.branchService.Fetch(ctx, pullDirPath)
 }
 
-func (g *Service) Push(ctx context.Context, _ interfaces.GitRepository, opt model.PushOption, _ gpsconfig.GitOption) error {
+func (g *Service) Push(ctx context.Context, _ interfaces.GitRepository, opt model.PushOption) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Push")
 	opt.DebugLog(logger).Msg("Push")
 
-	env := SetupSSHCommandEnv(opt.SSHClient.SSHCommand, opt.SSHClient.RewriteSSHURLFrom, opt.SSHClient.RewriteSSHURLTo)
+	env := SetupSSHCommandEnv(opt.AuthCfg.SSHCommand, opt.AuthCfg.SSHURLRewriteFrom, opt.AuthCfg.SSHURLRewriteTo)
 	args := append([]string{"push", opt.Target}, opt.RefSpecs...)
 
 	return g.executorService.RunGitCommand(ctx, env, "", args...) //nolint

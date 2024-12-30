@@ -27,12 +27,12 @@ func AddRootInputOptionsToContext(ctx context.Context, cmd *cobra.Command) conte
 	outputFormat, err := cmd.Flags().GetString("output-format")
 	model.HandleError(ctx, err)
 
-	cliOption := model.CLIOption{
+	cliOpt := model.CLIOption{
 		ConfigFilePath:      configFilePath,
 		ConfigFileOnly:      configFileOnly,
 		VerbosityWithCaller: verbosityWithCaller,
 		OutputFormat:        outputFormat,
 	}
 
-	return model.WithCLIOption(ctx, cliOption)
+	return model.WithCLIOpt(ctx, cliOpt)
 }

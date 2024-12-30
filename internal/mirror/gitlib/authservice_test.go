@@ -1,7 +1,6 @@
 // SPDX-FileCopyrightText: 2024 Josef Andersson
 //
 // SPDX-License-Identifier: EUPL-1.2
-
 package gitlib
 
 import (
@@ -18,68 +17,56 @@ import (
 func TestGetAuthMethod(t *testing.T) {
 	tests := []struct {
 		name         string
-		gitOpt       gpsconfig.GitOption
-		httpOpt      gpsconfig.HTTPClientOption
-		sshOpt       gpsconfig.SSHClientOption
+		authConfig   gpsconfig.AuthConfig
 		wantAuthType string
 		wantErr      bool
 		errMsg       string
 	}{
 		{
-			name: "Valid HTTPS auth with token",
-			gitOpt: gpsconfig.GitOption{
-				Type: "https",
-			},
-			httpOpt: gpsconfig.HTTPClientOption{
-				Token: "test-token",
+			name: "Valid TLS auth with token",
+			authConfig: gpsconfig.AuthConfig{
+				Protocol: "tls",
+				Token:    "test-token",
 			},
 			wantAuthType: "*http.BasicAuth",
-			wantErr:      false,
 		},
 		{
-			name: "Empty type defaults to HTTPS",
-			gitOpt: gpsconfig.GitOption{
-				Type: "",
-			},
-			httpOpt: gpsconfig.HTTPClientOption{
-				Token: "test-token",
+			name: "Empty protocol defaults to TLS",
+			authConfig: gpsconfig.AuthConfig{
+				Protocol: "",
+				Token:    "test-token",
 			},
 			wantAuthType: "*http.BasicAuth",
-			wantErr:      false,
 		},
 		// {
 		// 	name: "Valid SSH agent auth",
-		// 	gitOpt: gpsconfig.GitOption{
-		// 		Type: "sshagent",
+		// 	authConfig: gpsconfig.AuthConfig{
+		// 		Method: "sshagent",
 		// 	},
 		// 	wantAuthType: "*ssh.PublicKeysCallback",
-		// 	wantErr:      false,
 		// },
 		{
-			name: "Invalid auth type",
-			gitOpt: gpsconfig.GitOption{
-				Type: "invalid-type",
+			name: "Invalid auth method",
+			authConfig: gpsconfig.AuthConfig{
+				Protocol: "invalid-type",
 			},
 			wantErr: true,
-			errMsg:  "invalid authentication configuration: invalid-type",
+			errMsg:  "invalid authentication configuration",
 		},
 		{
-			name: "Case insensitive HTTPS",
-			gitOpt: gpsconfig.GitOption{
-				Type: "HTTPS",
-			},
-			httpOpt: gpsconfig.HTTPClientOption{
-				Token: "test-token",
+			name: "Case insensitive TLS",
+			authConfig: gpsconfig.AuthConfig{
+				Protocol: "TLs",
+				Token:    "test-token",
 			},
 			wantAuthType: "*http.BasicAuth",
-			wantErr:      false,
 		},
 	}
 
 	for _, tabletest := range tests {
 		t.Run(tabletest.name, func(t *testing.T) {
 			svc := NewAuthService()
-			auth, err := svc.GetAuthMethod(context.Background(), tabletest.gitOpt, tabletest.httpOpt, tabletest.sshOpt)
+			auth, err := svc.GetAuthMethod(context.Background(), tabletest.authConfig)
 
 			if tabletest.wantErr {
 				require.Error(t, err)
@@ -93,11 +80,10 @@ func TestGetAuthMethod(t *testing.T) {
 			require.NotNil(t, auth)
 			require.Equal(t, tabletest.wantAuthType, fmt.Sprintf("%T", auth))
 
-			// Additional type-specific assertions
 			switch auth := auth.(type) {
 			case *http.BasicAuth:
 				require.Equal(t, "anyUser", auth.Username)
-				require.Equal(t, tabletest.httpOpt.Token, auth.Password)
+				require.Equal(t, tabletest.authConfig.Token, auth.Password)
 			case *ssh.PublicKeysCallback:
 				require.Equal(t, "git", auth.User)
 			}
@@ -105,7 +91,6 @@ func TestGetAuthMethod(t *testing.T) {
 	}
 }
 
-// TestNewAuthService verifies the constructor.
 func TestNewAuthService(t *testing.T) {
 	svc := NewAuthService()
 	require.NotNil(t, svc)

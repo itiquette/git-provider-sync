@@ -11,8 +11,8 @@ import (
 	"itiquette/git-provider-sync/internal/interfaces"
 	"itiquette/git-provider-sync/internal/log"
 	"itiquette/git-provider-sync/internal/model"
-	config "itiquette/git-provider-sync/internal/model/configuration"
 	"net/http"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -29,11 +29,11 @@ func NewProjectService(client *gitlab.Client) ProjectService {
 	return ProjectService{client: client, optBuilder: NewProjectOptionsBuilder(), protectionService: NewProtectionService(client)}
 }
 
-func (p ProjectService) CreateProject(ctx context.Context, cfg config.ProviderConfig, opt model.CreateProjectOption) (string, error) {
+func (p ProjectService) CreateProject(ctx context.Context, opt model.CreateProjectOption) (string, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitLab:CreateProject")
 
-	namespaceID, err := p.getNamespaceID(ctx, cfg)
+	namespaceID, err := p.getNamespaceID(ctx, opt)
 	if err != nil {
 		return "", fmt.Errorf("failed to get namespaceID. err: %w", err)
 	}
@@ -54,16 +54,16 @@ func (p ProjectService) CreateProject(ctx context.Context, cfg config.ProviderCo
 	return strconv.Itoa(createdRepo.ID), nil
 }
 
-func (p ProjectService) getNamespaceID(ctx context.Context, cfg config.ProviderConfig) (int, error) {
+func (p ProjectService) getNamespaceID(ctx context.Context, opt model.CreateProjectOption) (int, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitLab:getNamespaceID")
 
-	if !cfg.IsGroup() {
+	if !opt.IsGroup {
 		return 0, nil
 	}
 
 	groups, resp, err := p.client.Groups.ListGroups(&gitlab.ListGroupsOptions{
-		Search: gitlab.Ptr(cfg.Group),
+		Search: gitlab.Ptr(opt.Owner),
 	})
 	if err != nil {
 		if resp != nil && resp.StatusCode == http.StatusUnauthorized {
@@ -74,23 +74,23 @@ func (p ProjectService) getNamespaceID(ctx context.Context, cfg config.ProviderC
 	}
 
 	if len(groups) == 0 {
-		return 0, fmt.Errorf("failed to find group name. group: %s", cfg.Group)
+		return 0, fmt.Errorf("failed to find group name. group: %s", opt.Owner)
 	}
 
 	return groups[0].ID, nil
 }
 
-func (p ProjectService) newProjectInfo(ctx context.Context, cfg config.ProviderConfig, name string) (model.ProjectInfo, error) {
+func (p ProjectService) newProjectInfo(ctx context.Context, opt model.ProviderOption, name string) (model.ProjectInfo, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitLab:newProjectInfo")
-	logger.Debug().
-		Str("usr/grp", cfg.User+cfg.Group).
-		Str("name", name).
-		Str("provider", cfg.ProviderType).
-		Str("domain", cfg.GetDomain()).
-		Msg("GitLab:newProjectInfo")
+	// logger.Debug().
+	// 	Str("usr/grp", cfg.Owner).
+	// 	Str("name", name).
+	// 	Str("provider", cfg.Type).
+	// 	Str("domain", cfg.GetDomain()).
+	// 	Msg("GitLab:newProjectInfo")
 
-	projectPath := getProjectPath(cfg, name)
+	projectPath := getProjectPath(opt, name)
 
 	gitlabProject, _, err := p.client.Projects.GetProject(projectPath, nil)
 	if err != nil {
@@ -115,13 +115,33 @@ func (p ProjectService) newProjectInfo(ctx context.Context, cfg config.ProviderC
 	}, nil
 }
 
-func (p ProjectService) GetProjectInfos(ctx context.Context, cfg config.ProviderConfig) ([]model.ProjectInfo, error) {
+func (p ProjectService) Exists(ctx context.Context, owner, repo string) (bool, string, error) {
+	logger := log.Logger(ctx)
+	logger.Trace().Msg("Entering GitLab:Exists")
+
+	projectPath := filepath.Join(owner, repo)
+	project, resp, err := p.client.Projects.GetProject(projectPath, nil)
+
+	if err != nil {
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
+			return false, "", nil // Repository doesn't exist
+		}
+
+		return false, "", err //nolint
+	}
+
+	projectID := strconv.Itoa(project.ID)
+
+	return project != nil, projectID, nil
+}
+
+func (p ProjectService) GetProjectInfos(ctx context.Context, providerOpt model.ProviderOption) ([]model.ProjectInfo, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitLab:getProjectInfos")
 
 	var allRepositories []*gitlab.Project
 
-	if cfg.IsGroup() {
+	if providerOpt.IsGroup() {
 		opt := &gitlab.ListGroupProjectsOptions{
 			OrderBy:     gitlab.Ptr("name"),
 			Sort:        gitlab.Ptr("asc"),
@@ -129,7 +149,7 @@ func (p ProjectService) GetProjectInfos(ctx context.Context, cfg config.Provider
 		}
 
 		for {
-			repositories, resp, err := p.client.Groups.ListGroupProjects(cfg.Group, opt)
+			repositories, resp, err := p.client.Groups.ListGroupProjects(providerOpt.Owner, opt)
 			if err != nil {
 				return nil, fmt.Errorf("failed to list group repositories. page: %d, err: %w", opt.Page, err)
 			}
@@ -151,7 +171,7 @@ func (p ProjectService) GetProjectInfos(ctx context.Context, cfg config.Provider
 		}
 
 		for {
-			repositories, resp, err := p.client.Projects.ListUserProjects(cfg.User, opt)
+			repositories, resp, err := p.client.Projects.ListUserProjects(providerOpt.User, opt)
 			if err != nil {
 				return nil, fmt.Errorf("failed to list user repositories. page: %d, err: %w", opt.Page, err)
 			}
@@ -171,11 +191,11 @@ func (p ProjectService) GetProjectInfos(ctx context.Context, cfg config.Provider
 	projectinfos := make([]model.ProjectInfo, 0, len(allRepositories))
 
 	for _, repo := range allRepositories {
-		if !cfg.Git.IncludeForks && repo.ForkedFromProject != nil {
+		if !providerOpt.IncludeForks && repo.ForkedFromProject != nil {
 			continue
 		}
 
-		projectInfo, err := p.newProjectInfo(ctx, cfg, repo.Path)
+		projectInfo, err := p.newProjectInfo(ctx, providerOpt, repo.Path)
 		if err != nil {
 			return nil, fmt.Errorf("failed to init projectInfo. path: %s, err: %w", repo.Path, err)
 		}
@@ -200,10 +220,10 @@ func (p ProjectService) SetDefaultBranch(ctx context.Context, owner string, proj
 	return nil
 }
 
-func getProjectPath(cfg config.ProviderConfig, name string) string {
+func getProjectPath(cfg model.ProviderOption, name string) string {
 	if cfg.IsGroup() {
-		return cfg.Group + "/" + name
+		return cfg.Owner + "/" + name
 	}
 
-	return cfg.User + "/" + name
+	return cfg.Owner + "/" + name
 }

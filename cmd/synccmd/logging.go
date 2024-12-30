@@ -17,43 +17,38 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func initTargetSync(ctx context.Context, sourceProvider gpsconfig.ProviderConfig, targetProvider gpsconfig.ProviderConfig, repositories []interfaces.GitRepository) context.Context {
-	meta := model.NewSyncRunMetainfo(0, sourceProvider.GetDomain(), targetProvider.ProviderType, len(repositories))
+func initMirrorSync(ctx context.Context, syncCfg gpsconfig.SyncConfig, mirrorCfg gpsconfig.MirrorConfig, repositories []interfaces.GitRepository) context.Context {
+	meta := model.NewSyncRunMetainfo(0, syncCfg.GetDomain(), mirrorCfg.ProviderType, len(repositories))
 	ctx = context.WithValue(ctx, model.SyncRunMetainfoKey{}, meta)
 
-	logSyncStart(ctx, sourceProvider, targetProvider)
+	logSyncStart(ctx, mirrorCfg)
 
 	return ctx
 }
 
-func logSyncStart(ctx context.Context, _, target gpsconfig.ProviderConfig) {
+func logSyncStart(ctx context.Context, mirrorCfg gpsconfig.MirrorConfig) {
 	logger := log.Logger(ctx)
 
-	logTargetInfo(logger, target)
+	logSyncRunInfo(logger, mirrorCfg)
 }
 
-func logTargetInfo(logger *zerolog.Logger, target gpsconfig.ProviderConfig) {
-	switch strings.ToLower(target.ProviderType) {
+func logSyncRunInfo(logger *zerolog.Logger, mirrorCfg gpsconfig.MirrorConfig) {
+	switch strings.ToLower(mirrorCfg.ProviderType) {
 	case gpsconfig.DIRECTORY:
-		logger.Info().Str("directory", target.DirectoryTargetDir()).Msg("Targeting")
+		logger.Info().Str("directory path", mirrorCfg.Path).Msg("Targeting")
 	case gpsconfig.ARCHIVE:
-		logger.Info().Str("archive directory", target.ArchiveTargetDir()).Msg("Targeting")
+		logger.Info().Str("archive directory path", mirrorCfg.Path).Msg("Targeting")
 	default:
 		logger.Info().
-			Str("provider", target.ProviderType).
-			Str("domain", target.GetDomain()).
-			Str("usr/group", formatUserGroup(target.User, target.Group)).
+			Str("ProviderType", mirrorCfg.ProviderType).
+			Str("GetDomain()", mirrorCfg.GetDomain()).
+			Str("Owner", mirrorCfg.Owner).
 			Msg("Targeting")
 	}
 }
 
-func formatUserGroup(user, group string) string {
-	return strings.Join([]string{user, group}, "/")
-}
-
-func summary(ctx context.Context, sourceProvider gpsconfig.ProviderConfig) {
+func summary(ctx context.Context, syncCfg gpsconfig.SyncConfig) {
 	logger := log.Logger(ctx)
-	userGroup := formatUserGroup(sourceProvider.User, sourceProvider.Group)
 
 	syncRunMetaInfo, ok := ctx.Value(model.SyncRunMetainfoKey{}).(*model.SyncRunMetainfo)
 	if !ok {
@@ -63,8 +58,8 @@ func summary(ctx context.Context, sourceProvider gpsconfig.ProviderConfig) {
 	}
 
 	logger.Info().
-		Str("domain", sourceProvider.GetDomain()).
-		Str("usr/group", userGroup).
+		Str("GetDomain()", syncCfg.GetDomain()).
+		Str("Owner", syncCfg.Owner).
 		Msg("Completed sync run")
 
 	logger.Info().Msgf("Sync request: %d repositories", syncRunMetaInfo.Total)
@@ -79,14 +74,14 @@ func logFailures(logger *zerolog.Logger, meta *model.SyncRunMetainfo) {
 
 	if invalidCount := len(metaFailPtr); invalidCount > 0 {
 		logger.Info().
-			Int("count", invalidCount).
+			Int("invalidCount", invalidCount).
 			Strs("repositories", metaFailPtr["invalid"]).
 			Msg("skipped repositories due to invalid naming")
 	}
 
 	if upToDateCount := len(metaFailPtr["uptodate"]); upToDateCount > 0 {
 		logger.Info().
-			Int("count", upToDateCount).
+			Int("upToDateCount", upToDateCount).
 			Strs("repositories", metaFailPtr["uptodate"]).
 			Msg("ignored up-to-date repositories")
 	}

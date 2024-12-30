@@ -3,39 +3,45 @@
 # SPDX-License-Identifier: CC0-1.0
 
 gitprovidersync:
-  conf1:
-    source:
-      providertype: gitlab
+  env1:
+    asource:
+      provider_type: gitlab
       domain: gitlab.com
-      user: user
+      owner: user
+      owner_type: user
       repositories:
         include: a-dummy-project, anotother
 
-    targets:
-      atarget:
-        providertype: gitea
-        domain: gitea.com
-        httpclient:
-          token: atoken
-        group: agroup
-      anothertarget:
-        providertype: github
-        domain: github.com
-        httpclient:
-          token: anothertoken
-        group: anothergroup
-  conf2:
-    source:
-      providertype: gitea
+      mirrors:
+        atarget:
+          provider_type: gitea
+          domain: gitea.com
+          auth:
+            token: atoken
+          owner: agroup
+          owner_type: group
+        anothertarget:
+          provider_type: github
+          domain: github.com
+          auth:
+            token: anothertoken
+          owner: anothergroup
+          owner_type: group
+
+  env2:
+    absource:
+      provider_type: gitea
       domain: gitea.com
-      user: user
+      owner: user
+      owner_type: user
       repositories:
         include: a-dummy-project, anotother
 
-    targets:
-      atarget:
-        providertype: gitea
-        domain: gitea.com
-        httpclient:
-          token: atoken
-        group: agroup
+      mirrors:
+        abtarget:
+          provider_type: gitea
+          domain: gitea.com
+          auth:
+            token: atoken
+          owner: agroup
+          owner_type: group

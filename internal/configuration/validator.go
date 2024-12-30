@@ -5,8 +5,12 @@
 package configuration
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"itiquette/git-provider-sync/internal/log"
+	"itiquette/git-provider-sync/internal/mirror/gitbinary"
+	config "itiquette/git-provider-sync/internal/model/configuration"
 	"net"
 	"net/url"
 	"os"
@@ -15,285 +19,238 @@ import (
 	"strings"
 	"time"
 
-	config "itiquette/git-provider-sync/internal/model/configuration"
-	"itiquette/git-provider-sync/internal/target/gitbinary"
-
 	"golang.org/x/crypto/ssh/agent"
 )
 
 const (
-	// Environment variables.
 	sshAuthSockEnv = "SSH_AUTH_SOCK"
 
-	// Validation constants.
 	maxDescriptionLength = 1000
 	maxRepoNameLength    = 255
 	minRepoNameLength    = 1
 )
 
 var (
-	// Provider Type Errors.
+	// Provider Type Errors remain the same.
 	ErrUnsupportedProvider          = errors.New("unsupported provider")
 	ErrUnsupportedArchiveProvider   = errors.New("source provider: does not support reading from archive")
 	ErrUnsupportedDirectoryProvider = errors.New("source provider: does not support reading from directory")
 	ErrInvalidURL                   = errors.New("invalid URL")
 
 	// Configuration Errors.
-	ErrNoSourceDomain    = errors.New("source provider: no domain configured")
-	ErrNoTargetDomain    = errors.New("target provider: no domain configured")
-	ErrNoTargetProviders = errors.New("no target provider/s configured")
-	ErrNoHTTPToken       = errors.New("no httpclient token set")
-	ErrInvalidDuration   = errors.New("invalid duration format")
+	ErrNoSourceDomain  = errors.New("source provider: no domain configured")
+	ErrNoTargetDomain  = errors.New("target provider: no domain configured")
+	ErrNoMirrors       = errors.New("no mirror configurations provided")
+	ErrNoHTTPToken     = errors.New("no http token set")
+	ErrInvalidDuration = errors.New("invalid duration format")
 
 	// Authentication Errors.
 	ErrTokenAuth        = errors.New("target provider currently only supports token auth")
 	ErrNoGitBinaryFound = errors.New("failed to find git binary")
 	ErrInvalidToken     = errors.New("invalid token format")
 
-	// Protocol Errors.
+	// Protocol Errors remain the same.
 	ErrUnsupportedScheme       = errors.New("unsupported scheme")
 	ErrUnsupportedProtocolType = errors.New("unsupported protocol type")
 	ErrHasNoHTTPPrefix         = errors.New("target provider currently only supports http/s")
-	ErrTargetURLValidFormat    = errors.New("target url must be a Git provider URL")
 
-	// User/Group Errors.
-	ErrNoSourceGroupOrUser = errors.New("source provider: no group path or user configured")
-	ErrNoTargetGroupOrUser = errors.New("target provider: no group path or user configured")
-	ErrBothGroupAndUser    = errors.New("provider: group path and user configured, only one is allowed")
-	ErrInvalidGroupName    = errors.New("invalid group name")
-	ErrInvalidUserName     = errors.New("invalid username")
+	// Owner Errors updated for new structure.
+	ErrNoSourceOwner    = errors.New("source provider: no owner configured")
+	ErrNoTargetOwner    = errors.New("target provider: no owner configured")
+	ErrInvalidOwner     = errors.New("invalid owner name")
+	ErrInvalidOwnerType = errors.New("invalid owner type")
 
 	// Repository Errors.
-	ErrExcludeIsConfiguredButEmpty = errors.New("exclude is configured but 'repositories:' contains no repository names")
-	ErrIncludeIsConfiguredButEmpty = errors.New("include is configured but 'repositories:' contains no repository names")
-	ErrInvalidRepoName             = errors.New("invalid repository name")
-	ErrInvalidDescription          = errors.New("invalid repository description")
+	ErrInvalidRepoName    = errors.New("invalid repository name")
+	ErrInvalidDescription = errors.New("invalid repository description")
 
 	// Path Errors.
-	ErrArchiveMissingTargetPath   = errors.New("archive target provider: missing property archivetargetdir")
-	ErrDirectoryMissingTargetPath = errors.New("directory target provider: missing property directorytargetdir")
-	ErrInvalidPath                = errors.New("invalid file path")
+	ErrInvalidPath = errors.New("invalid file path")
 )
 
 var (
-	ValidSourceGitProviders = []string{config.GITHUB, config.GITLAB, config.GITEA}
-	ValidTargetGitProviders = []string{config.GITHUB, config.GITLAB, config.GITEA, config.ARCHIVE, config.DIRECTORY}
-	ValidProtocolTypes      = []string{"", config.HTTPS, config.SSHAGENT}
+	ValidSourceGitProviders = []string{"github", "gitlab", "gitea"}
+	ValidMirrorTargets      = []string{"github", "gitlab", "gitea", "archive", "directory"}
+	ValidProtocolTypes      = []string{"", config.TLS, config.SSH}
 	ValidSchemeTypes        = []string{"", config.HTTPS, config.HTTP}
+	ValidOwnerTypes         = []string{"", config.USER, config.GROUP}
 )
 
-// validateConfiguration performs validation of the entire ProvidersConfig.
-func validateConfiguration(providersConfig config.ProvidersConfig) error {
-	if err := validateSourceProvider(providersConfig.SourceProvider); err != nil {
-		return err
+// ValidateConfiguration validates the entire application configuration.
+func validateConfiguration(ctx context.Context, cfg *config.AppConfiguration) error {
+	logger := log.Logger(ctx)
+	logger.Trace().Msg("Entering validateConfiguration")
+
+	if len(cfg.GitProviderSyncConfs) == 0 {
+		return errors.New("no git provider sync configurations found")
 	}
 
-	if len(providersConfig.ProviderTargets) == 0 {
-		return ErrNoTargetProviders
+	nrOfEnvironment := len(cfg.GitProviderSyncConfs)
+	currentEnvironmentCfg := 1
+
+	for envName, env := range cfg.GitProviderSyncConfs {
+		logger.Debug().Msgf("Validating environment %v of %v", currentEnvironmentCfg, nrOfEnvironment)
+
+		if err := validateEnvironment(envName, env); err != nil {
+			return fmt.Errorf("invalid environment %s: %w", envName, err)
+		}
+
+		logger.Debug().Msgf("Validated environment %v of %v", currentEnvironmentCfg, nrOfEnvironment)
+
+		currentEnvironmentCfg++
 	}
 
-	for _, target := range providersConfig.ProviderTargets {
-		if err := validateTargetProvider(target); err != nil {
-			return fmt.Errorf("failed to validate target provider: %w", err)
+	return nil
+}
+
+// validateEnvironment validates a single environment configuration.
+func validateEnvironment(envName string, env config.Environment) error {
+	if len(env) == 0 {
+		return fmt.Errorf("environment %s has no sync configurations", envName)
+	}
+
+	for sourceName, syncConfig := range env {
+		if err := validateSyncConfig(sourceName, syncConfig); err != nil {
+			return fmt.Errorf("invalid sync config %s: %w", sourceName, err)
 		}
 	}
 
 	return nil
 }
 
-// validateSourceProvider validates the source provider configuration.
-func validateSourceProvider(provider config.ProviderConfig) error {
-	if !isValidSourceProviderType(provider.ProviderType) {
-		return fmt.Errorf("source provider: must be one of %v, was %s. err: %w", ValidSourceGitProviders, provider.ProviderType, ErrUnsupportedProvider)
-	}
-
-	if err := validateDomainName(provider.GetDomain()); err != nil {
-		return fmt.Errorf("%w %w", ErrNoSourceDomain, err)
-	}
-
-	if err := validateGroupAndUser(provider); err != nil {
+// validateSyncConfig validates a single sync configuration.
+func validateSyncConfig(_ string, config config.SyncConfig) error {
+	if err := validateProviderType(config.ProviderType, ValidSourceGitProviders); err != nil {
 		return err
 	}
 
-	if err := validateHTTPClient(provider); err != nil {
+	if err := validateDomainName(config.GetDomain()); err != nil {
+		return fmt.Errorf("%w: %w", ErrNoSourceDomain, err)
+	}
+
+	if err := validateOwner(config.Owner, config.OwnerType); err != nil {
 		return err
 	}
 
-	if err := validateSSHClient(provider); err != nil {
+	if err := validateAuth(config.Auth); err != nil {
 		return err
 	}
 
-	if provider.Git.UseGitBinary {
+	if config.UseGitBinary {
+		// Note: Assuming gitbinary.ValidateGitBinary() is available
 		if _, err := gitbinary.ValidateGitBinary(); err != nil {
 			return ErrNoGitBinaryFound
 		}
 	}
 
-	if !isValidProtocolType(provider.Git.Type) {
-		return fmt.Errorf("gitinfo type: must be one of %v: %w", ValidProtocolTypes, ErrUnsupportedProtocolType)
-	}
-
-	if err := validateRepositoryLists(provider); err != nil {
-		return err
-	}
-
-	if provider.SyncRun.ActiveFromLimit != "" {
-		if _, err := time.ParseDuration(provider.SyncRun.ActiveFromLimit); err != nil {
-			return fmt.Errorf("invalid duration format: %w", err)
+	if config.ActiveFromLimit != "" {
+		if _, err := time.ParseDuration(config.ActiveFromLimit); err != nil {
+			return fmt.Errorf("%w: %w", ErrInvalidDuration, err)
 		}
 	}
 
-	if provider.Project.Description != "" {
-		return errors.New("source provider does not support project.description, only target does")
-	}
-
-	if provider.Project.Disabled {
-		return errors.New("source provider does not support project.disabled, only target does")
-	}
-
-	if provider.Project.Visibility != "" {
-		return errors.New("source provider does not support project.visibility, only target does")
-	}
-
-	if provider.SyncRun.ASCIIName || provider.SyncRun.ForcePush || provider.SyncRun.IgnoreInvalidName {
-		return errors.New("source provider does not support syncrun.asciiname, forcepush, ignoreninvalid")
-	}
-
-	if provider.Additional != nil {
-		return errors.New("additional is not valid for a source provider")
-	}
-
-	return nil
-}
-
-func validateTargetProvider(providerConfig config.ProviderConfig) error {
-	if !isValidTargetProviderType(providerConfig.ProviderType) {
-		return fmt.Errorf("target provider: must be one of %v, was %s. err: %w", ValidTargetGitProviders, providerConfig.ProviderType, ErrUnsupportedProvider)
-	}
-
-	if providerConfig.ProviderType != config.ARCHIVE && providerConfig.ProviderType != config.DIRECTORY {
-		if err := validateDomainName(providerConfig.GetDomain()); err != nil {
-			return err
-		}
-
-		if err := validateGroupAndUser(providerConfig); err != nil {
-			return err
-		}
-
-		if providerConfig.Git.UseGitBinary {
-			if _, err := gitbinary.ValidateGitBinary(); err != nil {
-				return ErrNoGitBinaryFound
-			}
-		}
-
-		if providerConfig.Git.IncludeForks {
-			return errors.New("target provider: git.invalid forks is not valid here")
-		}
-
-		if !isValidProtocolType(providerConfig.Git.Type) {
-			return fmt.Errorf("gitinfo type: must be one of %v: %w", ValidProtocolTypes, ErrUnsupportedProtocolType)
-		}
-
-		if err := validateHTTPClient(providerConfig); err != nil {
-			return err
-		}
-
-		if err := validateSSHClient(providerConfig); err != nil {
-			return err
-		}
-
-		if len(providerConfig.SSHClient.SSHCommand) > 0 && !providerConfig.Git.UseGitBinary {
-			return errors.New("target Provider: using proxy command requires Git.UseGitBinary true due to restrictions in underlying go-git library")
-		}
-
-		if len(providerConfig.Repositories.Include) != 0 || len(providerConfig.Repositories.Exclude) != 0 {
-			return errors.New("target provider: repositories is only valid for source provider configurations")
-		}
-
-		if providerConfig.SyncRun.ActiveFromLimit != "" {
-			return errors.New("target provider: syncrun active from limit only makes sense from source provider conf")
-		}
-
-		if providerConfig.Project.Description != "" {
-			if err := validateRepoDescription(providerConfig.Project.Description); err != nil {
-				return err
+	// Validate mirrors if present
+	if len(config.Mirrors) > 0 {
+		for _, mirror := range config.Mirrors {
+			if err := validateMirrorConfig(mirror); err != nil {
+				return fmt.Errorf("invalid mirror config %v: %w", mirror, err)
 			}
 		}
 	}
 
-	if err := validateAdditional(providerConfig.ProviderType, providerConfig.Additional); err != nil {
-		return fmt.Errorf("invalid additional: %w", err)
-	}
-
 	return nil
 }
 
-// validateGroupAndUser validates group and user settings.
-func validateGroupAndUser(config config.ProviderConfig) error {
-	if len(config.Group) == 0 && len(config.User) == 0 {
-		return ErrNoSourceGroupOrUser
-	}
-
-	if len(config.Group) > 0 && len(config.User) > 0 {
-		return ErrBothGroupAndUser
-	}
-
-	// Additional validation for group and user names
-	if config.Group != "" {
-		if err := validateGroupName(config.Group); err != nil {
-			return err
-		}
-	}
-
-	if config.User != "" {
-		if err := validateUsername(config.User); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func validateHTTPClient(config config.ProviderConfig) error {
-	if !isValidSchemeType(config.HTTPClient.Scheme) {
-		return fmt.Errorf("source provider: must be one of %v: %w", ValidSchemeTypes, ErrUnsupportedScheme)
-	}
-
-	if config.HTTPClient.ProxyURL != "" {
-		if err := validateURL(config.HTTPClient.ProxyURL); err != nil {
-			return fmt.Errorf("gitinfo proxyurl is set but an invalid url: %w", err)
-		}
-	}
-
-	if config.HTTPClient.CertDirPath != "" {
-		if err := validatePathExists(config.HTTPClient.CertDirPath); err != nil {
-			return fmt.Errorf("CertDirPath is set but is not accessible: %w", err)
-		}
-	}
-
-	return nil
-}
-
-func validateSSHClient(configuration config.ProviderConfig) error {
-	if len(configuration.SSHClient.SSHCommand) > 0 && !configuration.Git.UseGitBinary {
-		return errors.New("using SSH-command requires Git.UseGitBinary true due to restrictions in underlying go-git library")
-	}
-
-	if strings.EqualFold(configuration.Git.Type, config.SSHAGENT) {
-		return checkSSHAgent()
-	}
-
-	if err := validateSSHCommand(configuration.SSHClient.SSHCommand); err != nil {
+// validateMirrorConfig validates a mirror configuration.
+func validateMirrorConfig(cfg config.MirrorConfig) error {
+	if err := validateProviderType(cfg.ProviderType, ValidMirrorTargets); err != nil {
 		return err
 	}
 
-	if configuration.SSHClient.RewriteSSHURLFrom != "" || configuration.SSHClient.RewriteSSHURLTo != "" {
-		if configuration.SSHClient.RewriteSSHURLFrom == "" || configuration.SSHClient.RewriteSSHURLTo == "" {
-			return errors.New("if either rewritesshurlfrom or rewritesshurlto is specified, both must be provided")
+	if cfg.ProviderType != "archive" && cfg.ProviderType != "directory" {
+		if err := validateDomainName(cfg.GetDomain()); err != nil {
+			return fmt.Errorf("%w: %w", ErrNoTargetDomain, err)
+		}
+
+		if err := validateOwner(cfg.Owner, cfg.OwnerType); err != nil {
+			return err
 		}
 	}
 
+	if err := validateAuth(cfg.Auth); err != nil {
+		return err
+	}
+
+	if err := validateMirrorSettings(cfg.Settings); err != nil {
+		return err
+	}
+
 	return nil
+}
+
+// validateAuth validates authentication configuration.
+func validateAuth(auth config.AuthConfig) error {
+	if !isValidSchemeType(auth.HTTPScheme) {
+		return fmt.Errorf("invalid HTTP scheme: %w", ErrUnsupportedScheme)
+	}
+
+	if auth.ProxyURL != "" {
+		if err := validateURL(auth.ProxyURL); err != nil {
+			return fmt.Errorf("invalid proxy URL: %w", err)
+		}
+	}
+
+	if auth.CertDirPath != "" {
+		if err := validatePathExists(auth.CertDirPath); err != nil {
+			return fmt.Errorf("invalid cert directory path: %w", err)
+		}
+	}
+
+	if auth.Protocol == config.SSH {
+		if err := checkSSHAgent(); err != nil {
+			return err
+		}
+	}
+
+	if auth.SSHURLRewriteFrom != "" || auth.SSHURLRewriteTo != "" {
+		if auth.SSHURLRewriteFrom == "" || auth.SSHURLRewriteTo == "" {
+			return errors.New("if either SSH URL rewrite parameter is specified, both must be provided")
+		}
+	}
+
+	return validateSSHCommand(auth.SSHCommand)
+}
+
+// validateMirrorSettings validates mirror-specific settings.
+func validateMirrorSettings(settings config.MirrorSettings) error {
+	if settings.DescriptionPrefix != "" {
+		if err := validateRepoDescription(settings.DescriptionPrefix); err != nil {
+			return err
+		}
+	}
+
+	if settings.Visibility != "" && !isValidVisibility(settings.Visibility) {
+		return errors.New("invalid visibility setting")
+	}
+
+	return nil
+}
+
+// Helper functions remain largely the same with updated parameter types.
+func validateOwner(owner, ownerType string) error {
+	if owner == "" {
+		return ErrNoSourceOwner
+	}
+
+	if !slices.Contains(ValidOwnerTypes, ownerType) {
+		return ErrInvalidOwnerType
+	}
+
+	if ownerType == "user" {
+		return validateUsername(owner)
+	}
+
+	return validateGroupName(owner)
 }
 
 func checkSSHAgent() error {
@@ -322,13 +279,18 @@ func checkSSHAgent() error {
 	return nil
 }
 
-func validateRepositoryLists(config config.ProviderConfig) error {
-	if len(config.Repositories.Exclude) > 0 && len(config.Repositories.ExcludedRepositories()) < 1 {
-		return ErrExcludeIsConfiguredButEmpty
+// Existing helper functions remain the same.
+func validateUsername(username string) error {
+	if len(username) < 1 || len(username) > 39 {
+		return fmt.Errorf("%w: length must be between 1 and 39 characters", ErrInvalidOwner)
 	}
 
-	if len(config.Repositories.Include) > 0 && len(config.Repositories.IncludedRepositories()) < 1 {
-		return ErrIncludeIsConfiguredButEmpty
+	return nil
+}
+
+func validateGroupName(groupName string) error {
+	if len(groupName) < 1 || len(groupName) > 255 {
+		return fmt.Errorf("%w: length must be between 1 and 255 characters", ErrInvalidOwner)
 	}
 
 	return nil
@@ -338,59 +300,6 @@ func validateRepoDescription(description string) error {
 	if len(description) > maxDescriptionLength {
 		return fmt.Errorf("%w: description exceeds maximum length of %d characters",
 			ErrInvalidDescription, maxDescriptionLength)
-	}
-
-	return nil
-}
-
-func validateAdditional(providerType string, additional map[string]string) error {
-	switch providerType {
-	case config.ARCHIVE:
-		return validateArchiveAdditional(additional)
-	case config.DIRECTORY:
-		return validateDirectoryAdditional(additional)
-	default:
-		return nil
-	}
-}
-
-func validateArchiveAdditional(configuration map[string]string) error {
-	path, exists := configuration["archivetargetdir"]
-	if !exists || path == "" {
-		return ErrArchiveMissingTargetPath
-	}
-
-	if !filepath.IsAbs(path) {
-		return fmt.Errorf("%w: path must be absolute: %s", ErrInvalidPath, path)
-	}
-
-	return nil
-}
-
-func validateDirectoryAdditional(configuration map[string]string) error {
-	path, exists := configuration["directorytargetdir"]
-	if !exists || path == "" {
-		return ErrDirectoryMissingTargetPath
-	}
-
-	if !filepath.IsAbs(path) {
-		return fmt.Errorf("%w: path must be absolute: %s", ErrInvalidPath, path)
-	}
-
-	return nil
-}
-
-func validateUsername(username string) error {
-	if len(username) < 1 || len(username) > 39 {
-		return fmt.Errorf("%w: length must be between 1 and 39 characters", ErrInvalidUserName)
-	}
-
-	return nil
-}
-
-func validateGroupName(groupName string) error {
-	if len(groupName) < 1 || len(groupName) > 255 {
-		return fmt.Errorf("%w: length must be between 1 and 255 characters", ErrInvalidGroupName)
 	}
 
 	return nil
@@ -431,10 +340,9 @@ func validateURL(urlStr string) error {
 
 func validateSSHCommand(command string) error {
 	if command == "" {
-		return nil // Empty command is valid
+		return nil
 	}
 
-	// Basic validation of SSH command format
 	if !strings.HasPrefix(command, "ssh ") {
 		return errors.New("SSH command must start with 'ssh'")
 	}
@@ -443,6 +351,10 @@ func validateSSHCommand(command string) error {
 }
 
 func validateDomainName(domain string) error {
+	if domain == "" {
+		return errors.New("domain is required")
+	}
+
 	if strings.Contains(domain, "://") {
 		return errors.New("domain should not include protocol scheme")
 	}
@@ -450,18 +362,18 @@ func validateDomainName(domain string) error {
 	return nil
 }
 
-func isValidSourceProviderType(providerType string) bool {
-	return slices.Contains(ValidSourceGitProviders, providerType)
-}
+func validateProviderType(providerType string, validTypes []string) error {
+	if !slices.Contains(validTypes, providerType) {
+		return fmt.Errorf("%w: must be one of %v, got %s", ErrUnsupportedProvider, validTypes, providerType)
+	}
 
-func isValidTargetProviderType(providerType string) bool {
-	return slices.Contains(ValidTargetGitProviders, providerType)
-}
-
-func isValidProtocolType(protocolType string) bool {
-	return slices.Contains(ValidProtocolTypes, protocolType)
+	return nil
 }
 
 func isValidSchemeType(schemeType string) bool {
 	return slices.Contains(ValidSchemeTypes, schemeType)
+}
+
+func isValidVisibility(visibility string) bool {
+	return slices.Contains([]string{"public", "private", "internal"}, visibility)
 }

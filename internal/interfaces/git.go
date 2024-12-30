@@ -5,16 +5,16 @@
 package interfaces
 
 // GitInterface defines a comprehensive interface for Git operations.
-// It combines the capabilities of SourceReader and TargetWriter,
+// It combines the capabilities of SourceReader and MirrorWriter,
 // along with additional methods for pulling and fetching.
 type GitInterface interface {
 	// SourceReader embeds all methods from the SourceReader interface.
 	// This typically includes operations for reading from a Git source.
 	SourceReader
 
-	// TargetWriter embeds all methods from the TargetWriter interface.
+	// MirrorWriter embeds all methods from the MirrorWriter interface.
 	// This typically includes operations for writing to a Git target.
-	TargetWriter
+	MirrorWriter
 
 	// Pull performs a Git pull operation.
 	//
@@ -49,7 +49,7 @@ type GitInterface interface {
 	//Fetch(ctx context.Context, workingDir string) error
 }
 
-// Note: The SourceReader and TargetWriter interfaces should be defined
+// Note: The SourceReader and MirrorWriter interfaces should be defined
 // elsewhere in the package, containing methods for reading from a source
 // and writing to a target, respectively.
 
@@ -60,7 +60,7 @@ type GitInterface interface {
 //	}
 //
 //	// Implement SourceReader methods...
-//	// Implement TargetWriter methods...
+//	// Implement MirrorWriter methods...
 //
 //	func (g *MyGitImplementation) Pull(ctx context.Context, option model.PullOption) error {
 //		// Implementation of Pull
@@ -100,7 +100,7 @@ type GitInterface interface {
 //			return err
 //		}
 //
-//		// Use TargetWriter methods
+//		// Use MirrorWriter methods
 //		pushOpt := model.PushOption{RemoteName: "origin", RefSpecs: []string{"refs/heads/main"}}
 //		return gi.Push(ctx, pushOpt)
 //	}

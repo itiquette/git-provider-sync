@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-// Package target provides functionality and abstractions for managing git repositories.
+// Package mirror provides functionality and abstractions for managing git repositories.
 // It allows for cloning, pulling, and managing remote repositories in a local directory structure.
 // # Examples of target abstractions are
 //
@@ -11,4 +11,4 @@
 // - compressed archives
 //
 // - regular directory cloning.
-package target
+package mirror

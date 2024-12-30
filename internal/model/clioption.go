@@ -49,7 +49,7 @@ func CLIOptions(ctx context.Context) CLIOption {
 	return cliOptions
 }
 
-// WithCLIOption returns a new context with the given CLIOption added.
+// WithCLIOpt returns a new context with the given CLIOption added.
 //
 // Parameters:
 //   - ctx: The parent context.
@@ -57,7 +57,7 @@ func CLIOptions(ctx context.Context) CLIOption {
 //
 // Returns:
 //   - A new context containing the CLIOption.
-func WithCLIOption(ctx context.Context, option CLIOption) context.Context {
+func WithCLIOpt(ctx context.Context, option CLIOption) context.Context {
 	return context.WithValue(ctx, CLIOptionKey{}, option)
 }
 

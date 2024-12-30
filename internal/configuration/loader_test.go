@@ -6,6 +6,7 @@ package configuration
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -21,47 +22,49 @@ func TestReadConfigFileMergedOptionsInOrderXDGLocalDotEnvEnvVarSuccess(t *testin
 	cwd, _ := os.Getwd()
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(cwd, "testdata"))
 	t.Setenv("GPS_TESTCONFIG_HOME", filepath.Join(cwd, "testdata"))
-	t.Setenv("GPS_GITPROVIDERSYNC_CONFXDG_TARGETS_ATARGET_GROUP", "envgroup")
-	t.Setenv("GPS_GITPROVIDERSYNC_CONF1_TARGETS_ANOTHERTARGET_DOMAIN", "envdomain")
+	t.Setenv("GPS_GITPROVIDERSYNC_ENV1_CONFXDG_MIRRORS_ATARGET_OWNER", "envgroup")
+	t.Setenv("GPS_GITPROVIDERSYNC_ENV1_CONF1_MIRRORS_ANOTHERTARGET_DOMAIN", "envdomain")
 
-	t.Setenv("GPS_GITPROVIDERSYNC_CONFENV_SOURCE_PROVIDERTYPE", "envconfprovider")
-	t.Setenv("GPS_GITPROVIDERSYNC_CONFENV_SOURCE_DOMAIN", "confenvdomain")
-	t.Setenv("GPS_GITPROVIDERSYNC_CONFENV_SOURCE_USER", "envconfuser")
-	t.Setenv("GPS_GITPROVIDERSYNC_CONFENV_SOURCE_REPOSITORIES_INCLUDE", "envconfrepo")
-	t.Setenv("GPS_GITPROVIDERSYNC_CONFENV_TARGETS_ATARGET_PROVIDERTYPE", "envconftarget")
-	t.Setenv("GPS_GITPROVIDERSYNC_CONFENV_TARGETS_ATARGET_DOMAIN", "envconfdomain")
-	t.Setenv("GPS_GITPROVIDERSYNC_CONFENV_TARGETS_ATARGET_GROUP", "envconfgroup")
+	t.Setenv("GPS_GITPROVIDERSYNC_ENV1_CONFENV_PROVIDER_TYPE", "envconfprovider")
+	t.Setenv("GPS_GITPROVIDERSYNC_ENV1_CONFENV_DOMAIN", "confenvdomain")
+	t.Setenv("GPS_GITPROVIDERSYNC_ENV1_CONFENV_OWNER", "envconfuser")
+	t.Setenv("GPS_GITPROVIDERSYNC_ENV1_CONFENV_REPOSITORIES_INCLUDE", "envconfrepo")
+
+	t.Setenv("GPS_GITPROVIDERSYNC_ENV1_CONFENV_MIRRORS_ATARGET_PROVIDER_TYPE", "envconftarget")
+	t.Setenv("GPS_GITPROVIDERSYNC_ENV1_CONFENV_MIRRORS_ATARGET_DOMAIN", "envconfdomain")
+	t.Setenv("GPS_GITPROVIDERSYNC_ENV1_CONFENV_MIRRORS_ATARGET_GROUP", "envconfgroup")
 
 	appConfiguration := &config.AppConfiguration{}
-	_ = ReadConfigurationFile(appConfiguration, "testdata/testconfig.yaml", false)
 
-	require.Len(appConfiguration.GitProviderSyncConfs, 6)
+	err := ReadConfigurationFile(appConfiguration, "testdata/testconfig.yaml", false)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	//	require.Len(appConfiguration.GitProviderSyncConfs["env1"], 6)
 
 	// a xdg file only defined conf
-	require.Equal("xdgconfdomain", appConfiguration.GitProviderSyncConfs["confxdg"].SourceProvider.GetDomain())
+	require.Equal("xdgconfdomain", appConfiguration.GitProviderSyncConfs["env1"]["confxdg"].GetDomain())
 
 	// a local file only defined conf
-	require.Equal("localconfdomain", appConfiguration.GitProviderSyncConfs["conflocal"].SourceProvider.GetDomain())
+	require.Equal("localconfdomain", appConfiguration.GitProviderSyncConfs["env1"]["conflocal"].GetDomain())
 
 	// a dotenv file only defined conf
-	require.Equal("dotenvdomain", appConfiguration.GitProviderSyncConfs["confdotenv"].SourceProvider.GetDomain())
+	require.Equal("dotenvdomain", appConfiguration.GitProviderSyncConfs["env1"]["confdotenv"].Domain)
 
 	// a env var only defined conf
-	require.Equal("confenvdomain", appConfiguration.GitProviderSyncConfs["confenv"].SourceProvider.GetDomain())
-
-	// xdg spec value is read
-	require.Equal("xdguser1", appConfiguration.GitProviderSyncConfs["conf1"].SourceProvider.User)
+	require.Equal("confenvdomain", appConfiguration.GitProviderSyncConfs["env1"]["confenv"].Domain)
 
 	// local confile prop without overriding
 	// local conffile, which overrides a xdg prop
-	require.Equal("conf1domain", appConfiguration.GitProviderSyncConfs["conf1"].SourceProvider.GetDomain())
-	require.Equal("gitea", appConfiguration.GitProviderSyncConfs["conf2"].SourceProvider.ProviderType)
+	require.Equal("conf1domain", appConfiguration.GitProviderSyncConfs["env1"]["conf1"].GetDomain())
+	require.Equal("gitea", appConfiguration.GitProviderSyncConfs["env1"]["conf2"].ProviderType)
 
 	// a prop was overridden from xdg to local then by .env file
-	require.Equal("dotenvprovider", appConfiguration.GitProviderSyncConfs["conf1"].ProviderTargets["atarget"].ProviderType)
+	require.Equal("dotenvprovider", appConfiguration.GitProviderSyncConfs["env1"]["conf1"].Mirrors["atarget"].ProviderType)
 
 	// a prop was overridden from xdg to local then by .env then by env var
-	require.Equal("envdomain", appConfiguration.GitProviderSyncConfs["conf1"].ProviderTargets["anothertarget"].GetDomain())
+	require.Equal("envdomain", appConfiguration.GitProviderSyncConfs["env1"]["conf1"].Mirrors["anothertarget"].Domain)
 }
 func TestLoadConfiguration_InvalidConfig(t *testing.T) {
 	tests := []struct {

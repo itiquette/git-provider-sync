@@ -13,7 +13,7 @@ import (
 
 type Client struct{}
 
-func (Client) CreateProject(_ context.Context, _ config.ProviderConfig, _ model.CreateProjectOption) (string, error) {
+func (Client) CreateProject(_ context.Context, _ model.CreateProjectOption) (string, error) {
 	return "", nil
 }
 
@@ -29,7 +29,11 @@ func (Client) IsValidProjectName(_ context.Context, _ string) bool {
 	return true
 }
 
-func (Client) ProjectInfos(_ context.Context, _ config.ProviderConfig, _ bool) ([]model.ProjectInfo, error) {
+func (Client) ProjectExists(_ context.Context, _, _ string) (bool, string) {
+	return false, ""
+}
+
+func (Client) ProjectInfos(_ context.Context, _ model.ProviderOption, _ bool) ([]model.ProjectInfo, error) {
 	return nil, nil
 }
 

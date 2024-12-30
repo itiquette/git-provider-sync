@@ -54,7 +54,7 @@ INTERNAL_INTERFACES=(
   "GitRepository"
   "GitRemote"
   "SourceReader"
-  "TargetWriter"
+  "MirrorWriter"
   "GitProvider"
   "GitInterface"
   "FilterServicer"

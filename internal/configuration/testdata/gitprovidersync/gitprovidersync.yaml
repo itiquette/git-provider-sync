@@ -3,31 +3,64 @@
 # SPDX-License-Identifier: CC0-1.0
 
 gitprovidersync:
-  conf1:
-    source:
-      providertype: xdgprovider1
+  env1:
+    conf1:
+      provider_type: xdgprovider1
       domain: xdgdomain1
-      user: xdguser1
+      owner: xdguser1
+      owner_type: user
       repositories:
         include: xdgrepo1, xdgrepo2
+      auth:
+        protocol: tls
+        token: ""
+      mirrors:
+        atarget:
+          provider_type: xdgtarget1provider
+          domain: xdgtarget2domain
+          owner_type: group
+          auth:
+            protocol: tls
+            token: ""
+          settings:
+            ascii_name: false
+            disabled: false
+            force_push: false
+            ignore_invalid_name: false
+        anothertarget:
+          provider_type: xdgtarget2provider
+          domain: xdgtarget2domain
+          owner_type: group
+          auth:
+            protocol: tls
+            token: ""
+          settings:
+            ascii_name: false
+            disabled: false
+            force_push: false
+            ignore_invalid_name: false
 
-    targets:
-      atarget:
-        providertype: xdgtarget1provider
-        domain: xdgtarget2domain
-      anothertarget:
-        providertype: xdgtarget2provider
-        domain: xdgtarget2domain
-  confxdg:
-    source:
-      providertype: xdgconfprovider
+    confxdg:
+      provider_type: xdgconfprovider
       domain: xdgconfdomain
-      user: xdgconfuser
+      owner: xdgconfuser
+      owner_type: user
       repositories:
         include: xdgconfrepo
-
-    targets:
-      atarget:
-        providertype: xdgconftarget
-        domain: xdgconfdomain
-        group: xdgconfgroup
+      auth:
+        protocol: tls
+        token: ""
+      mirrors:
+        atarget:
+          provider_type: xdgconftarget
+          domain: xdgconfdomain
+          owner: xdgconfgroup
+          owner_type: group
+          auth:
+            protocol: tls
+            token: ""
+          settings:
+            ascii_name: false
+            disabled: false
+            force_push: false
+            ignore_invalid_name: false

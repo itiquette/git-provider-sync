@@ -62,35 +62,40 @@ func createProvider(ctx context.Context, option model.GitProviderClientOption, h
 	logger.Trace().Msg("Entering createProvider")
 	option.DebugLog(logger).Msg("createProvider")
 
+	var provider interfaces.GitProvider
+
+	var err error
+
 	switch option.ProviderType {
 	case config.GITEA:
-		provider, err := gitea.NewGiteaAPIClient(ctx, option, httpClient)
+		provider, err = gitea.NewGiteaAPIClient(ctx, option, httpClient)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create Gitea client: %w", err)
 		}
 
-		return provider, nil
 	case config.GITHUB:
-		provider, err := github.NewGitHubAPIClient(ctx, option, httpClient)
+		provider, err = github.NewGitHubAPIClient(ctx, option, httpClient)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create GitHub client: %w", err)
 		}
 
-		return provider, nil
 	case config.GITLAB:
-		provider, err := gitlab.NewGitLabAPIClient(ctx, option, httpClient)
+		provider, err = gitlab.NewGitLabAPIClient(ctx, option, httpClient)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create GitLab client: %w", err)
 		}
 
-		return provider, nil
 	case config.ARCHIVE:
-		return archive.Client{}, nil
+		provider = archive.Client{}
 	case config.DIRECTORY:
-		return directory.Client{}, nil
+		provider = directory.Client{}
 	default:
 		return nil, fmt.Errorf("%w: %s", ErrNonSupportedProvider, option.ProviderType)
 	}
+
+	logger.Debug().Str("name", provider.Name()).Msg("created dir provider client")
+
+	return provider, nil
 }
 
 // newHTTPClient creates a new HTTP client with proper error handling.
@@ -98,12 +103,12 @@ func newHTTPClient(ctx context.Context, option model.GitProviderClientOption) (*
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering newHTTPClient")
 
-	certPool, err := loadCertificates(ctx, option.HTTPClient.CertDirPath)
+	certPool, err := loadCertificates(ctx, option.AuthCfg.CertDirPath)
 	if err != nil {
 		return nil, fmt.Errorf("certificate loading error: %w", err)
 	}
 
-	proxyFunc, err := setupProxy(ctx, option.HTTPClient.ProxyURL)
+	proxyFunc, err := setupProxy(ctx, option.AuthCfg.ProxyURL)
 	if err != nil {
 		return nil, fmt.Errorf("proxy setup error: %w", err)
 	}

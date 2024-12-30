@@ -25,7 +25,7 @@ func NewService(git GitHandler, storage StorageHandler) *Service {
 	}
 }
 
-func (serv *Service) Push(ctx context.Context, repo interfaces.GitRepository, opt model.PushOption, _ gpsconfig.GitOption) error {
+func (serv *Service) Push(ctx context.Context, repo interfaces.GitRepository, opt model.PushOption) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Directory:Push")
 	opt.DebugLog(logger).Msg("Directory:Push")
@@ -43,7 +43,7 @@ func (serv *Service) Push(ctx context.Context, repo interfaces.GitRepository, op
 	return nil
 }
 
-func (serv *Service) Pull(ctx context.Context, sourceCfg gpsconfig.ProviderConfig, targetPath string, repo interfaces.GitRepository) error {
+func (serv *Service) Pull(ctx context.Context, syncCfg gpsconfig.SyncConfig, targetPath string, repo interfaces.GitRepository) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Directory:Pull")
 	logger.Debug().Str("targetPath", targetPath).Msg("Directory:Pull")
@@ -53,7 +53,7 @@ func (serv *Service) Pull(ctx context.Context, sourceCfg gpsconfig.ProviderConfi
 		return fmt.Errorf("%w %w", ErrDirGetPath, err)
 	}
 
-	pullOpt := model.NewPullOption("", "", sourceCfg.Git, sourceCfg.HTTPClient, sourceCfg.SSHClient)
+	pullOpt := model.NewPullOption("", "", syncCfg, syncCfg.Auth)
 	if err := serv.git.Pull(ctx, pullOpt, targetDir); err != nil {
 		return fmt.Errorf("%w: targetDir: %s: %w", ErrPullRepository, targetDir, err)
 	}

@@ -23,10 +23,10 @@ type syncFlags struct {
 
 func addSyncFlags(cmd *cobra.Command) {
 	flags := cmd.Flags()
-	flags.Bool("ascii-name", false, "Remove non-alphanumeric characters from repository names")
+	flags.Bool("ascii-name", false, "Remove mirror incompatible characters from repository names")
 	flags.Bool("dry-run", false, "Simulate sync run without performing clone and push actions")
-	flags.Bool("force-push", false, "Overwrite any existing target")
-	flags.Bool("ignore-invalid-name", false, "Ignore repositories with invalid names")
+	flags.Bool("force-push", false, "Overwrite existing mirror target with force")
+	flags.Bool("ignore-invalid-name", false, "Don't fail on invalid mirror target names, ignore them")
 	flags.String("active-from-limit", "", "A negative time duration (e.g., '-1h') to consider repositories active from")
 }
 

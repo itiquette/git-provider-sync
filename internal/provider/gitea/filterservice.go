@@ -10,7 +10,6 @@ import (
 
 	"itiquette/git-provider-sync/internal/log"
 	"itiquette/git-provider-sync/internal/model"
-	config "itiquette/git-provider-sync/internal/model/configuration"
 	"itiquette/git-provider-sync/internal/provider/targetfilter"
 )
 
@@ -33,18 +32,18 @@ func NewFilter() *FilterService {
 // Returns:
 // - A slice of filtered RepositoryMetainfo.
 // - An error if any part of the filtering process fails.
-func (FilterService) FilterProjectinfos(ctx context.Context, config config.ProviderConfig, projectinfos []model.ProjectInfo) ([]model.ProjectInfo, error) {
+func (FilterService) FilterProjectinfos(ctx context.Context, opt model.ProviderOption, projectinfos []model.ProjectInfo) ([]model.ProjectInfo, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Gitea:FilterProjectinfos")
 
 	// Apply inclusion/exclusion rules
-	includedProjectinfos, err := targetfilter.FilterIncludedExcludedGen()(ctx, config, projectinfos)
+	includedProjectinfos, err := targetfilter.FilterIncludedExcludedGen()(ctx, opt, projectinfos)
 	if err != nil {
 		return nil, fmt.Errorf("failed to filter repositories by include/exclude rules: %w", err)
 	}
 
 	// Apply date-based filtering
-	return filterByDate(ctx, config, includedProjectinfos)
+	return filterByDate(ctx, includedProjectinfos)
 }
 
 // filterByDate filters repositories based on their last activity date.
@@ -59,14 +58,14 @@ func (FilterService) FilterProjectinfos(ctx context.Context, config config.Provi
 // Returns:
 // - A slice of RepositoryMetainfo that passed the date filter.
 // - An error if the filtering process fails for any repository.
-func filterByDate(ctx context.Context, config config.ProviderConfig, projectinfos []model.ProjectInfo) ([]model.ProjectInfo, error) {
+func filterByDate(ctx context.Context, projectinfos []model.ProjectInfo) ([]model.ProjectInfo, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Gitea:filterByDate")
 
 	var filtered []model.ProjectInfo
 
 	for _, metainfo := range projectinfos {
-		include, err := includeByActivityTime(ctx, config, metainfo)
+		include, err := includeByActivityTime(ctx, metainfo)
 		if err != nil {
 			return nil, fmt.Errorf("failed to check activity time for %s: %w", metainfo.OriginalName, err)
 		}
@@ -93,10 +92,10 @@ func filterByDate(ctx context.Context, config config.ProviderConfig, projectinfo
 // Returns:
 // - A boolean indicating whether the repository should be included based on its activity time.
 // - An error if the check fails, e.g., if the last activity time is nil.
-func includeByActivityTime(ctx context.Context, config config.ProviderConfig, metainfo model.ProjectInfo) (bool, error) {
+func includeByActivityTime(ctx context.Context, metainfo model.ProjectInfo) (bool, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Gitea:includeByActivityTime")
-	config.DebugLog(logger).Msg("includeByActivityTime: Using configuration")
+	//	config.DebugLog(logger).Msg("includeByActivityTime: Using configuration")
 
 	if metainfo.LastActivityAt == nil {
 		return false, fmt.Errorf("last activity time is nil for repository %s", metainfo.OriginalName)

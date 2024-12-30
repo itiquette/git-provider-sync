@@ -25,17 +25,31 @@ type APIClient struct {
 	filterService     interfaces.FilterServicer
 }
 
-func (api APIClient) CreateProject(ctx context.Context, cfg config.ProviderConfig, opt model.CreateProjectOption) (string, error) {
+func (api APIClient) CreateProject(ctx context.Context, opt model.CreateProjectOption) (string, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitLab:CreateProject")
 	opt.DebugLog(logger).Msg("GitLab:CreateOption")
 
-	projectIDStr, err := api.projectService.CreateProject(ctx, cfg, opt)
+	projectIDStr, err := api.projectService.CreateProject(ctx, opt)
 	if err != nil {
 		return "", fmt.Errorf("failed to create a GitLab project. err: %w", err)
 	}
 
 	return projectIDStr, nil
+}
+
+func (api APIClient) ProjectExists(ctx context.Context, owner, repo string) (bool, string) {
+	logger := log.Logger(ctx)
+	logger.Trace().Msg("Entering GitLab:ProjectExists")
+
+	exists, projectID, err := api.projectService.Exists(ctx, owner, repo)
+	if err != nil {
+		logger.Error().Msg("failed to see if project existed. err:" + err.Error())
+
+		return false, ""
+	}
+
+	return exists, projectID
 }
 
 func (api APIClient) IsValidProjectName(ctx context.Context, name string) bool {
@@ -57,18 +71,18 @@ func (APIClient) Name() string {
 	return config.GITLAB
 }
 
-func (api APIClient) ProjectInfos(ctx context.Context, cfg config.ProviderConfig, filtering bool) ([]model.ProjectInfo, error) {
+func (api APIClient) ProjectInfos(ctx context.Context, providerOpt model.ProviderOption, filtering bool) ([]model.ProjectInfo, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitLab:ProjectInfos")
 	logger.Debug().Bool("filtering", filtering).Msg("GitLab:ProjectInfos")
 
-	projectInfos, err := api.projectService.GetProjectInfos(ctx, cfg)
+	projectInfos, err := api.projectService.GetProjectInfos(ctx, providerOpt)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get project infos. err: %w", err)
 	}
 
 	if filtering {
-		return api.filterService.FilterProjectinfos(ctx, cfg, projectInfos, targetfilter.FilterIncludedExcludedGen(), targetfilter.IsInInterval) //nolint
+		return api.filterService.FilterProjectinfos(ctx, providerOpt, projectInfos, targetfilter.FilterIncludedExcludedGen(), targetfilter.IsInInterval) //nolint
 	}
 
 	return projectInfos, nil
@@ -119,10 +133,10 @@ func NewGitLabAPIClient(ctx context.Context, opt model.GitProviderClientOption, 
 
 	defaultBaseURL := "https://gitlab.com/"
 	if opt.Domain != "" {
-		defaultBaseURL = opt.DomainWithScheme(opt.HTTPClient.Scheme)
+		defaultBaseURL = opt.DomainWithScheme(opt.AuthCfg.HTTPScheme)
 	}
 
-	rawClient, err := gitlab.NewClient(opt.HTTPClient.Token,
+	rawClient, err := gitlab.NewClient(opt.AuthCfg.Token,
 		gitlab.WithBaseURL(defaultBaseURL),
 		gitlab.WithHTTPClient(httpClient),
 	)

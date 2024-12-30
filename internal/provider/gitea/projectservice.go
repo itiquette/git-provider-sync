@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"itiquette/git-provider-sync/internal/log"
 	"itiquette/git-provider-sync/internal/model"
-	config "itiquette/git-provider-sync/internal/model/configuration"
+	"net/http"
 
 	"code.gitea.io/sdk/gitea"
 )
@@ -24,7 +24,7 @@ func NewProjectService(client *gitea.Client) *ProjectService {
 	return &ProjectService{client: client, optBuilder: NewProjectOptionsBuilder(), protectionService: NewProtectionService(client)}
 }
 
-func (p ProjectService) createProject(ctx context.Context, cfg config.ProviderConfig, opt model.CreateProjectOption) (string, error) {
+func (p ProjectService) createProject(ctx context.Context, opt model.CreateProjectOption) (string, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering gitea:creatNeProject")
 	opt.DebugLog(logger).Msg("gitea:CreateOption")
@@ -35,8 +35,8 @@ func (p ProjectService) createProject(ctx context.Context, cfg config.ProviderCo
 
 	var err error
 
-	if cfg.IsGroup() {
-		createdRepo, _, err = p.client.CreateOrgRepo(cfg.Group, *p.optBuilder.opts)
+	if opt.IsGroup {
+		createdRepo, _, err = p.client.CreateOrgRepo(opt.Owner, *p.optBuilder.opts)
 	} else {
 		createdRepo, _, err = p.client.CreateRepo(*p.optBuilder.opts)
 	}
@@ -57,16 +57,11 @@ func (p ProjectService) createProject(ctx context.Context, cfg config.ProviderCo
 	return createdRepo.FullName, nil
 }
 
-func (p ProjectService) newProjectInfo(ctx context.Context, config config.ProviderConfig, rawClient *gitea.Client, repositoryName string) (model.ProjectInfo, error) {
+func (p ProjectService) newProjectInfo(ctx context.Context, opt model.ProviderOption, rawClient *gitea.Client, repositoryName string) (model.ProjectInfo, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Gitea:newProjectInfo")
 
-	owner := config.Group
-	if !config.IsGroup() {
-		owner = config.User
-	}
-
-	giteaProject, _, err := rawClient.GetRepo(owner, repositoryName)
+	giteaProject, _, err := rawClient.GetRepo(opt.Owner, repositoryName)
 	if err != nil {
 		return model.ProjectInfo{}, fmt.Errorf("failed to get project info for %s: %w", repositoryName, err)
 	}
@@ -83,7 +78,7 @@ func (p ProjectService) newProjectInfo(ctx context.Context, config config.Provid
 	}, nil
 }
 
-func (p ProjectService) getProjectInfos(ctx context.Context, cfg config.ProviderConfig) ([]model.ProjectInfo, error) {
+func (p ProjectService) getProjectInfos(ctx context.Context, providerOpt model.ProviderOption) ([]model.ProjectInfo, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering gitea:getProjectInfos")
 
@@ -92,14 +87,14 @@ func (p ProjectService) getProjectInfos(ctx context.Context, cfg config.Provider
 		err          error
 	)
 
-	if cfg.IsGroup() {
+	if providerOpt.IsGroup() {
 		opt := gitea.ListOrgReposOptions{
 			ListOptions: gitea.ListOptions{
 				Page:     -1, // Set to -1 to get all items
 				PageSize: -1,
 			},
 		}
-		repositories, _, err = p.client.ListOrgRepos(cfg.Group, opt)
+		repositories, _, err = p.client.ListOrgRepos(providerOpt.Owner, opt)
 	} else {
 		opt := gitea.ListReposOptions{
 			ListOptions: gitea.ListOptions{
@@ -108,7 +103,7 @@ func (p ProjectService) getProjectInfos(ctx context.Context, cfg config.Provider
 			},
 		}
 
-		repositories, _, err = p.client.ListUserRepos(cfg.User, opt)
+		repositories, _, err = p.client.ListUserRepos(providerOpt.User, opt)
 	}
 
 	if err != nil {
@@ -120,15 +115,32 @@ func (p ProjectService) getProjectInfos(ctx context.Context, cfg config.Provider
 	var projectinfos []model.ProjectInfo //nolint:prealloc
 
 	for _, repo := range repositories {
-		if !cfg.Git.IncludeForks && repo.Fork {
+		if !providerOpt.IncludeForks && repo.Fork {
 			continue
 		}
 
-		rm, _ := p.newProjectInfo(ctx, cfg, p.client, repo.Name)
+		rm, _ := p.newProjectInfo(ctx, providerOpt, p.client, repo.Name)
 		projectinfos = append(projectinfos, rm)
 	}
 
 	return projectinfos, nil
+}
+
+func (p ProjectService) Exists(ctx context.Context, owner, repo string) (bool, string, error) {
+	logger := log.Logger(ctx)
+	logger.Trace().Msg("Entering gitea:Exists")
+
+	repository, resp, err := p.client.GetRepo(owner, repo)
+
+	if err != nil {
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
+			return false, "", nil // Repository doesn't exist
+		}
+
+		return false, "", err //nolint
+	}
+
+	return repository != nil, repository.FullName, nil
 }
 
 func (p ProjectService) setDefaultBranch(ctx context.Context, owner string, projectName string, branch string) error {

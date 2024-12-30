@@ -23,7 +23,7 @@ func newRootCommand(ctx context.Context, versionString string) *cobra.Command {
 		Short:   "Utility for mirroring and storing Git repositories",
 		Long: `A utility for mirroring Git repositories to various Git providers or storage.
 Supports GitHub, Gitea, GitLab, uncompressed directories, and a compressed archive format (tar.gz).
-Allows syncing to multiple target destinations.`,
+Allows syncing to multiple mirror destinations.`,
 	}
 
 	// Add persistent flags

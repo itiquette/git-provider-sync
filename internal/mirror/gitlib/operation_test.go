@@ -53,36 +53,37 @@ func createTmpGitBareRepo(tmpDir, tmpRepo string) (*git.Repository, error) {
 
 	return tempRep, nil
 }
-func createTmpGitRepo(tmpDir, tmpRepo, url string) (*git.Repository, error) { //nolint:unparam
-	tempPath := filepath.Join(tmpDir, "temp-"+tmpRepo)
 
-	if err := os.MkdirAll(tempPath, 0777); err != nil {
-		return nil, err
-	}
+// func createTmpGitRepo(tmpDir, tmpRepo, url string) (*git.Repository, error) {
+// 	tempPath := filepath.Join(tmpDir, "temp-"+tmpRepo)
 
-	// Initialize temporary repo
-	tempRep, err := git.PlainInitWithOptions(tempPath, &git.PlainInitOptions{
-		Bare: false,
-		InitOptions: git.InitOptions{
-			DefaultBranch: plumbing.NewBranchReferenceName("main"),
-		},
-	})
-	if err != nil {
-		return nil, err
-	}
+// 	if err := os.MkdirAll(tempPath, 0777); err != nil {
+// 		return nil, err
+// 	}
 
-	// Create remotes
-	if err := setupRemotes(tempRep, tmpRepo, url); err != nil {
-		return nil, err
-	}
+// 	// Initialize temporary repo
+// 	tempRep, err := git.PlainInitWithOptions(tempPath, &git.PlainInitOptions{
+// 		Bare: false,
+// 		InitOptions: git.InitOptions{
+// 			DefaultBranch: plumbing.NewBranchReferenceName("main"),
+// 		},
+// 	})
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	// Create and commit content
-	if err := createInitialCommit(tempRep, tempPath); err != nil {
-		return nil, err
-	}
+// 	// Create remotes
+// 	if err := setupRemotes(tempRep, tmpRepo, url); err != nil {
+// 		return nil, err
+// 	}
 
-	return tempRep, nil
-}
+// 	// Create and commit content
+// 	if err := createInitialCommit(tempRep, tempPath); err != nil {
+// 		return nil, err
+// 	}
+
+// 	return tempRep, nil
+// }
 
 func setupRemotes(repo *git.Repository, _, url string) error {
 	remotes := []struct {

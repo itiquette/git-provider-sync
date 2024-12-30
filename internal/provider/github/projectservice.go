@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"itiquette/git-provider-sync/internal/log"
 	"itiquette/git-provider-sync/internal/model"
-	config "itiquette/git-provider-sync/internal/model/configuration"
+	"net/http"
 	"time"
 
 	"github.com/google/go-github/v67/github"
@@ -25,7 +25,7 @@ func NewProjectService(client *github.Client) *ProjectService {
 	return &ProjectService{client: client, optBuilder: NewProjectOptionsBuilder(), protectionService: NewProtectionService(client)}
 }
 
-func (p ProjectService) createProject(ctx context.Context, cfg config.ProviderConfig, opt model.CreateProjectOption) (string, error) {
+func (p ProjectService) createProject(ctx context.Context, opt model.CreateProjectOption) (string, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitHub:createProject")
 	opt.DebugLog(logger).Msg("GitHub:CreateOption")
@@ -37,8 +37,8 @@ func (p ProjectService) createProject(ctx context.Context, cfg config.ProviderCo
 	}
 
 	groupName := ""
-	if cfg.IsGroup() {
-		groupName = cfg.Group
+	if opt.IsGroup {
+		groupName = opt.Owner
 	}
 
 	createdRepo, _, err := p.client.Repositories.Create(ctx, groupName, p.optBuilder.opts)
@@ -51,17 +51,12 @@ func (p ProjectService) createProject(ctx context.Context, cfg config.ProviderCo
 	return *createdRepo.FullName, nil
 }
 
-func (p ProjectService) newProjectInfo(ctx context.Context, cfg config.ProviderConfig, name string) (model.ProjectInfo, error) {
+func (p ProjectService) newProjectInfo(ctx context.Context, opt model.ProviderOption, name string) (model.ProjectInfo, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitHub:newProjectInfo")
-	logger.Debug().Str("usr/grp", cfg.User+cfg.Group).Str("name", name).Str("provider", cfg.ProviderType).Str("domain", cfg.GetDomain()).Msg("newProjectInfo")
+	logger.Debug().Str("name", name).Str("providerOption", opt.String()).Msg("newProjectInfo")
 
-	owner := cfg.Group
-	if !cfg.IsGroup() {
-		owner = cfg.User
-	}
-
-	gitHubProject, _, err := p.client.Repositories.Get(ctx, owner, name)
+	gitHubProject, _, err := p.client.Repositories.Get(ctx, opt.Owner, name)
 	if err != nil {
 		return model.ProjectInfo{}, fmt.Errorf("failed to get projectInfo. name: %s, err: %w", name, err)
 	}
@@ -78,18 +73,36 @@ func (p ProjectService) newProjectInfo(ctx context.Context, cfg config.ProviderC
 	}, nil
 }
 
-func (p ProjectService) getProjectInfos(ctx context.Context, cfg config.ProviderConfig) ([]model.ProjectInfo, error) {
+func (p ProjectService) Exists(ctx context.Context, owner, repo string) (bool, string, error) {
+	logger := log.Logger(ctx)
+	logger.Trace().Msg("Entering GitHub:Exists")
+
+	project, resp, err := p.client.Repositories.Get(ctx, owner, repo)
+	if err != nil {
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
+			return false, "", nil // Repository doesn't exist
+		}
+
+		return false, "", err //nolint
+	}
+
+	projectID := getValueOrEmpty(project.FullName)
+
+	return true, projectID, nil
+}
+
+func (p ProjectService) getProjectInfos(ctx context.Context, providerOpt model.ProviderOption) ([]model.ProjectInfo, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitHub:getProjectinfos")
 
 	var allRepos []*github.Repository
 
 	listType := "sources"
-	if cfg.Git.IncludeForks {
+	if providerOpt.IncludeForks {
 		listType = "all"
 	}
 
-	if cfg.IsGroup() {
+	if providerOpt.IsGroup() {
 		opt := &github.RepositoryListByOrgOptions{
 			Type:        listType,
 			Sort:        "full_name",
@@ -97,7 +110,7 @@ func (p ProjectService) getProjectInfos(ctx context.Context, cfg config.Provider
 		}
 
 		for {
-			repos, resp, err := p.client.Repositories.ListByOrg(ctx, cfg.Group, opt)
+			repos, resp, err := p.client.Repositories.ListByOrg(ctx, providerOpt.Owner, opt)
 			if err != nil {
 				return nil, fmt.Errorf("failed to list org repositories. page: %d, err: %w", opt.Page, err)
 			}
@@ -139,12 +152,12 @@ func (p ProjectService) getProjectInfos(ctx context.Context, cfg config.Provider
 	var projectinfos []model.ProjectInfo //nolint:prealloc
 
 	for _, repo := range allRepos {
-		if !cfg.Git.IncludeForks && repo.Fork != nil && *repo.Fork {
+		if !providerOpt.IncludeForks && repo.Fork != nil && *repo.Fork {
 			continue
 		}
 
 		name := repo.GetName()
-		metainfo, err := p.newProjectInfo(ctx, cfg, name)
+		metainfo, err := p.newProjectInfo(ctx, providerOpt, name)
 
 		if err != nil {
 			logger.Warn().Err(err).Str("repo", name).Msg("failed to create projectinfo")

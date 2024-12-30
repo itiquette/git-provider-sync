@@ -8,8 +8,8 @@ import (
 	"context"
 	"fmt"
 	"itiquette/git-provider-sync/internal/interfaces"
+	"itiquette/git-provider-sync/internal/mirror/gitlib"
 	"itiquette/git-provider-sync/internal/model"
-	"itiquette/git-provider-sync/internal/target/gitlib"
 
 	gpsconfig "itiquette/git-provider-sync/internal/model/configuration"
 
@@ -30,8 +30,8 @@ func (h *GitHandler) InitializeRepository(ctx context.Context, targetDir string,
 		return fmt.Errorf("%w: %w", ErrRepoInitialization, err)
 	}
 
-	pushOpt := model.NewPushOption(targetDir, false, true, gpsconfig.HTTPClientOption{})
-	if err := h.client.Push(ctx, repo, pushOpt, gpsconfig.GitOption{}); err != nil {
+	pushOpt := model.NewPushOption(targetDir, false, true, gpsconfig.AuthConfig{})
+	if err := h.client.Push(ctx, repo, pushOpt); err != nil {
 		return fmt.Errorf("%w: %w", ErrPushRepository, err)
 	}
 

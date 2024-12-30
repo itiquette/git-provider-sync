@@ -18,27 +18,25 @@ import (
 // It includes flags for cleaning up names, mirroring, and specifies
 // the source URL and target path.
 type CloneOption struct {
-	ASCIIName   bool                   // Whether to clean up the repository name
-	URL         string                 // The URL of the repository to clone
-	Mirror      bool                   // Whether to create a mirror clone
-	Git         model.GitOption        // Git configuration options
-	HTTPClient  model.HTTPClientOption // HTTP client options
-	SSHClient   model.SSHClientOption  // SSH client options
-	NonBareRepo bool                   // Whether to clone as a nonbare (regular with worktree) repository
-	Name        string                 // Repository name
+	ASCIIName   bool             // Whether to clean up the repository name
+	URL         string           // The URL of the repository to clone
+	Mirror      bool             // Whether to create a mirror clone
+	SourceCfg   model.SyncConfig // Git configuration options
+	AuthCfg     model.AuthConfig // HTTP client options
+	NonBareRepo bool             // Whether to clone as a nonbare (regular with worktree) repository
+	Name        string           // Repository name
 }
 
 // String provides a string representation of CloneOption.
 func (co CloneOption) String() string {
-	return fmt.Sprintf("CloneOption{Name: %s, URL: %s, ASCIIName: %t, Mirror: %t, NonBareRepo: %t, Git: %s, HTTPClient: %s, SSHClient: %s}",
+	return fmt.Sprintf("CloneOption{Name: %s, URL: %s, ASCIIName: %t, Mirror: %t, NonBareRepo: %t, SourceCfg: %s, AuthCfg: %s}",
 		co.Name,
 		co.URL,
 		co.ASCIIName,
 		co.Mirror,
 		co.NonBareRepo,
-		co.Git.String(),
-		co.HTTPClient.String(),
-		co.SSHClient.String())
+		co.SourceCfg.String(),
+		co.AuthCfg.String())
 }
 
 // DebugLog creates a debug log event with clone options.
@@ -49,18 +47,17 @@ func (co CloneOption) DebugLog(logger *zerolog.Logger) *zerolog.Event {
 				Bool("ASCIIName", co.ASCIIName).
 				Bool("mirror", co.Mirror).
 				Bool("nonbare_repo", co.NonBareRepo).
-				Str("git", co.Git.String()).
-				Str("http_client", co.HTTPClient.String()).
-				Str("ssh_client", co.SSHClient.String())
+				Str("sourceCfg", co.SourceCfg.String()).
+				Str("authCfg", co.AuthCfg.String())
 }
 
 // NewCloneOption creates a new CloneOption.
-func NewCloneOption(ctx context.Context, metainfo ProjectInfo, mirror bool, providerConfig model.ProviderConfig) CloneOption {
+func NewCloneOption(ctx context.Context, projectInfo ProjectInfo, mirror bool, syncCfg model.SyncConfig) CloneOption {
 	logger := log.Logger(ctx)
 
-	cloneURL := metainfo.HTTPSURL
-	if strings.EqualFold(providerConfig.Git.Type, model.SSHAGENT) {
-		cloneURL = metainfo.SSHURL
+	cloneURL := projectInfo.HTTPSURL
+	if strings.EqualFold(syncCfg.ProviderType, model.SSH) {
+		cloneURL = projectInfo.SSHURL
 	}
 
 	logger.Info().
@@ -68,11 +65,10 @@ func NewCloneOption(ctx context.Context, metainfo ProjectInfo, mirror bool, prov
 		Msg("Cloning repository:")
 
 	return CloneOption{
-		Name:       metainfo.Name(ctx),
-		URL:        cloneURL,
-		Mirror:     mirror,
-		Git:        providerConfig.Git,
-		HTTPClient: providerConfig.HTTPClient,
-		SSHClient:  providerConfig.SSHClient,
+		Name:      projectInfo.Name(ctx),
+		URL:       cloneURL,
+		Mirror:    mirror,
+		SourceCfg: syncCfg,
+		AuthCfg:   syncCfg.Auth,
 	}
 }

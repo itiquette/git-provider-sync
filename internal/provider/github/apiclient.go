@@ -23,17 +23,31 @@ type APIClient struct {
 	filterService     *filterService
 }
 
-func (api APIClient) CreateProject(ctx context.Context, cfg config.ProviderConfig, opt model.CreateProjectOption) (string, error) {
+func (api APIClient) CreateProject(ctx context.Context, opt model.CreateProjectOption) (string, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitHub:CreateProject")
 	opt.DebugLog(logger).Msg("GitHub:CreateOption")
 
-	projectID, err := api.projectService.createProject(ctx, cfg, opt)
+	projectID, err := api.projectService.createProject(ctx, opt)
 	if err != nil {
 		return "", fmt.Errorf("failed to create GitHub project. err: %w", err)
 	}
 
 	return projectID, nil
+}
+
+func (api APIClient) ProjectExists(ctx context.Context, owner, repo string) (bool, string) {
+	logger := log.Logger(ctx)
+	logger.Trace().Msg("Entering GitHub:ProjectExists")
+
+	exists, projectID, err := api.projectService.Exists(ctx, owner, repo)
+	if err != nil {
+		logger.Error().Msg("failed to see if project existed. err:" + err.Error())
+
+		return false, ""
+	}
+
+	return exists, projectID
 }
 
 func (api APIClient) IsValidProjectName(ctx context.Context, name string) bool {
@@ -55,18 +69,18 @@ func (api APIClient) Name() string {
 	return config.GITHUB
 }
 
-func (api APIClient) ProjectInfos(ctx context.Context, cfg config.ProviderConfig, filtering bool) ([]model.ProjectInfo, error) {
+func (api APIClient) ProjectInfos(ctx context.Context, providerOpt model.ProviderOption, filtering bool) ([]model.ProjectInfo, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitHub:ProjectInfos")
 	logger.Debug().Bool("filtering", filtering).Msg("GitHub:ProjectInfos")
 
-	projectinfos, err := api.projectService.getProjectInfos(ctx, cfg)
+	projectinfos, err := api.projectService.getProjectInfos(ctx, providerOpt)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get repository infos. err: %w", err)
 	}
 
 	if filtering {
-		return api.filterService.FilterProjectInfos(ctx, cfg, projectinfos)
+		return api.filterService.FilterProjectInfos(ctx, providerOpt, projectinfos)
 	}
 
 	return projectinfos, nil
@@ -130,8 +144,8 @@ func NewGitHubAPIClient(ctx context.Context, opt model.GitProviderClientOption, 
 
 	rawClient := github.NewClient(httpClient)
 
-	if opt.HTTPClient.Token != "" {
-		rawClient = rawClient.WithAuthToken(opt.HTTPClient.Token)
+	if opt.AuthCfg.Token != "" {
+		rawClient = rawClient.WithAuthToken(opt.AuthCfg.Token)
 	}
 
 	if opt.Domain == "" {

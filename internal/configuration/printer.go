@@ -2,139 +2,154 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-// Package configuration provides functionality for handling and printing
+// Package model provides functionality for handling and printing
 // Git Provider Sync configurations.
 package configuration
 
 import (
 	"fmt"
 	"io"
-	config "itiquette/git-provider-sync/internal/model/configuration"
-	"strings"
+	model "itiquette/git-provider-sync/internal/model/configuration"
 )
 
 // PrintConfiguration writes the entire AppConfiguration to the provided writer.
-func PrintConfiguration(config config.AppConfiguration, writer io.Writer) {
+func PrintConfiguration(appCfg model.AppConfiguration, writer io.Writer) {
 	fmt.Fprintln(writer, "\n----------------------------")
 	fmt.Fprintln(writer, "Git Provider Sync")
 	fmt.Fprintln(writer, "----------------------------")
 
-	for name, configuration := range config.GitProviderSyncConfs {
-		printConfigurationSection(name, configuration.SourceProvider, configuration.ProviderTargets, writer)
+	for envName, env := range appCfg.GitProviderSyncConfs {
+		printEnvironment(envName, env, writer)
 	}
 }
 
-// printConfigurationSection writes a single configuration section to the provided writer.
-func printConfigurationSection(name string, sourceConfig config.ProviderConfig, targetConfigs map[string]config.ProviderConfig, writer io.Writer) {
-	fmt.Fprintf(writer, "\nConfiguration Name: %s\n\n", name)
-	printProviderConfig("Source Provider", sourceConfig, writer)
+// printEnvironment writes a single environment section to the provided writer.
+func printEnvironment(name string, env model.Environment, writer io.Writer) {
+	fmt.Fprintf(writer, "\nEnvironment: %s\n", name)
+	fmt.Fprintln(writer, "============================")
 
-	for provider, target := range targetConfigs {
-		fmt.Fprintln(writer, "Target Provider")
-		fmt.Fprintf(writer, " Configuration Name: %s\n", provider)
-		printProviderConfig("", target, writer)
+	for sourceName, syncConfig := range env {
+		printSyncConfig(sourceName, syncConfig, writer)
 	}
 }
 
-// printProviderConfig writes the details of a single ProviderConfig to the provided writer.
-func printProviderConfig(header string, config config.ProviderConfig, writer io.Writer) {
-	if header != "" {
-		fmt.Fprintf(writer, "%s:\n", header)
+// printSyncConfig writes the details of a single SyncConfig to the provided writer.
+func printSyncConfig(name string, config model.SyncConfig, writer io.Writer) {
+	fmt.Fprintf(writer, "\nSync Configuration: %s\n", name)
+	fmt.Fprintf(writer, "Provider Type: %s\n", config.ProviderType)
+	fmt.Fprintf(writer, "Domain: %s\n", config.GetDomain())
+	fmt.Fprintf(writer, "Owner: %s\n", config.Owner)
+	fmt.Fprintf(writer, "Owner Type: %s\n", config.OwnerType)
+	fmt.Fprintf(writer, "Include Forks: %t\n", config.IncludeForks)
+	fmt.Fprintf(writer, "Use Git Binary: %t\n", config.UseGitBinary)
+
+	if config.ActiveFromLimit != "" {
+		fmt.Fprintf(writer, "Active From Limit: %s\n", config.ActiveFromLimit)
 	}
 
-	fmt.Fprintf(writer, " ProviderType: %s\n", config.ProviderType)
+	// Print Auth Configuration
+	printAuthConfig(config.Auth, writer)
 
-	if !isLocalProvider(config.ProviderType) {
-		printProviderDetails(config, writer)
+	// Print Repositories Configuration
+	if config.Repositories != (model.RepositoriesOption{}) {
+		printRepositoriesOption(config.Repositories, writer)
 	}
 
-	printStringMap(" Additional", config.Additional, writer)
-	fmt.Fprintln(writer)
-}
+	// Print Mirror Configurations
+	if len(config.Mirrors) > 0 {
+		fmt.Fprintln(writer, "\nMirror Configurations:")
+		fmt.Fprintln(writer, "------------------")
 
-// isLocalProvider checks if the provider is a local type (ARCHIVE or DIRECTORY).
-func isLocalProvider(provider string) bool {
-	return strings.EqualFold(provider, config.ARCHIVE) || strings.EqualFold(provider, config.DIRECTORY)
-}
-
-// printProviderDetails writes the details specific to remote providers.
-func printProviderDetails(config config.ProviderConfig, writer io.Writer) {
-	fmt.Fprintf(writer, " Domain: %s\n", config.GetDomain())
-
-	if len(config.HTTPClient.Token) == 0 {
-		fmt.Fprintln(writer, " Token not specified")
-	} else {
-		fmt.Fprintln(writer, " HttpClient.Token: <*****>")
-	}
-
-	if len(config.HTTPClient.ProxyURL) > 0 {
-		fmt.Fprintf(writer, "  HTTPClient.ProxyURL: %s\n", config.HTTPClient.ProxyURL)
-	}
-
-	if len(config.User) == 0 {
-		fmt.Fprintf(writer, " Group: %s\n", config.Group)
-	} else {
-		fmt.Fprintf(writer, " User: %s\n", config.User)
-	}
-
-	// Protocol
-	printGitProtocol(writer, config)
-
-	// SSHClientOptions
-	printSSHClientOption(writer, config)
-
-	printProjectOption(writer, config)
-
-	fmt.Fprintf(writer, " Include: %s\n", config.Repositories.Include)
-	fmt.Fprintf(writer, " Exclude: %s\n", config.Repositories.Exclude)
-}
-
-func printProjectOption(writer io.Writer, config config.ProviderConfig) {
-	fmt.Fprint(writer, " Project:\n")
-
-	if config.Project.Description != "" {
-		fmt.Fprintf(writer, "  Description: %s\n", config.Project.Description)
-	}
-
-	if config.Project.Visibility != "" {
-		fmt.Fprintf(writer, "  Visibility: %s\n", config.Project.Visibility)
-	}
-
-	fmt.Fprintf(writer, "  Disabled: %t\n", config.Project.Disabled)
-}
-
-func printGitProtocol(writer io.Writer, providerConfig config.ProviderConfig) {
-	fmt.Fprint(writer, " Git:\n")
-
-	if len(providerConfig.Git.Type) == 0 {
-		fmt.Fprintf(writer, "  Type: %s\n", config.HTTPS)
-		fmt.Fprintf(writer, "  UseGitBinary: %t\n", providerConfig.Git.UseGitBinary)
-		fmt.Fprintf(writer, "  IncludeForks: %t\n", providerConfig.Git.IncludeForks)
-	} else {
-		fmt.Fprintf(writer, "  Type: %s\n", providerConfig.Git.Type)
-		fmt.Fprintf(writer, "  UseGitBinary: %t\n", providerConfig.Git.UseGitBinary)
-		fmt.Fprintf(writer, "  IncludeForks: %t\n", providerConfig.Git.IncludeForks)
+		for _, mirror := range config.Mirrors {
+			printMirrorConfig(mirror, writer)
+		}
 	}
 }
 
-func printSSHClientOption(writer io.Writer, providerConfig config.ProviderConfig) {
-	if len(providerConfig.SSHClient.SSHCommand) >= 0 {
-		fmt.Fprint(writer, " SSHClientOptions:\n")
-		fmt.Fprintf(writer, "  SSHCommand: %s\n", providerConfig.SSHClient.SSHCommand)
-		fmt.Fprintf(writer, "  RewriteSSHURLFrom: %s\n", providerConfig.SSHClient.RewriteSSHURLFrom)
-		fmt.Fprintf(writer, "  RewriteSSHURLTo: %s\n", providerConfig.SSHClient.RewriteSSHURLTo)
+// printAuthConfig writes authentication configuration details.
+func printAuthConfig(auth model.AuthConfig, writer io.Writer) {
+	fmt.Fprintln(writer, "\nAuthentication Configuration:")
+	fmt.Fprintln(writer, "-------------------------")
+	fmt.Fprintf(writer, "Protocol: %s\n", auth.Protocol)
+
+	if auth.HTTPScheme != "" {
+		fmt.Fprintf(writer, "HTTP Scheme: %s\n", auth.HTTPScheme)
+	}
+
+	if auth.Token != "" {
+		fmt.Fprintln(writer, "Token: <*****>")
+	}
+
+	if auth.ProxyURL != "" {
+		fmt.Fprintf(writer, "Proxy URL: %s\n", auth.ProxyURL)
+	}
+
+	if auth.CertDirPath != "" {
+		fmt.Fprintf(writer, "Certificate Directory: %s\n", auth.CertDirPath)
+	}
+
+	// Print SSH-specific configuration if present
+	if auth.SSHCommand != "" || auth.SSHURLRewriteFrom != "" || auth.SSHURLRewriteTo != "" {
+		fmt.Fprintln(writer, "\nSSH Configuration:")
+		fmt.Fprintf(writer, "SSH Command: %s\n", auth.SSHCommand)
+		fmt.Fprintf(writer, "SSH URL Rewrite From: %s\n", auth.SSHURLRewriteFrom)
+		fmt.Fprintf(writer, "SSH URL Rewrite To: %s\n", auth.SSHURLRewriteTo)
 	}
 }
 
-// printStringMap writes a map of strings to the provided writer if the map is not empty.
-func printStringMap(header string, aMap map[string]string, writer io.Writer) {
-	if len(aMap) == 0 {
-		return
+// printMirrorConfig writes the details of a mirror configuration.
+func printMirrorConfig(mirror model.MirrorConfig, writer io.Writer) {
+	//fmt.Fprintf(writer, "\nMirror: %s\n", mirror)
+	fmt.Fprintf(writer, "Type: %s\n", mirror.ProviderType)
+	fmt.Fprintf(writer, "Domain: %s\n", mirror.GetDomain())
+	fmt.Fprintf(writer, "Owner: %s\n", mirror.Owner)
+	fmt.Fprintf(writer, "Owner Type: %s\n", mirror.OwnerType)
+
+	if mirror.Path != "" {
+		fmt.Fprintf(writer, "Path: %s\n", mirror.Path)
 	}
 
-	fmt.Fprintf(writer, "%s:\n", header)
+	// Print Mirror Settings
+	printMirrorSettings(mirror.Settings, writer)
 
-	for key, value := range aMap {
-		fmt.Fprintf(writer, "  %s: %s\n", key, value)
+	// Print Mirror Auth Configuration
+	fmt.Fprintln(writer, "\nMirror Authentication:")
+	printAuthConfig(mirror.Auth, writer)
+}
+
+// printMirrorSettings writes mirror-specific settings.
+func printMirrorSettings(settings model.MirrorSettings, writer io.Writer) {
+	fmt.Fprintln(writer, "\nMirror Settings:")
+	fmt.Fprintf(writer, "ASCII Name: %t\n", settings.ASCIIName)
+
+	if settings.DescriptionPrefix != "" {
+		fmt.Fprintf(writer, "Description Prefix: %s\n", settings.DescriptionPrefix)
+	}
+
+	fmt.Fprintf(writer, "Disabled: %t\n", settings.Disabled)
+	fmt.Fprintf(writer, "Force Push: %t\n", settings.ForcePush)
+
+	if settings.GitHubUploadURL != "" {
+		fmt.Fprintf(writer, "GitHub Upload URL: %s\n", settings.GitHubUploadURL)
+	}
+
+	fmt.Fprintf(writer, "Ignore Invalid Name: %t\n", settings.IgnoreInvalidName)
+
+	if settings.Visibility != "" {
+		fmt.Fprintf(writer, "Visibility: %s\n", settings.Visibility)
+	}
+}
+
+// printRepositoriesOption writes repository configuration options.
+func printRepositoriesOption(repos model.RepositoriesOption, writer io.Writer) {
+	fmt.Fprintln(writer, "\nRepository Configuration:")
+	fmt.Fprintln(writer, "------------------------")
+
+	if len(repos.Include) > 0 {
+		fmt.Fprintf(writer, "Include: %v\n", repos.Include)
+	}
+
+	if len(repos.Exclude) > 0 {
+		fmt.Fprintf(writer, "Exclude: %v\n", repos.Exclude)
 	}
 }

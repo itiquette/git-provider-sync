@@ -3,9 +3,10 @@
 # SPDX-License-Identifier: CC0-1.0
 
 gitprovidersync:
-  conf1:
-    source:
+  env1:
+    conf1:
+      domain:
 
-    targets:
-      atarget:
-        providertype: gitea
+      mirrors:
+        atarget:
+          provider_type: gitea

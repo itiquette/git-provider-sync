@@ -16,22 +16,21 @@ import (
 // It encapsulates the target repository, reference specifications,
 // and flags for pruning and force pushing.
 type PushOption struct {
-	Force      bool // Whether to force push (overwrite remote history)
-	HTTPClient model.HTTPClientOption
-	Prune      bool     // Whether to prune remote branches that no longer exist locally
-	RefSpecs   []string // The reference specifications to push
-	SSHClient  model.SSHClientOption
-	Target     string // The URL of the target repository
+	Force    bool // Whether to force push (overwrite remote history)
+	AuthCfg  model.AuthConfig
+	Prune    bool     // Whether to prune remote branches that no longer exist locally
+	RefSpecs []string // The reference specifications to push
+	Target   string   // The URL of the target repository
 }
 
 func (po PushOption) String() string {
-	return fmt.Sprintf("PushOption{Target: %s, RefSpecs: %v, Prune: %t, Force: %t, HTTPClient: %s, SSHClient: %s}",
+	return fmt.Sprintf("PushOption{Target: %s, RefSpecs: %v, Prune: %t, Force: %t, AuthCfg: %s}",
 		po.Target,
 		po.RefSpecs,
 		po.Prune,
 		po.Force,
-		po.HTTPClient.String(),
-		po.SSHClient.String())
+		po.AuthCfg.String(),
+	)
 }
 
 func (po PushOption) DebugLog(logger *zerolog.Logger) *zerolog.Event {
@@ -40,8 +39,7 @@ func (po PushOption) DebugLog(logger *zerolog.Logger) *zerolog.Event {
 				Strs("refspecs", po.RefSpecs).
 				Bool("prune", po.Prune).
 				Bool("force", po.Force).
-				Str("http_client", po.HTTPClient.String()).
-				Str("ssh_client", po.SSHClient.String())
+				Str("auth_confg", po.AuthCfg.String())
 }
 
 // NewPushOption creates a new PushOption with appropriate RefSpecs.
@@ -55,7 +53,7 @@ func (po PushOption) DebugLog(logger *zerolog.Logger) *zerolog.Event {
 //
 // Returns:
 //   - A new PushOption struct configured with the provided options.
-func NewPushOption(target string, prune, force bool, httpClient model.HTTPClientOption) PushOption {
+func NewPushOption(target string, prune, force bool, authCfg model.AuthConfig) PushOption {
 	refSpecs := []string{"refs/heads/*:refs/heads/*", "refs/tags/*:refs/tags/*", "^refs/pull/*:refs/pull/*"}
 	if force {
 		for i, spec := range refSpecs {
@@ -66,10 +64,10 @@ func NewPushOption(target string, prune, force bool, httpClient model.HTTPClient
 	}
 
 	return PushOption{
-		Force:      force,
-		HTTPClient: httpClient,
-		Prune:      prune,
-		RefSpecs:   refSpecs,
-		Target:     target,
+		Force:    force,
+		AuthCfg:  authCfg,
+		Prune:    prune,
+		RefSpecs: refSpecs,
+		Target:   target,
 	}
 }

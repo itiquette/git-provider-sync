@@ -11,7 +11,6 @@ import (
 	"itiquette/git-provider-sync/internal/functiondefinition"
 	"itiquette/git-provider-sync/internal/log"
 	"itiquette/git-provider-sync/internal/model"
-	config "itiquette/git-provider-sync/internal/model/configuration"
 	"itiquette/git-provider-sync/internal/provider/targetfilter"
 )
 
@@ -34,11 +33,11 @@ func NewFilter() *filterService { //nolint
 // Returns:
 //   - []model.RepositoryMetainfo: A slice of filtered repository metadata.
 //   - error: An error if the filtering process fails.
-func (f filterService) FilterProjectInfos(ctx context.Context, cfg config.ProviderConfig, projectinfos []model.ProjectInfo) ([]model.ProjectInfo, error) {
+func (f filterService) FilterProjectInfos(ctx context.Context, opt model.ProviderOption, projectinfos []model.ProjectInfo) ([]model.ProjectInfo, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitHub:FilterProjectInfos")
 
-	return filter(ctx, cfg, projectinfos, targetfilter.FilterIncludedExcludedGen())
+	return filter(ctx, opt, projectinfos, targetfilter.FilterIncludedExcludedGen())
 }
 
 // filter applies both inclusion/exclusion and date-based filtering to the projectinfos.
@@ -53,11 +52,11 @@ func (f filterService) FilterProjectInfos(ctx context.Context, cfg config.Provid
 // Returns:
 //   - []model.RepositoryMetainfo: The filtered repository metadata.
 //   - error: An error if any part of the filtering process fails.
-func filter(ctx context.Context, cfg config.ProviderConfig, projectinfos []model.ProjectInfo, filterExcludedIncludedFunc functiondefinition.FilterIncludedExcludedFunc) ([]model.ProjectInfo, error) {
+func filter(ctx context.Context, opt model.ProviderOption, projectinfos []model.ProjectInfo, filterExcludedIncludedFunc functiondefinition.FilterIncludedExcludedFunc) ([]model.ProjectInfo, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitHub:filter")
 
-	filteredByRules, err := filterExcludedIncludedFunc(ctx, cfg, projectinfos)
+	filteredByRules, err := filterExcludedIncludedFunc(ctx, opt, projectinfos)
 	if err != nil {
 		return nil, fmt.Errorf("failed to filter repositories by inclusion/exclusion rules: %w", err)
 	}

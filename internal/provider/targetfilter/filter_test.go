@@ -5,18 +5,14 @@ package targetfilter
 
 import (
 	"context"
+	"itiquette/git-provider-sync/internal/model"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
-
-	"itiquette/git-provider-sync/internal/model"
-	config "itiquette/git-provider-sync/internal/model/configuration"
 )
 
 func TestIsInInterval(t *testing.T) {
-	assert := require.New(t)
-
 	tests := []struct {
 		name        string
 		updatedAt   time.Time
@@ -56,7 +52,7 @@ func TestIsInInterval(t *testing.T) {
 	}
 
 	for _, tabletest := range tests {
-		t.Run(tabletest.name, func(_ *testing.T) {
+		t.Run(tabletest.name, func(t *testing.T) {
 			ctx := context.Background()
 			if tabletest.limitOption != "" {
 				ctx = context.WithValue(ctx, model.CLIOptionKey{}, model.CLIOption{
@@ -67,9 +63,8 @@ func TestIsInInterval(t *testing.T) {
 			}
 
 			result, err := IsInInterval(ctx, tabletest.updatedAt)
-
 			if tabletest.expectError {
-				assert.Error(err)
+				require.Error(t, err)
 
 				return
 			}
@@ -81,17 +76,14 @@ func TestIsInInterval(t *testing.T) {
 }
 
 func TestFilterIncludedExcluded(t *testing.T) {
-	assert := require.New(t)
-
 	tests := []struct {
 		name     string
 		projects []model.ProjectInfo
-		included string
-		excluded string
+		opt      model.ProviderOption
 		expected []model.ProjectInfo
 	}{
 		{
-			name: "empty include/exclude lists returns all",
+			name: "empty include/exclude returns all",
 			projects: []model.ProjectInfo{
 				{OriginalName: "repo1"},
 				{OriginalName: "repo2"},
@@ -100,72 +92,90 @@ func TestFilterIncludedExcluded(t *testing.T) {
 				{OriginalName: "repo1"},
 				{OriginalName: "repo2"},
 			},
-			included: "",
-			excluded: "",
+			opt: model.ProviderOption{},
 		},
 		{
-			name: "include list filters correctly",
+			name: "included list filters",
 			projects: []model.ProjectInfo{
 				{OriginalName: "repo1"},
 				{OriginalName: "repo2"},
 				{OriginalName: "repo3"},
 			},
-			included: "repo1, repo3",
-			expected: []model.ProjectInfo{
-				{OriginalName: "repo1"},
-				{OriginalName: "repo3"},
+			opt: model.ProviderOption{
+				IncludedRepositories: []string{"repo1", "repo3"},
 			},
-		},
-		{
-			name: "exclude list filters correctly",
-			projects: []model.ProjectInfo{
-				{OriginalName: "repo1"},
-				{OriginalName: "repo2"},
-				{OriginalName: "repo3"},
-			},
-			excluded: "repo2",
 			expected: []model.ProjectInfo{
 				{OriginalName: "repo1"},
 				{OriginalName: "repo3"},
 			},
 		},
 		{
-			name: "include list takes precedence",
+			name: "excluded list filters",
 			projects: []model.ProjectInfo{
 				{OriginalName: "repo1"},
 				{OriginalName: "repo2"},
 				{OriginalName: "repo3"},
 			},
-			included: "repo1",
-			excluded: "repo1,repo2",
+			opt: model.ProviderOption{
+				ExcludedRepositories: []string{"repo2"},
+			},
 			expected: []model.ProjectInfo{
 				{OriginalName: "repo1"},
+				{OriginalName: "repo3"},
+			},
+		},
+		{
+			name: "include takes precedence",
+			projects: []model.ProjectInfo{
+				{OriginalName: "repo1"},
+				{OriginalName: "repo2"},
+				{OriginalName: "repo3"},
+			},
+			opt: model.ProviderOption{
+				IncludedRepositories: []string{"repo1"},
+				ExcludedRepositories: []string{"repo1", "repo2"},
+			},
+			expected: []model.ProjectInfo{
+				{OriginalName: "repo1"},
+			},
+		},
+		{
+			name: "include/exclude with no matching repos",
+			projects: []model.ProjectInfo{
+				{OriginalName: "repo1"},
+				{OriginalName: "repo2"},
+			},
+			opt: model.ProviderOption{
+				IncludedRepositories: []string{"repo3", "repo4"},
+			},
+			expected: []model.ProjectInfo{},
+		},
+		{
+			name: "case sensitive matching",
+			projects: []model.ProjectInfo{
+				{OriginalName: "Repo1"},
+				{OriginalName: "repo1"},
+			},
+			opt: model.ProviderOption{
+				IncludedRepositories: []string{"Repo1"},
+			},
+			expected: []model.ProjectInfo{
+				{OriginalName: "Repo1"},
 			},
 		},
 	}
 
 	for _, tabletest := range tests {
-		t.Run(tabletest.name, func(_ *testing.T) {
+		t.Run(tabletest.name, func(t *testing.T) {
 			filterFunc := FilterIncludedExcludedGen()
-
-			cfg := config.ProviderConfig{
-				Repositories: config.RepositoriesOption{
-					Include: tabletest.included,
-					Exclude: tabletest.excluded,
-				},
-			}
-
-			result, err := filterFunc(context.Background(), cfg, tabletest.projects)
-
-			assert.NoError(err)
-			assert.Equal(tabletest.expected, result)
+			result, err := filterFunc(context.Background(), tabletest.opt, tabletest.projects)
+			require.NoError(t, err)
+			require.Equal(t, tabletest.expected, result)
 		})
 	}
 }
 
 func TestShouldIncludeRepo(t *testing.T) {
-	assert := require.New(t)
-
 	tests := []struct {
 		name     string
 		repoName string
@@ -179,25 +189,25 @@ func TestShouldIncludeRepo(t *testing.T) {
 			expected: true,
 		},
 		{
-			name:     "included list only - repo in list",
+			name:     "included list - repo in list",
 			repoName: "repo1",
 			included: []string{"repo1", "repo2"},
 			expected: true,
 		},
 		{
-			name:     "included list only - repo not in list",
+			name:     "included list - repo not in list",
 			repoName: "repo3",
 			included: []string{"repo1", "repo2"},
 			expected: false,
 		},
 		{
-			name:     "excluded list only - repo in list",
+			name:     "excluded list - repo in list",
 			repoName: "repo1",
 			excluded: []string{"repo1", "repo2"},
 			expected: false,
 		},
 		{
-			name:     "excluded list only - repo not in list",
+			name:     "excluded list - repo not in list",
 			repoName: "repo3",
 			excluded: []string{"repo1", "repo2"},
 			expected: true,
@@ -205,9 +215,9 @@ func TestShouldIncludeRepo(t *testing.T) {
 	}
 
 	for _, tabletest := range tests {
-		t.Run(tabletest.name, func(_ *testing.T) {
+		t.Run(tabletest.name, func(t *testing.T) {
 			result := shouldIncludeRepo(tabletest.repoName, tabletest.included, tabletest.excluded)
-			assert.Equal(tabletest.expected, result)
+			require.Equal(t, tabletest.expected, result)
 		})
 	}
 }

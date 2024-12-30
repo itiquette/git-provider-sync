@@ -17,8 +17,8 @@ import (
 func TestExecutePrintCommandNoArgNoConfPanics(_ *testing.T) {
 	//	require := require.New(t)
 	ctx := context.Background()
-	cliOption := model.CLIOption{}
-	ctx = model.WithCLIOption(ctx, cliOption)
+	cliOpt := model.CLIOption{}
+	ctx = model.WithCLIOpt(ctx, cliOpt)
 	cmd := NewPrintCommand()
 	cmd.PersistentFlags().String("config-file", "testdasadfasdfta/testconfig.yaml", "path to a git provider sync configuration file.")
 	cmd.PersistentFlags().Bool("config-file-only", false, "read configuration from file only (ignore ENV, dotenv, XDG_CONFIG_HOME)")
@@ -57,5 +57,5 @@ func TestExecutePrintCommandFileConfArgSuccess(t *testing.T) {
 	cmd.Root().SetContext(ctx)
 	_ = cmd.Execute()
 	buffer, _ := configPrintWriter.(*bytes.Buffer)
-	require.Contains(buffer.String(), "Configuration Name")
+	require.Contains(buffer.String(), "Sync Configuration")
 }

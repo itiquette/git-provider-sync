@@ -11,9 +11,9 @@ import (
 	"github.com/go-git/go-git/v5"
 
 	"itiquette/git-provider-sync/internal/interfaces"
+	"itiquette/git-provider-sync/internal/mirror/gitlib"
 	"itiquette/git-provider-sync/internal/model"
 	gpsconfig "itiquette/git-provider-sync/internal/model/configuration"
-	"itiquette/git-provider-sync/internal/target/gitlib"
 )
 
 type GitHandler struct {
@@ -32,8 +32,8 @@ func (h *GitHandler) InitializeRepository(ctx context.Context, path string, repo
 		return fmt.Errorf("%w: %w", ErrRepoInitialization, err)
 	}
 
-	pushOpt := model.NewPushOption(path, false, true, gpsconfig.HTTPClientOption{})
-	if err := h.client.Push(ctx, repo, pushOpt, gpsconfig.GitOption{}); err != nil {
+	pushOpt := model.NewPushOption(path, false, true, gpsconfig.AuthConfig{})
+	if err := h.client.Push(ctx, repo, pushOpt); err != nil {
 		return fmt.Errorf("%w: %w", ErrPushRepository, err)
 	}
 
@@ -45,7 +45,7 @@ func (h *GitHandler) InitializeRepository(ctx context.Context, path string, repo
 }
 
 func (h *GitHandler) Push(ctx context.Context, repo interfaces.GitRepository, opt model.PushOption) error {
-	return h.client.Push(ctx, repo, opt, gpsconfig.GitOption{}) //nolint
+	return h.client.Push(ctx, repo, opt) //nolint
 }
 
 // configureRepository handles the internal repository configuration.

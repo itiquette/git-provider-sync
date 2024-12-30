@@ -6,12 +6,10 @@ package provider
 import (
 	"context"
 	"errors"
-	"testing"
-
+	mocks "itiquette/git-provider-sync/generated/mocks/mockgogit"
 	"itiquette/git-provider-sync/internal/model"
 	config "itiquette/git-provider-sync/internal/model/configuration"
-
-	mocks "itiquette/git-provider-sync/generated/mocks/mockgogit"
+	"testing"
 
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -20,35 +18,39 @@ import (
 func testContext() context.Context {
 	ctx := context.Background()
 	input := model.CLIOption{ASCIIName: true}
-	//ctx, _ = model.CreateTmpDir(ctx, "", "testadir")
 
-	return model.WithCLIOption(ctx, input)
+	return model.WithCLIOpt(ctx, input)
 }
-func TestClone(t *testing.T) {
-	require := require.New(t)
-	ctx := testContext()
 
+func TestClone(t *testing.T) {
+	ctx := testContext()
 	tests := []struct {
 		name         string
 		projectinfos []model.ProjectInfo
+		syncCfg      config.SyncConfig
 		mockSetup    func(*mocks.SourceReader)
 		wantErr      bool
 	}{
 		{
-			name: "Successful clone of multiple repositories",
+			name: "successful multiple clone",
 			projectinfos: []model.ProjectInfo{
 				{HTTPSURL: "https://github.com/user/repo1.git", OriginalName: "repo1"},
 				{HTTPSURL: "https://github.com/user/repo2.git", OriginalName: "repo2"},
 			},
+			syncCfg: config.SyncConfig{
+				BaseConfig: config.BaseConfig{},
+			},
 			mockSetup: func(srcR *mocks.SourceReader) {
 				srcR.EXPECT().Clone(mock.Anything, mock.Anything).Return(model.Repository{}, nil).Twice()
 			},
-			wantErr: false,
 		},
 		{
-			name: "Failure to clone repository",
+			name: "clone failure",
 			projectinfos: []model.ProjectInfo{
 				{HTTPSURL: "https://github.com/user/repo1.git", OriginalName: "repo1"},
+			},
+			syncCfg: config.SyncConfig{
+				BaseConfig: config.BaseConfig{},
 			},
 			mockSetup: func(srcR *mocks.SourceReader) {
 				srcR.EXPECT().Clone(mock.Anything, mock.Anything).Return(model.Repository{}, errors.New("clone failed"))
@@ -56,10 +58,30 @@ func TestClone(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:         "Empty projectinfos list",
+			name:         "empty projectinfos",
 			projectinfos: []model.ProjectInfo{},
-			mockSetup:    func(_ *mocks.SourceReader) {},
-			wantErr:      false,
+			syncCfg: config.SyncConfig{
+				BaseConfig: config.BaseConfig{},
+			},
+			mockSetup: func(*mocks.SourceReader) {},
+		},
+		{
+			name: "clone with ascii name setting",
+			projectinfos: []model.ProjectInfo{
+				{HTTPSURL: "https://github.com/user/repo1.git", OriginalName: "repo1"},
+			},
+			syncCfg: config.SyncConfig{
+				BaseConfig: config.BaseConfig{},
+				Mirrors: map[string]config.MirrorConfig{
+					"test": {
+						BaseConfig: config.BaseConfig{},
+						Settings:   config.MirrorSettings{ASCIIName: true},
+					},
+				},
+			},
+			mockSetup: func(srcR *mocks.SourceReader) {
+				srcR.EXPECT().Clone(mock.Anything, mock.Anything).Return(model.Repository{}, nil)
+			},
 		},
 	}
 
@@ -68,54 +90,85 @@ func TestClone(t *testing.T) {
 			mockReader := new(mocks.SourceReader)
 			tabletest.mockSetup(mockReader)
 
-			repos, err := Clone(ctx, mockReader, config.ProviderConfig{}, tabletest.projectinfos)
-
+			repos, err := Clone(ctx, mockReader, tabletest.syncCfg, tabletest.projectinfos)
 			if tabletest.wantErr {
-				require.Error(err)
-			} else {
-				require.NoError(err)
-				require.Len(repos, len(tabletest.projectinfos))
+				require.Error(t, err)
+
+				return
 			}
 
+			require.NoError(t, err)
+			require.Len(t, repos, len(tabletest.projectinfos))
 			mockReader.AssertExpectations(t)
 		})
 	}
 }
 
-func TestFetchMetainfo(t *testing.T) {
-	require := require.New(t)
-
+func TestFetchProjectInfo(t *testing.T) {
 	tests := []struct {
-		name       string
-		config     config.ProviderConfig
-		mockSetup  func(*mocks.GitProvider)
-		wantLength int
-		wantErr    bool
+		name      string
+		syncCfg   config.SyncConfig
+		mockSetup func(*mocks.GitProvider)
+		wantLen   int
+		wantErr   bool
 	}{
 		{
-			name:   "Successful fetch of metainfo",
-			config: config.ProviderConfig{},
+			name: "successful fetch",
+			syncCfg: config.SyncConfig{
+				BaseConfig: config.BaseConfig{
+					Owner:     "owner",
+					OwnerType: "user",
+				},
+				IncludeForks: true,
+			},
 			mockSetup: func(gitP *mocks.GitProvider) {
 				gitP.On("Name").Return("GitHub")
-				gitP.On("ProjectInfos", mock.Anything, mock.AnythingOfType("model.ProviderConfig"), true).
-					Return([]model.ProjectInfo{
-						{OriginalName: "repo1"},
-						{OriginalName: "repo2"},
-					}, nil)
+				gitP.On("ProjectInfos", mock.Anything, mock.MatchedBy(func(opt model.ProviderOption) bool {
+					return opt.IncludeForks == true &&
+						opt.Owner == "owner" &&
+						opt.OwnerType == "user"
+				}), true).Return([]model.ProjectInfo{
+					{OriginalName: "repo1"},
+					{OriginalName: "repo2"},
+				}, nil)
 			},
-			wantLength: 2,
-			wantErr:    false,
+			wantLen: 2,
 		},
 		{
-			name:   "Failure to fetch metainfo",
-			config: config.ProviderConfig{},
+			name: "fetch failure",
+			syncCfg: config.SyncConfig{
+				BaseConfig: config.BaseConfig{},
+			},
 			mockSetup: func(gitP *mocks.GitProvider) {
 				gitP.On("Name").Return("GitLab")
-				gitP.On("ProjectInfos", mock.Anything, mock.AnythingOfType("model.ProviderConfig"), true).
-					Return(nil, errors.New("failed to fetch metainfo"))
+				gitP.On("ProjectInfos", mock.Anything, mock.Anything, true).
+					Return(nil, errors.New("fetch failed"))
 			},
-			wantLength: 0,
-			wantErr:    true,
+			wantErr: true,
+		},
+		{
+			name: "fetch with repository filters",
+			syncCfg: config.SyncConfig{
+				BaseConfig: config.BaseConfig{
+					Owner:     "owner",
+					OwnerType: "user",
+				},
+				Repositories: config.RepositoriesOption{
+					Include: "repo1",
+					Exclude: "repo2",
+				},
+			},
+			mockSetup: func(gitP *mocks.GitProvider) {
+				gitP.On("Name").Return("GitHub")
+				gitP.On("ProjectInfos", mock.Anything, mock.MatchedBy(func(opt model.ProviderOption) bool {
+					included := opt.IncludedRepositories
+					excluded := opt.ExcludedRepositories
+
+					return len(included) == 1 && included[0] == "repo1" &&
+						len(excluded) == 1 && excluded[0] == "repo2"
+				}), true).Return([]model.ProjectInfo{{OriginalName: "repo1"}}, nil)
+			},
+			wantLen: 1,
 		},
 	}
 
@@ -124,16 +177,15 @@ func TestFetchMetainfo(t *testing.T) {
 			mockProvider := new(mocks.GitProvider)
 			tabletest.mockSetup(mockProvider)
 
-			ctx := context.Background()
-			projectinfos, err := FetchProjectInfo(ctx, tabletest.config, mockProvider)
-
+			projectinfos, err := FetchProjectInfo(context.Background(), tabletest.syncCfg, mockProvider)
 			if tabletest.wantErr {
-				require.Error(err)
-			} else {
-				require.NoError(err)
-				require.Len(projectinfos, tabletest.wantLength)
+				require.Error(t, err)
+
+				return
 			}
 
+			require.NoError(t, err)
+			require.Len(t, projectinfos, tabletest.wantLen)
 			mockProvider.AssertExpectations(t)
 		})
 	}

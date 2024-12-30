@@ -43,7 +43,7 @@ func (serv *Service) Clone(ctx context.Context, opt model.CloneOption) (model.Re
 	logger.Trace().Msg("Entering GitService:Clone")
 	opt.DebugLog(logger).Msg("GitService:Clone")
 
-	auth, err := serv.authService.GetAuthMethod(ctx, opt.Git, opt.HTTPClient, opt.SSHClient)
+	auth, err := serv.authService.GetAuthMethod(ctx, opt.AuthCfg)
 	if err != nil {
 		return model.Repository{}, fmt.Errorf("%w: %w", ErrAuthMethod, err)
 	}
@@ -73,7 +73,7 @@ func (serv *Service) Pull(ctx context.Context, opt model.PullOption, targetDir s
 		return err
 	}
 
-	auth, err := serv.authService.GetAuthMethod(ctx, opt.GitOption, opt.HTTPClient, opt.SSHClient)
+	auth, err := serv.authService.GetAuthMethod(ctx, opt.AuthCfg)
 	if err != nil {
 		return fmt.Errorf("%w: %w", ErrAuthMethod, err)
 	}
@@ -86,12 +86,12 @@ func (serv *Service) Pull(ctx context.Context, opt model.PullOption, targetDir s
 	return serv.Ops.FetchBranches(ctx, repo, auth, filepath.Dir(targetDir))
 }
 
-func (serv *Service) Push(ctx context.Context, repo interfaces.GitRepository, opt model.PushOption, gitOpt gpsconfig.GitOption) error {
+func (serv *Service) Push(ctx context.Context, repo interfaces.GitRepository, opt model.PushOption) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitService:Push")
-	opt.DebugLog(logger).Str("gitOpt", gitOpt.String()).Msg("GitService:Push")
+	//:opt.DebugLog(logger).Str("sourceCfg", sourceCfg.String()).Msg("GitService:Push")
 
-	auth, err := serv.authService.GetAuthMethod(ctx, gitOpt, opt.HTTPClient, opt.SSHClient)
+	auth, err := serv.authService.GetAuthMethod(ctx, opt.AuthCfg)
 	if err != nil {
 		return fmt.Errorf("%w: %w", ErrAuthMethod, err)
 	}
