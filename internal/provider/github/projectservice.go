@@ -12,7 +12,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v68/github"
 )
 
 type ProjectService struct {
@@ -176,7 +176,7 @@ func (p ProjectService) setDefaultBranch(ctx context.Context, owner string, proj
 	logger.Trace().Msg("Entering GitHub:setDefaultBranch")
 
 	_, _, err := p.client.Repositories.Edit(ctx, owner, projectName, &github.Repository{
-		DefaultBranch: github.String(branch),
+		DefaultBranch: github.Ptr(branch),
 	})
 	if err != nil {
 		return fmt.Errorf("failed to set default branch. err: %w", err)

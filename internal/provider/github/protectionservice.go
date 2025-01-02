@@ -9,7 +9,7 @@ import (
 	"itiquette/git-provider-sync/internal/log"
 	"strings"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v68/github"
 )
 
 type ProtectionService struct {
@@ -26,7 +26,7 @@ func (p ProtectionService) protect(ctx context.Context, owner, projectName strin
 	logger.Debug().Str("owner", owner).Str("projectName", projectName).Msg("GitHub:protect")
 
 	permissions := &github.ActionsPermissionsRepository{
-		Enabled: github.Bool(false),
+		Enabled: github.Ptr(false),
 	}
 
 	_, _, err := p.client.Repositories.EditActionsPermissions(ctx, owner, projectName, *permissions)
@@ -55,7 +55,7 @@ func (p ProtectionService) protect(ctx context.Context, owner, projectName strin
 func (p *ProtectionService) enableTagProtection(ctx context.Context, owner, projectName string) error {
 	ruleset := &github.Ruleset{
 		Name:        "TagProtectionRule",
-		Target:      github.String("tag"),
+		Target:      github.Ptr("tag"),
 		Enforcement: "active",
 		Rules: []*github.RepositoryRule{
 			// github.NewTagNamePatternRule(&github.RulePatternParameters{
@@ -94,7 +94,7 @@ func (p ProtectionService) enableBranchProtection(ctx context.Context, owner, pr
 
 	ruleset := &github.Ruleset{
 		Name:        "BranchProtectionRules",
-		Target:      github.String("branch"),
+		Target:      github.Ptr("branch"),
 		Enforcement: "active",
 
 		// Match all branches by default

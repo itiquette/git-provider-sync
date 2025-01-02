@@ -6,7 +6,7 @@ package github
 import (
 	"strings"
 
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v68/github"
 )
 
 type ProjectOptionsBuilder struct {
@@ -27,10 +27,10 @@ func (p *ProjectOptionsBuilder) basicOpts(visibility, name, description, default
 		isPrivate = true
 	}
 
-	p.opts.AllowAutoMerge = github.Bool(true)
-	p.opts.AllowForking = github.Bool(true)
-	p.opts.AllowRebaseMerge = github.Bool(true)
-	p.opts.AllowSquashMerge = github.Bool(true)
+	p.opts.AllowAutoMerge = github.Ptr(true)
+	p.opts.AllowForking = github.Ptr(true)
+	p.opts.AllowRebaseMerge = github.Ptr(true)
+	p.opts.AllowSquashMerge = github.Ptr(true)
 	p.opts.DefaultBranch = &defaultBranch
 	p.opts.Description = &description
 	p.opts.Name = &name
@@ -38,14 +38,14 @@ func (p *ProjectOptionsBuilder) basicOpts(visibility, name, description, default
 }
 
 func (p *ProjectOptionsBuilder) disableFeatures() {
-	p.opts.AllowAutoMerge = github.Bool(false)
-	p.opts.AllowMergeCommit = github.Bool(false)
-	p.opts.AllowSquashMerge = github.Bool(false)
-	p.opts.AllowUpdateBranch = github.Bool(false)
-	p.opts.DeleteBranchOnMerge = github.Bool(false)
-	p.opts.HasDownloads = github.Bool(false)
-	p.opts.HasIssues = github.Bool(false)
-	p.opts.HasPages = github.Bool(false)
-	p.opts.HasProjects = github.Bool(false)
-	p.opts.HasWiki = github.Bool(false)
+	p.opts.AllowAutoMerge = github.Ptr(false)
+	p.opts.AllowMergeCommit = github.Ptr(false)
+	p.opts.AllowSquashMerge = github.Ptr(false)
+	p.opts.AllowUpdateBranch = github.Ptr(false)
+	p.opts.DeleteBranchOnMerge = github.Ptr(false)
+	p.opts.HasDownloads = github.Ptr(false)
+	p.opts.HasIssues = github.Ptr(false)
+	p.opts.HasPages = github.Ptr(false)
+	p.opts.HasProjects = github.Ptr(false)
+	p.opts.HasWiki = github.Ptr(false)
 }
