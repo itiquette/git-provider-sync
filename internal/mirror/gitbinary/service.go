@@ -11,6 +11,7 @@ import (
 	"itiquette/git-provider-sync/internal/log"
 	"itiquette/git-provider-sync/internal/model"
 	gpsconfig "itiquette/git-provider-sync/internal/model/configuration"
+	"itiquette/git-provider-sync/internal/provider/stringconvert"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -19,15 +20,12 @@ import (
 )
 
 type Service struct {
-	authService     *authService
 	executorService ExecutorService
 	branchService   *operation
 	binaryPath      string
 }
 
 func NewService() (*Service, error) {
-	auth := NewAuthService()
-
 	binaryPath, err := ValidateGitBinary()
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrGitBinaryNotFound, err)
@@ -40,7 +38,6 @@ func NewService() (*Service, error) {
 	executorService := NewExecutorService(binaryPath)
 
 	return &Service{
-		authService:     auth,
 		executorService: executorService,
 		branchService:   NewOperation(executorService),
 		binaryPath:      binaryPath,
@@ -50,7 +47,7 @@ func NewService() (*Service, error) {
 func (g *Service) Clone(ctx context.Context, opt model.CloneOption) (model.Repository, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Clone")
-	opt.DebugLog(logger).Msg("Clone")
+	opt.DebugLog(ctx, logger).Msg("Clone")
 
 	env := SetupSSHCommandEnv(opt.AuthCfg.SSHCommand, opt.AuthCfg.SSHURLRewriteFrom, opt.AuthCfg.SSHURLRewriteTo)
 
@@ -82,11 +79,11 @@ func (g *Service) Clone(ctx context.Context, opt model.CloneOption) (model.Repos
 func (g *Service) prepareCloneURL(ctx context.Context, opt model.CloneOption) string {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering prepareCloneURL")
-	opt.DebugLog(logger).Msg("prepareCloneURL")
+	opt.DebugLog(ctx, logger).Msg("prepareCloneURL")
 
 	url := opt.URL
-	if !strings.EqualFold(opt.SourceCfg.ProviderType, gpsconfig.SSH) {
-		url = g.authService.AddBasicAuthToURL(ctx, opt.URL, "anyuser", opt.AuthCfg.Token)
+	if !strings.EqualFold(opt.SourceCfg.Auth.Protocol, gpsconfig.SSH) {
+		url = stringconvert.AddBasicAuthToURL(ctx, opt.URL, "anyuser", opt.AuthCfg.Token)
 	}
 
 	return url
@@ -97,7 +94,7 @@ func (g *Service) finalizeClone(ctx context.Context, destinationDir, cloneURL, g
 	logger.Trace().Msg("Entering finalizeClone")
 	logger.Debug().
 		Str("destinationDir", destinationDir).
-		Str("cloneURL", cloneURL).
+		Str("cloneURL", stringconvert.RemoveBasicAuthFromURL(ctx, cloneURL, false)).
 		Str("gitType", gitType).
 		Msg("finalizeClone")
 
@@ -118,9 +115,9 @@ func (g *Service) finalizeClone(ctx context.Context, destinationDir, cloneURL, g
 func (g *Service) updateRepoConfig(ctx context.Context, repo *git.Repository, cloneURL string) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering updateRepoConfig")
-	logger.Debug().Str("cloneURL", cloneURL).Msg("updateRepoConfig")
+	logger.Debug().Str("cloneURL", stringconvert.RemoveBasicAuthFromURL(ctx, cloneURL, false)).Msg("updateRepoConfig")
 
-	url := g.authService.RemoveBasicAuthFromURL(ctx, cloneURL)
+	url := stringconvert.RemoveBasicAuthFromURL(ctx, cloneURL, true)
 	cfg, _ := repo.Config()
 	cfg.Remotes["origin"].URLs = []string{url}
 
@@ -145,15 +142,22 @@ func (g *Service) Pull(ctx context.Context, pullDirPath string, opt model.PullOp
 	return g.branchService.Fetch(ctx, pullDirPath)
 }
 
-func (g *Service) Push(ctx context.Context, _ interfaces.GitRepository, opt model.PushOption) error {
+func (g *Service) Push(ctx context.Context, repo interfaces.GitRepository, opt model.PushOption) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Push")
-	opt.DebugLog(logger).Msg("Push")
+	opt.DebugLog(ctx, logger).Msg("Push")
 
 	env := SetupSSHCommandEnv(opt.AuthCfg.SSHCommand, opt.AuthCfg.SSHURLRewriteFrom, opt.AuthCfg.SSHURLRewriteTo)
 	args := append([]string{"push", opt.Target}, opt.RefSpecs...)
 
-	return g.executorService.RunGitCommand(ctx, env, "", args...) //nolint
+	tmpDirPath, err := model.GetTmpDirPath(ctx)
+	if err != nil {
+		return fmt.Errorf("%w: %w", ErrTmpDirPath, err)
+	}
+
+	destinationDir := filepath.Join(tmpDirPath, repo.ProjectInfo().Name(ctx))
+
+	return g.executorService.RunGitCommand(ctx, env, destinationDir, args...) //nolint
 }
 
 func ValidateGitBinary() (string, error) {

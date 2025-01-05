@@ -13,6 +13,7 @@ import (
 	"itiquette/git-provider-sync/internal/log"
 	"itiquette/git-provider-sync/internal/model"
 	config "itiquette/git-provider-sync/internal/model/configuration"
+	"itiquette/git-provider-sync/internal/provider/stringconvert"
 )
 
 // Clone clones multiple repositories based on their metadata.
@@ -25,7 +26,16 @@ func Clone(ctx context.Context, reader interfaces.SourceReader, syncCfg config.S
 
 	repositories := make([]interfaces.GitRepository, 0, len(projectinfos))
 
+	cliOpts := model.CLIOptions(ctx)
+
 	for _, projectInfo := range projectinfos {
+		name := stringconvert.RemoveNonAlphaNumericChars(ctx, projectInfo.OriginalName)
+		projectInfo.SetCleanName(name)
+
+		if cliOpts.ASCIIName {
+			projectInfo.SetASCIIName(true)
+		}
+
 		opt := model.NewCloneOption(ctx, projectInfo, true, syncCfg)
 
 		resultRepo, err := reader.Clone(ctx, opt)

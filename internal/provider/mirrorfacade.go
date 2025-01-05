@@ -37,12 +37,12 @@ var (
 //   - repository: The Git repository interface
 //
 // Returns an error if any step in the process fails.
-func Push(ctx context.Context, mirrorCfg config.MirrorConfig, provider interfaces.GitProvider, writer interfaces.MirrorWriter, repository interfaces.GitRepository, sourceProviderConfig config.SyncConfig) error {
+func Push(ctx context.Context, mirrorCfg config.MirrorConfig, provider interfaces.GitProvider, writer interfaces.MirrorWriter, repository interfaces.GitRepository, syncCfg config.SyncConfig) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Push")
 	//	targetProviderCfg.DebugLog(logger).Msg("Push")
 
-	_, _, projectID, err := exists(ctx, mirrorCfg, provider, sourceProviderConfig.ProviderType, repository)
+	_, _, projectID, err := exists(ctx, mirrorCfg, provider, syncCfg.ProviderType, repository)
 	if err != nil {
 		return fmt.Errorf("failed to check if the repository exists at provider: %w", err)
 	}
@@ -92,7 +92,15 @@ func getPushOption(ctx context.Context, mirrorCfg config.MirrorConfig, repositor
 	case config.DIRECTORY:
 		return model.NewPushOption(mirrorCfg.Path, false, false, config.AuthConfig{})
 	default:
-		return model.NewPushOption(toGitURL(ctx, mirrorCfg, repository), false, forcePush, mirrorCfg.Auth)
+		var gitURL string
+		if strings.EqualFold(mirrorCfg.Auth.Protocol, config.SSH) {
+			gitURL = toGitURL(ctx, mirrorCfg, repository)
+		} else {
+			url := toGitURL(ctx, mirrorCfg, repository)
+			gitURL = stringconvert.AddBasicAuthToURL(ctx, url, "any", mirrorCfg.Auth.Token)
+		}
+
+		return model.NewPushOption(gitURL, false, forcePush, mirrorCfg.Auth)
 	}
 }
 
@@ -220,21 +228,39 @@ func toGitURL(ctx context.Context, mirrorCfg config.MirrorConfig, repository int
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering toGitURL")
 
-	repositoryName := repository.ProjectInfo().Name(ctx)
+	var repositoryName string
+
+	repositoryName = repository.ProjectInfo().Name(ctx)
+	if mirrorCfg.Settings.ASCIIName {
+		repositoryName = repository.ProjectInfo().CleanName
+	}
 
 	trimmedProviderConfigURL := strings.TrimRight(mirrorCfg.GetDomain(), "/")
 	projectPath := getProjectPath(mirrorCfg, repositoryName)
 
-	scheme := mirrorCfg.Auth.HTTPScheme
-	if len(scheme) > 0 {
-		return fmt.Sprintf("%s://%s/%s", scheme, trimmedProviderConfigURL, projectPath)
+	// Handle URL scheme based on auth protocol type
+	switch mirrorCfg.Auth.Protocol {
+	case config.SSH:
+		url := fmt.Sprintf("git@%s:%s", trimmedProviderConfigURL, projectPath)
+
+		return url
+	case config.TLS:
+		scheme := mirrorCfg.Auth.HTTPScheme
+		if len(scheme) > 0 {
+			return fmt.Sprintf("%s://%s/%s", scheme, trimmedProviderConfigURL, projectPath)
+		}
+		// Default to HTTPS if no scheme specified
+		newURL := fmt.Sprintf("https://%s/%s", trimmedProviderConfigURL, projectPath)
+		logger.Debug().Str("newURL", newURL).Msg("toGitURL")
+
+		return newURL
+	default:
+		// If no auth type specified, default to HTTPS
+		newURL := fmt.Sprintf("https://%s/%s", trimmedProviderConfigURL, projectPath)
+		logger.Debug().Str("newURL", newURL).Msg("toGitURL")
+
+		return newURL
 	}
-
-	newURL := fmt.Sprintf("https://%s/%s", trimmedProviderConfigURL, projectPath)
-
-	logger.Debug().Str("newURL", newURL).Msg("toGitURL")
-
-	return newURL
 }
 
 // getProjectPath constructs the project path based on whether it's a group or user repository.

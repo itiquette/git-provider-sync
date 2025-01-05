@@ -18,6 +18,7 @@ import (
 	"itiquette/git-provider-sync/internal/log"
 	"itiquette/git-provider-sync/internal/model"
 	gpsconfig "itiquette/git-provider-sync/internal/model/configuration"
+	"itiquette/git-provider-sync/internal/provider/stringconvert"
 )
 
 type Service struct {
@@ -41,7 +42,7 @@ func NewService() *Service {
 func (serv *Service) Clone(ctx context.Context, opt model.CloneOption) (model.Repository, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitService:Clone")
-	opt.DebugLog(logger).Msg("GitService:Clone")
+	opt.DebugLog(ctx, logger).Msg("GitService:Clone")
 
 	auth, err := serv.authService.GetAuthMethod(ctx, opt.AuthCfg)
 	if err != nil {
@@ -100,7 +101,7 @@ func (serv *Service) Push(ctx context.Context, repo interfaces.GitRepository, op
 
 	if err := repo.GoGitRepository().Push(&pushOpts); err != nil {
 		if errors.Is(err, git.NoErrAlreadyUpToDate) {
-			logger.Debug().Str("targetDir", opt.Target).Msg("repository already up-to-date")
+			logger.Debug().Str("targetDir", stringconvert.RemoveBasicAuthFromURL(ctx, opt.Target, false)).Msg("repository already up-to-date")
 			serv.metadata.UpdateSyncMetadata(ctx, "uptodate", opt.Target)
 
 			return nil

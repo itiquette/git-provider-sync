@@ -38,7 +38,7 @@ func HandleError(ctx context.Context, err error) {
 	}
 
 	logger := zerolog.Ctx(ctx)
-	logger.Error().Err(err).Msg("An error occurred")
+	logger.Error().Err(err).Msg("A fatal error occurred") //TODO: should mask any eventual tokens from err output
 
 	provideUserFriendlyMessage(err, logger)
 	os.Exit(1)

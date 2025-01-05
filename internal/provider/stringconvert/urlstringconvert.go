@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-package gitbinary
+package stringconvert
 
 import (
 	"context"
@@ -10,13 +10,7 @@ import (
 	"net/url"
 )
 
-type authService struct{}
-
-func NewAuthService() *authService { //nolint
-	return &authService{}
-}
-
-func (s *authService) AddBasicAuthToURL(ctx context.Context, urlStr, username, password string) string {
+func AddBasicAuthToURL(ctx context.Context, urlStr, username, password string) string {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("AddBasicAuthToURL")
 
@@ -26,7 +20,7 @@ func (s *authService) AddBasicAuthToURL(ctx context.Context, urlStr, username, p
 	return parsedURL.String()
 }
 
-func (s *authService) RemoveBasicAuthFromURL(ctx context.Context, urlStr string) string {
+func RemoveBasicAuthFromURL(ctx context.Context, urlStr string, stripInsteadMask bool) string {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("RemoveBasicAuthFromURL")
 
@@ -35,7 +29,18 @@ func (s *authService) RemoveBasicAuthFromURL(ctx context.Context, urlStr string)
 		return urlStr
 	}
 
-	parsedURL.User = nil
+	if stripInsteadMask {
+		if parsedURL.User != nil {
+			parsedURL.User = nil
+		}
+	} else {
+		if parsedURL.User != nil {
+			username := parsedURL.User.Username()
+			if _, hasPassword := parsedURL.User.Password(); hasPassword {
+				parsedURL.User = url.UserPassword(username, "SECRET")
+			}
+		}
+	}
 
 	return parsedURL.String()
 }

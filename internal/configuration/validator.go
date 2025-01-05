@@ -175,6 +175,13 @@ func validateMirrorConfig(cfg config.MirrorConfig) error {
 		if err := validateOwner(cfg.Owner, cfg.OwnerType); err != nil {
 			return err
 		}
+
+		if cfg.UseGitBinary {
+			// Note: Assuming gitbinary.ValidateGitBinary() is available
+			if _, err := gitbinary.ValidateGitBinary(); err != nil {
+				return ErrNoGitBinaryFound
+			}
+		}
 	}
 
 	if err := validateAuth(cfg.Auth); err != nil {

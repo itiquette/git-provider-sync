@@ -6,6 +6,7 @@ package gitbinary
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"itiquette/git-provider-sync/internal/log"
 	"os"
@@ -35,9 +36,11 @@ func (e *executorService) RunGitCommand(ctx context.Context, env []string, worki
 
 	cmd.Env = append(os.Environ(), env...)
 
-	if len(workingDir) != 0 {
-		cmd.Dir = workingDir
+	if len(workingDir) == 0 {
+		return errors.New("failed to run Git cmd, workingDir was empty")
 	}
+
+	cmd.Dir = workingDir
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {

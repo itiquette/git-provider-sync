@@ -28,7 +28,7 @@ func NewService(git GitHandler, storage StorageHandler) *Service {
 func (serv *Service) Push(ctx context.Context, repo interfaces.GitRepository, opt model.PushOption) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Directory:Push")
-	opt.DebugLog(logger).Msg("Directory:Push")
+	opt.DebugLog(ctx, logger).Msg("Directory:Push")
 
 	targetDir, err := serv.storage.GetTargetPath(ctx, opt.Target, repo.ProjectInfo().Name(ctx))
 	if err != nil {

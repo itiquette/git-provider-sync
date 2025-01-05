@@ -28,44 +28,57 @@ func TestExecutorService_RunGitCommand(t *testing.T) {
 		errMsg     string
 	}{
 		{
-			name:    "successful command execution",
+			name:       "successful command execution",
+			binary:     "true",
+			workingDir: os.TempDir(),
+			wantErr:    false,
+		},
+		{
+			name:       "failed command execution",
+			binary:     "false",
+			workingDir: os.TempDir(),
+			wantErr:    true,
+			errMsg:     "exit status 1",
+		},
+		{
+			name:       "execution with custom environment",
+			workingDir: os.TempDir(),
+			binary:     "true",
+			env:        []string{"CUSTOM_VAR=test", "LANG=C"},
+		},
+		{
+			name:       "execution with empty environment",
+			workingDir: os.TempDir(),
+			binary:     "true",
+			env:        []string{},
+		},
+		{
+			name:       "execution with nil environment",
+			workingDir: os.TempDir(),
+			binary:     "true",
+			env:        nil,
+		},
+		{
+			name:       "execution with invalid environment variable",
+			workingDir: os.TempDir(),
+			binary:     "true",
+			env:        []string{"INVALID=VAR=VALUE"},
+		},
+		{
+			name:       "execution with multiple environment variables",
+			workingDir: os.TempDir(),
+			binary:     "true",
+			env:        []string{"VAR1=value1", "VAR2=value2", "VAR3=value3"},
+		},
+		{
+			name:       "empty binary path",
+			workingDir: os.TempDir(),
+			binary:     "",
+			wantErr:    true,
+		},
+		{
+			name:    "empty workdir",
 			binary:  "true",
-			wantErr: false,
-		},
-		{
-			name:    "failed command execution",
-			binary:  "false",
-			wantErr: true,
-			errMsg:  "exit status 1",
-		},
-		{
-			name:   "execution with custom environment",
-			binary: "true",
-			env:    []string{"CUSTOM_VAR=test", "LANG=C"},
-		},
-		{
-			name:   "execution with empty environment",
-			binary: "true",
-			env:    []string{},
-		},
-		{
-			name:   "execution with nil environment",
-			binary: "true",
-			env:    nil,
-		},
-		{
-			name:   "execution with invalid environment variable",
-			binary: "true",
-			env:    []string{"INVALID=VAR=VALUE"},
-		},
-		{
-			name:   "execution with multiple environment variables",
-			binary: "true",
-			env:    []string{"VAR1=value1", "VAR2=value2", "VAR3=value3"},
-		},
-		{
-			name:    "empty binary path",
-			binary:  "",
 			wantErr: true,
 		},
 		{

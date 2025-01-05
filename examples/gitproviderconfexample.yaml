@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: CC0-1.0
 
-# Complete reference of all available configuration options for Git Provider Sync
+# Complete reference guide with all available configuration options for Git Provider Sync
 # Each option is documented with its requirements and description
 # Everything OPTIONAL will have a default value.
 
@@ -34,6 +34,7 @@ gitprovidersync: # MANDATORY: Root configuration object containing all project c
           domain: gitea.com # OPTIONAL: Target domain name
           owner: username # MANDATORY: (if no owner_type group) Target repository owner username
           owner_type: user # MANDATORY: Target repository owner type (user or group)
+          use_git_binary: false # OPTIONAL: Use system git binary instead of go-git library
           auth:
             cert_dir_path: /path/certs # OPTIONAL: Custom certificates directory
             token: token123 # OPTIONAL: Git provider API token

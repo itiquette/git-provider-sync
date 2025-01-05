@@ -19,7 +19,6 @@ import (
 	"itiquette/git-provider-sync/internal/model"
 	gpsconfig "itiquette/git-provider-sync/internal/model/configuration"
 	"itiquette/git-provider-sync/internal/provider"
-	"itiquette/git-provider-sync/internal/provider/stringconvert"
 )
 
 func toMirror(ctx context.Context, syncCfg gpsconfig.SyncConfig, mirrorCfg gpsconfig.MirrorConfig, repositories []interfaces.GitRepository) error {
@@ -35,8 +34,6 @@ func toMirror(ctx context.Context, syncCfg gpsconfig.SyncConfig, mirrorCfg gpsco
 	}
 
 	for _, repo := range repositories {
-		repo.ProjectInfo().Name(ctx)
-
 		if err := processRepository(ctx, mirrorCfg, client, repo, syncCfg); err != nil {
 			return fmt.Errorf("failed to process repository: %w", err)
 		}
@@ -94,11 +91,10 @@ func validateRepository(ctx context.Context, client interfaces.GitProvider, repo
 
 	cliOpts := model.CLIOptions(ctx)
 
-	name := repo.ProjectInfo().OriginalName
-	if cliOpts.ASCIIName || mirrorCfg.Settings.ASCIIName {
-		name = stringconvert.RemoveNonAlphaNumericChars(ctx, name)
-		p := repo.ProjectInfo()
-		p.SetCleanName(name)
+	name := repo.ProjectInfo().Name(ctx)
+
+	if mirrorCfg.Settings.ASCIIName {
+		name = repo.ProjectInfo().CleanName
 	}
 
 	ignoreRepository := false
@@ -159,7 +155,7 @@ func createMirrorProviderClient(ctx context.Context, mirrorCfg gpsconfig.MirrorC
 }
 
 func pushRepository(ctx context.Context, sourceCfg gpsconfig.SyncConfig, mirrorCfg gpsconfig.MirrorConfig, client interfaces.GitProvider, repo interfaces.GitRepository) error {
-	writer, err := getMirrorWriter(mirrorCfg, sourceCfg.UseGitBinary)
+	writer, err := getMirrorWriter(mirrorCfg)
 	if err != nil {
 		return fmt.Errorf("get mirror writer: %w", err)
 	}
@@ -173,7 +169,7 @@ func pushRepository(ctx context.Context, sourceCfg gpsconfig.SyncConfig, mirrorC
 	return nil
 }
 
-func getMirrorWriter(mirrorCfg gpsconfig.MirrorConfig, useGitBin bool) (interfaces.MirrorWriter, error) {
+func getMirrorWriter(mirrorCfg gpsconfig.MirrorConfig) (interfaces.MirrorWriter, error) {
 	switch strings.ToLower(mirrorCfg.ProviderType) {
 	case gpsconfig.ARCHIVE:
 		gitHandler := archive.NewGitHandler(gitlib.NewService())
@@ -187,7 +183,7 @@ func getMirrorWriter(mirrorCfg gpsconfig.MirrorConfig, useGitBin bool) (interfac
 
 		return directory.NewService(gitHandler, storageHandler), nil
 	default:
-		if useGitBin {
+		if mirrorCfg.UseGitBinary {
 			writer, err := gitbinary.NewService()
 			if err != nil {
 				return nil, fmt.Errorf("create git binary writer: %w", err)

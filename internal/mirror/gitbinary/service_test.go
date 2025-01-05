@@ -16,6 +16,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/stretchr/testify/require"
 
+	"itiquette/git-provider-sync/internal/interfaces"
 	"itiquette/git-provider-sync/internal/model"
 	gpsconfig "itiquette/git-provider-sync/internal/model/configuration"
 )
@@ -288,10 +289,19 @@ func TestService_Pull(t *testing.T) {
 }
 
 func TestService_Push(t *testing.T) {
+	tmpDir := t.TempDir()
+	repo := createTestRepo(t, tmpDir)
+
+	repa, _ := model.NewRepository(repo)
+	repa.ProjectMetaInfo = &model.ProjectInfo{}
+	repa.ProjectMetaInfo.OriginalName = "name"
+	repa.ProjectMetaInfo.CleanName = "name"
+
 	tests := []struct {
 		name      string
 		opt       model.PushOption
 		setup     func(*mockExecutorService)
+		rep       interfaces.GitRepository
 		wantErr   bool
 		errType   error
 		checkCall func(*testing.T, *mockExecutorService)
@@ -305,6 +315,7 @@ func TestService_Push(t *testing.T) {
 					SSHCommand: "ssh -i key",
 				},
 			},
+			rep: repa,
 			checkCall: func(t *testing.T, m *mockExecutorService) {
 				t.Helper()
 				require.Equal(t, []string{"push", "origin", "HEAD:refs/for/main"}, m.runArgs)
@@ -316,6 +327,7 @@ func TestService_Push(t *testing.T) {
 			opt: model.PushOption{
 				Target: "origin",
 			},
+			rep: repa,
 			setup: func(m *mockExecutorService) {
 				m.runErr = errors.New("network error")
 			},
@@ -334,7 +346,7 @@ func TestService_Push(t *testing.T) {
 				executorService: mock,
 			}
 
-			err := svc.Push(context.Background(), nil, tabletest.opt)
+			err := svc.Push(testContext(tmpDir), tabletest.rep, tabletest.opt)
 
 			if tabletest.wantErr {
 				require.Error(t, err)
@@ -353,6 +365,12 @@ func TestService_Push(t *testing.T) {
 			}
 		})
 	}
+}
+
+func testContext(tmpDir string) context.Context {
+	ctx := context.Background()
+
+	return context.WithValue(ctx, model.TmpDirKey{}, tmpDir)
 }
 
 func TestSetupSSHCommandEnv(t *testing.T) {

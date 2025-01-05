@@ -5,8 +5,10 @@
 package model
 
 import (
+	"context"
 	"fmt"
 	model "itiquette/git-provider-sync/internal/model/configuration"
+	"itiquette/git-provider-sync/internal/provider/stringconvert"
 	"strings"
 
 	"github.com/rs/zerolog"
@@ -33,9 +35,9 @@ func (po PushOption) String() string {
 	)
 }
 
-func (po PushOption) DebugLog(logger *zerolog.Logger) *zerolog.Event {
+func (po PushOption) DebugLog(ctx context.Context, logger *zerolog.Logger) *zerolog.Event {
 	return logger.Debug(). //nolint:zerologlint
-				Str("target", po.Target).
+				Str("target", stringconvert.RemoveBasicAuthFromURL(ctx, po.Target, false)).
 				Strs("refspecs", po.RefSpecs).
 				Bool("prune", po.Prune).
 				Bool("force", po.Force).
@@ -54,7 +56,7 @@ func (po PushOption) DebugLog(logger *zerolog.Logger) *zerolog.Event {
 // Returns:
 //   - A new PushOption struct configured with the provided options.
 func NewPushOption(target string, prune, force bool, authCfg model.AuthConfig) PushOption {
-	refSpecs := []string{"refs/heads/*:refs/heads/*", "refs/tags/*:refs/tags/*", "^refs/pull/*:refs/pull/*"}
+	refSpecs := []string{"refs/heads/*:refs/heads/*", "refs/tags/*:refs/tags/*"} //TODO: add bug report
 	if force {
 		for i, spec := range refSpecs {
 			if !strings.HasPrefix(spec, "^") {

@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: 2024 Josef Andersson
 //
 // SPDX-License-Identifier: EUPL-1.2
-package gitbinary
+
+package stringconvert
 
 import (
 	"context"
@@ -62,12 +63,11 @@ func TestAuthService_AddBasicAuthToURL(t *testing.T) {
 		},
 	}
 
-	svc := NewAuthService()
 	ctx := context.Background()
 
 	for _, tabletest := range tests {
 		t.Run(tabletest.name, func(t *testing.T) {
-			got := svc.AddBasicAuthToURL(ctx, tabletest.url, tabletest.username, tabletest.password)
+			got := AddBasicAuthToURL(ctx, tabletest.url, tabletest.username, tabletest.password)
 			assert.Equal(t, tabletest.want, got)
 		})
 	}
@@ -82,7 +82,7 @@ func TestAuthService_RemoveBasicAuthFromURL(t *testing.T) {
 		{
 			name: "url with auth",
 			url:  "https://user:pass@example.com",
-			want: "https://example.com",
+			want: "https://user:SECRET@example.com",
 		},
 		{
 			name: "url without auth",
@@ -92,17 +92,17 @@ func TestAuthService_RemoveBasicAuthFromURL(t *testing.T) {
 		{
 			name: "url with path and auth",
 			url:  "https://user:pass@example.com/repo.git",
-			want: "https://example.com/repo.git",
+			want: "https://user:SECRET@example.com/repo.git",
 		},
 		{
 			name: "url with special characters in auth",
 			url:  "https://user%40domain:pass%3Aword%21@example.com",
-			want: "https://example.com",
+			want: "https://user%40domain:SECRET@example.com",
 		},
 		{
 			name: "url with port and auth",
 			url:  "https://user:pass@example.com:8080",
-			want: "https://example.com:8080",
+			want: "https://user:SECRET@example.com:8080",
 		},
 		{
 			name: "invalid url",
@@ -116,12 +116,11 @@ func TestAuthService_RemoveBasicAuthFromURL(t *testing.T) {
 		},
 	}
 
-	svc := NewAuthService()
 	ctx := context.Background()
 
 	for _, tabletest := range tests {
 		t.Run(tabletest.name, func(t *testing.T) {
-			got := svc.RemoveBasicAuthFromURL(ctx, tabletest.url)
+			got := RemoveBasicAuthFromURL(ctx, tabletest.url, false)
 			assert.Equal(t, tabletest.want, got)
 		})
 	}

@@ -1013,6 +1013,15 @@ a|Must be absolute path.
 path: /path/to/archives
 |N/A
 
+|gitprovidersync.<env>.<source>.mirrors.<mirrors>.use_git_binary
+|Use system git binary instead of go-git library
+|Optional
+a|Required for SSH proxy command. Git must be installed.
+
+[literal]
+use_git_binary: true
+|false
+
 |gitprovidersync.<env>.<source>.mirrors.<mirror>.settings.force_push
 |Always use force push
 |Optional

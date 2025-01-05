@@ -46,6 +46,10 @@ type ProjectInfo struct {
 	ASCIIName bool
 }
 
+func (rm *ProjectInfo) SetASCIIName(name bool) {
+	rm.ASCIIName = name
+}
+
 func (rm *ProjectInfo) SetCleanName(name string) {
 	rm.CleanName = name
 }
@@ -60,7 +64,7 @@ func (rm *ProjectInfo) SetCleanName(name string) {
 // Returns:
 //   - A string representing the (possibly cleaned) repository name.
 func (rm ProjectInfo) Name(_ context.Context) string {
-	if rm.CleanName != "" {
+	if rm.ASCIIName {
 		return rm.CleanName
 	}
 

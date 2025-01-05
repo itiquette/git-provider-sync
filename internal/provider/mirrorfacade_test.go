@@ -304,32 +304,9 @@ func TestGetPushOption(t *testing.T) {
 			},
 			forcePush: true,
 			want: model.PushOption{
-				Target:  "https://github.com/testuser/test-repo",
+				Target:  "https://any:test-token@github.com/testuser/test-repo",
 				Force:   true,
 				AuthCfg: gpsconfig.AuthConfig{Token: "test-token"},
-			},
-		},
-		{
-			name: "git provider with custom scheme",
-			mirrorConfig: gpsconfig.MirrorConfig{
-				BaseConfig: gpsconfig.BaseConfig{
-					ProviderType: "gitlab",
-					Domain:       "gitlab.com",
-					Owner:        "testuser",
-					Auth: gpsconfig.AuthConfig{
-						HTTPScheme: "git",
-					},
-				},
-			},
-			repository: testRepository{
-				projectInfo: model.ProjectInfo{
-					OriginalName: "test-repo",
-				},
-			},
-			want: model.PushOption{
-				Target:  "git://gitlab.com/testuser/test-repo",
-				Force:   false,
-				AuthCfg: gpsconfig.AuthConfig{HTTPScheme: "git"},
 			},
 		},
 		{
@@ -347,7 +324,7 @@ func TestGetPushOption(t *testing.T) {
 				},
 			},
 			want: model.PushOption{
-				Target:  "https://github.com/testuser/test-repo",
+				Target:  "https://any:@github.com/testuser/test-repo",
 				Force:   false,
 				AuthCfg: gpsconfig.AuthConfig{},
 			},

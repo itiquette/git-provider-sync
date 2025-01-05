@@ -25,6 +25,7 @@ type BaseConfig struct {
 	Owner        string     `koanf:"owner"`
 	OwnerType    string     `koanf:"owner_type"`
 	ProviderType string     `koanf:"provider_type"`
+	UseGitBinary bool       `koanf:"use_git_binary"`
 }
 
 // SyncConfig represents a source configuration with its mirrors and backups.
@@ -33,7 +34,6 @@ type SyncConfig struct {
 	ActiveFromLimit string             `koanf:"active_from_limit"`
 	IncludeForks    bool               `koanf:"include_forks"`
 	Repositories    RepositoriesOption `koanf:"repositories"`
-	UseGitBinary    bool               `koanf:"use_git_binary"`
 
 	Mirrors map[string]MirrorConfig `koanf:"mirrors"`
 }
@@ -43,7 +43,7 @@ type AuthConfig struct {
 	CertDirPath       string `koanf:"cert_dir_path"`
 	HTTPScheme        string `koanf:"http_scheme"`
 	Token             string `koanf:"token"`
-	Protocol          string `koanf:"method"`
+	Protocol          string `koanf:"protocol"`
 	ProxyURL          string `koanf:"proxy_url"`
 	SSHCommand        string `koanf:"ssh_command"`
 	SSHURLRewriteFrom string `koanf:"ssh_url_rewrite_from"`

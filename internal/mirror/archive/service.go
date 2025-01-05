@@ -30,7 +30,7 @@ func NewService(git GitHandler, storage StorageHandler, archiver Handlerer) *Ser
 func (serv *Service) Push(ctx context.Context, repo interfaces.GitRepository, opt model.PushOption) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Archive:Push")
-	opt.DebugLog(logger).Msg("Archive:Push")
+	opt.DebugLog(ctx, logger).Msg("Archive:Push")
 
 	storagePath, err := serv.storage.GetStoragePath(ctx, opt)
 	if err != nil {

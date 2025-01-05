@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"itiquette/git-provider-sync/internal/log"
 	model "itiquette/git-provider-sync/internal/model/configuration"
+	"itiquette/git-provider-sync/internal/provider/stringconvert"
 	"strings"
 
 	"github.com/rs/zerolog"
@@ -18,7 +19,7 @@ import (
 // It includes flags for cleaning up names, mirroring, and specifies
 // the source URL and target path.
 type CloneOption struct {
-	ASCIIName   bool             // Whether to clean up the repository name
+	ASCIIName   string           // Whether to clean up the repository name
 	URL         string           // The URL of the repository to clone
 	Mirror      bool             // Whether to create a mirror clone
 	SourceCfg   model.SyncConfig // Git configuration options
@@ -29,7 +30,7 @@ type CloneOption struct {
 
 // String provides a string representation of CloneOption.
 func (co CloneOption) String() string {
-	return fmt.Sprintf("CloneOption{Name: %s, URL: %s, ASCIIName: %t, Mirror: %t, NonBareRepo: %t, SourceCfg: %s, AuthCfg: %s}",
+	return fmt.Sprintf("CloneOption{Name: %s, URL: %s, ASCIIName: %s, Mirror: %t, NonBareRepo: %t, SourceCfg: %s, AuthCfg: %s}",
 		co.Name,
 		co.URL,
 		co.ASCIIName,
@@ -40,11 +41,11 @@ func (co CloneOption) String() string {
 }
 
 // DebugLog creates a debug log event with clone options.
-func (co CloneOption) DebugLog(logger *zerolog.Logger) *zerolog.Event {
+func (co CloneOption) DebugLog(ctx context.Context, logger *zerolog.Logger) *zerolog.Event {
 	return logger.Debug(). //nolint:zerologlint
 				Str("name", co.Name).
-				Str("url", co.URL).
-				Bool("ASCIIName", co.ASCIIName).
+				Str("url", stringconvert.RemoveBasicAuthFromURL(ctx, co.URL, false)).
+				Str("ASCIIName", co.ASCIIName).
 				Bool("mirror", co.Mirror).
 				Bool("nonbare_repo", co.NonBareRepo).
 				Str("sourceCfg", co.SourceCfg.String()).
@@ -56,7 +57,7 @@ func NewCloneOption(ctx context.Context, projectInfo ProjectInfo, mirror bool, s
 	logger := log.Logger(ctx)
 
 	cloneURL := projectInfo.HTTPSURL
-	if strings.EqualFold(syncCfg.ProviderType, model.SSH) {
+	if strings.EqualFold(syncCfg.Auth.Protocol, model.SSH) {
 		cloneURL = projectInfo.SSHURL
 	}
 
@@ -70,5 +71,6 @@ func NewCloneOption(ctx context.Context, projectInfo ProjectInfo, mirror bool, s
 		Mirror:    mirror,
 		SourceCfg: syncCfg,
 		AuthCfg:   syncCfg.Auth,
+		ASCIIName: projectInfo.CleanName,
 	}
 }
