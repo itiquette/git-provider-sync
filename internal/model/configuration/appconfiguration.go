@@ -75,7 +75,7 @@ func (a AuthConfig) String() string {
 }
 
 func (s SyncConfig) String() string {
-	return fmt.Sprintf("SourceConfig: ProviderType: %s, Domain: %s, Owner: %s, OwnerType: %s",
+	return fmt.Sprintf("SyncConfig: ProviderType: %s, Domain: %s, Owner: %s, OwnerType: %s",
 		s.ProviderType, s.Domain, s.Owner, s.OwnerType)
 }
 

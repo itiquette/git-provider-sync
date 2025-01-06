@@ -142,7 +142,7 @@ func TestSyncConfig_String(t *testing.T) {
 					},
 				},
 			},
-			expected: "SourceConfig: ProviderType: github, Domain: github.com, Owner: owner1, OwnerType: group",
+			expected: "SyncConfig: ProviderType: github, Domain: github.com, Owner: owner1, OwnerType: group",
 		},
 		{
 			name: "Minimal config",
@@ -152,7 +152,7 @@ func TestSyncConfig_String(t *testing.T) {
 					Domain:       "gitlab.com",
 				},
 			},
-			expected: "SourceConfig: ProviderType: gitlab, Domain: gitlab.com, Owner: , OwnerType: ",
+			expected: "SyncConfig: ProviderType: gitlab, Domain: gitlab.com, Owner: , OwnerType: ",
 		},
 	}
 

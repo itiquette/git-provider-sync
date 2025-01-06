@@ -30,6 +30,8 @@ type MirrorWriter interface {
 	//   3. Perform the actual push operation.
 	//   4. Handle any errors or conflicts that may arise during the push.
 	Push(ctx context.Context, repository GitRepository, opt model.PushOption) error
+
+	Pull(ctx context.Context, opt model.PullOption) error
 }
 
 // Example usage:

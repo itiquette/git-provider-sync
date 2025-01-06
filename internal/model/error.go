@@ -32,14 +32,14 @@ import (
 //
 //	err := someFunction()
 //	HandleError(ctx, err)
-func HandleError(ctx context.Context, err error) {
+//
+// Instead of func HandleError(ctx context.Context, err error).
+var HandleError = func(ctx context.Context, err error) {
 	if err == nil {
 		return
 	}
-
 	logger := zerolog.Ctx(ctx)
-	logger.Error().Err(err).Msg("A fatal error occurred") //TODO: should mask any eventual tokens from err output
-
+	logger.Error().Err(err).Msg("A fatal error occurred")
 	provideUserFriendlyMessage(err, logger)
 	os.Exit(1)
 }

@@ -177,7 +177,7 @@ func TestFetchProjectInfo(t *testing.T) {
 			mockProvider := new(mocks.GitProvider)
 			tabletest.mockSetup(mockProvider)
 
-			projectinfos, err := FetchProjectInfo(context.Background(), tabletest.syncCfg, mockProvider)
+			projectinfos, err := FetchProjectInfos(context.Background(), tabletest.syncCfg, mockProvider)
 			if tabletest.wantErr {
 				require.Error(t, err)
 

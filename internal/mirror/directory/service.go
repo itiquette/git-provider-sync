@@ -10,7 +10,6 @@ import (
 	"itiquette/git-provider-sync/internal/interfaces"
 	"itiquette/git-provider-sync/internal/log"
 	"itiquette/git-provider-sync/internal/model"
-	gpsconfig "itiquette/git-provider-sync/internal/model/configuration"
 )
 
 type Service struct {
@@ -43,18 +42,18 @@ func (serv *Service) Push(ctx context.Context, repo interfaces.GitRepository, op
 	return nil
 }
 
-func (serv *Service) Pull(ctx context.Context, targetPath string, syncCfg gpsconfig.SyncConfig, repo interfaces.GitRepository) error {
+func (serv *Service) Pull(ctx context.Context, opt model.PullOption) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Directory:Pull")
-	logger.Debug().Str("targetPath", targetPath).Msg("Directory:Pull")
+	//	logger.Debug().Str("targetPath", targetPath).Msg("Directory:Pull")
 
-	targetDir, err := serv.storage.GetTargetPath(ctx, targetPath, repo.ProjectInfo().Name(ctx))
+	targetDir, err := serv.storage.GetTargetPath(ctx, opt.Path, opt.Name)
 	if err != nil {
 		return fmt.Errorf("%w %w", ErrDirGetPath, err)
 	}
 
-	pullOpt := model.NewPullOption("", "", syncCfg, syncCfg.Auth)
-	if err := serv.git.Pull(ctx, pullOpt, targetDir); err != nil {
+	pullOpt := model.NewPullOption("", "", opt.SyncCfg, opt.SyncCfg.Auth, targetDir, targetDir)
+	if err := serv.git.Pull(ctx, pullOpt); err != nil {
 		return fmt.Errorf("%w: targetDir: %s: %w", ErrPullRepository, targetDir, err)
 	}
 

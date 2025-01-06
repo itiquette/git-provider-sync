@@ -7,7 +7,6 @@ package synccmd
 
 import (
 	"context"
-	"errors"
 
 	baseOpt "itiquette/git-provider-sync/cmd/baseoption"
 	"itiquette/git-provider-sync/internal/configuration"
@@ -15,13 +14,6 @@ import (
 	"itiquette/git-provider-sync/internal/model"
 
 	"github.com/spf13/cobra"
-)
-
-// Package-level sentinel errors.
-var (
-	ErrInvalidRepoName    = errors.New("invalid repository name")
-	ErrEmptyMetainfo      = errors.New("empty repository metainfo")
-	ErrMissingSyncRunMeta = errors.New("missing sync run metadata")
 )
 
 func NewSyncCommand() *cobra.Command {
@@ -33,7 +25,7 @@ It allows for various options to control the synchronization process.`,
 		Run: runSync,
 	}
 
-	addSyncFlags(cmd)
+	addSyncInputOptions(cmd)
 
 	return cmd
 }
@@ -42,11 +34,11 @@ func runSync(cmd *cobra.Command, _ []string) {
 	ctx := cmd.Root().Context()
 	ctx = baseOpt.AddRootInputOptionsToContext(ctx, cmd)
 
-	flags, err := getSyncFlags(ctx, cmd)
+	flags, err := getSyncInputOptions(ctx, cmd)
 	model.HandleError(ctx, err)
 
 	ctx = initLogger(ctx, cmd)
-	ctx = addFlagsToContext(ctx, flags)
+	ctx = addInputOptionsToContext(ctx, flags)
 
 	config, err := configuration.DefaultConfigLoader{}.LoadConfiguration(ctx)
 	model.HandleError(ctx, err)
@@ -55,7 +47,7 @@ func runSync(cmd *cobra.Command, _ []string) {
 	model.HandleError(ctx, err)
 }
 
-func addFlagsToContext(ctx context.Context, flags *syncFlags) context.Context {
+func addInputOptionsToContext(ctx context.Context, flags *syncInputOption) context.Context {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering addInputOptionsToContext")
 	flags.DebugLog(logger).Msg("addInputOptionsToContext")

@@ -7,6 +7,7 @@ package provider
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"itiquette/git-provider-sync/internal/interfaces"
@@ -15,6 +16,8 @@ import (
 	config "itiquette/git-provider-sync/internal/model/configuration"
 	"itiquette/git-provider-sync/internal/provider/stringconvert"
 )
+
+var ErrInvalidProjectInfoOriginalName = errors.New("empty OriginalName")
 
 // Clone clones multiple repositories based on their metadata.
 // It takes a context, a SourceReader interface for cloning operations,
@@ -51,19 +54,19 @@ func Clone(ctx context.Context, reader interfaces.SourceReader, syncCfg config.S
 	return repositories, nil
 }
 
-// FetchProjectInfo retrieves metadata information for repositories from a Git provider.
+// FetchProjectInfos retrieves metadata information for repositories from a Git provider.
 // It takes a context, provider configuration, and a GitProvider interface.
 // It returns a slice of RepositoryMetainfo containing the fetched metadata and any error encountered.
-func FetchProjectInfo(ctx context.Context, syncCfg config.SyncConfig, gitProvider interfaces.GitProvider) ([]model.ProjectInfo, error) {
+func FetchProjectInfos(ctx context.Context, syncCfg config.SyncConfig, gitProvider interfaces.GitProvider) ([]model.ProjectInfo, error) {
 	logger := log.Logger(ctx)
 
 	// Log the metadata fetching operation
 	logger.Info().
 		Str("Domain", syncCfg.GetDomain()).
-		Str("Name", gitProvider.Name()).
+		Str("Provider Name", gitProvider.Name()).
 		Str("Owner", syncCfg.Owner).
 		Str("OwnerType", syncCfg.OwnerType).
-		Msg("Fetching repository projectinfo/s from:")
+		Msg("Fetching projectinfo/s from:")
 
 	// Fetch the metadata from the Git provider
 	// The 'true' parameter likely indicates that all available metadata should be fetched
@@ -75,10 +78,17 @@ func FetchProjectInfo(ctx context.Context, syncCfg config.SyncConfig, gitProvide
 		syncCfg.Repositories.ExcludedRepositories(),
 	)
 
-	metainfo, err := gitProvider.ProjectInfos(ctx, providerOption, true)
+	projectInfos, err := gitProvider.ProjectInfos(ctx, providerOption, true)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get repository meta information: %w", err)
+		return nil, fmt.Errorf("failed to fetch project informations: %w", err)
 	}
 
-	return metainfo, nil
+	// validate projectInfos
+	for _, projectInfo := range projectInfos {
+		if projectInfo.OriginalName == "" {
+			return nil, ErrInvalidProjectInfoOriginalName
+		}
+	}
+
+	return projectInfos, nil
 }

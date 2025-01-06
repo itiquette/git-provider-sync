@@ -24,17 +24,17 @@ func sourceRepositories(ctx context.Context, syncCfg gpsconfig.SyncConfig) ([]in
 
 	providerClient, err := createProviderClient(ctx, syncCfg)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create provider client: %w", err)
+		return nil, fmt.Errorf("failed to create source provider client: %w", err)
 	}
 
-	projectInfo, err := provider.FetchProjectInfo(ctx, syncCfg, providerClient)
+	projectInfos, err := provider.FetchProjectInfos(ctx, syncCfg, providerClient)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch repository metainfo for %s: %w", syncCfg.ProviderType, err)
+		return nil, fmt.Errorf("failed to fetch project infos for %s: %w", syncCfg.ProviderType, err)
 	}
 
 	if model.CLIOptions(ctx).DryRun {
-		for _, meta := range projectInfo {
-			meta.DebugLog(logger).Msg("fetched repository metadata")
+		for _, meta := range projectInfos {
+			meta.DebugLog(logger).Msg("fetched repository meta data")
 		}
 
 		logger.Info().
@@ -46,12 +46,12 @@ func sourceRepositories(ctx context.Context, syncCfg gpsconfig.SyncConfig) ([]in
 		return nil, nil
 	}
 
-	reader, err := getSourceReader(syncCfg)
+	reader, err := getSourceReader(ctx, syncCfg)
 	if err != nil {
 		return nil, fmt.Errorf("get source reader: %w", err)
 	}
 
-	repositories, err := provider.Clone(ctx, reader, syncCfg, projectInfo)
+	repositories, err := provider.Clone(ctx, reader, syncCfg, projectInfos)
 	if err != nil {
 		return nil, fmt.Errorf("clone repositories: %w", err)
 	}
@@ -59,15 +59,22 @@ func sourceRepositories(ctx context.Context, syncCfg gpsconfig.SyncConfig) ([]in
 	return repositories, nil
 }
 
-func getSourceReader(syncCfg gpsconfig.SyncConfig) (interfaces.SourceReader, error) {
+func getSourceReader(ctx context.Context, syncCfg gpsconfig.SyncConfig) (interfaces.SourceReader, error) {
+	logger := log.Logger(ctx)
+	logger.Trace().Msg("Entering getSourceReader")
+
 	if !syncCfg.UseGitBinary {
+		logger.Debug().Msg("Initialized go-git SourceReader")
+
 		return gitlib.NewService(), nil
 	}
 
 	reader, err := gitbinary.NewService()
 	if err != nil {
-		return nil, fmt.Errorf("failed to create git binary source reader: %w", err)
+		return nil, fmt.Errorf("failed to create git binary SourceReader: %w", err)
 	}
+
+	logger.Debug().Msg("Initialized Git Binary SourceReader")
 
 	return reader, nil
 }
@@ -79,7 +86,7 @@ func createProviderClient(ctx context.Context, syncCfg gpsconfig.SyncConfig) (in
 	client, err := provider.NewGitProviderClient(ctx, model.GitProviderClientOption{
 		ProviderType: syncCfg.ProviderType,
 		AuthCfg:      syncCfg.Auth,
-		Domain:       syncCfg.GetDomain(),
+		Domain:       syncCfg.Domain,
 		Repositories: syncCfg.Repositories,
 	})
 	if err != nil {

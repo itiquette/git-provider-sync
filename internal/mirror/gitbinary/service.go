@@ -128,18 +128,18 @@ func (g *Service) updateRepoConfig(ctx context.Context, repo *git.Repository, cl
 	return nil
 }
 
-func (g *Service) Pull(ctx context.Context, pullDirPath string, opt model.PullOption) error {
+func (g *Service) Pull(ctx context.Context, opt model.PullOption) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Pull")
-	opt.DebugLog(logger).Str("pullDirPath", pullDirPath).Msg("Pull")
+	opt.DebugLog(logger).Str("pullDirPath", opt.Path).Msg("Pull")
 
 	env := SetupSSHCommandEnv(opt.AuthCfg.SSHCommand, opt.AuthCfg.SSHURLRewriteFrom, opt.AuthCfg.SSHURLRewriteTo)
 
-	if err := g.executorService.RunGitCommand(ctx, env, pullDirPath, "pull"); err != nil {
+	if err := g.executorService.RunGitCommand(ctx, env, opt.Path, "pull"); err != nil {
 		return fmt.Errorf("%w: %w", ErrPullRepository, err)
 	}
 
-	return g.branchService.Fetch(ctx, pullDirPath)
+	return g.branchService.Fetch(ctx, opt.Path)
 }
 
 func (g *Service) Push(ctx context.Context, repo interfaces.GitRepository, opt model.PushOption) error {

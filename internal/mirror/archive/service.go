@@ -19,6 +19,11 @@ type Service struct {
 	archiver Handlerer
 }
 
+// Pull implements interfaces.MirrorWriter.
+func (serv *Service) Pull(_ context.Context, _ model.PullOption) error {
+	return nil
+}
+
 func NewService(git GitHandler, storage StorageHandler, archiver Handlerer) *Service {
 	return &Service{
 		git:      git,

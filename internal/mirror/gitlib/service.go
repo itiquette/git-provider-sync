@@ -64,12 +64,12 @@ func (serv *Service) Clone(ctx context.Context, opt model.CloneOption) (model.Re
 	return model.NewRepository(repo) //nolint
 }
 
-func (serv *Service) Pull(ctx context.Context, opt model.PullOption, targetDir string) error {
+func (serv *Service) Pull(ctx context.Context, opt model.PullOption) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitService:Pull")
-	opt.DebugLog(logger).Str("targetDir", targetDir).Msg("GitService:Pull")
+	opt.DebugLog(logger).Str("targetDir", opt.TargetDir).Msg("GitService:Pull")
 
-	repo, worktree, err := serv.prepareRepository(ctx, targetDir)
+	repo, worktree, err := serv.prepareRepository(ctx, opt.TargetDir)
 	if err != nil {
 		return err
 	}
@@ -79,12 +79,12 @@ func (serv *Service) Pull(ctx context.Context, opt model.PullOption, targetDir s
 		return fmt.Errorf("%w: %w", ErrAuthMethod, err)
 	}
 
-	pullOpts := serv.buildPullOptions(gpsconfig.ORIGIN, targetDir, auth)
-	if err := serv.performPull(ctx, worktree, pullOpts, targetDir); err != nil {
+	pullOpts := serv.buildPullOptions(gpsconfig.ORIGIN, opt.TargetDir, auth)
+	if err := serv.performPull(ctx, worktree, pullOpts, opt.TargetDir); err != nil {
 		return err
 	}
 
-	return serv.Ops.FetchBranches(ctx, filepath.Dir(targetDir), repo, auth)
+	return serv.Ops.FetchBranches(ctx, filepath.Dir(opt.TargetDir), repo, auth)
 }
 
 func (serv *Service) Push(ctx context.Context, repo interfaces.GitRepository, opt model.PushOption) error {

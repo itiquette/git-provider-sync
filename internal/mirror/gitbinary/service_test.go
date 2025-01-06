@@ -233,6 +233,9 @@ func TestService_Pull(t *testing.T) {
 	tmpDir := t.TempDir()
 	repo := createTestRepo(t, tmpDir)
 
+	worktree, _ := repo.Worktree()
+	worktreeroot := worktree.Filesystem.Root()
+
 	tests := []struct {
 		name    string
 		opt     model.PullOption
@@ -246,6 +249,8 @@ func TestService_Pull(t *testing.T) {
 				AuthCfg: gpsconfig.AuthConfig{
 					SSHCommand: "ssh -i key",
 				},
+				TargetDir: worktreeroot,
+				Path:      worktreeroot,
 			},
 		},
 		{
@@ -270,8 +275,7 @@ func TestService_Pull(t *testing.T) {
 				executorService: mock,
 				branchService:   NewOperation(mock),
 			}
-			worktree, _ := repo.Worktree()
-			err := svc.Pull(context.Background(), worktree.Filesystem.Root(), tabletest.opt)
+			err := svc.Pull(context.Background(), tabletest.opt)
 
 			if tabletest.wantErr {
 				require.Error(t, err)

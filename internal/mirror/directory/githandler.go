@@ -46,6 +46,6 @@ func (h *GitHandler) InitializeRepository(ctx context.Context, targetDir string,
 	return nil
 }
 
-func (h *GitHandler) Pull(ctx context.Context, opt model.PullOption, targetDir string) error {
-	return h.client.Pull(ctx, opt, targetDir) //nolint
+func (h *GitHandler) Pull(ctx context.Context, opt model.PullOption) error {
+	return h.client.Pull(ctx, opt) //nolint
 }

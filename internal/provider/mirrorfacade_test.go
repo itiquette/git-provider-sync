@@ -84,6 +84,11 @@ type MockMirrorWriter struct {
 	mock.Mock
 }
 
+// Pull implements interfaces.MirrorWriter.
+func (m *MockMirrorWriter) Pull(ctx context.Context, opt model.PullOption) error {
+	panic("unimplemented")
+}
+
 func (m *MockMirrorWriter) Push(ctx context.Context, repo interfaces.GitRepository, opt model.PushOption) error {
 	args := m.Called(ctx, repo, opt)
 	return args.Error(0)
@@ -153,7 +158,7 @@ func TestPush(t *testing.T) {
 	tests := []struct {
 		name              string
 		mirrorConfig      gpsconfig.MirrorConfig
-		sourceConfig      gpsconfig.SyncConfig
+		syncConfig        gpsconfig.SyncConfig
 		setupMocks        func(*MockGitProvider, *MockMirrorWriter, *MockRepository)
 		expectedErr       error
 		expectedErrString string
@@ -168,7 +173,7 @@ func TestPush(t *testing.T) {
 					Disabled: false,
 				},
 			},
-			sourceConfig: gpsconfig.SyncConfig{
+			syncConfig: gpsconfig.SyncConfig{
 				BaseConfig: gpsconfig.BaseConfig{
 					ProviderType: "github",
 				},
@@ -237,7 +242,7 @@ func TestPush(t *testing.T) {
 			repo := new(MockRepository)
 			tabletest.setupMocks(provider, writer, repo)
 
-			err := Push(ctx, tabletest.sourceConfig, tabletest.mirrorConfig, provider, writer, repo)
+			err := Push(ctx, tabletest.syncConfig, tabletest.mirrorConfig, provider, writer, repo)
 
 			if tabletest.expectedErr != nil {
 				require.Error(err)

@@ -6,42 +6,28 @@ gitprovidersync:
   env1:
     asource:
       provider_type: gitlab
-      domain: gitlab.com
       owner: user
-      owner_type: user
-      repositories:
-        include: a-dummy-project, anotother
 
       mirrors:
         atarget:
           provider_type: gitea
-          domain: gitea.com
           auth:
             token: atoken
           owner: agroup
-          owner_type: group
         anothertarget:
           provider_type: github
-          domain: github.com
           auth:
             token: anothertoken
           owner: anothergroup
-          owner_type: group
 
   env2:
     absource:
       provider_type: gitea
-      domain: gitea.com
       owner: user
-      owner_type: user
-      repositories:
-        include: a-dummy-project, anotother
 
       mirrors:
         abtarget:
           provider_type: gitea
-          domain: gitea.com
           auth:
             token: atoken
           owner: agroup
-          owner_type: group

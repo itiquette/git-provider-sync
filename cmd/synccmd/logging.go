@@ -7,6 +7,7 @@ package synccmd
 
 import (
 	"context"
+	"errors"
 	"strings"
 
 	"itiquette/git-provider-sync/internal/interfaces"
@@ -15,6 +16,11 @@ import (
 	gpsconfig "itiquette/git-provider-sync/internal/model/configuration"
 
 	"github.com/rs/zerolog"
+)
+
+// Package-level sentinel errors.
+var (
+	ErrMissingSyncRunMeta = errors.New("missing sync run metadata")
 )
 
 func initMirrorSync(ctx context.Context, syncCfg gpsconfig.SyncConfig, mirrorCfg gpsconfig.MirrorConfig, repositories []interfaces.GitRepository) context.Context {

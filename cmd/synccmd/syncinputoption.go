@@ -13,7 +13,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type syncFlags struct {
+type syncInputOption struct {
 	activeFromLimit   string
 	asciiName         bool
 	dryRun            bool
@@ -21,7 +21,7 @@ type syncFlags struct {
 	ignoreInvalidName bool
 }
 
-func addSyncFlags(cmd *cobra.Command) {
+func addSyncInputOptions(cmd *cobra.Command) {
 	flags := cmd.Flags()
 	flags.Bool("ascii-name", false, "Remove mirror incompatible characters from repository names")
 	flags.Bool("dry-run", false, "Simulate sync run without performing clone and push actions")
@@ -30,17 +30,17 @@ func addSyncFlags(cmd *cobra.Command) {
 	flags.String("active-from-limit", "", "A negative time duration (e.g., '-1h') to consider repositories active from")
 }
 
-func (syn syncFlags) DebugLog(logger *zerolog.Logger) *zerolog.Event {
+func (sio syncInputOption) DebugLog(logger *zerolog.Logger) *zerolog.Event {
 	return logger.Debug(). //nolint:zerologlint
-				Bool("asciiName", syn.asciiName).
-				Bool("dryRun", syn.dryRun).
-				Bool("forcePush", syn.forcePush).
-				Bool("ignoreInvalidName", syn.ignoreInvalidName).
-				Str("activeFromLimit", syn.activeFromLimit)
+				Bool("asciiName", sio.asciiName).
+				Bool("dryRun", sio.dryRun).
+				Bool("forcePush", sio.forcePush).
+				Bool("ignoreInvalidName", sio.ignoreInvalidName).
+				Str("activeFromLimit", sio.activeFromLimit)
 }
 
-func getSyncFlags(_ context.Context, cmd *cobra.Command) (*syncFlags, error) {
-	flags := &syncFlags{}
+func getSyncInputOptions(_ context.Context, cmd *cobra.Command) (*syncInputOption, error) {
+	flags := &syncInputOption{}
 
 	var err error
 
