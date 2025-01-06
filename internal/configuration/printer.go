@@ -85,83 +85,83 @@ func printSyncConfig(name string, syncCfg model.SyncConfig, writer io.Writer, le
 }
 
 // printAuthConfig writes authentication configuration details with proper indentation.
-func printAuthConfig(auth model.AuthConfig, writer io.Writer, level int) {
+func printAuthConfig(authCfg model.AuthConfig, writer io.Writer, level int) {
 	indent := strings.Repeat(" ", level*indentSize)
 	fmt.Fprintf(writer, "\n%sAuthentication:\n", indent)
 
 	// Print mandatory fields
-	fmt.Fprintf(writer, "%sProtocol: %s\n", indent, auth.Protocol)
+	fmt.Fprintf(writer, "%sProtocol: %s\n", indent, authCfg.Protocol)
 
 	// Print optional fields only if they have values
-	if auth.HTTPScheme != "" {
-		fmt.Fprintf(writer, "%sHTTP Scheme: %s\n", indent, auth.HTTPScheme)
+	if authCfg.HTTPScheme != "" {
+		fmt.Fprintf(writer, "%sHTTP Scheme: %s\n", indent, authCfg.HTTPScheme)
 	}
 
-	if auth.Token != "" {
+	if authCfg.Token != "" {
 		fmt.Fprintf(writer, "%sToken: <*****>\n", indent)
 	}
 
-	if auth.ProxyURL != "" {
-		fmt.Fprintf(writer, "%sProxy URL: %s\n", indent, auth.ProxyURL)
+	if authCfg.ProxyURL != "" {
+		fmt.Fprintf(writer, "%sProxy URL: %s\n", indent, authCfg.ProxyURL)
 	}
 
-	if auth.CertDirPath != "" {
-		fmt.Fprintf(writer, "%sCertificate Directory: %s\n", indent, auth.CertDirPath)
+	if authCfg.CertDirPath != "" {
+		fmt.Fprintf(writer, "%sCertificate Directory: %s\n", indent, authCfg.CertDirPath)
 	}
 
 	// Print SSH configuration if any SSH-related fields are set
-	if auth.SSHCommand != "" || auth.SSHURLRewriteFrom != "" || auth.SSHURLRewriteTo != "" {
+	if authCfg.SSHCommand != "" || authCfg.SSHURLRewriteFrom != "" || authCfg.SSHURLRewriteTo != "" {
 		fmt.Fprintf(writer, "\n%sSSH Configuration:\n", indent)
 
-		if auth.SSHCommand != "" {
-			fmt.Fprintf(writer, "%sCommand: %s\n", indent, auth.SSHCommand)
+		if authCfg.SSHCommand != "" {
+			fmt.Fprintf(writer, "%sCommand: %s\n", indent, authCfg.SSHCommand)
 		}
 
-		if auth.SSHURLRewriteFrom != "" {
-			fmt.Fprintf(writer, "%sURL Rewrite From: %s\n", indent, auth.SSHURLRewriteFrom)
+		if authCfg.SSHURLRewriteFrom != "" {
+			fmt.Fprintf(writer, "%sURL Rewrite From: %s\n", indent, authCfg.SSHURLRewriteFrom)
 		}
 
-		if auth.SSHURLRewriteTo != "" {
-			fmt.Fprintf(writer, "%sURL Rewrite To: %s\n", indent, auth.SSHURLRewriteTo)
+		if authCfg.SSHURLRewriteTo != "" {
+			fmt.Fprintf(writer, "%sURL Rewrite To: %s\n", indent, authCfg.SSHURLRewriteTo)
 		}
 	}
 }
 
 // printMirrorConfig writes the details of a mirror configuration with proper indentation.
-func printMirrorConfig(name string, mirror model.MirrorConfig, writer io.Writer, level int) {
+func printMirrorConfig(name string, mirrorCfg model.MirrorConfig, writer io.Writer, level int) {
 	indent := strings.Repeat(" ", level*indentSize)
 	fmt.Fprintf(writer, "\n%sMirror: %s\n", indent, name)
 
 	// Print mandatory fields
-	fmt.Fprintf(writer, "%sType: %s\n", indent, mirror.ProviderType)
+	fmt.Fprintf(writer, "%sType: %s\n", indent, mirrorCfg.ProviderType)
 
-	if mirror.Domain != "" {
-		fmt.Fprintf(writer, "%sDomain: %s\n", indent, mirror.GetDomain())
+	if mirrorCfg.Domain != "" {
+		fmt.Fprintf(writer, "%sDomain: %s\n", indent, mirrorCfg.GetDomain())
 	}
 
-	if mirror.Owner != "" {
-		fmt.Fprintf(writer, "%sOwner: %s\n", indent, mirror.Owner)
+	if mirrorCfg.Owner != "" {
+		fmt.Fprintf(writer, "%sOwner: %s\n", indent, mirrorCfg.Owner)
 	}
 
-	fmt.Fprintf(writer, "%sOwner Type: %s\n", indent, mirror.OwnerType)
+	fmt.Fprintf(writer, "%sOwner Type: %s\n", indent, mirrorCfg.OwnerType)
 
 	// Print optional fields only if they have non-default values
-	if mirror.UseGitBinary {
-		fmt.Fprintf(writer, "%sUse Git Binary: %t\n", indent, mirror.UseGitBinary)
+	if mirrorCfg.UseGitBinary {
+		fmt.Fprintf(writer, "%sUse Git Binary: %t\n", indent, mirrorCfg.UseGitBinary)
 	}
 
-	if mirror.Path != "" {
-		fmt.Fprintf(writer, "%sPath: %s\n", indent, mirror.Path)
+	if mirrorCfg.Path != "" {
+		fmt.Fprintf(writer, "%sPath: %s\n", indent, mirrorCfg.Path)
 	}
 
 	// Print Mirror Settings if they're not empty
-	if !isEmptyMirrorSettings(mirror.Settings) {
-		printMirrorSettings(mirror.Settings, writer, level+1)
+	if !isEmptyMirrorSettings(mirrorCfg.Settings) {
+		printMirrorSettings(mirrorCfg.Settings, writer, level+1)
 	}
 
 	// Print Mirror Auth Configuration if it's not empty
-	if !isEmptyAuthConfig(mirror.Auth) {
-		printAuthConfig(mirror.Auth, writer, level+1)
+	if !isEmptyAuthConfig(mirrorCfg.Auth) {
+		printAuthConfig(mirrorCfg.Auth, writer, level+1)
 	}
 }
 
@@ -201,33 +201,33 @@ func printMirrorSettings(settings model.MirrorSettings, writer io.Writer, level 
 }
 
 // printRepositoriesOption writes repository configuration options with proper indentation.
-func printRepositoriesOption(repos model.RepositoriesOption, writer io.Writer, level int) {
+func printRepositoriesOption(opt model.RepositoriesOption, writer io.Writer, level int) {
 	indent := strings.Repeat(" ", level*indentSize)
 	fmt.Fprintf(writer, "\n%sRepositories:\n", indent)
 
-	if len(repos.Include) > 0 {
-		fmt.Fprintf(writer, "%sInclude: %v\n", indent, repos.Include)
+	if len(opt.Include) > 0 {
+		fmt.Fprintf(writer, "%sInclude: %v\n", indent, opt.Include)
 	}
 
-	if len(repos.Exclude) > 0 {
-		fmt.Fprintf(writer, "%sExclude: %v\n", indent, repos.Exclude)
+	if len(opt.Exclude) > 0 {
+		fmt.Fprintf(writer, "%sExclude: %v\n", indent, opt.Exclude)
 	}
 }
 
 // Helper functions to check if configurations are empty.
-func isEmptyAuthConfig(auth model.AuthConfig) bool {
-	return auth.Protocol == "" &&
-		auth.HTTPScheme == "" &&
-		auth.Token == "" &&
-		auth.ProxyURL == "" &&
-		auth.CertDirPath == "" &&
-		auth.SSHCommand == "" &&
-		auth.SSHURLRewriteFrom == "" &&
-		auth.SSHURLRewriteTo == ""
+func isEmptyAuthConfig(authCfg model.AuthConfig) bool {
+	return authCfg.Protocol == "" &&
+		authCfg.HTTPScheme == "" &&
+		authCfg.Token == "" &&
+		authCfg.ProxyURL == "" &&
+		authCfg.CertDirPath == "" &&
+		authCfg.SSHCommand == "" &&
+		authCfg.SSHURLRewriteFrom == "" &&
+		authCfg.SSHURLRewriteTo == ""
 }
 
-func isEmptyRepositoriesOption(repos model.RepositoriesOption) bool {
-	return len(repos.Include) == 0 && len(repos.Exclude) == 0
+func isEmptyRepositoriesOption(opt model.RepositoriesOption) bool {
+	return len(opt.Include) == 0 && len(opt.Exclude) == 0
 }
 
 func isEmptyMirrorSettings(settings model.MirrorSettings) bool {

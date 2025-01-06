@@ -28,13 +28,13 @@ func toMirror(ctx context.Context, syncCfg gpsconfig.SyncConfig, mirrorCfg gpsco
 
 	ctx = initMirrorSync(ctx, syncCfg, mirrorCfg, repositories)
 
-	client, err := createMirrorProviderClient(ctx, mirrorCfg, syncCfg)
+	client, err := createMirrorProviderClient(ctx, syncCfg, mirrorCfg)
 	if err != nil {
 		return fmt.Errorf("failed to create mirror provider client: %w", err)
 	}
 
 	for _, repo := range repositories {
-		if err := processRepository(ctx, mirrorCfg, client, repo, syncCfg); err != nil {
+		if err := processRepository(ctx, syncCfg, mirrorCfg, client, repo); err != nil {
 			return fmt.Errorf("failed to process repository: %w", err)
 		}
 	}
@@ -44,7 +44,7 @@ func toMirror(ctx context.Context, syncCfg gpsconfig.SyncConfig, mirrorCfg gpsco
 	return nil
 }
 
-func processRepository(ctx context.Context, mirrorCfg gpsconfig.MirrorConfig, client interfaces.GitProvider, repo interfaces.GitRepository, sourceCfg gpsconfig.SyncConfig) error {
+func processRepository(ctx context.Context, sourceCfg gpsconfig.SyncConfig, mirrorCfg gpsconfig.MirrorConfig, client interfaces.GitProvider, repo interfaces.GitRepository) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering processRepository")
 	repo.ProjectInfo().DebugLog(logger).Msg("processRepository")
@@ -53,7 +53,7 @@ func processRepository(ctx context.Context, mirrorCfg gpsconfig.MirrorConfig, cl
 		return ErrEmptyMetainfo
 	}
 
-	ignoreRepository, err := validateRepository(ctx, client, repo, mirrorCfg)
+	ignoreRepository, err := validateRepository(ctx, mirrorCfg, client, repo)
 	if err != nil {
 		return err
 	}
@@ -77,7 +77,7 @@ func processRepository(ctx context.Context, mirrorCfg gpsconfig.MirrorConfig, cl
 		storageHandler := directory.NewStorageHandler()
 		dirService := directory.NewService(gitHandler, storageHandler)
 
-		if err := dirService.Pull(ctx, sourceCfg, mirrorCfg.Path, repo); err != nil {
+		if err := dirService.Pull(ctx, mirrorCfg.Path, sourceCfg, repo); err != nil {
 			return fmt.Errorf("failed to pull repository for directory target: %w", err)
 		}
 	}
@@ -85,7 +85,7 @@ func processRepository(ctx context.Context, mirrorCfg gpsconfig.MirrorConfig, cl
 	return nil
 }
 
-func validateRepository(ctx context.Context, client interfaces.GitProvider, repo interfaces.GitRepository, mirrorCfg gpsconfig.MirrorConfig) (bool, error) {
+func validateRepository(ctx context.Context, mirrorCfg gpsconfig.MirrorConfig, client interfaces.GitProvider, repo interfaces.GitRepository) (bool, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering validateRepository")
 
@@ -136,7 +136,7 @@ func prepareRepository(ctx context.Context, mirrorCfg gpsconfig.MirrorConfig, re
 	return nil
 }
 
-func createMirrorProviderClient(ctx context.Context, mirrorCfg gpsconfig.MirrorConfig, syncCfg gpsconfig.SyncConfig) (interfaces.GitProvider, error) {
+func createMirrorProviderClient(ctx context.Context, syncCfg gpsconfig.SyncConfig, mirrorCfg gpsconfig.MirrorConfig) (interfaces.GitProvider, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering createProviderClient")
 
@@ -154,13 +154,13 @@ func createMirrorProviderClient(ctx context.Context, mirrorCfg gpsconfig.MirrorC
 	return client, nil
 }
 
-func pushRepository(ctx context.Context, sourceCfg gpsconfig.SyncConfig, mirrorCfg gpsconfig.MirrorConfig, client interfaces.GitProvider, repo interfaces.GitRepository) error {
+func pushRepository(ctx context.Context, syncCfg gpsconfig.SyncConfig, mirrorCfg gpsconfig.MirrorConfig, client interfaces.GitProvider, repo interfaces.GitRepository) error {
 	writer, err := getMirrorWriter(mirrorCfg)
 	if err != nil {
 		return fmt.Errorf("get mirror writer: %w", err)
 	}
 
-	if err := provider.Push(ctx, mirrorCfg, client, writer, repo, sourceCfg); err != nil {
+	if err := provider.Push(ctx, syncCfg, mirrorCfg, client, writer, repo); err != nil {
 		return fmt.Errorf("failed to push to mirror target: %w", err)
 	}
 

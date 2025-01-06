@@ -57,7 +57,7 @@ func (p ProjectService) createProject(ctx context.Context, opt model.CreateProje
 	return createdRepo.FullName, nil
 }
 
-func (p ProjectService) newProjectInfo(ctx context.Context, opt model.ProviderOption, rawClient *gitea.Client, repositoryName string) (model.ProjectInfo, error) {
+func (p ProjectService) newProjectInfo(ctx context.Context, rawClient *gitea.Client, repositoryName string, opt model.ProviderOption) (model.ProjectInfo, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Gitea:newProjectInfo")
 
@@ -119,7 +119,7 @@ func (p ProjectService) getProjectInfos(ctx context.Context, providerOpt model.P
 			continue
 		}
 
-		rm, _ := p.newProjectInfo(ctx, providerOpt, p.client, repo.Name)
+		rm, _ := p.newProjectInfo(ctx, p.client, repo.Name, providerOpt)
 		projectinfos = append(projectinfos, rm)
 	}
 

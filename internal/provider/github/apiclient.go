@@ -135,7 +135,7 @@ func (api APIClient) UnprotectProject(ctx context.Context, defaultBranch, projec
 	return nil
 }
 
-func NewGitHubAPIClient(ctx context.Context, opt model.GitProviderClientOption, httpClient *http.Client) (APIClient, error) {
+func NewGitHubAPIClient(ctx context.Context, httpClient *http.Client, opt model.GitProviderClientOption) (APIClient, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitHub:NewGitHubClient")
 

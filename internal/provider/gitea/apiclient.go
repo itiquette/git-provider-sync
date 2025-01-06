@@ -118,20 +118,20 @@ func (api APIClient) UnprotectProject(ctx context.Context, branch string, projec
 	return nil
 }
 
-func NewGiteaAPIClient(ctx context.Context, option model.GitProviderClientOption, httpClient *http.Client) (APIClient, error) {
+func NewGiteaAPIClient(ctx context.Context, httpClient *http.Client, opt model.GitProviderClientOption) (APIClient, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Gitea:NewGiteaClient")
 
 	clientOptions := []gitea.ClientOption{
-		gitea.SetToken(option.AuthCfg.Token),
+		gitea.SetToken(opt.AuthCfg.Token),
 	}
 
 	clientOptions = append(clientOptions, gitea.SetHTTPClient(httpClient))
 
 	defaultBaseURL := "https://gitea.com"
 
-	if option.Domain != "" {
-		defaultBaseURL = option.DomainWithScheme(option.AuthCfg.HTTPScheme)
+	if opt.Domain != "" {
+		defaultBaseURL = opt.DomainWithScheme(opt.AuthCfg.HTTPScheme)
 	}
 
 	rawClient, err := gitea.NewClient(

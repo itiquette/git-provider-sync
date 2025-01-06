@@ -237,7 +237,7 @@ func TestPush(t *testing.T) {
 			repo := new(MockRepository)
 			tabletest.setupMocks(provider, writer, repo)
 
-			err := Push(ctx, tabletest.mirrorConfig, provider, writer, repo, tabletest.sourceConfig)
+			err := Push(ctx, tabletest.sourceConfig, tabletest.mirrorConfig, provider, writer, repo)
 
 			if tabletest.expectedErr != nil {
 				require.Error(err)
@@ -621,7 +621,7 @@ func TestGetProjectPath(t *testing.T) {
 	for _, tabletest := range tests {
 		t.Run(tabletest.name, func(t *testing.T) {
 			require := require.New(t)
-			result := getProjectPath(tabletest.config, tabletest.repositoryName)
+			result := getProjectPath(tabletest.repositoryName, tabletest.config)
 			require.Equal(tabletest.want, result)
 		})
 	}
@@ -657,7 +657,7 @@ func TestBuildDescription(t *testing.T) {
 	for _, tabletest := range tests {
 		t.Run(tabletest.name, func(t *testing.T) {
 			require := require.New(t)
-			result := buildDescription(tabletest.remote, tabletest.repository, tabletest.userDescription)
+			result := buildDescription(tabletest.userDescription, tabletest.remote, tabletest.repository)
 			require.Equal(tabletest.want, result)
 		})
 	}

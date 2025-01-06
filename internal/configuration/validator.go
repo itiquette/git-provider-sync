@@ -77,18 +77,18 @@ var (
 )
 
 // ValidateConfiguration validates the entire application configuration.
-func validateConfiguration(ctx context.Context, cfg *config.AppConfiguration) error {
+func validateConfiguration(ctx context.Context, appCfg *config.AppConfiguration) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering validateConfiguration")
 
-	if len(cfg.GitProviderSyncConfs) == 0 {
+	if len(appCfg.GitProviderSyncConfs) == 0 {
 		return errors.New("no git provider sync configurations found")
 	}
 
-	nrOfEnvironment := len(cfg.GitProviderSyncConfs)
+	nrOfEnvironment := len(appCfg.GitProviderSyncConfs)
 	currentEnvironmentCfg := 1
 
-	for envName, env := range cfg.GitProviderSyncConfs {
+	for envName, env := range appCfg.GitProviderSyncConfs {
 		logger.Debug().Msgf("Validating environment %v of %v", currentEnvironmentCfg, nrOfEnvironment)
 
 		if err := validateEnvironment(envName, env); err != nil {
@@ -119,39 +119,39 @@ func validateEnvironment(envName string, env config.Environment) error {
 }
 
 // validateSyncConfig validates a single sync configuration.
-func validateSyncConfig(_ string, config config.SyncConfig) error {
-	if err := validateProviderType(config.ProviderType, ValidSourceGitProviders); err != nil {
+func validateSyncConfig(_ string, syncCfg config.SyncConfig) error {
+	if err := validateProviderType(syncCfg.ProviderType, ValidSourceGitProviders); err != nil {
 		return err
 	}
 
-	if err := validateDomainName(config.GetDomain()); err != nil {
+	if err := validateDomainName(syncCfg.GetDomain()); err != nil {
 		return fmt.Errorf("%w: %w", ErrNoSourceDomain, err)
 	}
 
-	if err := validateOwner(config.Owner, config.OwnerType); err != nil {
+	if err := validateOwner(syncCfg.Owner, syncCfg.OwnerType); err != nil {
 		return err
 	}
 
-	if err := validateAuth(config.Auth); err != nil {
+	if err := validateAuth(syncCfg.Auth); err != nil {
 		return err
 	}
 
-	if config.UseGitBinary {
+	if syncCfg.UseGitBinary {
 		// Note: Assuming gitbinary.ValidateGitBinary() is available
 		if _, err := gitbinary.ValidateGitBinary(); err != nil {
 			return ErrNoGitBinaryFound
 		}
 	}
 
-	if config.ActiveFromLimit != "" {
-		if _, err := time.ParseDuration(config.ActiveFromLimit); err != nil {
+	if syncCfg.ActiveFromLimit != "" {
+		if _, err := time.ParseDuration(syncCfg.ActiveFromLimit); err != nil {
 			return fmt.Errorf("%w: %w", ErrInvalidDuration, err)
 		}
 	}
 
 	// Validate mirrors if present
-	if len(config.Mirrors) > 0 {
-		for _, mirror := range config.Mirrors {
+	if len(syncCfg.Mirrors) > 0 {
+		for _, mirror := range syncCfg.Mirrors {
 			if err := validateMirrorConfig(mirror); err != nil {
 				return fmt.Errorf("invalid mirror config %v: %w", mirror, err)
 			}
@@ -162,21 +162,21 @@ func validateSyncConfig(_ string, config config.SyncConfig) error {
 }
 
 // validateMirrorConfig validates a mirror configuration.
-func validateMirrorConfig(cfg config.MirrorConfig) error {
-	if err := validateProviderType(cfg.ProviderType, ValidMirrorTargets); err != nil {
+func validateMirrorConfig(mirrorCfg config.MirrorConfig) error {
+	if err := validateProviderType(mirrorCfg.ProviderType, ValidMirrorTargets); err != nil {
 		return err
 	}
 
-	if cfg.ProviderType != "archive" && cfg.ProviderType != "directory" {
-		if err := validateDomainName(cfg.GetDomain()); err != nil {
+	if mirrorCfg.ProviderType != "archive" && mirrorCfg.ProviderType != "directory" {
+		if err := validateDomainName(mirrorCfg.GetDomain()); err != nil {
 			return fmt.Errorf("%w: %w", ErrNoTargetDomain, err)
 		}
 
-		if err := validateOwner(cfg.Owner, cfg.OwnerType); err != nil {
+		if err := validateOwner(mirrorCfg.Owner, mirrorCfg.OwnerType); err != nil {
 			return err
 		}
 
-		if cfg.UseGitBinary {
+		if mirrorCfg.UseGitBinary {
 			// Note: Assuming gitbinary.ValidateGitBinary() is available
 			if _, err := gitbinary.ValidateGitBinary(); err != nil {
 				return ErrNoGitBinaryFound
@@ -184,11 +184,11 @@ func validateMirrorConfig(cfg config.MirrorConfig) error {
 		}
 	}
 
-	if err := validateAuth(cfg.Auth); err != nil {
+	if err := validateAuth(mirrorCfg.Auth); err != nil {
 		return err
 	}
 
-	if err := validateMirrorSettings(cfg.Settings); err != nil {
+	if err := validateMirrorSettings(mirrorCfg.Settings); err != nil {
 		return err
 	}
 
@@ -196,36 +196,36 @@ func validateMirrorConfig(cfg config.MirrorConfig) error {
 }
 
 // validateAuth validates authentication configuration.
-func validateAuth(auth config.AuthConfig) error {
-	if !isValidSchemeType(auth.HTTPScheme) {
+func validateAuth(authCfg config.AuthConfig) error {
+	if !isValidSchemeType(authCfg.HTTPScheme) {
 		return fmt.Errorf("invalid HTTP scheme: %w", ErrUnsupportedScheme)
 	}
 
-	if auth.ProxyURL != "" {
-		if err := validateURL(auth.ProxyURL); err != nil {
+	if authCfg.ProxyURL != "" {
+		if err := validateURL(authCfg.ProxyURL); err != nil {
 			return fmt.Errorf("invalid proxy URL: %w", err)
 		}
 	}
 
-	if auth.CertDirPath != "" {
-		if err := validatePathExists(auth.CertDirPath); err != nil {
+	if authCfg.CertDirPath != "" {
+		if err := validatePathExists(authCfg.CertDirPath); err != nil {
 			return fmt.Errorf("invalid cert directory path: %w", err)
 		}
 	}
 
-	if auth.Protocol == config.SSH {
+	if authCfg.Protocol == config.SSH {
 		if err := checkSSHAgent(); err != nil {
 			return err
 		}
 	}
 
-	if auth.SSHURLRewriteFrom != "" || auth.SSHURLRewriteTo != "" {
-		if auth.SSHURLRewriteFrom == "" || auth.SSHURLRewriteTo == "" {
+	if authCfg.SSHURLRewriteFrom != "" || authCfg.SSHURLRewriteTo != "" {
+		if authCfg.SSHURLRewriteFrom == "" || authCfg.SSHURLRewriteTo == "" {
 			return errors.New("if either SSH URL rewrite parameter is specified, both must be provided")
 		}
 	}
 
-	return validateSSHCommand(auth.SSHCommand)
+	return validateSSHCommand(authCfg.SSHCommand)
 }
 
 // validateMirrorSettings validates mirror-specific settings.
@@ -345,12 +345,12 @@ func validateURL(urlStr string) error {
 	return nil
 }
 
-func validateSSHCommand(command string) error {
-	if command == "" {
+func validateSSHCommand(sshCommand string) error {
+	if sshCommand == "" {
 		return nil
 	}
 
-	if !strings.HasPrefix(command, "ssh ") {
+	if !strings.HasPrefix(sshCommand, "ssh ") {
 		return errors.New("SSH command must start with 'ssh'")
 	}
 

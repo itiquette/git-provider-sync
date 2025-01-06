@@ -51,7 +51,7 @@ func (p ProjectService) createProject(ctx context.Context, opt model.CreateProje
 	return *createdRepo.FullName, nil
 }
 
-func (p ProjectService) newProjectInfo(ctx context.Context, opt model.ProviderOption, name string) (model.ProjectInfo, error) {
+func (p ProjectService) newProjectInfo(ctx context.Context, name string, opt model.ProviderOption) (model.ProjectInfo, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitHub:newProjectInfo")
 	logger.Debug().Str("name", name).Str("providerOption", opt.String()).Msg("newProjectInfo")
@@ -157,7 +157,7 @@ func (p ProjectService) getProjectInfos(ctx context.Context, providerOpt model.P
 		}
 
 		name := repo.GetName()
-		metainfo, err := p.newProjectInfo(ctx, providerOpt, name)
+		metainfo, err := p.newProjectInfo(ctx, name, providerOpt)
 
 		if err != nil {
 			logger.Warn().Err(err).Str("repo", name).Msg("failed to create projectinfo")

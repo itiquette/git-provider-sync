@@ -41,11 +41,11 @@ var (
 type ProxyFunc func(req *http.Request) (*url.URL, error)
 
 // NewGitProviderClient creates a new git provider client with improved error handling.
-func NewGitProviderClient(ctx context.Context, option model.GitProviderClientOption) (interfaces.GitProvider, error) {
+func NewGitProviderClient(ctx context.Context, opt model.GitProviderClientOption) (interfaces.GitProvider, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering NewGitProviderClient")
 
-	httpClient, err := newHTTPClient(ctx, option)
+	httpClient, err := newHTTPClient(ctx, opt)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create HTTP client: %w", err)
 	}
@@ -53,34 +53,34 @@ func NewGitProviderClient(ctx context.Context, option model.GitProviderClientOpt
 	// Install git protocol handler
 	client.InstallProtocol("https", githttp.NewClient(httpClient))
 
-	return createProvider(ctx, option, httpClient)
+	return createProvider(ctx, opt, httpClient)
 }
 
 // createProvider handles provider creation with proper error handling.
-func createProvider(ctx context.Context, option model.GitProviderClientOption, httpClient *http.Client) (interfaces.GitProvider, error) {
+func createProvider(ctx context.Context, opt model.GitProviderClientOption, httpClient *http.Client) (interfaces.GitProvider, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering createProvider")
-	option.DebugLog(logger).Msg("createProvider")
+	opt.DebugLog(logger).Msg("createProvider")
 
 	var provider interfaces.GitProvider
 
 	var err error
 
-	switch option.ProviderType {
+	switch opt.ProviderType {
 	case config.GITEA:
-		provider, err = gitea.NewGiteaAPIClient(ctx, option, httpClient)
+		provider, err = gitea.NewGiteaAPIClient(ctx, httpClient, opt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create Gitea client: %w", err)
 		}
 
 	case config.GITHUB:
-		provider, err = github.NewGitHubAPIClient(ctx, option, httpClient)
+		provider, err = github.NewGitHubAPIClient(ctx, httpClient, opt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create GitHub client: %w", err)
 		}
 
 	case config.GITLAB:
-		provider, err = gitlab.NewGitLabAPIClient(ctx, option, httpClient)
+		provider, err = gitlab.NewGitLabAPIClient(ctx, httpClient, opt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create GitLab client: %w", err)
 		}
@@ -90,25 +90,25 @@ func createProvider(ctx context.Context, option model.GitProviderClientOption, h
 	case config.DIRECTORY:
 		provider = directory.Client{}
 	default:
-		return nil, fmt.Errorf("%w: %s", ErrNonSupportedProvider, option.ProviderType)
+		return nil, fmt.Errorf("%w: %s", ErrNonSupportedProvider, opt.ProviderType)
 	}
 
-	logger.Debug().Str("name", provider.Name()).Msg("created dir provider client")
+	logger.Debug().Str("name", provider.Name()).Msg("created provider client")
 
 	return provider, nil
 }
 
 // newHTTPClient creates a new HTTP client with proper error handling.
-func newHTTPClient(ctx context.Context, option model.GitProviderClientOption) (*http.Client, error) {
+func newHTTPClient(ctx context.Context, opt model.GitProviderClientOption) (*http.Client, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering newHTTPClient")
 
-	certPool, err := loadCertificates(ctx, option.AuthCfg.CertDirPath)
+	certPool, err := loadCertificates(ctx, opt.AuthCfg.CertDirPath)
 	if err != nil {
 		return nil, fmt.Errorf("certificate loading error: %w", err)
 	}
 
-	proxyFunc, err := setupProxy(ctx, option.AuthCfg.ProxyURL)
+	proxyFunc, err := setupProxy(ctx, opt.AuthCfg.ProxyURL)
 	if err != nil {
 		return nil, fmt.Errorf("proxy setup error: %w", err)
 	}

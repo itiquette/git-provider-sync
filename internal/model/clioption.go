@@ -57,8 +57,8 @@ func CLIOptions(ctx context.Context) CLIOption {
 //
 // Returns:
 //   - A new context containing the CLIOption.
-func WithCLIOpt(ctx context.Context, option CLIOption) context.Context {
-	return context.WithValue(ctx, CLIOptionKey{}, option)
+func WithCLIOpt(ctx context.Context, opt CLIOption) context.Context {
+	return context.WithValue(ctx, CLIOptionKey{}, opt)
 }
 
 // String provides a string representation of CLIOption.

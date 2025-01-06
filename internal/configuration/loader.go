@@ -33,18 +33,18 @@ func (DefaultConfigLoader) LoadConfiguration(ctx context.Context) (*config.AppCo
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering LoadConfiguration")
 
-	cliOption := model.CLIOptions(ctx)
-	appConfig := &config.AppConfiguration{}
+	cliOpt := model.CLIOptions(ctx)
+	appCfg := &config.AppConfiguration{}
 
-	if err := ReadConfigurationFile(appConfig, cliOption.ConfigFilePath, cliOption.ConfigFileOnly); err != nil {
+	if err := ReadConfigurationFile(cliOpt.ConfigFilePath, cliOpt.ConfigFileOnly, appCfg); err != nil {
 		return nil, fmt.Errorf("failed to read configuration file: %w", err)
 	}
 
-	if err := validateConfiguration(ctx, appConfig); err != nil {
+	if err := validateConfiguration(ctx, appCfg); err != nil {
 		return nil, fmt.Errorf("failed to validate configuration: %w", err)
 	}
 
-	return appConfig, nil
+	return appCfg, nil
 }
 
 func processEnvKey(str string, prefix string) string {
@@ -80,7 +80,7 @@ func processEnvKey(str string, prefix string) string {
 	return strings.ReplaceAll(lowered, "_", ".")
 }
 
-func ReadConfigurationFile(appConfiguration *config.AppConfiguration, configfile string, configfileOnly bool) error {
+func ReadConfigurationFile(configfile string, configfileOnly bool, appConfiguration *config.AppConfiguration) error {
 	const (
 		xdgConfigHomeEnv        = "XDG_CONFIG_HOME"
 		xdgConfigHomeConfigPath = "/gitprovidersync/" + "gitprovidersync.yaml"

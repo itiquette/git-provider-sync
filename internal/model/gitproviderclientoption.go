@@ -31,7 +31,7 @@ type GitProviderClientOption struct {
 
 // String provides a safe string representation without exposing sensitive data.
 func (gpo GitProviderClientOption) String() string {
-	return fmt.Sprintf("GitProviderClientOption{type: %s, domain: %s, AuthCfg: %v}",
+	return fmt.Sprintf("ProviderClientOption{ProviderType: %s, Domain: %s, AuthCfg: %v}",
 		gpo.ProviderType,
 		gpo.Domain,
 		gpo.AuthCfg.String(),
@@ -41,10 +41,10 @@ func (gpo GitProviderClientOption) String() string {
 // DebugLog provides detailed logging while protecting sensitive information.
 func (gpo GitProviderClientOption) DebugLog(logger *zerolog.Logger) *zerolog.Event {
 	return logger.Debug(). //nolint
-				Str("provider_type", gpo.ProviderType).
-				Str("domain", gpo.Domain).
-				Str("httpclient", gpo.String()).
-				Interface("repositories", gpo.Repositories)
+				Str("ProviderType", gpo.ProviderType).
+				Str("Domain", gpo.Domain).
+				Str("ProviderClientOption", gpo.String()).
+				Interface("Repositories", gpo.Repositories)
 }
 
 func (gpo GitProviderClientOption) DomainWithScheme(scheme string) string {

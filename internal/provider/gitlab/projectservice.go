@@ -80,7 +80,7 @@ func (p ProjectService) getNamespaceID(ctx context.Context, opt model.CreateProj
 	return groups[0].ID, nil
 }
 
-func (p ProjectService) newProjectInfo(ctx context.Context, opt model.ProviderOption, name string) (model.ProjectInfo, error) {
+func (p ProjectService) newProjectInfo(ctx context.Context, name string, opt model.ProviderOption) (model.ProjectInfo, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitLab:newProjectInfo")
 	// logger.Debug().
@@ -195,7 +195,7 @@ func (p ProjectService) GetProjectInfos(ctx context.Context, providerOpt model.P
 			continue
 		}
 
-		projectInfo, err := p.newProjectInfo(ctx, providerOpt, repo.Path)
+		projectInfo, err := p.newProjectInfo(ctx, repo.Path, providerOpt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to init projectInfo. path: %s, err: %w", repo.Path, err)
 		}

@@ -171,7 +171,7 @@ func TestAPIClient_NewGitLabAPIClient(t *testing.T) {
 
 	for _, tabletest := range tests {
 		t.Run(tabletest.name, func(t *testing.T) {
-			client, err := NewGitLabAPIClient(context.Background(), tabletest.opt, http.DefaultClient)
+			client, err := NewGitLabAPIClient(context.Background(), http.DefaultClient, tabletest.opt)
 			if tabletest.wantErr {
 				require.Error(t, err)
 

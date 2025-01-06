@@ -35,11 +35,11 @@ func (h *GitHandler) InitializeRepository(ctx context.Context, targetDir string,
 		return fmt.Errorf("%w: %w", ErrPushRepository, err)
 	}
 
-	if err := h.client.Ops.SetRemoteAndBranch(ctx, repo, targetDir); err != nil {
+	if err := h.client.Ops.SetRemoteAndBranch(ctx, targetDir, repo); err != nil {
 		return fmt.Errorf("failed to set remote and branch: %w", err)
 	}
 
-	if err := h.client.Ops.SetDefaultBranch(ctx, initializedRepo, repo.ProjectInfo().DefaultBranch); err != nil {
+	if err := h.client.Ops.SetDefaultBranch(ctx, repo.ProjectInfo().DefaultBranch, initializedRepo); err != nil {
 		return fmt.Errorf("failed to set default branch: %w", err)
 	}
 

@@ -43,7 +43,7 @@ func (serv *Service) Push(ctx context.Context, repo interfaces.GitRepository, op
 	return nil
 }
 
-func (serv *Service) Pull(ctx context.Context, syncCfg gpsconfig.SyncConfig, targetPath string, repo interfaces.GitRepository) error {
+func (serv *Service) Pull(ctx context.Context, targetPath string, syncCfg gpsconfig.SyncConfig, repo interfaces.GitRepository) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Directory:Pull")
 	logger.Debug().Str("targetPath", targetPath).Msg("Directory:Pull")

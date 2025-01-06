@@ -37,7 +37,7 @@ func (h *GitHandler) InitializeRepository(ctx context.Context, path string, repo
 		return fmt.Errorf("%w: %w", ErrPushRepository, err)
 	}
 
-	if err := h.configureRepository(ctx, repo, initializedRepo, path, isBare); err != nil {
+	if err := h.configureRepository(ctx, path, isBare, repo, initializedRepo); err != nil {
 		return fmt.Errorf("failed to configure repository: %w", err)
 	}
 
@@ -49,17 +49,17 @@ func (h *GitHandler) Push(ctx context.Context, repo interfaces.GitRepository, op
 }
 
 // configureRepository handles the internal repository configuration.
-func (h *GitHandler) configureRepository(ctx context.Context, repo interfaces.GitRepository, initializedRepo *git.Repository, path string, isBare bool) error {
-	if err := h.client.Ops.SetRemoteAndBranch(ctx, repo, path); err != nil {
+func (h *GitHandler) configureRepository(ctx context.Context, path string, isBare bool, repo interfaces.GitRepository, initializedRepo *git.Repository) error {
+	if err := h.client.Ops.SetRemoteAndBranch(ctx, path, repo); err != nil {
 		return fmt.Errorf("failed to set remote and branch: %w", err)
 	}
 
 	if isBare {
-		if err := h.client.Ops.SetDefaultBranchBare(ctx, initializedRepo, repo.ProjectInfo().DefaultBranch); err != nil {
+		if err := h.client.Ops.SetDefaultBranchBare(ctx, repo.ProjectInfo().DefaultBranch, initializedRepo); err != nil {
 			return fmt.Errorf("failed to set default bare branch: %w", err)
 		}
 	} else {
-		if err := h.client.Ops.SetDefaultBranch(ctx, initializedRepo, repo.ProjectInfo().DefaultBranch); err != nil {
+		if err := h.client.Ops.SetDefaultBranch(ctx, repo.ProjectInfo().DefaultBranch, initializedRepo); err != nil {
 			return fmt.Errorf("failed to set default branch: %w", err)
 		}
 	}

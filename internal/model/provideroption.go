@@ -39,7 +39,7 @@ func (pr ProviderOption) IsGroup() bool {
 }
 
 func (pr ProviderOption) String() string {
-	return fmt.Sprintf("ProviderOption{Owner: %s, Type: %s, Forks: %v, Included: %v, Excluded: %v}",
+	return fmt.Sprintf("ProviderOption{Owner: %s, OwnerType: %s, IncludeForks: %v, IncludedRepositories: %v, ExcludedRepositories: %v}",
 		pr.Owner,
 		pr.OwnerType,
 		pr.IncludeForks,

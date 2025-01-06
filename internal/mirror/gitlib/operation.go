@@ -67,7 +67,7 @@ func (h *operation) WorktreeStatus(ctx context.Context, worktree *git.Worktree) 
 	return nil
 }
 
-func (h *operation) FetchBranches(ctx context.Context, repo *git.Repository, auth transport.AuthMethod, name string) error {
+func (h *operation) FetchBranches(ctx context.Context, name string, repo *git.Repository, auth transport.AuthMethod) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering fetchBranches")
 	logger.Debug().Str("name", name).Msg("fetchBranches")
@@ -93,7 +93,7 @@ func (h *operation) FetchBranches(ctx context.Context, repo *git.Repository, aut
 	return nil
 }
 
-func (h *operation) SetRemoteAndBranch(ctx context.Context, repository interfaces.GitRepository, targetDirPath string) error {
+func (h *operation) SetRemoteAndBranch(ctx context.Context, targetDirPath string, repository interfaces.GitRepository) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering setRemoteAndBranch")
 	logger.Debug().Str("targetDirPath", targetDirPath).Msg("setRemoteAndBranch")
@@ -118,7 +118,7 @@ func (h *operation) SetRemoteAndBranch(ctx context.Context, repository interface
 	return nil
 }
 
-func (h *operation) SetDefaultBranchBare(ctx context.Context, repo *git.Repository, branch string) error {
+func (h *operation) SetDefaultBranchBare(ctx context.Context, branch string, repo *git.Repository) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering setDefaultBranchBare")
 	logger.Debug().Str("branch", branch).Msg("setDefaultBranchBare")
@@ -139,7 +139,7 @@ func (h *operation) SetDefaultBranchBare(ctx context.Context, repo *git.Reposito
 	return nil
 }
 
-func (h *operation) SetDefaultBranch(ctx context.Context, repo *git.Repository, branch string) error {
+func (h *operation) SetDefaultBranch(ctx context.Context, branch string, repo *git.Repository) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering setDefaultBranch")
 	logger.Debug().Str("branch", branch).Msg("setDefaultBranch")

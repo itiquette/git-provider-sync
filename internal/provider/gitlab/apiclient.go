@@ -127,7 +127,7 @@ func (api APIClient) UnprotectProject(ctx context.Context, defaultBranch string,
 	return nil
 }
 
-func NewGitLabAPIClient(ctx context.Context, opt model.GitProviderClientOption, httpClient *http.Client) (APIClient, error) {
+func NewGitLabAPIClient(ctx context.Context, httpClient *http.Client, opt model.GitProviderClientOption) (APIClient, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitLab:NewGitLabClient")
 

@@ -37,7 +37,7 @@ var (
 //   - repository: The Git repository interface
 //
 // Returns an error if any step in the process fails.
-func Push(ctx context.Context, mirrorCfg config.MirrorConfig, provider interfaces.GitProvider, writer interfaces.MirrorWriter, repository interfaces.GitRepository, syncCfg config.SyncConfig) error {
+func Push(ctx context.Context, syncCfg config.SyncConfig, mirrorCfg config.MirrorConfig, provider interfaces.GitProvider, writer interfaces.MirrorWriter, repository interfaces.GitRepository) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Push")
 	//	targetProviderCfg.DebugLog(logger).Msg("Push")
@@ -116,7 +116,7 @@ func create(ctx context.Context, mirrorCfg config.MirrorConfig, provider interfa
 		return "", fmt.Errorf("failed to get gpsupstream remote: %w", err)
 	}
 
-	description := buildDescription(gpsUpstreamRemote, repository, mirrorCfg.Settings.DescriptionPrefix)
+	description := buildDescription(mirrorCfg.Settings.DescriptionPrefix, gpsUpstreamRemote, repository)
 	name := repository.ProjectInfo().Name(ctx)
 
 	visibility := mirrorCfg.Settings.Visibility
@@ -140,7 +140,7 @@ func create(ctx context.Context, mirrorCfg config.MirrorConfig, provider interfa
 }
 
 // buildDescription creates a description for the repository, combining the upstream URL and existing description.
-func buildDescription(gpsUpstreamRemote model.Remote, repository interfaces.GitRepository, userDescription string) string {
+func buildDescription(userDescription string, gpsUpstreamRemote model.Remote, repository interfaces.GitRepository) string {
 	var description string
 	if userDescription != "" {
 		description = userDescription
@@ -236,7 +236,7 @@ func toGitURL(ctx context.Context, mirrorCfg config.MirrorConfig, repository int
 	}
 
 	trimmedProviderConfigURL := strings.TrimRight(mirrorCfg.GetDomain(), "/")
-	projectPath := getProjectPath(mirrorCfg, repositoryName)
+	projectPath := getProjectPath(repositoryName, mirrorCfg)
 
 	// Handle URL scheme based on auth protocol type
 	switch mirrorCfg.Auth.Protocol {
@@ -264,6 +264,6 @@ func toGitURL(ctx context.Context, mirrorCfg config.MirrorConfig, repository int
 }
 
 // getProjectPath constructs the project path based on whether it's a group or user repository.
-func getProjectPath(config config.MirrorConfig, repositoryName string) string {
-	return fmt.Sprintf("%s/%s", config.Owner, repositoryName)
+func getProjectPath(repositoryName string, mirrorCfg config.MirrorConfig) string {
+	return fmt.Sprintf("%s/%s", mirrorCfg.Owner, repositoryName)
 }

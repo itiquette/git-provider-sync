@@ -84,7 +84,7 @@ func (serv *Service) Pull(ctx context.Context, opt model.PullOption, targetDir s
 		return err
 	}
 
-	return serv.Ops.FetchBranches(ctx, repo, auth, filepath.Dir(targetDir))
+	return serv.Ops.FetchBranches(ctx, filepath.Dir(targetDir), repo, auth)
 }
 
 func (serv *Service) Push(ctx context.Context, repo interfaces.GitRepository, opt model.PushOption) error {

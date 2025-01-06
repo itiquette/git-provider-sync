@@ -37,11 +37,11 @@ func (po PullOption) DebugLog(logger *zerolog.Logger) *zerolog.Event {
 }
 
 // NewPullOption creates a new PullOption.
-func NewPullOption(name, url string, sourceConfig model.SyncConfig, authCfg model.AuthConfig) PullOption {
+func NewPullOption(name, url string, syncCfg model.SyncConfig, authCfg model.AuthConfig) PullOption {
 	return PullOption{
 		Name:         name,
 		URL:          url,
-		SourceConfig: sourceConfig,
+		SourceConfig: syncCfg,
 		AuthCfg:      authCfg,
 	}
 }

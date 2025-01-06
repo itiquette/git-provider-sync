@@ -271,7 +271,7 @@ func TestSetRemoteAndBranch(t *testing.T) {
 
 	repo, _ := model.NewRepository(sourceRepo)
 	// Test setting remote and branch
-	err = oper.SetRemoteAndBranch(context.Background(), repo, targetPath)
+	err = oper.SetRemoteAndBranch(context.Background(), targetPath, repo)
 	require.NoError(t, err)
 
 	// Verify remote was set correctly
@@ -311,7 +311,7 @@ func TestSetDefaultBranch(t *testing.T) {
 
 	for _, tabletest := range tests {
 		t.Run(tabletest.name, func(t *testing.T) {
-			err := oper.SetDefaultBranch(context.Background(), repo, tabletest.branch)
+			err := oper.SetDefaultBranch(context.Background(), tabletest.branch, repo)
 			if tabletest.wantErr {
 				require.Error(t, err)
 				require.ErrorContains(t, err, "failed to checkout branch")

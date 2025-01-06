@@ -58,7 +58,7 @@ func summary(ctx context.Context, syncCfg gpsconfig.SyncConfig) {
 	}
 
 	logger.Info().
-		Str("GetDomain()", syncCfg.GetDomain()).
+		Str("Domain", syncCfg.GetDomain()).
 		Str("Owner", syncCfg.Owner).
 		Msg("Completed sync run")
 

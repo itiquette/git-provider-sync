@@ -36,7 +36,7 @@ func TestReadConfigFileMergedOptionsInOrderXDGLocalDotEnvEnvVarSuccess(t *testin
 
 	appConfiguration := &config.AppConfiguration{}
 
-	err := ReadConfigurationFile(appConfiguration, "testdata/testconfig.yaml", false)
+	err := ReadConfigurationFile("testdata/testconfig.yaml", false, appConfiguration)
 	if err != nil {
 		fmt.Println(err)
 	}
