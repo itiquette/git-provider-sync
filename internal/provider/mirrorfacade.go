@@ -168,7 +168,7 @@ func exists(ctx context.Context, mirrorCfg config.MirrorConfig, provider interfa
 	cliOption := model.CLIOptions(ctx)
 	repositoryName := repository.ProjectInfo().Name(ctx)
 
-	repoExists, projectID := provider.ProjectExists(ctx, mirrorCfg.Owner, repositoryName)
+	repoExists, projectID, _ := provider.ProjectExists(ctx, mirrorCfg.Owner, repositoryName)
 
 	if !repoExists {
 		logger.Debug().Str("name", repositoryName).Msg("Repository didn't exist at target provider")

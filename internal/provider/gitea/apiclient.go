@@ -36,7 +36,7 @@ func (api APIClient) CreateProject(ctx context.Context, opt model.CreateProjectO
 	return projectID, nil
 }
 
-func (api APIClient) ProjectExists(ctx context.Context, owner, repo string) (bool, string) {
+func (api APIClient) ProjectExists(ctx context.Context, owner, repo string) (bool, string, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering gitea:ProjectExists")
 
@@ -44,10 +44,10 @@ func (api APIClient) ProjectExists(ctx context.Context, owner, repo string) (boo
 	if err != nil {
 		logger.Error().Msg("failed to see if project existed. err:" + err.Error())
 
-		return false, ""
+		return false, "", err
 	}
 
-	return exists, projectID
+	return exists, projectID, nil
 }
 
 func (api APIClient) IsValidProjectName(ctx context.Context, name string) bool {
@@ -62,7 +62,7 @@ func (APIClient) Name() string {
 	return config.GITEA
 }
 
-func (api APIClient) ProjectInfos(ctx context.Context, opt model.ProviderOption, filtering bool) ([]model.ProjectInfo, error) {
+func (api APIClient) GetProjectInfos(ctx context.Context, opt model.ProviderOption, filtering bool) ([]model.ProjectInfo, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Gitea:ProjectInfos")
 	logger.Debug().Bool("filtering", filtering).Msg("Gitea:ProjectInfos")

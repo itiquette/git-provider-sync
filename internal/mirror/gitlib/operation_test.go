@@ -136,7 +136,7 @@ func createInitialCommit(repo *git.Repository, repoPath string) error {
 func TestNewOperation(t *testing.T) {
 	oper := NewOperation()
 	assert.NotNil(t, oper)
-	assert.IsType(t, &operation{}, oper)
+	assert.IsType(t, &Operation{}, oper)
 }
 
 func TestOpen(t *testing.T) {

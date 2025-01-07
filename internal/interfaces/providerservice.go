@@ -13,8 +13,8 @@ import (
 
 type ProjectServicer interface {
 	CreateProject(ctx context.Context, opt model.CreateProjectOption) (string, error)
-	Exists(ctx context.Context, owner, repo string) (bool, string, error)
-	GetProjectInfos(ctx context.Context, opt model.ProviderOption) ([]model.ProjectInfo, error)
+	GetProjectInfos(ctx context.Context, providerOpt model.ProviderOption, filtering bool) ([]model.ProjectInfo, error)
+	ProjectExists(ctx context.Context, owner, repo string) (bool, string, error)
 	SetDefaultBranch(ctx context.Context, owner, projectName, branch string) error
 }
 

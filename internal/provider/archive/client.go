@@ -29,11 +29,11 @@ func (Client) IsValidProjectName(_ context.Context, _ string) bool {
 	return true
 }
 
-func (Client) ProjectExists(_ context.Context, _, _ string) (bool, string) {
-	return false, ""
+func (Client) ProjectExists(_ context.Context, _, _ string) (bool, string, error) {
+	return false, "", nil
 }
 
-func (Client) ProjectInfos(_ context.Context, _ model.ProviderOption, _ bool) ([]model.ProjectInfo, error) {
+func (Client) GetProjectInfos(_ context.Context, _ model.ProviderOption, _ bool) ([]model.ProjectInfo, error) {
 	return nil, nil
 }
 

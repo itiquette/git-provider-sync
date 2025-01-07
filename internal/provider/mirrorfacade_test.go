@@ -42,11 +42,11 @@ type MockGitProvider struct {
 	mock.Mock
 }
 
-func (m *MockGitProvider) Name() string {
+func (m *MockGitProvider) GetProjectInfos(ctx context.Context, providerOpt model.ProviderOption, filtering bool) ([]model.ProjectInfo, error) {
 	panic("unimplemented")
 }
 
-func (m *MockGitProvider) ProjectInfos(_ context.Context, _ model.ProviderOption, _ bool) ([]model.ProjectInfo, error) {
+func (m *MockGitProvider) Name() string {
 	panic("unimplemented")
 }
 
@@ -55,9 +55,9 @@ func (m *MockGitProvider) IsValidProjectName(ctx context.Context, name string) b
 	return args.Bool(0)
 }
 
-func (m *MockGitProvider) ProjectExists(ctx context.Context, owner, repo string) (bool, string) {
+func (m *MockGitProvider) ProjectExists(ctx context.Context, owner, repo string) (bool, string, error) {
 	args := m.Called(ctx, owner, repo)
-	return args.Bool(0), args.String(1)
+	return args.Bool(0), args.String(1), nil
 }
 
 func (m *MockGitProvider) CreateProject(ctx context.Context, opt model.CreateProjectOption) (string, error) {
@@ -351,6 +351,11 @@ type testGitProvider struct {
 	createProjectFunc func(context.Context, model.CreateProjectOption) (string, error)
 }
 
+// GetProjectInfos implements interfaces.GitProvider.
+func (t testGitProvider) GetProjectInfos(ctx context.Context, providerOpt model.ProviderOption, filtering bool) ([]model.ProjectInfo, error) {
+	panic("unimplemented")
+}
+
 func (t testGitProvider) Name() string {
 	panic("unimplemented")
 }
@@ -363,8 +368,8 @@ func (t testGitProvider) IsValidProjectName(_ context.Context, _ string) bool {
 	return true
 }
 
-func (t testGitProvider) ProjectExists(_ context.Context, _ string, _ string) (bool, string) {
-	return true, "123"
+func (t testGitProvider) ProjectExists(_ context.Context, _ string, _ string) (bool, string, error) {
+	return true, "123", nil
 }
 
 func (t testGitProvider) CreateProject(ctx context.Context, opt model.CreateProjectOption) (string, error) {

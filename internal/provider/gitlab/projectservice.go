@@ -115,7 +115,7 @@ func (p ProjectService) newProjectInfo(ctx context.Context, name string, opt mod
 	}, nil
 }
 
-func (p ProjectService) Exists(ctx context.Context, owner, repo string) (bool, string, error) {
+func (p ProjectService) ProjectExists(ctx context.Context, owner, repo string) (bool, string, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitLab:Exists")
 
@@ -135,7 +135,7 @@ func (p ProjectService) Exists(ctx context.Context, owner, repo string) (bool, s
 	return project != nil, projectID, nil
 }
 
-func (p ProjectService) GetProjectInfos(ctx context.Context, providerOpt model.ProviderOption) ([]model.ProjectInfo, error) {
+func (p ProjectService) GetProjectInfos(ctx context.Context, providerOpt model.ProviderOption, _ bool) ([]model.ProjectInfo, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitLab:getProjectInfos")
 

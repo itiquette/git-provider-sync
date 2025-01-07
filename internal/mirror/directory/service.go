@@ -13,14 +13,14 @@ import (
 )
 
 type Service struct {
-	git     GitHandler
-	storage StorageHandler
+	gitHandler GitHandler
+	storage    StorageHandler
 }
 
 func NewService(git GitHandler, storage StorageHandler) *Service {
 	return &Service{
-		git:     git,
-		storage: storage,
+		gitHandler: git,
+		storage:    storage,
 	}
 }
 
@@ -36,7 +36,7 @@ func (serv *Service) Push(ctx context.Context, repo interfaces.GitRepository, op
 
 	cliOpt := model.CLIOptions(ctx)
 	if cliOpt.ForcePush || !serv.storage.DirectoryExists(targetDir) {
-		return serv.git.InitializeRepository(ctx, targetDir, repo)
+		return serv.gitHandler.InitializeRepository(ctx, targetDir, repo)
 	}
 
 	return nil
@@ -53,7 +53,7 @@ func (serv *Service) Pull(ctx context.Context, opt model.PullOption) error {
 	}
 
 	pullOpt := model.NewPullOption("", "", opt.SyncCfg, opt.SyncCfg.Auth, targetDir, targetDir)
-	if err := serv.git.Pull(ctx, pullOpt); err != nil {
+	if err := serv.gitHandler.PullToDir(ctx, pullOpt); err != nil {
 		return fmt.Errorf("%w: targetDir: %s: %w", ErrPullRepository, targetDir, err)
 	}
 

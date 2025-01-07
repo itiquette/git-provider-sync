@@ -49,10 +49,6 @@ type GitInterface interface {
 	//Fetch(ctx context.Context, workingDir string) error
 }
 
-// Note: The SourceReader and MirrorWriter interfaces should be defined
-// elsewhere in the package, containing methods for reading from a source
-// and writing to a target, respectively.
-
 // Example usage:
 //
 //	type MyGitImplementation struct {

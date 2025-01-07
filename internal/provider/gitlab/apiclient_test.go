@@ -83,7 +83,7 @@ func TestAPIClient_ProjectInfos(t *testing.T) {
 				{OriginalName: "project2"},
 			},
 			mockProj: func(m *mocks.ProjectServicer) {
-				m.EXPECT().GetProjectInfos(mock.Anything, mock.Anything).
+				m.EXPECT().GetProjectInfos(mock.Anything, mock.Anything, mock.Anything).
 					Return([]model.ProjectInfo{{OriginalName: "project1"}, {OriginalName: "project2"}}, nil)
 			},
 		},
@@ -92,7 +92,7 @@ func TestAPIClient_ProjectInfos(t *testing.T) {
 			filtering: true,
 			want:      []model.ProjectInfo{{OriginalName: "project1"}},
 			mockProj: func(m *mocks.ProjectServicer) {
-				m.EXPECT().GetProjectInfos(mock.Anything, mock.Anything).
+				m.EXPECT().GetProjectInfos(mock.Anything, mock.Anything, mock.Anything).
 					Return([]model.ProjectInfo{{OriginalName: "project1"}, {OriginalName: "project2"}}, nil)
 			},
 			mockFilt: func(m *mocks.FilterServicer) {
@@ -105,7 +105,7 @@ func TestAPIClient_ProjectInfos(t *testing.T) {
 			filtering: false,
 			wantErr:   true,
 			mockProj: func(m *mocks.ProjectServicer) {
-				m.EXPECT().GetProjectInfos(mock.Anything, mock.Anything).
+				m.EXPECT().GetProjectInfos(mock.Anything, mock.Anything, mock.Anything).
 					Return(nil, errors.New("failed"))
 			},
 		},
@@ -127,7 +127,7 @@ func TestAPIClient_ProjectInfos(t *testing.T) {
 				filterService:  mockFilterService,
 			}
 
-			got, err := api.ProjectInfos(context.Background(), tabletest.opt, tabletest.filtering)
+			got, err := api.GetProjectInfos(context.Background(), tabletest.opt, tabletest.filtering)
 			if tabletest.wantErr {
 				require.Error(t, err)
 
@@ -203,7 +203,7 @@ func TestAPIClient_ProjectExists(t *testing.T) {
 			exists: true,
 			id:     "123",
 			mock: func(m *mocks.ProjectServicer) {
-				m.EXPECT().Exists(mock.Anything, "owner", "repo").Return(true, "123", nil)
+				m.EXPECT().ProjectExists(mock.Anything, "owner", "repo").Return(true, "123", nil)
 			},
 		},
 		{
@@ -213,7 +213,7 @@ func TestAPIClient_ProjectExists(t *testing.T) {
 			exists: false,
 			id:     "",
 			mock: func(m *mocks.ProjectServicer) {
-				m.EXPECT().Exists(mock.Anything, "owner", "repo").Return(false, "", nil)
+				m.EXPECT().ProjectExists(mock.Anything, "owner", "repo").Return(false, "", nil)
 			},
 		},
 	}
@@ -224,7 +224,7 @@ func TestAPIClient_ProjectExists(t *testing.T) {
 			tabletest.mock(mockProjectService)
 
 			api := APIClient{projectService: mockProjectService}
-			exists, id := api.ProjectExists(context.Background(), tabletest.owner, tabletest.repo)
+			exists, id, _ := api.ProjectExists(context.Background(), tabletest.owner, tabletest.repo)
 
 			require.Equal(t, tabletest.exists, exists)
 			require.Equal(t, tabletest.id, id)

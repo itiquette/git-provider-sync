@@ -78,7 +78,7 @@ func FetchProjectInfos(ctx context.Context, syncCfg config.SyncConfig, gitProvid
 		syncCfg.Repositories.ExcludedRepositories(),
 	)
 
-	projectInfos, err := gitProvider.ProjectInfos(ctx, providerOption, true)
+	projectInfos, err := gitProvider.GetProjectInfos(ctx, providerOption, true)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch project informations: %w", err)
 	}

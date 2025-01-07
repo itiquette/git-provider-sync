@@ -123,7 +123,7 @@ func TestFetchProjectInfo(t *testing.T) {
 			},
 			mockSetup: func(gitP *mocks.GitProvider) {
 				gitP.On("Name").Return("GitHub")
-				gitP.On("ProjectInfos", mock.Anything, mock.MatchedBy(func(opt model.ProviderOption) bool {
+				gitP.On("GetProjectInfos", mock.Anything, mock.MatchedBy(func(opt model.ProviderOption) bool {
 					return opt.IncludeForks == true &&
 						opt.Owner == "owner" &&
 						opt.OwnerType == "user"
@@ -141,7 +141,7 @@ func TestFetchProjectInfo(t *testing.T) {
 			},
 			mockSetup: func(gitP *mocks.GitProvider) {
 				gitP.On("Name").Return("GitLab")
-				gitP.On("ProjectInfos", mock.Anything, mock.Anything, true).
+				gitP.On("GetProjectInfos", mock.Anything, mock.Anything, true).
 					Return(nil, errors.New("fetch failed"))
 			},
 			wantErr: true,
@@ -160,7 +160,7 @@ func TestFetchProjectInfo(t *testing.T) {
 			},
 			mockSetup: func(gitP *mocks.GitProvider) {
 				gitP.On("Name").Return("GitHub")
-				gitP.On("ProjectInfos", mock.Anything, mock.MatchedBy(func(opt model.ProviderOption) bool {
+				gitP.On("GetProjectInfos", mock.Anything, mock.MatchedBy(func(opt model.ProviderOption) bool {
 					included := opt.IncludedRepositories
 					excluded := opt.ExcludedRepositories
 

@@ -23,7 +23,7 @@ import (
 
 type Service struct {
 	authService AuthService
-	Ops         operation
+	Ops         Operation
 	metadata    MetadataHandlerer
 }
 

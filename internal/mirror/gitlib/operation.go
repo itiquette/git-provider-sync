@@ -19,14 +19,14 @@ import (
 	gogitconfig "github.com/go-git/go-git/v5/config"
 )
 
-type operation struct {
+type Operation struct {
 }
 
-func NewOperation() *operation { //nolint
-	return &operation{}
+func NewOperation() *Operation {
+	return &Operation{}
 }
 
-func (h *operation) Open(ctx context.Context, path string) (*git.Repository, error) {
+func (h *Operation) Open(ctx context.Context, path string) (*git.Repository, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering open")
 	logger.Debug().Str("path", path).Msg("open")
@@ -39,7 +39,7 @@ func (h *operation) Open(ctx context.Context, path string) (*git.Repository, err
 	return repo, nil
 }
 
-func (h *operation) GetWorktree(ctx context.Context, repo *git.Repository) (*git.Worktree, error) {
+func (h *Operation) GetWorktree(ctx context.Context, repo *git.Repository) (*git.Worktree, error) {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering getWorktree")
 
@@ -51,7 +51,7 @@ func (h *operation) GetWorktree(ctx context.Context, repo *git.Repository) (*git
 	return worktree, nil
 }
 
-func (h *operation) WorktreeStatus(ctx context.Context, worktree *git.Worktree) error {
+func (h *Operation) WorktreeStatus(ctx context.Context, worktree *git.Worktree) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering worktreeStatus")
 
@@ -67,7 +67,7 @@ func (h *operation) WorktreeStatus(ctx context.Context, worktree *git.Worktree) 
 	return nil
 }
 
-func (h *operation) FetchBranches(ctx context.Context, name string, repo *git.Repository, auth transport.AuthMethod) error {
+func (h *Operation) FetchBranches(ctx context.Context, name string, repo *git.Repository, auth transport.AuthMethod) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering fetchBranches")
 	logger.Debug().Str("name", name).Msg("fetchBranches")
@@ -93,7 +93,7 @@ func (h *operation) FetchBranches(ctx context.Context, name string, repo *git.Re
 	return nil
 }
 
-func (h *operation) SetRemoteAndBranch(ctx context.Context, targetDirPath string, repository interfaces.GitRepository) error {
+func (h *Operation) SetRemoteAndBranch(ctx context.Context, targetDirPath string, repository interfaces.GitRepository) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering setRemoteAndBranch")
 	logger.Debug().Str("targetDirPath", targetDirPath).Msg("setRemoteAndBranch")
@@ -118,7 +118,7 @@ func (h *operation) SetRemoteAndBranch(ctx context.Context, targetDirPath string
 	return nil
 }
 
-func (h *operation) SetDefaultBranchBare(ctx context.Context, branch string, repo *git.Repository) error {
+func (h *Operation) SetDefaultBranchBare(ctx context.Context, branch string, repo *git.Repository) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering setDefaultBranchBare")
 	logger.Debug().Str("branch", branch).Msg("setDefaultBranchBare")
@@ -139,7 +139,7 @@ func (h *operation) SetDefaultBranchBare(ctx context.Context, branch string, rep
 	return nil
 }
 
-func (h *operation) SetDefaultBranch(ctx context.Context, branch string, repo *git.Repository) error {
+func (h *Operation) SetDefaultBranch(ctx context.Context, branch string, repo *git.Repository) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering setDefaultBranch")
 	logger.Debug().Str("branch", branch).Msg("setDefaultBranch")
