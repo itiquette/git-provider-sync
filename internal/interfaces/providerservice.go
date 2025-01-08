@@ -11,18 +11,6 @@ import (
 	"time"
 )
 
-type ProjectServicer interface {
-	CreateProject(ctx context.Context, opt model.CreateProjectOption) (string, error)
-	GetProjectInfos(ctx context.Context, providerOpt model.ProviderOption, filtering bool) ([]model.ProjectInfo, error)
-	ProjectExists(ctx context.Context, owner, repo string) (bool, string, error)
-	SetDefaultBranch(ctx context.Context, owner, projectName, branch string) error
-}
-
-type ProtectionServicer interface {
-	Protect(ctx context.Context, defaultBranch string, projectIDstr string) error
-	Unprotect(ctx context.Context, defaultBranch string, projectIDStr string) error
-}
-
 type FilterServicer interface {
 	FilterProjectinfos(ctx context.Context, opt model.ProviderOption, projectinfos []model.ProjectInfo, filterExcludedIncludedFunc functiondefinition.FilterIncludedExcludedFunc, isInInterval IsInIntervalFunc) ([]model.ProjectInfo, error)
 }

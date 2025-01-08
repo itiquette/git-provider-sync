@@ -86,12 +86,12 @@ func (api APIClient) GetProjectInfos(ctx context.Context, providerOpt model.Prov
 	return projectInfos, nil
 }
 
-func (api APIClient) ProtectProject(ctx context.Context, _ string, defaultBranch string, projectIDstr string) error {
+func (api APIClient) Protect(ctx context.Context, _ string, defaultBranch string, projectIDstr string) error {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering GitLab:ProtectProject")
-	logger.Debug().Str("defaultBranch", defaultBranch).Str("projectIDStr", projectIDstr).Msg("GitLab:ProtectProject")
+	logger.Trace().Msg("Entering GitLab:Protect")
+	logger.Debug().Str("defaultBranch", defaultBranch).Str("projectIDStr", projectIDstr).Msg("GitLab:Protect")
 
-	err := api.protectionService.Protect(ctx, defaultBranch, projectIDstr)
+	err := api.protectionService.Protect(ctx, "", defaultBranch, projectIDstr)
 	if err != nil {
 		return fmt.Errorf("failed to to protect project. defaultBranch: %s, projectIDstr: %s, err: %w", defaultBranch, projectIDstr, err)
 	}
@@ -112,10 +112,10 @@ func (api APIClient) SetDefaultBranch(ctx context.Context, owner, projectName, b
 	return nil
 }
 
-func (api APIClient) UnprotectProject(ctx context.Context, defaultBranch string, projectIDStr string) error {
+func (api APIClient) Unprotect(ctx context.Context, defaultBranch string, projectIDStr string) error {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering GitLab:UnprotectProject")
-	logger.Debug().Str("defaultBranch", defaultBranch).Str("projectIDStr", projectIDStr).Msg("GitLab:UnprotectProject")
+	logger.Trace().Msg("Entering GitLab:Unprotect")
+	logger.Debug().Str("defaultBranch", defaultBranch).Str("projectIDStr", projectIDStr).Msg("GitLab:Unprotect")
 
 	err := api.protectionService.Unprotect(ctx, defaultBranch, projectIDStr)
 	if err != nil {

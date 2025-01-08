@@ -232,7 +232,7 @@ func TestAPIClient_ProjectExists(t *testing.T) {
 		})
 	}
 }
-func TestAPIClient_ProtectProject(t *testing.T) {
+func TestAPIClient_Protect(t *testing.T) {
 	tests := []struct {
 		name          string
 		defaultBranch string
@@ -245,7 +245,7 @@ func TestAPIClient_ProtectProject(t *testing.T) {
 			defaultBranch: "main",
 			projectIDStr:  "123",
 			mock: func(m *mocks.ProtectionServicer) {
-				m.EXPECT().Protect(mock.Anything, "main", "123").Return(nil)
+				m.EXPECT().Protect(mock.Anything, "", "main", "123").Return(nil)
 			},
 		},
 		{
@@ -254,7 +254,7 @@ func TestAPIClient_ProtectProject(t *testing.T) {
 			projectIDStr:  "123",
 			wantErr:       true,
 			mock: func(m *mocks.ProtectionServicer) {
-				m.EXPECT().Protect(mock.Anything, "", "123").Return(errors.New("invalid branch"))
+				m.EXPECT().Protect(mock.Anything, "", "", "123").Return(errors.New("invalid branch"))
 			},
 		},
 	}
@@ -265,7 +265,7 @@ func TestAPIClient_ProtectProject(t *testing.T) {
 			tabletest.mock(mockService)
 
 			api := APIClient{protectionService: mockService}
-			err := api.ProtectProject(context.Background(), "", tabletest.defaultBranch, tabletest.projectIDStr)
+			err := api.Protect(context.Background(), "", tabletest.defaultBranch, tabletest.projectIDStr)
 
 			if tabletest.wantErr {
 				require.Error(t, err)
@@ -329,7 +329,7 @@ func TestAPIClient_SetDefaultBranch(t *testing.T) {
 	}
 }
 
-func TestAPIClient_UnprotectProject(t *testing.T) {
+func TestAPIClient_Unprotect(t *testing.T) {
 	tests := []struct {
 		name          string
 		defaultBranch string
@@ -362,7 +362,7 @@ func TestAPIClient_UnprotectProject(t *testing.T) {
 			tabletest.mock(mockService)
 
 			api := APIClient{protectionService: mockService}
-			err := api.UnprotectProject(context.Background(), tabletest.defaultBranch, tabletest.projectIDStr)
+			err := api.Unprotect(context.Background(), tabletest.defaultBranch, tabletest.projectIDStr)
 
 			if tabletest.wantErr {
 				require.Error(t, err)

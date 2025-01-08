@@ -37,10 +37,10 @@ func (Client) GetProjectInfos(_ context.Context, _ model.ProviderOption, _ bool)
 	return nil, nil
 }
 
-func (Client) ProtectProject(_ context.Context, _, _, _ string) error {
+func (Client) Protect(_ context.Context, _, _, _ string) error {
 	return nil
 }
 
-func (Client) UnprotectProject(_ context.Context, _, _ string) error {
+func (Client) Unprotect(_ context.Context, _, _ string) error {
 	return nil
 }

@@ -79,7 +79,7 @@ func (api APIClient) GetProjectInfos(ctx context.Context, opt model.ProviderOpti
 	return projectinfos, nil
 }
 
-func (api APIClient) ProtectProject(ctx context.Context, _ string, branch string, projectIDstr string) error {
+func (api APIClient) Protect(ctx context.Context, _ string, branch string, projectIDstr string) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Gitea:Protect")
 	logger.Debug().Str("projectIDStr", projectIDstr).Str("branch", branch).Msg("Gitea:Protect")
@@ -105,7 +105,7 @@ func (api APIClient) SetDefaultBranch(ctx context.Context, owner string, project
 	return nil
 }
 
-func (api APIClient) UnprotectProject(ctx context.Context, branch string, projectIDStr string) error {
+func (api APIClient) Unprotect(ctx context.Context, branch string, projectIDStr string) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering Gitea:Unprotect")
 	logger.Debug().Str("projectIDStr", projectIDStr).Str("branch", branch).Msg("Gitea:Unprotect")

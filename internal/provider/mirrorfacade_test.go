@@ -65,12 +65,12 @@ func (m *MockGitProvider) CreateProject(ctx context.Context, opt model.CreatePro
 	return args.String(0), args.Error(1)
 }
 
-func (m *MockGitProvider) UnprotectProject(ctx context.Context, branch string, projectID string) error {
+func (m *MockGitProvider) Unprotect(ctx context.Context, branch string, projectID string) error {
 	args := m.Called(ctx, branch, projectID)
 	return args.Error(0)
 }
 
-func (m *MockGitProvider) ProtectProject(ctx context.Context, owner string, branch string, projectID string) error {
+func (m *MockGitProvider) Protect(ctx context.Context, owner string, branch string, projectID string) error {
 	args := m.Called(ctx, owner, branch, projectID)
 	return args.Error(0)
 }
@@ -206,10 +206,10 @@ func TestPush(t *testing.T) {
 				})
 				provider.On("ProjectExists", mock.Anything, "testuser", "test-repo").
 					Return(true, "123")
-				provider.On("UnprotectProject", mock.Anything, "main", "123").Return(nil)
+				provider.On("Unprotect", mock.Anything, "main", "123").Return(nil)
 				writer.On("Push", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 				provider.On("SetDefaultBranch", mock.Anything, "testuser", "test-repo", "main").Return(nil)
-				provider.On("ProtectProject", mock.Anything, "testuser", "main", "123").Return(nil)
+				provider.On("Protect", mock.Anything, "testuser", "main", "123").Return(nil)
 			},
 		},
 		{
@@ -376,7 +376,7 @@ func (t testGitProvider) CreateProject(ctx context.Context, opt model.CreateProj
 	return t.createProjectFunc(ctx, opt)
 }
 
-func (t testGitProvider) ProtectProject(_ context.Context, _ string, _ string, _ string) error {
+func (t testGitProvider) Protect(_ context.Context, _ string, _ string, _ string) error {
 	return nil
 }
 
@@ -384,7 +384,7 @@ func (t testGitProvider) SetDefaultBranch(_ context.Context, _ string, _ string,
 	return nil
 }
 
-func (t testGitProvider) UnprotectProject(_ context.Context, _ string, _ string) error {
+func (t testGitProvider) Unprotect(_ context.Context, _ string, _ string) error {
 	return nil
 }
 

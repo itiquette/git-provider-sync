@@ -22,7 +22,7 @@ func NewProtectionService(client *gitlab.Client) ProtectionService {
 	return ProtectionService{client: client}
 }
 
-func (p ProtectionService) Protect(ctx context.Context, branch string, projectIDStr string) error {
+func (p ProtectionService) Protect(ctx context.Context, _ string, branch string, projectIDStr string) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitLab:Protect")
 	logger.Debug().Str("projectIDStr", projectIDStr).Str("branch", branch).Msg("GitLab:Protect")

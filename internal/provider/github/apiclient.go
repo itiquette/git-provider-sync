@@ -86,7 +86,7 @@ func (api APIClient) GetProjectInfos(ctx context.Context, providerOpt model.Prov
 	return projectinfos, nil
 }
 
-func (api APIClient) ProtectProject(ctx context.Context, owner string, _, projectIDStr string) error {
+func (api APIClient) Protect(ctx context.Context, owner string, _, projectIDStr string) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering GitHub:Protect")
 	logger.Debug().Str("projectIDStr", projectIDStr).Msg("GitHub:Protect")
@@ -117,10 +117,10 @@ func (api APIClient) SetDefaultBranch(ctx context.Context, owner string, project
 	return nil
 }
 
-func (api APIClient) UnprotectProject(ctx context.Context, defaultBranch, projectIDStr string) error {
+func (api APIClient) Unprotect(ctx context.Context, defaultBranch, projectIDStr string) error {
 	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering GitHub:UnprotectProject")
-	logger.Debug().Str("projectIDStr", projectIDStr).Str("defaultBranch", defaultBranch).Msg("GitHub:UnprotectProject:")
+	logger.Trace().Msg("Entering GitHub:Unprotect")
+	logger.Debug().Str("projectIDStr", projectIDStr).Str("defaultBranch", defaultBranch).Msg("GitHub:Unprotect:")
 
 	owner, project, err := splitProjectPath(projectIDStr)
 	if err != nil {

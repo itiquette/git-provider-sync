@@ -55,7 +55,7 @@ func Push(ctx context.Context, syncCfg config.SyncConfig, mirrorCfg config.Mirro
 	}
 
 	if mirrorCfg.Settings.Disabled {
-		err := provider.UnprotectProject(ctx, repository.ProjectInfo().DefaultBranch, projectID)
+		err := provider.Unprotect(ctx, repository.ProjectInfo().DefaultBranch, projectID)
 		if err != nil {
 			return fmt.Errorf("failed to protect the repository at provider: %w", err)
 		}
@@ -72,7 +72,7 @@ func Push(ctx context.Context, syncCfg config.SyncConfig, mirrorCfg config.Mirro
 	}
 
 	if mirrorCfg.Settings.Disabled {
-		err := provider.ProtectProject(ctx, mirrorCfg.Owner, repository.ProjectInfo().DefaultBranch, projectID)
+		err := provider.Protect(ctx, mirrorCfg.Owner, repository.ProjectInfo().DefaultBranch, projectID)
 		if err != nil {
 			return fmt.Errorf("failed to protect the repository at provider: %w", err)
 		}
