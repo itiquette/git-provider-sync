@@ -1,0 +1,30 @@
+# SPDX-FileCopyrightText: Josef Andersson
+#
+# SPDX-License-Identifier: CC0-1.0
+
+name: Release Workflow
+
+on:
+  push:
+    tags:
+      - v[0-9]+.[0-9]+.[0-9]+
+
+permissions:
+  contents: read
+
+jobs:
+  version-bump:
+    permissions:
+      contents: write
+      packages: read
+    secrets: inherit
+    uses: ./.github/workflows/version-bump-changelog.yml
+  release:
+    permissions:
+      contents: write
+      packages: write
+      id-token: write # Required for SLSA provenance
+      actions: read # Required for SLSA provenance v2
+    secrets: inherit
+    needs: [version-bump]
+    uses: ./.github/workflows/release.yml
