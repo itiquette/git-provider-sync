@@ -79,9 +79,35 @@
         "github-actions"
       ],
       "matchPackageNames": [
-        "slsa-framework/slsa-github-generator"
+        "slsa-framework/slsa-github-generator",
+        "slsa-framework/slsa-verifier"
       ],
       "pinDigests": false
+    },
+    {
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "matchManagers": [
+        "github-actions"
+      ],
+      "groupName": "github actions minor and patch updates",
+      "automerge": true
+    },
+    {
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "matchManagers": [
+        "gomod"
+      ],
+      "groupName": "go dependencies minor and patch updates",
+      "automerge": true,
+      "matchPackageNames": [
+        "!go"
+      ]
     }
   ]
 }

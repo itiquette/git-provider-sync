@@ -1,0 +1,81 @@
+# SPDX-FileCopyrightText: Josef Andersson
+#
+# SPDX-License-Identifier: CC0-1.0
+
+name: Version Bump and Changelog Gen
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  bump-version:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          fetch-depth: 0
+          ref: main
+          token: ${{ secrets.BOT_GHTOKEN }}
+
+      - name: Import GPG key
+        id: import-gpg
+        uses: crazy-max/ghaction-import-gpg@cb9bde2e2525e640591a934b1fd28eef1dcaf5e5 # v6
+        with:
+          gpg_private_key: ${{ secrets.BOT_GPG_PRIV }}
+          passphrase: ${{ secrets.BOT_GPG_PASS }}
+          git_user_signingkey: true
+          git_commit_gpgsign: true
+          git_config_global: true
+
+      - name: Generate changelog
+        uses: orhun/git-cliff-action@4a4a951bc43fafe41cd2348d181853f52356bee7 # v4
+        with:
+          config: keepachangelog
+        env:
+          OUTPUT: CHANGELOG.md
+          GITHUB_REPO: ${{ github.repository }}
+
+      - name: Generate minimal changelog
+        id: minimal-changelog
+        uses: orhun/git-cliff-action@4a4a951bc43fafe41cd2348d181853f52356bee7 # v4
+        with:
+          config: minimal
+          args: --latest --strip header
+        env:
+          GITHUB_REPO: ${{ github.repository }}
+
+      - name: Commit and Push Changes
+        uses: stefanzweifel/git-auto-commit-action@e348103e9026cc0eee72ae06630dbe30c8bf7a79 # v5
+        with:
+          commit_message: |
+            chore(release): ${{ github.ref_name }}
+
+            ${{ steps.minimal-changelog.outputs.content }}
+
+            [skip ci]
+          file_pattern: "CHANGELOG.md"
+          commit_author: "${{ steps.import-gpg.outputs.name }} <${{ steps.import-gpg.outputs.email }}>"
+          commit_user_name: ${{ steps.import-gpg.outputs.name }}
+          commit_user_email: ${{ steps.import-gpg.outputs.email }}
+          commit_options: " --signoff"
+          skip_fetch: true
+
+      - name: Move tag to current commit
+        run: |
+          LATEST_TAG=$(git describe --tags --abbrev=0)
+
+          PREV_SHA=$(git rev-parse HEAD~1)
+          TAG_SHA=$(git rev-list -n 1 "$LATEST_TAG")
+
+          if [ "$TAG_SHA" = "$PREV_SHA" ]; then
+            git tag -f -s "$LATEST_TAG" -m "$LATEST_TAG"
+            git push --force origin "$LATEST_TAG"
+          else
+            echo "Tag $LATEST_TAG not pointing to previous commit as expected"
+            exit 1
+          fi

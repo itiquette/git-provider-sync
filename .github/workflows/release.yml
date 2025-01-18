@@ -1,0 +1,104 @@
+# SPDX-FileCopyrightText: Josef Andersson
+#
+# SPDX-License-Identifier: CC0-1.0
+---
+name: GoReleaser
+
+on:
+  workflow_call:
+    outputs:
+      hashes:
+        value: ${{ jobs.goreleaser.outputs.hashes }}
+      image:
+        value: ${{ jobs.goreleaser.outputs.image }}
+      digest:
+        value: ${{ jobs.goreleaser.outputs.digest }}
+
+permissions:
+  contents: read
+
+jobs:
+  goreleaser:
+    permissions:
+      contents: write # needed to write releases
+      id-token: write # needed for keyless signing
+      packages: write # needed for ghcr access
+
+    name: GoReleaser build and release
+    outputs:
+      hashes: ${{ steps.binary.outputs.hashes }}
+      image: ${{ steps.image.outputs.name }}
+      digest: ${{ steps.image.outputs.digest }}
+    runs-on: ubuntu-latest
+    environment: GPSENV
+
+    if: success() && startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: Harden GitHub runner
+        uses: step-security/harden-runner@c95a14d0e5bab51a9f56296a4eb0e416910cd350 # v2.10.3
+        with:
+          egress-policy: audit
+
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+          ref: main
+
+      - name: Setup Go
+        uses: actions/setup-go@3041bf56c941b39c61721a86cd11f3bb1338122a # v5.2.0
+        with:
+          go-version: 1.23.3
+          cache: true
+
+      # - name: Configure Git for private modules
+      #   env:
+      #     GITHUB_API_TOKEN: ${{ secrets.GH_API_TOKEN }}
+      #   run: git config --global url."https://x:${GITHUB_API_TOKEN}@github.com".insteadOf "https://github.com"
+
+      - uses: sigstore/cosign-installer@dc72c7d5c4d10cd6bcb8cf6e3fd625a9e5e537da #v3.7.0
+      - uses: anchore/sbom-action/download-syft@df80a981bc6edbc4e220a492d3cbe9f5547a6e75 # v0.17.9
+      - uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 #v3.3.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate Releasenotes
+        uses: orhun/git-cliff-action@4a4a951bc43fafe41cd2348d181853f52356bee7 # v4
+        with:
+          args: --latest
+        env:
+          OUTPUT: ReleasenotesTmp
+          GITHUB_REPO: ${{ github.repository }}
+
+      - name: Run GoReleaser
+        id: goreleaser
+        uses: goreleaser/goreleaser-action@9ed2f89a662bf1735a48bc8557fd212fa902bebf # v6.1.0
+        with:
+          distribution: goreleaser
+          version: "~> v2"
+          args: release --clean --release-notes=ReleasenotesTmp
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate binary hashes
+        id: binary
+        env:
+          ARTIFACTS: "${{ steps.goreleaser.outputs.artifacts }}"
+        run: |
+          set -euo pipefail
+          checksum_file=$(echo "$ARTIFACTS" | jq -r '.[] | select (.type=="Checksum") | .path')
+          echo "hashes=$(base64 -w0 < "$checksum_file")" >> "$GITHUB_OUTPUT"
+
+      - name: Image digest
+        id: image
+        env:
+          ARTIFACTS: "${{ steps.goreleaser.outputs.artifacts }}"
+        run: |
+          set -euo pipefail
+          image_and_digest=$(echo "$ARTIFACTS" | jq -r '.[] | select (.type=="Docker Manifest") | .path +":"+ .extra.Digest')
+          image=$(echo "${image_and_digest}" | cut -d':' -f1 | uniq)
+          digest=$(echo "${image_and_digest}" | cut -d':' -f3,4 | uniq)
+          echo "name=$image" >> "$GITHUB_OUTPUT"
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"

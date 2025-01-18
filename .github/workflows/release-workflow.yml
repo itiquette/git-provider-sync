@@ -1,0 +1,44 @@
+# SPDX-FileCopyrightText: Josef Andersson
+#
+# SPDX-License-Identifier: CC0-1.0
+
+name: Release Workflow
+
+on:
+  push:
+    tags:
+      - "v[0-9]*.[0-9]*" # Forces at least vX.Y and then allows anything after
+
+permissions:
+  contents: read
+
+jobs:
+  version-bump:
+    permissions:
+      contents: write
+    secrets: inherit
+    uses: ./.github/workflows/release-version-bump-changelog.yml
+
+  release:
+    needs: [version-bump]
+    permissions:
+      contents: write # For releases
+      id-token: write # For keyless signing
+      packages: write # For container registry
+    secrets: inherit
+    uses: ./.github/workflows/release.yml
+
+  slsa:
+    needs: [release]
+    permissions:
+      actions: read # For SLSA
+      contents: write # For releases
+      id-token: write # For signing
+      packages: write # For container registry
+    secrets: inherit
+    uses: ./.github/workflows/release-slsa.yml
+    with:
+      ref_name: ${{ github.ref_name }}
+      hashes: ${{ needs.release.outputs.hashes }}
+      image: ${{ needs.release.outputs.image }}
+      digest: ${{ needs.release.outputs.digest }}

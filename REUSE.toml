@@ -11,6 +11,7 @@ path = [
   "docs/dco.txt",
   "assets/*.png",
   "renovate.json",
+  "CHANGELOG.md",
 ]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "janderssonse. <https://github.com/janderssonse>"

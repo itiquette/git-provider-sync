@@ -468,5 +468,7 @@ changelog:
 
 release:
   name_template: "v{{ .Version }}"
+  draft: false
+  replace_existing_draft: true
   footer: |
     **Full Changelog**: https://github.com/itiquette/git-provider-sync/compare/{{ .PreviousTag }}...{{ if .IsNightly }}nightly{{ else }}{{ .Tag }}{{ end }}
