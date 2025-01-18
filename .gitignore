@@ -20,6 +20,10 @@
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
+#
+ReleasenotesTmp
+/bin/
+/git-cliff*
 
 # Go workspace file
 go.work
