@@ -13,6 +13,16 @@ on:
 
 permissions:
   contents: read
+  checks: read
+  actions: read
+  deployments: read
+  discussions: read
+  pages: read
+  pull-requests: read
+  repository-projects: read
+  security-events: read
+  statuses: read
+  attestations: read
 
 jobs:
   goreleaser:
