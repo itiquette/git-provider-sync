@@ -82,6 +82,28 @@
         "slsa-framework/slsa-github-generator"
       ],
       "pinDigests": false
+    },
+    {
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "matchManagers": [
+        "github-actions"
+      ],
+      "groupName": "github actions minor and patch updates",
+      "automerge": true
+    },
+    {
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "matchManagers": [
+        "gomod"
+      ],
+      "groupName": "go dependencies minor and patch updates",
+      "automerge": true
     }
   ]
 }

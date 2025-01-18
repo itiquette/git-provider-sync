@@ -23,6 +23,7 @@ jobs:
     permissions:
       contents: write
       packages: write
+      issues: write
       id-token: write # Required for SLSA provenance
       actions: read # Required for SLSA provenance v2
     secrets: inherit
