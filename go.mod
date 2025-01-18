@@ -7,7 +7,7 @@ module itiquette/git-provider-sync
 go 1.23.4
 
 require (
-	code.gitea.io/sdk/gitea v0.19.0
+	code.gitea.io/sdk/gitea v0.20.0
 	github.com/go-git/go-git/v5 v5.13.1
 	github.com/google/go-github/v68 v68.0.0
 	github.com/hashicorp/go-retryablehttp v0.7.7
