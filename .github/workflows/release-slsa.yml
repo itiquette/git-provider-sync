@@ -1,0 +1,112 @@
+# SPDX-FileCopyrightText: Josef Andersson
+#
+# SPDX-License-Identifier: CC0-1.0
+---
+name: SLSA
+on:
+  workflow_call:
+    inputs:
+      hashes:
+        required: true
+        type: string
+      image:
+        required: false
+        type: string
+      digest:
+        required: false
+        type: string
+      ref_name:
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  binary-provenance:
+    permissions:
+      actions: read # To read the workflow path.
+      contents: write # To add assets to a release.
+      id-token: write # To sign the provenance.
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.0.0
+    with:
+      private-repository: true
+      base64-subjects: "${{ inputs.hashes }}"
+      upload-assets: true # upload to a new release
+
+  image-provenance:
+    if: ${{ inputs.image != '' && inputs.digest != '' }}
+    permissions:
+      actions: read
+      id-token: write
+      packages: write
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@v2.0.0
+    with:
+      image: ${{ inputs.image }}
+      digest: ${{ inputs.digest }}
+      private-repository: true
+      registry-username: ${{ github.actor }}
+    secrets:
+      registry-password: ${{ secrets.GITHUB_TOKEN }}
+
+  verification-with-slsa-verifier:
+    needs: [binary-provenance]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Install the verifier
+        uses: slsa-framework/slsa-verifier/actions/installer@v2.6.0
+
+      - name: Download assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PROVENANCE: "${{ needs.binary-provenance.outputs.provenance-name }}"
+        run: |
+          set -euo pipefail
+          gh -R "$GITHUB_REPOSITORY" release download "${{ inputs.ref_name }}" -p '*.*'
+
+      - name: Verify assets
+        env:
+          CHECKSUMS: ${{ inputs.hashes }}
+          PROVENANCE: "${{ needs.binary-provenance.outputs.provenance-name }}"
+        run: |
+          set -euo pipefail
+          # shellcheck disable=SC2153
+          checksums=$(echo "$CHECKSUMS" | base64 -d)
+          while read -r line; do
+              fn=$(echo "$line" | cut -d ' ' -f3)
+              echo "Verifying $fn"
+              slsa-verifier verify-artifact --provenance-path "$PROVENANCE" \
+                                          --source-uri "github.com/$GITHUB_REPOSITORY" \
+                                          --source-tag "${{ inputs.ref_name }}" \
+                                          "$fn"
+          done <<<"$checksums"
+
+  verification-with-cosign:
+    if: ${{ inputs.image != '' && inputs.digest != '' }}
+    needs: [image-provenance]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Login
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@dc72c7d5c4d10cd6bcb8cf6e3fd625a9e5e537da #v3.7.0
+
+      - name: Verify image
+        env:
+          IMAGE: ${{ inputs.image }}
+          DIGEST: ${{ inputs.digest }}
+        run: |
+          cosign verify-attestation \
+             --type slsaprovenance \
+             --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+             --certificate-identity-regexp '^https://github.com/slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@refs/tags/v[0-9]+.[0-9]+.[0-9]+$' \
+             "$IMAGE@$DIGEST"
