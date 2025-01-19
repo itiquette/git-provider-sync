@@ -79,7 +79,8 @@
         "github-actions"
       ],
       "matchPackageNames": [
-        "slsa-framework/slsa-github-generator"
+        "slsa-framework/slsa-github-generator",
+        "slsa-framework/slsa-verifier"
       ],
       "pinDigests": false
     },

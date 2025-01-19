@@ -18,20 +18,12 @@ permissions:
 
 jobs:
   commitlint:
-    permissions:
-      contents: read
     uses: ./.github/workflows/commitlint.yml
   dependencyreviewlint:
-    permissions:
-      contents: read
     uses: ./.github/workflows/dependencyreview.yml
   licenselint:
-    permissions:
-      contents: read
     uses: ./.github/workflows/licenselint.yml
   golint:
-    permissions:
-      contents: read
     uses: ./.github/workflows/golint.yml
   misclint:
     permissions:
@@ -41,7 +33,6 @@ jobs:
   test:
     permissions:
       contents: read
-      packages: read #Hmm
     if: ${{ !failure() }}
     needs: [licenselint, commitlint, dependencyreviewlint, golint, misclint]
     uses: ./.github/workflows/test.yml

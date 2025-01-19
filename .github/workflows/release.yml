@@ -6,23 +6,9 @@ name: GoReleaser
 
 on:
   workflow_call:
-# on:
-#   push:
-#     tags:
-#       - v[0-9]+.[0-9]+.[0-9]+
 
 permissions:
-  actions: read
-  attestations: read
-  checks: read
   contents: read
-  deployments: read
-  discussions: read
-  pages: read
-  pull-requests: read
-  repository-projects: read
-  security-events: read
-  statuses: read
 
 jobs:
   goreleaser:
@@ -140,7 +126,9 @@ jobs:
   verification-with-slsa-verifier:
     needs: [goreleaser, binary-provenance]
     runs-on: ubuntu-latest
-    permissions: read-all
+    permissions:
+      contents: read
+      packages: read
     steps:
       - name: Install the verifier
         uses: slsa-framework/slsa-verifier/actions/installer@v2.6.0
@@ -173,7 +161,9 @@ jobs:
   verification-with-cosign:
     needs: [goreleaser, image-provenance]
     runs-on: ubuntu-latest
-    permissions: read-all
+    permissions:
+      contents: read
+      packages: read
     steps:
       - name: Login
         uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0

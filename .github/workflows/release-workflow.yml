@@ -7,7 +7,7 @@ name: Release Workflow
 on:
   push:
     tags:
-      - v[0-9]+.[0-9]+.[0-9]+
+      - 'v[0-9]*.[0-9]*' # Forces at least vX.Y and then allows anything after
 
 permissions:
   contents: read
@@ -16,25 +16,14 @@ jobs:
   version-bump:
     permissions:
       contents: write
-      packages: read
     secrets: inherit
     uses: ./.github/workflows/version-bump-changelog.yml
   release:
     permissions:
-      actions: read # Required for SLSA provenance v2
-      attestations: read
-      checks: read
-      contents: write
-      deployments: read
-      discussions: read
-      id-token: write # Required for SLSA provenance
-      issues: write
-      packages: write
-      pages: read
-      pull-requests: read
-      repository-projects: read
-      security-events: read
-      statuses: read
+      actions: read # Required for SLSA
+      contents: write # For releases
+      id-token: write # For SLSA/signing
+      packages: write # For container registry
     secrets: inherit
     needs: [version-bump]
     uses: ./.github/workflows/release.yml

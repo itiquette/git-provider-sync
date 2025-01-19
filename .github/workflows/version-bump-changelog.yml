@@ -3,15 +3,18 @@
 # SPDX-License-Identifier: CC0-1.0
 
 name: Version Bump and Changelog Gen
+
 on:
   workflow_call:
+
+permissions:
+  contents: read
 
 jobs:
   bump-version:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      packages: read
     steps:
       - uses: actions/checkout@v4
         with:
