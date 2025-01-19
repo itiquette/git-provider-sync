@@ -74,7 +74,7 @@ jobs:
       - name: Generate Releasenotes
         uses: orhun/git-cliff-action@v4
         env:
-          OUTPUT: ReleasenotesTmp
+          OUTPUT: ${{ runner.temp }}/ReleasenotesTmp
           GITHUB_REPO: ${{ github.repository }}
 
       - name: Run GoReleaser
@@ -83,7 +83,7 @@ jobs:
         with:
           distribution: goreleaser
           version: "~> v2"
-          args: release --clean --release-notes=ReleasenotesTmp
+          args: release --clean --release-notes=${{ runner.temp }}/ReleasenotesTmp
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
