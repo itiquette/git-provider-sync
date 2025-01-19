@@ -73,7 +73,7 @@ jobs:
           TAG_SHA=$(git rev-list -n 1 "$LATEST_TAG")
 
           if [ "$TAG_SHA" = "$PREV_SHA" ]; then
-            git tag -f -s "$LATEST_TAG"
+            git tag -f -s "$LATEST_TAG" -m "$LATEST_TAG"
             git push --force origin "$LATEST_TAG"
           else
             echo "Tag $LATEST_TAG not pointing to previous commit as expected"
