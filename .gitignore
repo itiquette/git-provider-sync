@@ -22,6 +22,8 @@
 # vendor/
 #
 ReleasenotesTmp
+/bin/
+/git-cliff*
 
 # Go workspace file
 go.work
