@@ -103,8 +103,10 @@
         "gomod"
       ],
       "groupName": "go dependencies minor and patch updates",
-      "excludePackageNames": ["go"],
-      "automerge": true
+      "automerge": true,
+      "matchPackageNames": [
+        "!go"
+      ]
     }
   ]
 }
