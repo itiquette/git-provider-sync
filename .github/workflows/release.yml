@@ -12,9 +12,10 @@ on:
 #       - v[0-9]+.[0-9]+.[0-9]+
 
 permissions:
-  contents: read
-  checks: read
   actions: read
+  attestations: read
+  checks: read
+  contents: read
   deployments: read
   discussions: read
   pages: read
@@ -22,7 +23,6 @@ permissions:
   repository-projects: read
   security-events: read
   statuses: read
-  attestations: read
 
 jobs:
   goreleaser:
