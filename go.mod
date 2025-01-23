@@ -7,8 +7,8 @@ module itiquette/git-provider-sync
 go 1.23.4
 
 require (
-	code.gitea.io/sdk/gitea v0.19.0
-	github.com/go-git/go-git/v5 v5.13.1
+	code.gitea.io/sdk/gitea v0.20.0
+	github.com/go-git/go-git/v5 v5.13.2
 	github.com/google/go-github/v68 v68.0.0
 	github.com/hashicorp/go-retryablehttp v0.7.7
 	github.com/knadh/koanf/parsers/dotenv v1.0.0
@@ -20,7 +20,7 @@ require (
 	github.com/rs/zerolog v1.33.0
 	github.com/spf13/cobra v1.8.1
 	github.com/stretchr/testify v1.10.0
-	gitlab.com/gitlab-org/api/client-go v0.118.0
+	gitlab.com/gitlab-org/api/client-go v0.120.0
 
 )
 
@@ -56,7 +56,7 @@ require (
 	github.com/fatih/color v1.17.0 // indirect
 	github.com/fsnotify/fsnotify v1.8.0 // indirect
 	github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376 // indirect
-	github.com/go-git/go-billy/v5 v5.6.1
+	github.com/go-git/go-billy/v5 v5.6.2
 	github.com/go-viper/mapstructure/v2 v2.2.1 // indirect
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
@@ -87,7 +87,7 @@ require (
 	github.com/therootcompany/xz v1.0.1 // indirect
 	github.com/ulikunitz/xz v0.5.12 // indirect
 	go4.org v0.0.0-20230225012048-214862532bf5 // indirect
-	golang.org/x/crypto v0.31.0
+	golang.org/x/crypto v0.32.0
 	golang.org/x/net v0.33.0 // indirect
 	golang.org/x/oauth2 v0.24.0 // indirect
 	golang.org/x/sys v0.28.0 // indirect
