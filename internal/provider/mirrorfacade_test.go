@@ -2,16 +2,16 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-//nolint
+//nolint:all
 package provider
 
 import (
 	"context"
 	"errors"
-	"testing"
-
 	"itiquette/git-provider-sync/internal/interfaces"
 	"itiquette/git-provider-sync/internal/model"
+	"testing"
+
 	gpsconfig "itiquette/git-provider-sync/internal/model/configuration"
 
 	git "github.com/go-git/go-git/v5"

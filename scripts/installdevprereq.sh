@@ -39,7 +39,7 @@ NC='\033[0m' # No Color
 # Define Go tools to install
 GO_TOOLS=(
   "github.com/vektra/mockery/v2@v2.51.1"
-  "github.com/golangci/golangci-lint/cmd/golangci-lint@v1.63.4"
+  "github.com/golangci/golangci-lint/cmd/golangci-lint@latest"
   "github.com/goreleaser/goreleaser/v2@latest"
   "github.com/bombsimon/wsl/v4/cmd/wsl@master"
   "github.com/sigstore/cosign/v2/cmd/cosign@latest"
@@ -64,7 +64,7 @@ function install_syft() {
     echo "curl is not installed. Please install curl and try again."
     exit 1
   fi
-  curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b "$install_dir"
+  curl -sSfL https://raw.githubusercontent.com/anchore/syft/v1.19.0/install.sh | sh -s -- -b "$install_dir"
   echo -e "${YELLOW}Make sure ${install_dir} is in your PATH to use Syft.${NC}"
 }
 
