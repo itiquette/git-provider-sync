@@ -56,16 +56,35 @@ function install_go_tools() {
   done
 }
 
-function install_syft() {
+install_syft() {
   echo -e "${GREEN}Installing Syft...${NC}"
   local install_dir="${HOME}/.local/bin"
+  local version="v1.19.0"
+  local arch="linux_arm64"
+
   mkdir -p "$install_dir"
-  if ! command -v curl &>/dev/null; then
-    echo "curl is not installed. Please install curl and try again."
+  [[ -x "$(command -v curl)" ]] || {
+    echo "curl required"
     exit 1
-  fi
-  curl -sSfL https://raw.githubusercontent.com/anchore/syft/v1.19.0/install.sh | sh -s -- -b "$install_dir"
-  echo -e "${YELLOW}Make sure ${install_dir} is in your PATH to use Syft.${NC}"
+  }
+
+  local base_url="https://github.com/anchore/syft/releases/download/${version}"
+  local tarball="syft_${version#v}_${arch}.tar.gz"
+  local checksums="syft_${version#v}_checksums.txt"
+
+  (
+    cd /tmp
+    curl -sSLO "${base_url}/${tarball}"
+    curl -sSLO "${base_url}/${checksums}"
+
+    grep "${tarball}" "${checksums}" | sha256sum -c || {
+      echo "Checksum verification failed"
+      exit 1
+    }
+
+    tar -xzf "${tarball}" -C "${install_dir}" syft
+  )
+  [[ -x "${install_dir}/syft" ]] && echo -e "${YELLOW}Syft installed to ${install_dir}${NC}" || echo "Installation failed"
 }
 
 function main() {
