@@ -18,10 +18,11 @@ endif::[]
 
 link:LICENSE[image:https://img.shields.io/badge/License-European%20Union%20Public%20Licence%201.2-library?style=for-the-badge&&color=lightblue[EUPL 1.2]]
 image:https://img.shields.io/github/v/tag/itiquette/git-provider-sync?style=for-the-badge&color=lightblue[Tag,link=https://github.com/itiquette/git-provider-sync/tags]
-image:https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fapi.reuse.software%2Fstatus%2Fgithub.com%2Fitiquette%2Fgit-provider-sync&query=status&style=for-the-badge&label=REUSE&color=lightblue[REUSE,link=https://api.reuse.software/info/github.com/itiquette/git-provider-sync]
+image:https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fapi.reuse.software%2Fstatus%2Fgithub.com%2Fitiquette%2Fgit-provider-sync&query=status&style=for-the-badge&label=REUSE&color=green[REUSE,link=https://api.reuse.software/info/github.com/itiquette/git-provider-sync]
 https://scorecard.dev/viewer/?uri=github.com/itiquette/git-provider-sync[image:https://api.scorecard.dev/projects/github.com/itiquette/git-provider-sync/badge?style=for-the-badge[OpenSSF Scorecard]]
-image:https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fbestpractices.coreinfrastructure.org%2Fprojects%2F9434.json&query=%24.badge_level&style=for-the-badge&label=OpenSSF%20Best%20Practice&&color=lightblue[Dynamic JSON Badge]
+link:https://www.bestpractices.dev/en/projects/9434[image:https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fbestpractices.coreinfrastructure.org%2Fprojects%2F9434.json&amp;query=%24.badge_level&amp;style=for-the-badge&amp;label=OpenSSF%20Best%20Practice&amp;color=green[Dynamic JSON Badge]]
 //image:https://img.shields.io/endpoint?style=for-the-badge&url=https://gist.githubusercontent.com/janderssonse/87d513c639cf65c02ecc31c1670cbcd1/raw/go-coverage.json[Coverage]
+
 
 ifdef::env-github[]
 ++++
