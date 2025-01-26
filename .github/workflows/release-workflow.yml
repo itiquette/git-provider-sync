@@ -14,10 +14,10 @@ permissions:
 
 jobs:
   version-bump:
+    secrets: inherit
     permissions:
       contents: write
-    secrets: inherit
-    uses: ./.github/workflows/release-version-bump-changelog.yml
+    uses: itiquette/.github/.github/workflows/version-bump-changelog.yml@main
 
   release:
     needs: [version-bump]

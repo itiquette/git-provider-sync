@@ -52,6 +52,7 @@ Initially with support for these Git providers:
 * GitLab
 * Gitea
 
+
 And you can save your work to:
 
 * Any of the above Git providers
