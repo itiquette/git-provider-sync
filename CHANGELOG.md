@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.21] - 2025-01-26
+
+### Added
+
+- Add reusable org workflows
+- Add fuzz pr test
+
+### Changed
+
+- Pin google/clusterfuzzlite action to 884713a
+- Improve security score
+- Improve badge status
+- Allow slsa verifier pin
+- Bump deps
+- Update github actions minor and patch updates
+- Bump deps
+
+### Fixed
+
+- Fix scorecard link
+
 ## [0.0.20] - 2025-01-19
 
 ### Added
@@ -13,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- V0.0.20
 - Improve protect interface
 - Improver provider interface
 - Improve pullopt
@@ -258,6 +280,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Move roadmap to issues
 - Initial commit
 
+[0.0.21]: https://github.com/itiquette/git-provider-sync/compare/v0.0.20..v0.0.21
 [0.0.20]: https://github.com/itiquette/git-provider-sync/compare/v0.0.19..v0.0.20
 [0.0.19]: https://github.com/itiquette/git-provider-sync/compare/v0.0.18..v0.0.19
 [0.0.18]: https://github.com/itiquette/git-provider-sync/compare/v0.0.17..v0.0.18
