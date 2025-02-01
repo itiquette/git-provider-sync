@@ -31,5 +31,5 @@ go.work
 /dist
 ./.env
 /gitprovidersync.yaml
-generated
+# generated
 /gitprovidersync

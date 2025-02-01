@@ -10,7 +10,7 @@ policies:
       gpg:
         required: true
       header:
-        length: 120
+        length: 140
         header: lower
         imperative: true
         invalidLastCharacters: .

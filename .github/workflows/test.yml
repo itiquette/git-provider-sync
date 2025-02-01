@@ -35,9 +35,7 @@ jobs:
 
       - name: Go test run
         run: |
-          go install github.com/vektra/mockery/v2@v2.50.0
           go mod tidy
-          ./scripts/generatemock.sh
           # shellcheck disable=SC2046
           go test -count=1 $(go list './...' | grep -v generated) -v -coverprofile=coverage.txt 
           go tool cover -func=coverage.txt -o=coverage.out
