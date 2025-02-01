@@ -17,9 +17,8 @@ permissions:
 
 jobs:
   scorecard-analysis:
-    
-  permissions:
-    contents: read
-    security-events: write
-    id-token: write
+    permissions:
+      contents: read
+      security-events: write
+      id-token: write
     uses: itiquette/.github/.github/workflows/openssf-scorecard.yml@main
