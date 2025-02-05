@@ -42,7 +42,7 @@
 
 === 2.1 Technical Constraints
 
-* Go version 1.23+
+* Go version 1.26+
 * Git 2.43+
 * Provider-specific API limitations
 * Rate limiting considerations
