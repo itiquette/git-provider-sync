@@ -256,6 +256,8 @@ github.com/xyproto/randomstring v1.0.5/go.mod h1:rgmS5DeNXLivK7YprL0pY+lTuhNQW3i
 github.com/yuin/goldmark v1.4.13/go.mod h1:6yULJ656Px+3vBD8DxQVa3kxgyrAnzto9xy5taEt/CY=
 gitlab.com/gitlab-org/api/client-go v0.120.0 h1:geCJjojDXxWVmUcTxPcOUCenAWElWB5dVfX3HJGeAMc=
 gitlab.com/gitlab-org/api/client-go v0.120.0/go.mod h1:ygHmS3AU3TpvK+AC6DYO1QuAxLlv6yxYK+/Votr/WFQ=
+gitlab.com/gitlab-org/api/client-go v0.122.0 h1:Nog85APtgquS+HHkMkP4DiZ6lXlUZYhQKqguS4OJYNM=
+gitlab.com/gitlab-org/api/client-go v0.122.0/go.mod h1:Jh0qjLILEdbO6z/OY94RD+3NDQRUKiuFSFYozN6cpKM=
 go.opencensus.io v0.21.0/go.mod h1:mSImk1erAIZhrmZN+AvHh14ztQfjbGwt4TtuofqLduU=
 go.opencensus.io v0.22.0/go.mod h1:+kGneAE2xo2IficOXnaByMWTGM9T73dGwxeWcUqIpI8=
 go.opencensus.io v0.22.2/go.mod h1:yxeiOL68Rb0Xd1ddK5vPZ/oVn4vY4Ynel7k9FzqtOIw=
