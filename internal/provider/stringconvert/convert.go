@@ -17,7 +17,10 @@ import (
 )
 
 var (
-	nonAlphanumericRegex = regexp.MustCompile(`[^a-zA-Z0-9-]+`)
+	// Regex to match non-alphanumeric chars, except hyphens between alphanumerics.
+
+	doubleHyphenRegex    = regexp.MustCompile(`-{2,}`)
+	nonAlphanumericRegex = regexp.MustCompile(`[^a-zA-Z0-9-]|^-|-$`)
 	linebreakReplacer    = strings.NewReplacer(
 		"\r\n", " ", "\r", " ", "\n", " ", "\v", " ",
 		"\f", " ", "\u0085", " ", "\u2028", " ", "\u2029", " ",
@@ -28,12 +31,14 @@ var (
 // except for underscores and hyphens.
 func RemoveNonAlphaNumericChars(ctx context.Context, input string) string {
 	result := nonAlphanumericRegex.ReplaceAllString(input, "")
+
+	normalized := doubleHyphenRegex.ReplaceAllString(result, "-")
 	log.Logger(ctx).Debug().
 		Str("input", input).
 		Str("result", result).
 		Msg("Removed non-alphanumeric characters")
 
-	return result
+	return normalized
 }
 
 // RemoveLinebreaks replaces all types of linebreak characters in the input string with a space.
