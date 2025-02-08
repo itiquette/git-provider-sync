@@ -119,7 +119,7 @@ func newHTTPClient(ctx context.Context, opt model.GitProviderClientOption) (*htt
 	return &http.Client{
 		Transport: transport,
 		// Total timeout for entire request/response cycle
-		Timeout: 30 * time.Second,
+		Timeout: time.Duration(opt.AuthCfg.RequestTimeout) * time.Second,
 		// Limit redirect chains to prevent infinite loops
 		CheckRedirect: func(_ *http.Request, via []*http.Request) error {
 			if len(via) >= 10 {

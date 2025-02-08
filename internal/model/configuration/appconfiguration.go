@@ -42,6 +42,7 @@ type SyncConfig struct {
 type AuthConfig struct {
 	CertDirPath       string `koanf:"cert_dir_path"`
 	HTTPScheme        string `koanf:"http_scheme"`
+	RequestTimeout    int    `koanf:"request_timeout"`
 	Token             string `koanf:"token"`
 	Protocol          string `koanf:"protocol"`
 	ProxyURL          string `koanf:"proxy_url"`
@@ -94,6 +95,10 @@ func (b *BaseConfig) FillDefaults() {
 
 	if b.Auth.Protocol == "" {
 		b.Auth.Protocol = TLS
+	}
+
+	if b.Auth.RequestTimeout == 0 {
+		b.Auth.RequestTimeout = 30
 	}
 }
 

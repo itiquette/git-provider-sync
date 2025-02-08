@@ -151,6 +151,9 @@ func createMirrorProviderClient(ctx context.Context, syncCfg gpsconfig.SyncConfi
 }
 
 func pushRepository(ctx context.Context, syncCfg gpsconfig.SyncConfig, mirrorCfg gpsconfig.MirrorConfig, client interfaces.GitProvider, repo interfaces.GitRepository) (interfaces.MirrorWriter, error) {
+	logger := log.Logger(ctx)
+	logger.Trace().Msg("Entering pushRepository")
+
 	writer, err := getMirrorWriter(mirrorCfg)
 	if err != nil {
 		return nil, fmt.Errorf("get mirror writer: %w", err)
@@ -159,6 +162,8 @@ func pushRepository(ctx context.Context, syncCfg gpsconfig.SyncConfig, mirrorCfg
 	if err := provider.Push(ctx, syncCfg, mirrorCfg, client, writer, repo); err != nil {
 		return nil, fmt.Errorf("failed to push to mirror target: %w", err)
 	}
+
+	logger.Info().Str("repository", repo.ProjectInfo().CleanName).Msg("Pushed")
 
 	incrementSyncCount(ctx)
 

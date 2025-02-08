@@ -80,8 +80,9 @@ func TestBaseConfig_FillDefaults(t *testing.T) {
 				Domain:       "gitlab.com",
 				OwnerType:    "group",
 				Auth: AuthConfig{
-					HTTPScheme: HTTPS,
-					Protocol:   TLS,
+					HTTPScheme:     HTTPS,
+					Protocol:       TLS,
+					RequestTimeout: 30,
 				},
 			},
 		},
@@ -92,8 +93,9 @@ func TestBaseConfig_FillDefaults(t *testing.T) {
 				Domain:       "custom.github.com",
 				OwnerType:    "user",
 				Auth: AuthConfig{
-					HTTPScheme: HTTP,
-					Protocol:   SSH,
+					HTTPScheme:     HTTP,
+					Protocol:       SSH,
+					RequestTimeout: 31,
 				},
 			},
 			expected: BaseConfig{
@@ -101,8 +103,9 @@ func TestBaseConfig_FillDefaults(t *testing.T) {
 				Domain:       "custom.github.com",
 				OwnerType:    "user",
 				Auth: AuthConfig{
-					HTTPScheme: HTTP,
-					Protocol:   SSH,
+					HTTPScheme:     HTTP,
+					Protocol:       SSH,
+					RequestTimeout: 31,
 				},
 			},
 		},
