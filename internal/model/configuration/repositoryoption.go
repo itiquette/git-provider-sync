@@ -6,12 +6,11 @@ package model
 
 import (
 	"fmt"
-	"strings"
 )
 
 type RepositoriesOption struct {
-	Exclude string `koanf:"exclude"`
-	Include string `koanf:"include"`
+	Exclude []string `koanf:"exclude"`
+	Include []string `koanf:"include"`
 }
 
 func (r RepositoriesOption) String() string {
@@ -21,18 +20,10 @@ func (r RepositoriesOption) String() string {
 
 // IncludedRepositories returns a slice of included repository names.
 func (r RepositoriesOption) IncludedRepositories() []string {
-	return splitAndTrim(r.Include)
+	return r.Include
 }
 
 // ExcludedRepositories returns a slice of excluded repository names.
 func (r RepositoriesOption) ExcludedRepositories() []string {
-	return splitAndTrim(r.Exclude)
-}
-
-func splitAndTrim(s string) []string {
-	if s == "" {
-		return []string{}
-	}
-
-	return strings.Split(strings.ReplaceAll(s, " ", ""), ",")
+	return r.Exclude
 }

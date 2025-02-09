@@ -206,11 +206,19 @@ func printRepositoriesOption(opt model.RepositoriesOption, writer io.Writer, lev
 	fmt.Fprintf(writer, "\n%sRepositories:\n", indent)
 
 	if len(opt.Include) > 0 {
-		fmt.Fprintf(writer, "%sInclude: %v\n", indent, opt.Include)
+		fmt.Fprintf(writer, "%sInclude:\n", indent)
+
+		for _, pattern := range opt.Include {
+			fmt.Fprintf(writer, "%s  %s\n", indent, pattern)
+		}
 	}
 
 	if len(opt.Exclude) > 0 {
-		fmt.Fprintf(writer, "%sExclude: %v\n", indent, opt.Exclude)
+		fmt.Fprintf(writer, "%sExclude:\n", indent)
+
+		for _, pattern := range opt.Exclude {
+			fmt.Fprintf(writer, "%s  %s\n", indent, pattern)
+		}
 	}
 }
 

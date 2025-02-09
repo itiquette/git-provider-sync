@@ -154,8 +154,8 @@ func TestFetchProjectInfo(t *testing.T) {
 					OwnerType: "user",
 				},
 				Repositories: config.RepositoriesOption{
-					Include: "repo1",
-					Exclude: "repo2",
+					Include: []string{"repo1"},
+					Exclude: []string{"repo2"},
 				},
 			},
 			mockSetup: func(gitP *mocks.GitProvider) {
