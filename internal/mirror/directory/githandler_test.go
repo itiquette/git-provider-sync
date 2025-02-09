@@ -205,8 +205,8 @@ func validateConfig(t *testing.T, repo *git.Repository) {
 
 func testContext() context.Context {
 	return model.WithCLIOpt(context.Background(), model.CLIOption{
-		ASCIIName: true,
-		DryRun:    false,
+		AlphaNumHyphName: true,
+		DryRun:           false,
 	})
 }
 

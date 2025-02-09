@@ -15,7 +15,7 @@ import (
 
 type syncInputOption struct {
 	activeFromLimit   string
-	asciiName         bool
+	alphaNumHyphName  bool
 	dryRun            bool
 	forcePush         bool
 	ignoreInvalidName bool
@@ -23,7 +23,7 @@ type syncInputOption struct {
 
 func addSyncInputOptions(cmd *cobra.Command) {
 	flags := cmd.Flags()
-	flags.Bool("ascii-name", false, "Remove mirror incompatible characters from repository names")
+	flags.Bool("alphanumhyph-name", false, "Mirror target name will only contain alpha numeric or hyphen (lessen incompatible characters)")
 	flags.Bool("dry-run", false, "Simulate sync run without performing clone and push actions")
 	flags.Bool("force-push", false, "Overwrite existing mirror target with force")
 	flags.Bool("ignore-invalid-name", false, "Don't fail on invalid mirror target names, ignore them")
@@ -32,7 +32,7 @@ func addSyncInputOptions(cmd *cobra.Command) {
 
 func (sio syncInputOption) DebugLog(logger *zerolog.Logger) *zerolog.Event {
 	return logger.Debug(). //nolint:zerologlint
-				Bool("asciiName", sio.asciiName).
+				Bool("alphaNumHyphName", sio.alphaNumHyphName).
 				Bool("dryRun", sio.dryRun).
 				Bool("forcePush", sio.forcePush).
 				Bool("ignoreInvalidName", sio.ignoreInvalidName).
@@ -44,8 +44,8 @@ func getSyncInputOptions(_ context.Context, cmd *cobra.Command) (*syncInputOptio
 
 	var err error
 
-	if flags.asciiName, err = cmd.Flags().GetBool("ascii-name"); err != nil {
-		return nil, fmt.Errorf("get ascii-name flag: %w", err)
+	if flags.alphaNumHyphName, err = cmd.Flags().GetBool("alphanumhyph-name"); err != nil {
+		return nil, fmt.Errorf("get alphanumhyph-name flag: %w", err)
 	}
 
 	if flags.dryRun, err = cmd.Flags().GetBool("dry-run"); err != nil {

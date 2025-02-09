@@ -10,7 +10,9 @@ gitprovidersync:
       owner: xdguser1
       owner_type: user
       repositories:
-        include: xdgrepo1, xdgrepo2
+        include:
+          - xdgrepo1
+          - xdgrepo2
       auth:
         protocol: tls
         token: ""
@@ -23,7 +25,7 @@ gitprovidersync:
             protocol: tls
             token: ""
           settings:
-            ascii_name: false
+            alphanumhyph_name: false
             disabled: false
             force_push: false
             ignore_invalid_name: false
@@ -35,7 +37,7 @@ gitprovidersync:
             protocol: tls
             token: ""
           settings:
-            ascii_name: false
+            alphanumhyph_name: false
             disabled: false
             force_push: false
             ignore_invalid_name: false
@@ -60,7 +62,7 @@ gitprovidersync:
             protocol: tls
             token: ""
           settings:
-            ascii_name: false
+            alphanumhyph_name: false
             disabled: false
             force_push: false
             ignore_invalid_name: false

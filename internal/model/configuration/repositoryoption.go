@@ -17,13 +17,3 @@ func (r RepositoriesOption) String() string {
 	return fmt.Sprintf("RepositoryOption: Exclude %v, Include: %v",
 		r.Exclude, r.Include)
 }
-
-// IncludedRepositories returns a slice of included repository names.
-func (r RepositoriesOption) IncludedRepositories() []string {
-	return r.Include
-}
-
-// ExcludedRepositories returns a slice of excluded repository names.
-func (r RepositoriesOption) ExcludedRepositories() []string {
-	return r.Exclude
-}

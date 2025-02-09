@@ -13,7 +13,9 @@ gitprovidersync:
       owner: agroup
       owner_type: group
       repositories:
-        include: aproject, anotherproject
+        include:
+          - aproject
+          - anotherproject
       mirrors:
         atarget:
           provider_type: gitea
@@ -24,7 +26,7 @@ gitprovidersync:
           owner: agroup
           owner_type: group
           settings:
-            ascii_name: false
+            alphanumhyph_name: false
             disabled: false
             force_push: false
             ignore_invalid_name: false
@@ -37,7 +39,7 @@ gitprovidersync:
           owner: anothergroup
           owner_type: group
           settings:
-            ascii_name: false
+            alphanumhyph_name: false
             disabled: false
             force_push: false
             ignore_invalid_name: false
@@ -50,7 +52,9 @@ gitprovidersync:
       owner: user
       owner_type: user
       repositories:
-        exclude: aproject, anotherproject
+        exclude:
+          - aproject
+          - anotherproject
       mirrors:
         atarget:
           provider_type: gitea
@@ -61,7 +65,7 @@ gitprovidersync:
           owner: agroup
           owner_type: group
           settings:
-            ascii_name: false
+            alphanumhyph_name: false
             disabled: false
             force_push: false
             ignore_invalid_name: false
@@ -75,7 +79,9 @@ gitprovidersync:
       owner: localconfuser
       owner_type: user
       repositories:
-        exclude: localconfrepo, localconfrepo2
+        exclude:
+          - localconfrepo
+          - localconfrepo2
       mirrors:
         localtarget:
           provider_type: localconfprovider
@@ -86,7 +92,7 @@ gitprovidersync:
           owner: localconfgroup
           owner_type: group
           settings:
-            ascii_name: false
+            alphanumhyph_name: false
             disabled: false
             force_push: false
             ignore_invalid_name: false

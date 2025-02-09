@@ -60,7 +60,7 @@ func processEnvKey(str string, prefix string) string {
 		"ssh_command",
 		"ssh_url_rewrite_from",
 		"ssh_url_rewrite_to",
-		"ascii_name",
+		"alphanumhyph_name",
 		"description_prefix",
 		"force_push",
 		"github_uploadurl",

@@ -112,7 +112,7 @@ gitprovidersync print --config-file /custom/path/config.yaml
 _Sync, using force push, fetch recent update (3 hours to now)_
 [source,console]
 ----
-gitprovidersync --force-push --from='-3h' --ascii-name --config-file /path/config.yaml
+gitprovidersync --force-push --from='-3h' --alphanumhyph-name --config-file /path/config.yaml
 ----
 
 == 4. Configuration Specific
@@ -960,7 +960,10 @@ a|Cannot be empty if specified. Supports wildcards.
 
 [literal]
 repositories:
-  include: [repo1, repo2, project-*]
+  include: 
+    - repo1
+    - repo2
+    - project-*
 |All repos
 
 |gitprovidersync.<env>.<source>.repositories.exclude
@@ -970,7 +973,9 @@ a|Cannot be empty if specified. Applied after include filter.
 
 [literal]
 repositories:
-  exclude: [test-*, temp-repo]
+  exclude: 
+    - test-*
+    - temp-repo
 |None
 
 |gitprovidersync.<env>.<source>.active_from_limit
@@ -1042,14 +1047,14 @@ settings:
   ignore_invalid_name: true
 |false
 
-|gitprovidersync.<env>.<source>.mirrors.<mirror>.settings.ascii_name
+|gitprovidersync.<env>.<source>.mirrors.<mirror>.settings.alphanumhyph-name
 |Clean repository names (alphanumeric only)
 |Optional
 a|Only valid for Git provider mirrors.
 
 [literal]
 settings:
-  ascii_name: true
+  alphanumhyph_name: true
 |false
 
 |gitprovidersync.<env>.<source>.mirrors.<mirror>.settings.description_prefix

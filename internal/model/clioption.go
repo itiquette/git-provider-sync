@@ -15,7 +15,7 @@ type CLIOptionKey struct{}
 
 // CLIOption represents the set of command-line options available in the application.
 type CLIOption struct {
-	ASCIIName           bool   // Whether to clean up repository names
+	AlphaNumHyphName    bool   // Whether to clean up repository names
 	ActiveFromLimit     string // Time limit for considering repositories as active
 	ConfigFileOnly      bool   // Whether to use only the configuration file
 	ConfigFilePath      string // Path to the configuration file
@@ -66,7 +66,7 @@ func (c CLIOption) String() string {
 	return fmt.Sprintf("CLIOption{ForcePush: %v, IgnoreInvalidName: %v, ASCIIName: %v, "+
 		"ActiveFromLimit: %s, DryRun: %v, ConfigFilePath: %s, ConfigFileOnly: %v, "+
 		"Quiet: %v, OutputFormat: %v}",
-		c.ForcePush, c.IgnoreInvalidName, c.ASCIIName, c.ActiveFromLimit,
+		c.ForcePush, c.IgnoreInvalidName, c.AlphaNumHyphName, c.ActiveFromLimit,
 		c.DryRun, c.ConfigFilePath, c.ConfigFileOnly, c.Quiet, c.OutputFormat)
 }
 

@@ -94,7 +94,7 @@ while true; do
     run_test "$CMD --active-from-limit=\"-1h\""
     ;;
   3)
-    run_test "$CMD --ascii-name"
+    run_test "$CMD --alphanumhyph-name"
     ;;
   4)
     run_test "$CMD --dry-run"
@@ -106,7 +106,7 @@ while true; do
     run_test "$CMD --ignore-invalid-name"
     ;;
   7)
-    run_test "$CMD --active-from-limit=\"-1h\" --ascii-name"
+    run_test "$CMD --active-from-limit=\"-1h\" --alphanumhyph-name"
     ;;
   8)
     run_test "$CMD --active-from-limit=\"-1h\" --dry-run"
@@ -118,13 +118,13 @@ while true; do
     run_test "$CMD --active-from-limit=\"-1h\" --ignore-invalid-name"
     ;;
   11)
-    run_test "$CMD --ascii-name --dry-run"
+    run_test "$CMD --alphanumhyph-name --dry-run"
     ;;
   12)
-    run_test "$CMD --ascii-name --force-push"
+    run_test "$CMD --alphanumhyph-name --force-push"
     ;;
   13)
-    run_test "$CMD --ascii-name --ignore-invalid-name"
+    run_test "$CMD --alphanumhyph-name --ignore-invalid-name"
     ;;
   14)
     run_test "$CMD --dry-run --force-push"
@@ -136,13 +136,13 @@ while true; do
     run_test "$CMD --force-push --ignore-invalid-name"
     ;;
   17)
-    run_test "$CMD --active-from-limit=\"-1h\" --ascii-name --dry-run"
+    run_test "$CMD --active-from-limit=\"-1h\" --alphanumhyph-name --dry-run"
     ;;
   18)
-    run_test "$CMD --active-from-limit=\"-1h\" --ascii-name --force-push"
+    run_test "$CMD --active-from-limit=\"-1h\" --alphanumhyph-name --force-push"
     ;;
   19)
-    run_test "$CMD --active-from-limit=\"-1h\" --ascii-name --ignore-invalid-name"
+    run_test "$CMD --active-from-limit=\"-1h\" --alphanumhyph-name --ignore-invalid-name"
     ;;
   20)
     run_test "$CMD --active-from-limit=\"-1h\" --dry-run --force-push"
@@ -154,58 +154,58 @@ while true; do
     run_test "$CMD --active-from-limit=\"-1h\" --force-push --ignore-invalid-name"
     ;;
   23)
-    run_test "$CMD --ascii-name --dry-run --force-push"
+    run_test "$CMD --alphanumhyph-name --dry-run --force-push"
     ;;
   24)
-    run_test "$CMD --ascii-name --dry-run --ignore-invalid-name"
+    run_test "$CMD --alphanumhyph-name --dry-run --ignore-invalid-name"
     ;;
   25)
-    run_test "$CMD --ascii-name --force-push --ignore-invalid-name"
+    run_test "$CMD --alphanumhyph-name --force-push --ignore-invalid-name"
     ;;
   26)
     run_test "$CMD --dry-run --force-push --ignore-invalid-name"
     ;;
   27)
-    run_test "$CMD --active-from-limit=\"-1h\" --ascii-name --dry-run --force-push"
+    run_test "$CMD --active-from-limit=\"-1h\" --alphanumhyph-name --dry-run --force-push"
     ;;
   28)
-    run_test "$CMD --active-from-limit=\"-1h\" --ascii-name --dry-run --ignore-invalid-name"
+    run_test "$CMD --active-from-limit=\"-1h\" --alphanumhyph-name --dry-run --ignore-invalid-name"
     ;;
   29)
-    run_test "$CMD --active-from-limit=\"-1h\" --ascii-name --force-push --ignore-invalid-name"
+    run_test "$CMD --active-from-limit=\"-1h\" --alphanumhyph-name --force-push --ignore-invalid-name"
     ;;
   30)
     run_test "$CMD --active-from-limit=\"-1h\" --dry-run --force-push --ignore-invalid-name"
     ;;
   31)
-    run_test "$CMD --ascii-name --dry-run --force-push --ignore-invalid-name"
+    run_test "$CMD --alphanumhyph-name --dry-run --force-push --ignore-invalid-name"
     ;;
   32)
-    run_test "$CMD --active-from-limit=\"-1h\" --ascii-name --dry-run --force-push --ignore-invalid-name"
+    run_test "$CMD --active-from-limit=\"-1h\" --alphanumhyph-name --dry-run --force-push --ignore-invalid-name"
     ;;
   33)
-    run_test "$CMD --active-from-limit=\"-1h\" --ascii-name --dry-run --force-push --ignore-invalid-name --output-format=\"console\""
+    run_test "$CMD --active-from-limit=\"-1h\" --alphanumhyph-name --dry-run --force-push --ignore-invalid-name --output-format=\"console\""
     ;;
   34)
-    run_test "$CMD --active-from-limit=\"-1h\" --ascii-name --dry-run --force-push --ignore-invalid-name --output-format=\"json\""
+    run_test "$CMD --active-from-limit=\"-1h\" --alphanumhyph-name --dry-run --force-push --ignore-invalid-name --output-format=\"json\""
     ;;
   35)
-    run_test "$CMD --active-from-limit=\"-1h\" --ascii-name --dry-run --force-push --ignore-invalid-name --quiet"
+    run_test "$CMD --active-from-limit=\"-1h\" --alphanumhyph-name --dry-run --force-push --ignore-invalid-name --quiet"
     ;;
   36)
-    run_test "$CMD --active-from-limit=\"-1h\" --ascii-name --dry-run --force-push --ignore-invalid-name --verbosity=\"debug\""
+    run_test "$CMD --active-from-limit=\"-1h\" --alphanumhyph-name --dry-run --force-push --ignore-invalid-name --verbosity=\"debug\""
     ;;
   37)
-    run_test "$CMD --active-from-limit=\"-1h\" --ascii-name --dry-run --force-push --ignore-invalid-name --verbosity=\"trace\" --verbosity-with-caller"
+    run_test "$CMD --active-from-limit=\"-1h\" --alphanumhyph-name --dry-run --force-push --ignore-invalid-name --verbosity=\"trace\" --verbosity-with-caller"
     ;;
   38)
-    run_test "$CMD --active-from-limit=\"-1h\" --ascii-name --dry-run --force-push --ignore-invalid-name --config-file=\"custom.yaml\""
+    run_test "$CMD --active-from-limit=\"-1h\" --alphanumhyph-name --dry-run --force-push --ignore-invalid-name --config-file=\"custom.yaml\""
     ;;
   39)
-    run_test "$CMD --active-from-limit=\"-1h\" --ascii-name --dry-run --force-push --ignore-invalid-name --config-file=\"custom.yaml\" --config-file-only"
+    run_test "$CMD --active-from-limit=\"-1h\" --alphanumhyph-name --dry-run --force-push --ignore-invalid-name --config-file=\"custom.yaml\" --config-file-only"
     ;;
   40)
-    run_test "$CMD --active-from-limit=\"-1h\" --ascii-name --dry-run --force-push --ignore-invalid-name --config-file=\"custom.yaml\" --config-file-only --output-format=\"json\" --verbosity=\"trace\" --verbosity-with-caller"
+    run_test "$CMD --active-from-limit=\"-1h\" --alphanumhyph-name --dry-run --force-push --ignore-invalid-name --config-file=\"custom.yaml\" --config-file-only --output-format=\"json\" --verbosity=\"trace\" --verbosity-with-caller"
     ;;
   *)
     echo "Invalid option. Press Enter to continue..."

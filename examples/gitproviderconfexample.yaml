@@ -15,8 +15,12 @@ gitprovidersync: # MANDATORY: Root configuration object containing all project c
       owner: username # MANDATORY: (if no owner_type group) Repository owner username
       owner_type: user # MANDATORY: Repository owner type (user or group)
       repositories: # OPTIONAL: Repository filtering options
-        exclude: [repo3, repo4] # OPTIONAL: Comma-separated list of repositories to exclude
-        include: [repo1, repo2] # OPTIONAL: Comma-separated list of repositories to include (default: all)
+        exclude:
+          - repo3
+          - repo4 # OPTIONAL: list of repositories to exclude
+        include:
+          - repo1
+          - repo2] # OPTIONAL: list of repositories to include (default: all)
       provider_type: gitlab # MANDATORY: Git provider type (supported: gitlab, github, gitea)
       use_git_binary: false # OPTIONAL: Use system git binary instead of go-git library
       auth:
@@ -45,7 +49,7 @@ gitprovidersync: # MANDATORY: Root configuration object containing all project c
             ssh_url_rewrite_from: url1 # OPTIONAL: Original SSH URL pattern to rewrite
             ssh_url_rewrite_to: url2 # OPTIONAL: Target SSH URL pattern
           settings:
-            ascii_name: true # OPTIONAL: Clean repository names (alphanumeric only)
+            alphanumhyph_name: true # OPTIONAL: Clean repository names (alphanumeric only)-name
             description_prefix: prefix # OPTIONAL: Description prefix for mirrored repositories
             disabled: true # OPTIONAL: Disables as much project settings as possible -  enabled on target (Default: true)
             force_push: true # OPTIONAL: Always use force push

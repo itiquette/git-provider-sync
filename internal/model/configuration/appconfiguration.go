@@ -60,7 +60,7 @@ type MirrorConfig struct {
 
 // MirrorSettings represents mirror-specific settings.
 type MirrorSettings struct {
-	ASCIIName         bool   `koanf:"ascii_name"`
+	AlphaNumHyphName  bool   `koanf:"alphanumhyph_name"`
 	DescriptionPrefix string `koanf:"description_prefix"`
 	Disabled          bool   `koanf:"disabled"`
 	ForcePush         bool   `koanf:"force_push"`

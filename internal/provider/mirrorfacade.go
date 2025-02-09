@@ -231,7 +231,7 @@ func toGitURL(ctx context.Context, mirrorCfg config.MirrorConfig, repository int
 	var repositoryName string
 
 	repositoryName = repository.ProjectInfo().Name(ctx)
-	if mirrorCfg.Settings.ASCIIName {
+	if mirrorCfg.Settings.AlphaNumHyphName {
 		repositoryName = repository.ProjectInfo().CleanName
 	}
 

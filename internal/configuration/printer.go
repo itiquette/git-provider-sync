@@ -171,8 +171,8 @@ func printMirrorSettings(settings model.MirrorSettings, writer io.Writer, level 
 	fmt.Fprintf(writer, "\n%sSettings:\n", indent)
 
 	// Print only non-default values
-	if settings.ASCIIName {
-		fmt.Fprintf(writer, "%sASCII Name: %t\n", indent, settings.ASCIIName)
+	if settings.AlphaNumHyphName {
+		fmt.Fprintf(writer, "%sASCII Name: %t\n", indent, settings.AlphaNumHyphName)
 	}
 
 	if settings.DescriptionPrefix != "" {
@@ -239,7 +239,7 @@ func isEmptyRepositoriesOption(opt model.RepositoriesOption) bool {
 }
 
 func isEmptyMirrorSettings(settings model.MirrorSettings) bool {
-	return !settings.ASCIIName &&
+	return !settings.AlphaNumHyphName &&
 		settings.DescriptionPrefix == "" &&
 		!settings.Disabled &&
 		!settings.ForcePush &&

@@ -89,7 +89,7 @@ func validateRepository(ctx context.Context, mirrorCfg gpsconfig.MirrorConfig, c
 
 	name := repo.ProjectInfo().Name(ctx)
 
-	if mirrorCfg.Settings.ASCIIName {
+	if mirrorCfg.Settings.AlphaNumHyphName {
 		name = repo.ProjectInfo().CleanName
 	}
 

@@ -35,7 +35,7 @@ func Clone(ctx context.Context, reader interfaces.SourceReader, syncCfg config.S
 		name := stringconvert.RemoveNonAlphaNumericChars(ctx, projectInfo.OriginalName)
 		projectInfo.SetCleanName(name)
 
-		if cliOpts.ASCIIName {
+		if cliOpts.AlphaNumHyphName {
 			projectInfo.SetASCIIName(true)
 		}
 
@@ -74,8 +74,8 @@ func FetchProjectInfos(ctx context.Context, syncCfg config.SyncConfig, gitProvid
 		syncCfg.IncludeForks,
 		syncCfg.Owner,
 		syncCfg.OwnerType,
-		syncCfg.Repositories.IncludedRepositories(),
-		syncCfg.Repositories.ExcludedRepositories(),
+		syncCfg.Repositories.Include,
+		syncCfg.Repositories.Exclude,
 	)
 
 	projectInfos, err := gitProvider.GetProjectInfos(ctx, providerOption, true)

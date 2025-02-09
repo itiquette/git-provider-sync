@@ -98,7 +98,7 @@ package synccmd
 // 	require.NotNil(t, cmd.Run)
 
 // 	// Check if all expected flags are present
-// 	expectedFlags := []string{"force-push", "ignore-invalid-name", "ascii-name", "active-from-limit"}
+// 	expectedFlags := []string{"force-push", "ignore-invalid-name", "alphanumhyph-name", "active-from-limit"}
 // 	for _, flag := range expectedFlags {
 // 		// Assert that the flag is defined by checking if Lookup returns a non-nil *pflag.Flag
 // 		require.NotEqual(t, (*pflag.Flag)(nil), cmd.Flags().Lookup(flag), "Flag %s should be present", flag)

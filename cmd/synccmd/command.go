@@ -54,7 +54,7 @@ func addInputOptionsToContext(ctx context.Context, flags *syncInputOption) conte
 
 	cliOpts := model.CLIOptions(ctx)
 
-	cliOpts.ASCIIName = flags.asciiName
+	cliOpts.AlphaNumHyphName = flags.alphaNumHyphName
 	cliOpts.ActiveFromLimit = flags.activeFromLimit
 	cliOpts.DryRun = flags.dryRun
 	cliOpts.ForcePush = flags.forcePush

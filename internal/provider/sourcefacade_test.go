@@ -17,7 +17,7 @@ import (
 
 func testContext() context.Context {
 	ctx := context.Background()
-	input := model.CLIOption{ASCIIName: true}
+	input := model.CLIOption{AlphaNumHyphName: true}
 
 	return model.WithCLIOpt(ctx, input)
 }
@@ -66,7 +66,7 @@ func TestClone(t *testing.T) {
 			mockSetup: func(*mocks.SourceReader) {},
 		},
 		{
-			name: "clone with ascii name setting",
+			name: "clone with alphanumhyph name setting",
 			projectinfos: []model.ProjectInfo{
 				{HTTPSURL: "https://github.com/user/repo1.git", OriginalName: "repo1"},
 			},
@@ -75,7 +75,7 @@ func TestClone(t *testing.T) {
 				Mirrors: map[string]config.MirrorConfig{
 					"test": {
 						BaseConfig: config.BaseConfig{},
-						Settings:   config.MirrorSettings{ASCIIName: true},
+						Settings:   config.MirrorSettings{AlphaNumHyphName: true},
 					},
 				},
 			},
