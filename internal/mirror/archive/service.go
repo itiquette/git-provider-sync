@@ -6,7 +6,9 @@ package archive
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"os"
 
 	"itiquette/git-provider-sync/internal/interfaces"
 	"itiquette/git-provider-sync/internal/log"
@@ -46,5 +48,17 @@ func (serv *Service) Push(ctx context.Context, repo interfaces.GitRepository, op
 		return fmt.Errorf("failed to initialize target repository: %w", err)
 	}
 
-	return serv.archiver.CreateArchive(ctx, storagePath, opt.Target, repo.ProjectInfo().Name(ctx)) //nolint
+	err = serv.archiver.CreateArchive(ctx, storagePath, opt.Target, repo.ProjectInfo().Name(ctx))
+	if err != nil {
+		return errors.New("failed to create archive ")
+	}
+
+	err = os.RemoveAll(storagePath)
+	if err != nil {
+		return fmt.Errorf("failed to remove dir %s. err: %w ", storagePath, err)
+	}
+
+	logger.Trace().Str("storagePath", storagePath).Msg("Removed")
+
+	return nil
 }
