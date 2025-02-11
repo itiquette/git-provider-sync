@@ -107,6 +107,15 @@
       "matchPackageNames": [
         "!go"
       ]
+    },
+    {
+      "matchManagers": [
+        "dockerfile"
+      ],
+      "addLabels": [
+        "container"
+      ],
+      "automerge": true
     }
   ]
 }
