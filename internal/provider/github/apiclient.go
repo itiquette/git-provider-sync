@@ -13,7 +13,7 @@ import (
 	"itiquette/git-provider-sync/internal/model"
 	config "itiquette/git-provider-sync/internal/model/configuration"
 
-	"github.com/google/go-github/v68/github"
+	"github.com/google/go-github/v69/github"
 )
 
 type APIClient struct {
