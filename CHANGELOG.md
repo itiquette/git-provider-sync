@@ -5,7 +5,39 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.0.21] - 2025-01-26
+## [0.1.0] - 2025-02-11
+
+### Added
+
+- Add request timeout opt
+- Add headers to mock code
+- Add pre gen mock code
+- Add correct perm
+- Add correct perm
+
+### Changed
+
+- Restructure badges
+- Automerge container updates
+- Update github actions minor and patch updates
+- Update github actions minor and patch updates
+- Rename ascii-name opt to alphanumhyph-name
+- Change string sep to list for include,exclude
+- Update deps, crypto etc
+- Update go 1.23.6
+- Update cgr.dev/chainguard/glibc-dynamic:latest-dev docker
+
+### Fixed
+
+- Update go-github and tmp workaround for disable
+- Improve alphanumeric repo conversion
+
+### Removed
+
+- Remove tar residue dir
+- Remove fuzz pr
+
+## [0.0.21] - 2025-01-29
 
 ### Added
 
@@ -14,6 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- V0.0.21
 - Pin google/clusterfuzzlite action to 884713a
 - Improve security score
 - Improve badge status
@@ -280,6 +313,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Move roadmap to issues
 - Initial commit
 
+[0.1.0]: https://github.com/itiquette/git-provider-sync/compare/v0.0.21..v0.1.0
 [0.0.21]: https://github.com/itiquette/git-provider-sync/compare/v0.0.20..v0.0.21
 [0.0.20]: https://github.com/itiquette/git-provider-sync/compare/v0.0.19..v0.0.20
 [0.0.19]: https://github.com/itiquette/git-provider-sync/compare/v0.0.18..v0.0.19
