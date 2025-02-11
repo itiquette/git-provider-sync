@@ -9,7 +9,7 @@ import (
 	"itiquette/git-provider-sync/internal/log"
 	"strings"
 
-	"github.com/google/go-github/v68/github"
+	"github.com/google/go-github/v69/github"
 )
 
 type ProtectionService struct {
@@ -53,21 +53,22 @@ func (p ProtectionService) protect(ctx context.Context, owner, projectName strin
 	return nil
 }
 func (p *ProtectionService) enableTagProtection(ctx context.Context, owner, projectName string) error {
-	ruleset := &github.Ruleset{
+	ruleset := github.RepositoryRuleset{
 		Name:        "TagProtectionRule",
-		Target:      github.Ptr("tag"),
+		Target:      github.Ptr(github.RulesetTargetTag),
 		Enforcement: "active",
-		Rules: []*github.RepositoryRule{
+		Rules: &github.RepositoryRulesetRules{
 			// github.NewTagNamePatternRule(&github.RulePatternParameters{
 			// 	Operator: "starts_with", // Required operator field
 			// 	Pattern:  *github.String("v")}),
-			github.NewCreationRule(),  // Restrict tag creation
-			github.NewUpdateRule(nil), // Restrict tag updates
-			github.NewDeletionRule(),  // Restrict tag deletion}),
+			// Restrict tag creation
+			Creation: &github.EmptyRuleParameters{},
+			Update:   &github.UpdateRuleParameters{},
+			Deletion: &github.EmptyRuleParameters{},
 		},
 		// Apply to all tags by default
-		Conditions: &github.RulesetConditions{
-			RefName: &github.RulesetRefConditionParameters{
+		Conditions: &github.RepositoryRulesetConditions{
+			RefName: &github.RepositoryRulesetRefConditionParameters{
 				Include: []string{"refs/tags/*"},
 				Exclude: []string{},
 			},
@@ -92,37 +93,26 @@ func (p ProtectionService) enableBranchProtection(ctx context.Context, owner, pr
 	logger.Trace().Msg("Entering GitHub:enableRulesetProtection")
 	logger.Debug().Str("owner", owner).Str("projectName", projectName).Msg("enableRulesetProtection")
 
-	ruleset := &github.Ruleset{
+	ruleset := github.RepositoryRuleset{
 		Name:        "BranchProtectionRules",
-		Target:      github.Ptr("branch"),
+		Target:      github.Ptr(github.RulesetTargetBranch),
 		Enforcement: "active",
 
 		// Match all branches by default
-		Conditions: &github.RulesetConditions{
-			RefName: &github.RulesetRefConditionParameters{
+		Conditions: &github.RepositoryRulesetConditions{
+			RefName: &github.RepositoryRulesetRefConditionParameters{
 				Include: []string{"~ALL"},
 				Exclude: []string{},
 			},
 		},
 		BypassActors: []*github.BypassActor{},
-
-		Rules: []*github.RepositoryRule{
-			github.NewRequiredStatusChecksRule(&github.RequiredStatusChecksRuleParameters{
-				RequiredStatusChecks:             []github.RuleRequiredStatusChecks{},
-				StrictRequiredStatusChecksPolicy: true,
-			}),
-			github.NewPullRequestRule(&github.PullRequestRuleParameters{
-				DismissStaleReviewsOnPush:      true,
-				RequireCodeOwnerReview:         true,
-				RequiredApprovingReviewCount:   1,
-				RequiredReviewThreadResolution: true,
-			}),
-			github.NewCreationRule(),
-			github.NewUpdateRule(&github.UpdateAllowsFetchAndMergeRuleParameters{
+		Rules: &github.RepositoryRulesetRules{
+			Creation: &github.EmptyRuleParameters{},
+			Update: &github.UpdateRuleParameters{
 				UpdateAllowsFetchAndMerge: false,
-			}),
-			github.NewNonFastForwardRule(),
-			github.NewDeletionRule(),
+			},
+			Deletion:    &github.EmptyRuleParameters{},
+			PullRequest: &github.PullRequestRuleParameters{},
 		},
 	}
 
