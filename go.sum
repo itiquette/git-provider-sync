@@ -115,6 +115,8 @@ github.com/google/go-cmp v0.6.0 h1:ofyhxvXcZhMsU5ulbFiLKl/XBFqE1GSq7atu8tAmTRI=
 github.com/google/go-cmp v0.6.0/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeNGIjoY=
 github.com/google/go-github/v69 v69.0.0 h1:YnFvZ3pEIZF8KHmI8xyQQe3mYACdkhnaTV2hr7CP2/w=
 github.com/google/go-github/v69 v69.0.0/go.mod h1:xne4jymxLR6Uj9b7J7PyTpkMYstEMMwGZa0Aehh1azM=
+github.com/google/go-github/v69 v69.1.0 h1:ljzwzEsHsc4qUqyHEJCNA1dMqvoTK3YX2NAaK6iprDg=
+github.com/google/go-github/v69 v69.1.0/go.mod h1:xne4jymxLR6Uj9b7J7PyTpkMYstEMMwGZa0Aehh1azM=
 github.com/google/go-querystring v1.1.0 h1:AnCroh3fv4ZBgVIf1Iwtovgjaw/GiKJo8M8yD/fhyJ8=
 github.com/google/go-querystring v1.1.0/go.mod h1:Kcdr2DB4koayq7X8pmAG4sNG59So17icRSOU623lUBU=
 github.com/google/martian v2.1.0+incompatible/go.mod h1:9I4somxYTbIHy5NJKHRl3wXiIaQGbYVAs8BPL6v8lEs=
@@ -257,6 +259,8 @@ github.com/xyproto/randomstring v1.0.5/go.mod h1:rgmS5DeNXLivK7YprL0pY+lTuhNQW3i
 github.com/yuin/goldmark v1.4.13/go.mod h1:6yULJ656Px+3vBD8DxQVa3kxgyrAnzto9xy5taEt/CY=
 gitlab.com/gitlab-org/api/client-go v0.122.0 h1:Nog85APtgquS+HHkMkP4DiZ6lXlUZYhQKqguS4OJYNM=
 gitlab.com/gitlab-org/api/client-go v0.122.0/go.mod h1:Jh0qjLILEdbO6z/OY94RD+3NDQRUKiuFSFYozN6cpKM=
+gitlab.com/gitlab-org/api/client-go v0.123.0 h1:W3LZ5QNyiSCJA0Zchkwz8nQIUzOuDoSWMZtRDT5DjPI=
+gitlab.com/gitlab-org/api/client-go v0.123.0/go.mod h1:Jh0qjLILEdbO6z/OY94RD+3NDQRUKiuFSFYozN6cpKM=
 go.opencensus.io v0.21.0/go.mod h1:mSImk1erAIZhrmZN+AvHh14ztQfjbGwt4TtuofqLduU=
 go.opencensus.io v0.22.0/go.mod h1:+kGneAE2xo2IficOXnaByMWTGM9T73dGwxeWcUqIpI8=
 go.opencensus.io v0.22.2/go.mod h1:yxeiOL68Rb0Xd1ddK5vPZ/oVn4vY4Ynel7k9FzqtOIw=

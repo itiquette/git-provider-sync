@@ -9,7 +9,7 @@ go 1.23.6
 require (
 	code.gitea.io/sdk/gitea v0.20.0
 	github.com/go-git/go-git/v5 v5.13.2
-	github.com/google/go-github/v69 v69.0.0
+	github.com/google/go-github/v69 v69.1.0
 	github.com/hashicorp/go-retryablehttp v0.7.7
 	github.com/knadh/koanf/parsers/dotenv v1.0.0
 	github.com/knadh/koanf/parsers/yaml v0.1.0
@@ -20,7 +20,7 @@ require (
 	github.com/rs/zerolog v1.33.0
 	github.com/spf13/cobra v1.8.1
 	github.com/stretchr/testify v1.10.0
-	gitlab.com/gitlab-org/api/client-go v0.122.0
+	gitlab.com/gitlab-org/api/client-go v0.123.0
 
 )
 
