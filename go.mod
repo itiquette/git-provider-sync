@@ -9,7 +9,8 @@ go 1.23.6
 require (
 	code.gitea.io/sdk/gitea v0.20.0
 	github.com/go-git/go-git/v5 v5.13.2
-	github.com/google/go-github/v69 v69.0.0
+	github.com/google/go-github/v69 v69.2.0
+	github.com/google/go-github/v71 v71.0.0
 	github.com/hashicorp/go-retryablehttp v0.7.7
 	github.com/knadh/koanf/parsers/dotenv v1.0.0
 	github.com/knadh/koanf/parsers/yaml v0.1.0
