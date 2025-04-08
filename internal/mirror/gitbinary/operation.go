@@ -20,7 +20,7 @@ type operation struct {
 	executor ExecutorService
 }
 
-func NewOperation(executor ExecutorService) *operation { //nolint
+func NewOperation(executor ExecutorService) *operation {
 	return &operation{
 		executor: executor,
 	}

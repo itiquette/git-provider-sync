@@ -18,7 +18,7 @@ import (
 // It can be extended in the future to include additional filtering options or state if needed.
 type filterService struct{}
 
-func NewFilter() *filterService { //nolint
+func NewFilter() *filterService {
 	return &filterService{}
 }
 

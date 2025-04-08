@@ -24,7 +24,7 @@ type AuthService interface {
 type authService struct {
 }
 
-func NewAuthService() *authService { //nolint
+func NewAuthService() *authService {
 	return &authService{}
 }
 

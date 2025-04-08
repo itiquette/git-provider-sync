@@ -19,7 +19,7 @@ type executorService struct {
 	gitBinaryPath string
 }
 
-func NewExecutorService(binaryPath string) *executorService { //nolint
+func NewExecutorService(binaryPath string) *executorService {
 	return &executorService{
 		gitBinaryPath: binaryPath,
 	}

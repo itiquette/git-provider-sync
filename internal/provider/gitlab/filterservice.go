@@ -19,7 +19,7 @@ type filterService struct {
 	isInInterval interfaces.IsInIntervalFunc
 }
 
-func NewFilter() filterService { //nolint
+func NewFilter() filterService {
 	isInInterval := targetfilter.IsInInterval
 
 	return filterService{isInInterval: isInInterval}

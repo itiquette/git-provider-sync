@@ -72,7 +72,7 @@ MEGALINTER_DEF_WORKSPACE ?= /repo
 ## quality/megalint: quality control check with MegaLinter
 .PHONY: quality/megalint
 quality/megalint: clean
-	podman run --rm --volume $$(pwd):/repo -e MEGALINTER_CONFIG='development/megalinter.yml' -e REPORT_OUTPUT_FOLDER=$(DIR)/megalinter-reports -e DEFAULT_WORKSPACE=${MEGALINTER_DEF_WORKSPACE} -e LOG_LEVEL=INFO ghcr.io/oxsecurity/megalinter-go:v8.3.0
+	podman run --rm --volume $$(pwd):/repo -e MEGALINTER_CONFIG='development/megalinter.yml' -e REPORT_OUTPUT_FOLDER=$(DIR)/megalinter-reports -e DEFAULT_WORKSPACE=${MEGALINTER_DEF_WORKSPACE} -e LOG_LEVEL=INFO ghcr.io/oxsecurity/megalinter-go:v8.5.0
 
 
 ## quality/golangcilint: quality control check with golangci-lint
@@ -88,7 +88,7 @@ quality/wsl:
 ## quality/license: license control check with reuse
 .PHONY: quality/license
 quality/license:
-	podman run --rm --volume $$(pwd):/data docker.io/fsfe/reuse:4.0.3-debian lint
+	podman run --rm --volume $$(pwd):/data docker.io/fsfe/reuse:5.0.2-debian lint
 
 ## quality/openssfscorecard: security repo control check with openssf scorecard
 .PHONY: quality/openssfscorecard
