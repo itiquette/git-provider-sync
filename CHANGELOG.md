@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] - 2025-04-08
+
+### Changed
+
+- Update cgr.dev/chainguard
+- Update github actions minor and patch updates
+- Disable gitleaks until fixed in ml
+- Bump mockery
+- Clean up license headers
+- Update to golang 1.24.2 and deps
+
+### Fixed
+
+- Test mock generation
+
 ## [0.1.0] - 2025-02-11
 
 ### Added
@@ -17,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- V0.1.0
 - Restructure badges
 - Automerge container updates
 - Update github actions minor and patch updates
@@ -313,6 +329,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Move roadmap to issues
 - Initial commit
 
+[0.1.1]: https://github.com/itiquette/git-provider-sync/compare/v0.1.0..v0.1.1
 [0.1.0]: https://github.com/itiquette/git-provider-sync/compare/v0.0.21..v0.1.0
 [0.0.21]: https://github.com/itiquette/git-provider-sync/compare/v0.0.20..v0.0.21
 [0.0.20]: https://github.com/itiquette/git-provider-sync/compare/v0.0.19..v0.0.20
