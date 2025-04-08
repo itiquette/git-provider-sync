@@ -16,3 +16,10 @@ path = [
 precedence = "aggregate"
 SPDX-FileCopyrightText = "janderssonse. <https://github.com/janderssonse>"
 SPDX-License-Identifier = "CC0-1.0"
+
+
+[[annotations]]
+path = ["generated/**/*.go"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "janderssonse. <https://github.com/janderssonse>"
+SPDX-License-Identifier = "EUPL-1.2"
