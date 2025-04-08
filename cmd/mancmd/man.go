@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 Josef Andersson
+// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
 //
 // SPDX-License-Identifier: EUPL-1.2
 
@@ -28,8 +28,8 @@ func NewManCommand() *cobra.Command {
 			}
 
 			manPage.
-				WithSection("Author", "Git Provider Sync was written by Josef Andersson <https://github.com/itiquette/git-provider-sync>").
-				WithSection("Copyright", "Copyright (C) 2024 Josef Andersson.\n"+
+				WithSection("Author", "Git Provider Sync was initially created by Josef Andersson <https://github.com/itiquette/git-provider-sync>").
+				WithSection("Copyright", "Copyright (C) 2025 itiquette/git-provider-sync.\n"+
 					"Released under the EUPL-1.2 license.")
 
 			_, err = fmt.Println(manPage.Build(roff.NewDocument()))

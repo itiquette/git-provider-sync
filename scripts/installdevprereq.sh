@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# SPDX-FileCopyrightText: Josef Andersson
+# SPDX-FileCopyrightText: 2025 itiquette/git-provider-sync
 #
 # SPDX-License-Identifier: CC0-1.0
 

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# SPDX-FileCopyrightText: 2024 Josef Andersson
+# SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
 #
 # SPDX-License-Identifier: EUPL-1.2
 

@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: 2024 Josef Andersson
+SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
  
 SPDX-License-Identifier: CC0-1.0
 -->

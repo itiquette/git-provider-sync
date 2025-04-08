@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2025 Josef Andersson
+// SPDX-FileCopyrightText: 2025 itiquette/git-provider-sync
 //
 // SPDX-License-Identifier: EUPL-1.2
 
