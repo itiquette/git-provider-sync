@@ -329,3 +329,50 @@ func TestMirrorConfig_ProviderTypes(t *testing.T) {
 	require.False(t, mirrors["git"].IsArchive())
 	require.False(t, mirrors["git"].IsDirectory())
 }
+func TestSyncConfig_DebugLogNoTokens(t *testing.T) {
+	// Create a config with a token that should be hidden
+	config := SyncConfig{
+		BaseConfig: BaseConfig{
+			ProviderType: "github",
+			Domain:       "github.com",
+			Owner:        "owner1",
+			OwnerType:    "group",
+			Auth: AuthConfig{
+				Token:    "supersecrettoken",
+				Protocol: "tls",
+			},
+		},
+		Mirrors: map[string]MirrorConfig{
+			"mirror1": {
+				BaseConfig: BaseConfig{
+					ProviderType: "gitlab",
+					Domain:       "gitlab.com",
+					Auth: AuthConfig{
+						Token: "anothersecrettoken",
+					},
+				},
+			},
+		},
+	}
+
+	// Capture log output
+	var buf bytes.Buffer
+	logger := zerolog.New(&buf)
+
+	// Log the config
+	config.DebugLog(&logger).Msg("Test log")
+
+	// Get the log output as string
+	logOutput := buf.String()
+
+	// Verify tokens are not present
+	require.NotContains(t, logOutput, "supersecrettoken", "Auth token should not be in logs")
+	require.NotContains(t, logOutput, "anothersecrettoken", "Mirror token should not be in logs")
+
+	// Verify other fields are present
+	require.Contains(t, logOutput, "github.com")
+	require.Contains(t, logOutput, "owner1")
+	require.Contains(t, logOutput, "tls")
+	require.Contains(t, logOutput, "mirror_mirror1")
+	require.Contains(t, logOutput, "gitlab.com")
+}

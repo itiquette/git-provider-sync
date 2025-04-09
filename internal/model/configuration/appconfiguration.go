@@ -155,10 +155,17 @@ func (s SyncConfig) DebugLog(logger *zerolog.Logger) *zerolog.Event {
 					Str("owner", s.Owner).
 					Str("ownerType", s.OwnerType).
 					Interface("repositories", s.Repositories).
-					Interface("auth", s.Auth.String())
+					Str("auth", s.Auth.String())
 
-	for i, mirror := range s.Mirrors {
-		event.Interface(fmt.Sprintf("mirror_%-v", i), mirror)
+	// Handle mirrors safely
+	for name, mirror := range s.Mirrors {
+		mirrorEvent := event.Dict("mirror_"+name, event)
+		mirrorEvent.Str("provider_type", mirror.ProviderType).
+			Str("domain", mirror.GetDomain()).
+			Str("owner", mirror.Owner).
+			Str("owner_type", mirror.OwnerType).
+			Str("path", mirror.Path).
+			Str("auth", mirror.Auth.String())
 	}
 
 	return event
