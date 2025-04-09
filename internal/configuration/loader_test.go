@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"itiquette/git-provider-sync/internal/model"
@@ -151,4 +152,55 @@ func TestHasDotEnvFile(t *testing.T) {
 		exists, _ := hasDotEnvFile(".env")
 		require.False(t, exists)
 	})
+}
+
+func TestReadConfigFileCommaDelimitedRepositoryLists(t *testing.T) {
+	// Set up environment with comma-separated repository lists
+	t.Setenv("GPS_GITPROVIDERSYNC_DEFAULTENV_ITIQUETTECONF_REPOSITORIES_INCLUDE", "repo1, repo2, repo3,repo4")
+	t.Setenv("GPS_GITPROVIDERSYNC_DEFAULTENV_ITIQUETTECONF_REPOSITORIES_EXCLUDE", " excluded1,excluded2 , excluded3")
+
+	// Create app configuration directly
+	appConfiguration := &config.AppConfiguration{}
+
+	// Read the configuration using the existing minimal_config.yaml
+	err := ReadConfigurationFile("testdata/minimal_config.yaml", false, appConfiguration)
+	if err != nil {
+		t.Fatalf("Failed to read configuration: %v", err)
+	}
+
+	// Debug the loaded configuration
+	t.Logf("Loaded configurations: %v", appConfiguration.GitProviderSyncConfs)
+
+	// Verify the config contains our environment
+	if _, exists := appConfiguration.GitProviderSyncConfs["defaultenv"]; !exists {
+		t.Fatal("Expected 'defaultenv' environment to exist")
+	}
+
+	if _, exists := appConfiguration.GitProviderSyncConfs["defaultenv"]["itiquetteconf"]; !exists {
+		t.Fatal("Expected 'itiquetteconf' configuration to exist")
+	}
+
+	// Access the configuration
+	repoConfig := appConfiguration.GitProviderSyncConfs["defaultenv"]["itiquetteconf"]
+
+	// Debug print the repositories
+	t.Logf("Repositories: %+v", repoConfig.Repositories)
+
+	// Convert to string for checking inclusion
+	includeStr := fmt.Sprintf("%v", repoConfig.Repositories.Include)
+	excludeStr := fmt.Sprintf("%v", repoConfig.Repositories.Exclude)
+
+	// Check include repositories
+	for _, repo := range []string{"repo1", "repo2", "repo3", "repo4"} {
+		if !strings.Contains(includeStr, repo) {
+			t.Errorf("Include repositories should contain '%s', but got: %s", repo, includeStr)
+		}
+	}
+
+	// Check exclude repositories
+	for _, repo := range []string{"excluded1", "excluded2", "excluded3"} {
+		if !strings.Contains(excludeStr, repo) {
+			t.Errorf("Exclude repositories should contain '%s', but got: %s", repo, excludeStr)
+		}
+	}
 }

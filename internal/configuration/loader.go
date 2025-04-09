@@ -122,6 +122,33 @@ func ReadConfigurationFile(configfile string, configfileOnly bool, appConfigurat
 		}), nil); err != nil {
 			return fmt.Errorf("failed to read environment conf: %w", err)
 		}
+
+		// Get all keys from the loaded configuration
+		keys := koanfConf.Keys()
+
+		// Look for any key ending with repositories.include or repositories.exclude
+		for _, key := range keys {
+			if strings.HasSuffix(key, "repositories.include") || strings.HasSuffix(key, "repositories.exclude") {
+				// Get the current value
+				if value := koanfConf.Get(key); value != nil {
+					// If it's a string with commas, split it into a slice
+					if strValue, ok := value.(string); ok && strings.Contains(strValue, ",") {
+						// Split by comma and trim spaces from each value
+						rawRepos := strings.Split(strValue, ",")
+						repos := make([]string, 0, len(rawRepos))
+
+						for _, repo := range rawRepos {
+							trimmedRepo := strings.TrimSpace(repo)
+							if trimmedRepo != "" { // Skip empty entries
+								repos = append(repos, trimmedRepo)
+							}
+						}
+
+						koanfConf.Set(key, repos) //nolint
+					}
+				}
+			}
+		}
 	}
 
 	if err := koanfConf.Unmarshal("", appConfiguration); err != nil {
