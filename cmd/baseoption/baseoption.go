@@ -5,34 +5,43 @@
 package baseoption
 
 import (
-	"context"
-	"itiquette/git-provider-sync/internal/log"
-	"itiquette/git-provider-sync/internal/model"
+	"fmt"
 
 	"github.com/spf13/cobra"
+
+	"itiquette/git-provider-sync/internal/domain/entities"
 )
 
-// AddRootInputOptionsToContext adds CLI options to the context.
-func AddRootInputOptionsToContext(ctx context.Context, cmd *cobra.Command) context.Context {
-	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering addRootInputOptionsToContext")
-
+// ExtractRootInputOptions creates CLI configuration from command flags.
+// This follows hexagonal architecture by extracting options explicitly rather than hiding them in context.
+func ExtractRootInputOptions(cmd *cobra.Command) (entities.CLIConfig, error) {
 	configFilePath, err := cmd.Flags().GetString("config-file")
-	model.HandleError(ctx, err)
-	configFileOnly, err := cmd.Flags().GetBool("config-file-only")
-	model.HandleError(ctx, err)
-	verbosityWithCaller, err := cmd.Flags().GetBool("verbosity-with-caller")
-	model.HandleError(ctx, err)
-
-	outputFormat, err := cmd.Flags().GetString("output-format")
-	model.HandleError(ctx, err)
-
-	cliOpt := model.CLIOption{
-		ConfigFilePath:      configFilePath,
-		ConfigFileOnly:      configFileOnly,
-		VerbosityWithCaller: verbosityWithCaller,
-		OutputFormat:        outputFormat,
+	if err != nil {
+		return entities.CLIConfig{}, fmt.Errorf("failed to get config-file flag: %w", err)
 	}
 
-	return model.WithCLIOpt(ctx, cliOpt)
+	configFileOnly, err := cmd.Flags().GetBool("config-file-only")
+	if err != nil {
+		return entities.CLIConfig{}, fmt.Errorf("failed to get config-file-only flag: %w", err)
+	}
+
+	verbosityWithCaller, err := cmd.Flags().GetBool("verbosity-with-caller")
+	if err != nil {
+		return entities.CLIConfig{}, fmt.Errorf("failed to get verbosity-with-caller flag: %w", err)
+	}
+
+	outputFormat, err := cmd.Flags().GetString("output-format")
+	if err != nil {
+		return entities.CLIConfig{}, fmt.Errorf("failed to get output-format flag: %w", err)
+	}
+
+	// Build CLI configuration using functional builder
+	cliConfig := entities.NewCLIConfigBuilder().
+		WithConfigFilePath(configFilePath).
+		WithConfigFileOnly(configFileOnly).
+		WithVerbosityWithCaller(verbosityWithCaller).
+		WithOutputFormat(outputFormat).
+		Build()
+
+	return cliConfig, nil
 }

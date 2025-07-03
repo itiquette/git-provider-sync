@@ -8,9 +8,8 @@ import (
 	"context"
 	"time"
 
-	"itiquette/git-provider-sync/internal/provider/stringconvert"
-
 	"github.com/rs/zerolog"
+	"itiquette/git-provider-sync/internal/shared"
 )
 
 // ProjectInfo holds metadata about a repository.
@@ -84,7 +83,7 @@ func (rm ProjectInfo) Name(_ context.Context) string {
 func (rm ProjectInfo) DebugLog(logger *zerolog.Logger) *zerolog.Event {
 	return logger.Debug(). //nolint:zerologlint
 				Str("defaultBranch", rm.DefaultBranch).
-				Str("description", stringconvert.RemoveLinebreaks(rm.Description)).
+				Str("description", shared.RemoveLinebreaks(rm.Description)).
 				Str("url", rm.HTTPSURL).
 				Str("visibility", rm.Visibility).
 				Time("lastActivity", rm.Time())

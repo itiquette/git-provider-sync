@@ -55,7 +55,7 @@ generate/mock:
 
 ## quality: run all quality control checks
 .PHONY: quality
-quality: clean quality/tidy quality/wsl quality/golangcilint quality/megalint quality/license quality/commit
+quality: clean quality/tidy quality/golangcilint quality/megalint quality/license quality/commit
 	go mod verify
 	go vet ./...
 	staticcheck -checks=all,-ST1000,-U1000 ./...

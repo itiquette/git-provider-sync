@@ -10,12 +10,12 @@ import (
 	"io"
 	"os"
 
+	"github.com/spf13/cobra"
+
 	"itiquette/git-provider-sync/cmd/baseoption"
+	"itiquette/git-provider-sync/internal/adapters/cli"
 	"itiquette/git-provider-sync/internal/configuration"
 	"itiquette/git-provider-sync/internal/log"
-	"itiquette/git-provider-sync/internal/model"
-
-	"github.com/spf13/cobra"
 )
 
 // configPrintWriter is the default writer for configuration output.
@@ -43,19 +43,31 @@ It loads the configuration from available sources and displays it in a formatted
 }
 
 // runPrint executes the logic for the 'print' command.
-// Any errors encountered during execution are handled using model.HandleError.
+// Uses pure functional error handling without side effects.
 func runPrint(cmd *cobra.Command, _ []string) {
 	ctx := cmd.Root().Context()
-	ctx = baseoption.AddRootInputOptionsToContext(ctx, cmd)
-	opts := model.CLIOptions(ctx)
+	logger := log.Logger(ctx)
 
-	ctx = log.InitLogger(ctx, cmd, opts.VerbosityWithCaller, string(log.CONSOLE))
+	// Create CLI configuration functionally
+	cliConfig, err := baseoption.ExtractRootInputOptions(cmd)
+	if err != nil {
+		logger.Error().Err(err).Msg("Failed to create CLI configuration")
+		return
+	}
+
+	ctx = cli.WithCLIConfig(ctx, cliConfig)
+
+	// CLI config already added to context by baseOpt.AddRootInputOptionsToContext
+	// Initialize logger using proven approach
+	ctx = log.InitLogger(ctx, cmd, false, "console")
 
 	configLoaderInstance := configuration.DefaultConfigLoader{}
 
 	conf, err := configLoaderInstance.LoadConfiguration(ctx)
 	if err != nil {
-		model.HandleError(ctx, err)
+		logger.Error().Err(err).Msg("Failed to load configuration")
+
+		return
 	}
 
 	configuration.PrintConfiguration(*conf, configPrintWriter)

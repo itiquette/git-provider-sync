@@ -8,9 +8,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"itiquette/git-provider-sync/internal/log"
-	"itiquette/git-provider-sync/internal/model"
-	config "itiquette/git-provider-sync/internal/model/configuration"
 	"os"
 	"path/filepath"
 	"strings"
@@ -20,6 +17,11 @@ import (
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/v2"
+
+	"itiquette/git-provider-sync/internal/adapters/cli"
+	"itiquette/git-provider-sync/internal/domain/entities"
+	"itiquette/git-provider-sync/internal/log"
+	config "itiquette/git-provider-sync/internal/model/configuration"
 )
 
 type ConfigLoader interface {
@@ -33,10 +35,17 @@ func (DefaultConfigLoader) LoadConfiguration(ctx context.Context) (*config.AppCo
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering LoadConfiguration")
 
-	cliOpt := model.CLIOptions(ctx)
+	// Get CLI configuration from CLI adapter
+	cliConfig, ok := cli.CLIConfigFromContext(ctx)
+	if !ok {
+		logger.Warn().Msg("CLI configuration not found in context, using defaults")
+
+		cliConfig = entities.NewCLIConfigBuilder().Build()
+	}
+
 	appCfg := &config.AppConfiguration{}
 
-	if err := ReadConfigurationFile(cliOpt.ConfigFilePath, cliOpt.ConfigFileOnly, appCfg); err != nil {
+	if err := ReadConfigurationFile(cliConfig.ConfigFilePath(), cliConfig.ConfigFileOnly(), appCfg); err != nil {
 		return nil, fmt.Errorf("failed to read configuration file: %w", err)
 	}
 

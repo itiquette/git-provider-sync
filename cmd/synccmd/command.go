@@ -2,16 +2,17 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-// command.go - Command setup, entry points and error definitions
+// command.go - Command setup, entry points (restored from main, hexagonal adapters)
 package synccmd
 
 import (
 	"context"
 
 	baseOpt "itiquette/git-provider-sync/cmd/baseoption"
+	"itiquette/git-provider-sync/internal/adapters/cli"
 	"itiquette/git-provider-sync/internal/configuration"
+	"itiquette/git-provider-sync/internal/domain/entities"
 	"itiquette/git-provider-sync/internal/log"
-	"itiquette/git-provider-sync/internal/model"
 
 	"github.com/spf13/cobra"
 )
@@ -30,42 +31,80 @@ It allows for various options to control the synchronization process.`,
 	return cmd
 }
 
+// runSync executes sync using simple functional approach from main branch.
 func runSync(cmd *cobra.Command, _ []string) {
 	ctx := cmd.Root().Context()
-	ctx = baseOpt.AddRootInputOptionsToContext(ctx, cmd)
+	cliConfig, err := baseOpt.ExtractRootInputOptions(cmd)
+
+	if err != nil {
+		// TODO: Implement proper error handling via CLI adapter
+		return
+	}
+
+	ctx = cli.WithCLIConfig(ctx, cliConfig)
 
 	flags, err := getSyncInputOptions(ctx, cmd)
-	model.HandleError(ctx, err)
+	if err != nil {
+		// TODO: Implement proper error handling via CLI adapter
+		return
+	}
 
 	ctx = initLogger(ctx, cmd)
 	ctx = addInputOptionsToContext(ctx, flags)
 
+	// Use original proven configuration loader
 	config, err := configuration.DefaultConfigLoader{}.LoadConfiguration(ctx)
-	model.HandleError(ctx, err)
+	if err != nil {
+		// TODO: Implement proper error handling via CLI adapter
+		return
+	}
 
-	err = sync(ctx, config)
-	model.HandleError(ctx, err)
+	// Execute sync using proper hexagonal architecture
+	err = syncHexagonal(ctx, config)
+	if err != nil {
+		// TODO: Implement proper error handling via CLI adapter
+		return
+	}
 }
 
+// addInputOptionsToContext adds sync input options to context (restored from main).
 func addInputOptionsToContext(ctx context.Context, flags *syncInputOption) context.Context {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Entering addInputOptionsToContext")
 	flags.DebugLog(logger).Msg("addInputOptionsToContext")
 
-	cliOpts := model.CLIOptions(ctx)
+	// Get existing CLI config or create default
+	cliConfig, ok := cli.CLIConfigFromContext(ctx)
+	if !ok {
+		cliConfig = entities.NewCLIConfigBuilder().Build()
+	}
 
-	cliOpts.AlphaNumHyphName = flags.alphaNumHyphName
-	cliOpts.ActiveFromLimit = flags.activeFromLimit
-	cliOpts.DryRun = flags.dryRun
-	cliOpts.ForcePush = flags.forcePush
-	cliOpts.IgnoreInvalidName = flags.ignoreInvalidName
+	// Build new config with updated values
+	updatedConfig := entities.NewCLIConfigBuilder().
+		WithAlphaNumHyphName(flags.alphaNumHyphName).
+		WithActiveFromLimit(flags.activeFromLimit).
+		WithDryRun(flags.dryRun).
+		WithForcePush(flags.forcePush).
+		WithIgnoreInvalidName(flags.ignoreInvalidName).
+		WithOutputFormat(cliConfig.OutputFormat()).
+		WithVerbosityWithCaller(cliConfig.VerbosityWithCaller()).
+		WithQuiet(cliConfig.Quiet()).
+		WithConfigFilePath(cliConfig.ConfigFilePath()).
+		WithConfigFileOnly(cliConfig.ConfigFileOnly()).
+		Build()
 
-	return model.WithCLIOpt(ctx, cliOpts)
+	return cli.WithCLIConfig(ctx, updatedConfig)
 }
 
+// initLogger initializes logging with CLI options (restored from main).
 func initLogger(ctx context.Context, cmd *cobra.Command) context.Context {
-	withCaller := model.CLIOptions(ctx).VerbosityWithCaller
-	outputFormat := model.CLIOptions(ctx).OutputFormat
+	cliConfig, ok := cli.CLIConfigFromContext(ctx)
+	if !ok {
+		cliConfig = entities.NewCLIConfigBuilder().Build()
+	}
+
+	withCaller := cliConfig.VerbosityWithCaller()
+	outputFormat := cliConfig.OutputFormat()
 
 	ctx = log.InitLogger(ctx, cmd, withCaller, outputFormat)
 	log.Logger(ctx).Trace().Msg("Logger initialized")

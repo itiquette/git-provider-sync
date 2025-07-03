@@ -1,0 +1,13 @@
+# SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+# Mockery v2.53+ configuration for hexagonal architecture
+# Note: Use command-line generation to avoid config conflicts
+
+with-expecter: true
+disable-version-string: true
+issue-845-fix: true
+resolve-type-alias: false
+# Configuration is preserved for reference but manual CLI generation is preferred
+# Use: ./scripts/generatemock.sh for reliable mock generation

@@ -7,12 +7,12 @@ package model
 import (
 	"context"
 	"fmt"
-	"itiquette/git-provider-sync/internal/log"
-	model "itiquette/git-provider-sync/internal/model/configuration"
-	"itiquette/git-provider-sync/internal/provider/stringconvert"
 	"strings"
 
 	"github.com/rs/zerolog"
+
+	model "itiquette/git-provider-sync/internal/model/configuration"
+	"itiquette/git-provider-sync/internal/shared"
 )
 
 // CloneOption represents options for a git clone operation.
@@ -44,7 +44,7 @@ func (co CloneOption) String() string {
 func (co CloneOption) DebugLog(ctx context.Context, logger *zerolog.Logger) *zerolog.Event {
 	return logger.Debug(). //nolint:zerologlint
 				Str("name", co.Name).
-				Str("url", stringconvert.RemoveBasicAuthFromURL(ctx, co.URL, false)).
+				Str("url", shared.RemoveBasicAuthFromURL(ctx, co.URL, true)).
 				Str("ASCIIName", co.ASCIIName).
 				Bool("mirror", co.Mirror).
 				Bool("nonbare_repo", co.NonBareRepo).
@@ -54,16 +54,10 @@ func (co CloneOption) DebugLog(ctx context.Context, logger *zerolog.Logger) *zer
 
 // NewCloneOption creates a new CloneOption.
 func NewCloneOption(ctx context.Context, projectInfo ProjectInfo, mirror bool, syncCfg model.SyncConfig) CloneOption {
-	logger := log.Logger(ctx)
-
 	cloneURL := projectInfo.HTTPSURL
 	if strings.EqualFold(syncCfg.Auth.Protocol, model.SSH) {
 		cloneURL = projectInfo.SSHURL
 	}
-
-	logger.Info().
-		Str("url", cloneURL).
-		Msg("Cloning repository:")
 
 	return CloneOption{
 		Name:      projectInfo.Name(ctx),

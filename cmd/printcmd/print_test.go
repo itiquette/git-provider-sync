@@ -8,11 +8,12 @@ import (
 	"context"
 	"testing"
 
-	"itiquette/git-provider-sync/internal/model"
-
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/require"
+
+	"itiquette/git-provider-sync/internal/adapters/cli"
+	"itiquette/git-provider-sync/internal/domain/entities"
 )
 
 // setupTestCommand creates a new command with standard test flags.
@@ -31,38 +32,30 @@ func setupTestContext(output *bytes.Buffer) context.Context {
 	logger := zerolog.New(output).With().Timestamp().Logger()
 	ctx := logger.WithContext(context.Background())
 
-	return model.WithCLIOpt(ctx, model.CLIOption{})
+	// Create CLI config using domain entities
+	cliConfig := entities.NewCLIConfigBuilder().Build()
+
+	return cli.WithCLIConfig(ctx, cliConfig)
 }
 
 func TestExecutePrintCommandNoArgNoConfPanics(t *testing.T) {
 	require := require.New(t)
 
-	// Save original error handler
-	originalHandleError := model.HandleError
-	defer func() { model.HandleError = originalHandleError }()
-
 	// Setup error capture
 	errorOutput := bytes.NewBufferString("")
 	ctx := setupTestContext(errorOutput)
 
-	// Configure test error handler
-	model.HandleError = func(ctx context.Context, err error) {
-		logger := zerolog.Ctx(ctx)
-		logger.Error().Err(err).Msg("A fatal error occurred")
-		panic(4)
-	}
-
-	// Setup and configure command
+	// Setup and configure command with invalid config path
 	cmd := setupTestCommand()
 	_ = cmd.PersistentFlags().Set("config-file", "testdasadfasdfta/testconfig.yaml")
 	cmd.Root().SetContext(ctx)
 	cmd.SetErr(errorOutput)
 
-	// Execute and verify
-	require.Panics(func() {
-		_ = cmd.Execute()
-	}, "Expected command to exit")
-	require.Contains(errorOutput.String(), "A fatal error occurred",
+	// Execute command - should handle errors gracefully now
+	_ = cmd.Execute()
+
+	// Verify error was logged (functional error handling doesn't panic)
+	require.Contains(errorOutput.String(), "Failed to load configuration",
 		"Expected error message in stderr")
 }
 

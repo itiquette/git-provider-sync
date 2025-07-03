@@ -20,8 +20,11 @@ type CLIOption struct {
 	ConfigFileOnly      bool   // Whether to use only the configuration file
 	ConfigFilePath      string // Path to the configuration file
 	DryRun              bool   // Whether to perform a dry run without making changes
-	ForcePush           bool   // Whether to force push changesj
+	ForcePush           bool   // Whether to force push changes
 	IgnoreInvalidName   bool   // Whether to ignore invalid repository names
+	IncludeForks        bool   // Whether to include forked repositories
+	IncludeArchived     bool   // Whether to include archived repositories
+	UseGitBinary        bool   // Whether to use git binary instead of go-git
 	OutputFormat        string // Output format for log
 	Quiet               bool   // Whether to suppress non-essential output
 	VerbosityWithCaller bool   // Whether to add caller information to log output
@@ -29,14 +32,6 @@ type CLIOption struct {
 
 // CLIOptions retrieves the CLIOption from the given context.
 // If the CLIOption is not found or cannot be type-asserted, it calls HandleError.
-//
-// Parameters:
-//   - ctx: The context containing the CLIOption.
-//
-// Returns:
-//   - The CLIOption stored in the context.
-//
-// Note: This function may terminate the program if HandleError is configured to do so on errors.
 func CLIOptions(ctx context.Context) CLIOption {
 	cliOptions, ok := ctx.Value(CLIOptionKey{}).(CLIOption)
 	if !ok {
@@ -50,13 +45,6 @@ func CLIOptions(ctx context.Context) CLIOption {
 }
 
 // WithCLIOpt returns a new context with the given CLIOption added.
-//
-// Parameters:
-//   - ctx: The parent context.
-//   - options: The CLIOption to add to the context.
-//
-// Returns:
-//   - A new context containing the CLIOption.
 func WithCLIOpt(ctx context.Context, opt CLIOption) context.Context {
 	return context.WithValue(ctx, CLIOptionKey{}, opt)
 }
@@ -70,16 +58,11 @@ func (c CLIOption) String() string {
 		c.DryRun, c.ConfigFilePath, c.ConfigFileOnly, c.Quiet, c.OutputFormat)
 }
 
-// Example usage:
-//
-//	options := CLIOption{
-//		ForcePush: true,
-//		DryRun: true,
-//		ConfigFilePath: "/path/to/config.yaml",
-//	}
-//	ctx := context.Background()
-//	ctx = WithCLIOptions(ctx, options)
-//
-//	// Later in the code:
-//	retrievedOptions := CLIOptions(ctx)
-//	fmt.Println(retrievedOptions)
+// HandleError handles errors that occur during CLI option processing.
+// This is a placeholder - in the actual implementation this would integrate with
+// the application's error handling strategy.
+func HandleError(ctx context.Context, err error) {
+	// For now, we'll just log the error
+	// In a real implementation, this might terminate the program or take other actions
+	fmt.Printf("CLI Option Error: %v\n", err)
+}

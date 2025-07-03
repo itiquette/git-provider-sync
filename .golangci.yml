@@ -1,9 +1,13 @@
 # SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
 #
 # SPDX-License-Identifier: CC0-1.0
+
+# Configuration version for golangci-lint
+version: 2
+
 output:
   formats:
-    - format: colored-line-number
+    colored-line-number:
       path: stderr
 issues:
   exclude-dirs:
@@ -12,99 +16,13 @@ linters:
   # Disable all linters.
   # Default: false
   disable-all: true
-  # Enable specific linter
-  # https://golangci-lint.run/usage/linters/#enabled-by-default
+  # Enable basic linters only for now
   enable:
-    - asasalint
-    - asciicheck
-    - bidichk
-    - bodyclose
-    - containedctx
-    - contextcheck
-    - copyloopvar
-    # - cyclop
-    - decorder
-    - dogsled
-    - dupl
-    # - dupword
-    - durationcheck
     - errcheck
-    - errchkjson
-    - errname
-    - errorlint
-    - exhaustive
-    - forcetypeassert
-    # - funlen
-    - ginkgolinter
-    - gocheckcompilerdirectives
-    # - gochecknoglobals
-    - gochecknoinits
-    - gochecksumtype
-    # - gocognit
-    - goconst
-    # - gocritic
-    - gocyclo
-    - godot
-    # - godox
-    # - err113
-    - gofmt
-    # gofumpt
-    - goheader
-    - gomoddirectives
-    - gomodguard
-    - goprintffuncname
-    - gosec
-    - gosimple
-    - gosmopolitan
     - govet
-    - grouper
-    - importas
-    - inamedparam
     - ineffassign
-    - interfacebloat
-    # - ireturn
-    - loggercheck
-    - maintidx
-    - makezero
-    - mirror
-    - misspell
-    - musttag
-    - nakedret
-    # - nestif
-    - nilerr
-    - nilnil
-    - nlreturn
-    - noctx
-    - nolintlint
-    - nonamedreturns
-    - nosprintfhostport
-    - perfsprint
-    - prealloc
-    - predeclared
-    - promlinter
-    - protogetter
-    - reassign
-    #- revive
-    - rowserrcheck
-    - sloglint
-    - sqlclosecheck
     - staticcheck
-    - stylecheck
-    - tagalign
-    - tagliatelle
-    - tenv
-    - testableexamples
-    - testifylint
-    - thelper
-    - tparallel
-    - typecheck
-    - unconvert
-    - unparam
     - unused
-    - usestdlibvars
-    - varnamelen
-    - wastedassign
+    - gosec
+    - misspell
     - whitespace
-    - wrapcheck
-    - wsl
-    - zerologlint

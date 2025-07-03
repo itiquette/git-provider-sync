@@ -7,11 +7,12 @@ package model
 import (
 	"context"
 	"fmt"
-	model "itiquette/git-provider-sync/internal/model/configuration"
-	"itiquette/git-provider-sync/internal/provider/stringconvert"
 	"strings"
 
 	"github.com/rs/zerolog"
+
+	model "itiquette/git-provider-sync/internal/model/configuration"
+	"itiquette/git-provider-sync/internal/shared"
 )
 
 // PushOption represents options for a git push operation.
@@ -37,7 +38,7 @@ func (po PushOption) String() string {
 
 func (po PushOption) DebugLog(ctx context.Context, logger *zerolog.Logger) *zerolog.Event {
 	return logger.Debug(). //nolint:zerologlint
-				Str("target", stringconvert.RemoveBasicAuthFromURL(ctx, po.Target, false)).
+				Str("target", shared.RemoveBasicAuthFromURL(ctx, po.Target, true)).
 				Strs("refspecs", po.RefSpecs).
 				Bool("prune", po.Prune).
 				Bool("force", po.Force).

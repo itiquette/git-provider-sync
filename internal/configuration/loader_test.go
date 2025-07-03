@@ -12,7 +12,8 @@ import (
 	"strings"
 	"testing"
 
-	"itiquette/git-provider-sync/internal/model"
+	"itiquette/git-provider-sync/internal/adapters/cli"
+	"itiquette/git-provider-sync/internal/domain/entities"
 	config "itiquette/git-provider-sync/internal/model/configuration"
 
 	"github.com/stretchr/testify/require"
@@ -82,10 +83,13 @@ func TestLoadConfiguration_InvalidConfig(t *testing.T) {
 
 	for _, tabletest := range tests {
 		t.Run(tabletest.name, func(t *testing.T) {
-			ctx := context.WithValue(context.Background(), model.CLIOptionKey{}, model.CLIOption{
-				ConfigFilePath: tabletest.configFilePath,
-				ConfigFileOnly: true,
-			})
+			// Create CLI config using domain entities
+			cliConfig := entities.NewCLIConfigBuilder().
+				WithConfigFilePath(tabletest.configFilePath).
+				WithConfigFileOnly(true).
+				Build()
+
+			ctx := cli.WithCLIConfig(context.Background(), cliConfig)
 
 			var configLoaderInstance ConfigLoader = DefaultConfigLoader{}
 			_, err := configLoaderInstance.LoadConfiguration(ctx)

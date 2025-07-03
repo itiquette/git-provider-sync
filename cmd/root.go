@@ -7,12 +7,14 @@ package cmd
 import (
 	"context"
 
+	"github.com/spf13/cobra"
+
 	"itiquette/git-provider-sync/cmd/mancmd"
 	"itiquette/git-provider-sync/cmd/printcmd"
 	"itiquette/git-provider-sync/cmd/synccmd"
-	"itiquette/git-provider-sync/internal/model"
-
-	"github.com/spf13/cobra"
+	"itiquette/git-provider-sync/internal/adapters/logging"
+	"itiquette/git-provider-sync/internal/domain"
+	"itiquette/git-provider-sync/internal/log"
 )
 
 // newRootCommand creates and returns the root command for the Git Provider Sync CLI.
@@ -44,10 +46,16 @@ Allows syncing to multiple mirror destinations.`,
 }
 
 // Execute runs the root command with the provided version information.
+// This is the application boundary where errors can cause program exit.
 func Execute(version, commitSHA, buildDate string) {
 	ctx := context.Background()
+	zerologLogger := log.Logger(ctx)
 
 	versionString := version + " (Commit SHA: " + commitSHA + ", Build date: " + buildDate + ")"
 	err := newRootCommand(ctx, versionString).Execute()
-	model.HandleError(ctx, err)
+
+	// Pure functional error handling - only exit at application boundary
+	// Use adapter to convert zerolog to domain logger interface
+	domainLogger := logging.NewZerologAdapter(zerologLogger)
+	domain.ExitIfError(ctx, domainLogger, err)
 }

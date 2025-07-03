@@ -8,18 +8,19 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"itiquette/git-provider-sync/internal/log"
-	"itiquette/git-provider-sync/internal/mirror/gitbinary"
-	config "itiquette/git-provider-sync/internal/model/configuration"
 	"net"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
 	"time"
 
 	"golang.org/x/crypto/ssh/agent"
+
+	"itiquette/git-provider-sync/internal/log"
+	config "itiquette/git-provider-sync/internal/model/configuration"
 )
 
 const (
@@ -137,8 +138,7 @@ func validateSyncConfig(_ string, syncCfg config.SyncConfig) error {
 	}
 
 	if syncCfg.UseGitBinary {
-		// Note: Assuming gitbinary.ValidateGitBinary() is available
-		if _, err := gitbinary.ValidateGitBinary(); err != nil {
+		if err := validateGitBinary(); err != nil {
 			return ErrNoGitBinaryFound
 		}
 	}
@@ -177,8 +177,7 @@ func validateMirrorConfig(mirrorCfg config.MirrorConfig) error {
 		}
 
 		if mirrorCfg.UseGitBinary {
-			// Note: Assuming gitbinary.ValidateGitBinary() is available
-			if _, err := gitbinary.ValidateGitBinary(); err != nil {
+			if err := validateGitBinary(); err != nil {
 				return ErrNoGitBinaryFound
 			}
 		}
@@ -270,7 +269,13 @@ func checkSSHAgent() error {
 	if err != nil {
 		return fmt.Errorf("failed to connect to SSH agent: %w", err)
 	}
-	defer conn.Close()
+
+	defer func() {
+		if err := conn.Close(); err != nil {
+			// Log close error
+			_ = err
+		}
+	}()
 
 	agentClient := agent.NewClient(conn)
 
@@ -383,4 +388,20 @@ func isValidSchemeType(schemeType string) bool {
 
 func isValidVisibility(visibility string) bool {
 	return slices.Contains([]string{"public", "private", "internal"}, visibility)
+}
+
+// validateGitBinary validates that git binary is available and functional.
+func validateGitBinary() error {
+	// Check if git command exists
+	if _, err := exec.LookPath("git"); err != nil {
+		return fmt.Errorf("git binary not found in PATH: %w", err)
+	}
+
+	// Test git version to ensure it's functional
+	cmd := exec.Command("git", "--version")
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("git binary not functional: %w", err)
+	}
+
+	return nil
 }

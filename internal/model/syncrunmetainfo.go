@@ -41,9 +41,6 @@ type SyncRunMetainfo struct {
 // String provides a string representation of SyncRunMetainfo.
 // It formats all the fields of SyncRunMetainfo into a human-readable string,
 // including a detailed representation of any failures.
-//
-// Returns:
-//   - A string representation of the SyncRunMetainfo instance.
 func (s SyncRunMetainfo) String() string {
 	var failInfo string
 
@@ -65,15 +62,6 @@ func (s SyncRunMetainfo) String() string {
 // NewSyncRunMetainfo creates a new SyncRunMetainfo instance.
 // It initializes a SyncRunMetainfo struct with the provided values
 // and an empty Fail map.
-//
-// Parameters:
-//   - ctxID: An integer representing the unique identifier for the synchronization context.
-//   - source: A string representing the source of the data being synchronized.
-//   - target: A string representing the target of the synchronization.
-//   - total: An integer representing the total number of items to be synchronized.
-//
-// Returns:
-//   - A pointer to a new SyncRunMetainfo instance.
 func NewSyncRunMetainfo(ctxID int, source, target string, total int) *SyncRunMetainfo {
 	failMap := make(map[string][]string, 200)
 
@@ -88,12 +76,6 @@ func NewSyncRunMetainfo(ctxID int, source, target string, total int) *SyncRunMet
 
 // AddFailure adds a failure entry to the SyncRunMetainfo.
 // This method is used to record any failures that occur during the synchronization process.
-//
-// Parameters:
-//   - key: A string representing the type or location of the failure.
-//   - value: A string providing details about the failure.
-//
-// Note: This method modifies the Fail map of the SyncRunMetainfo instance.
 func (s *SyncRunMetainfo) AddFailure(key, value string) {
 	if s.Fail == nil {
 		s.Fail = &map[string][]string{}
@@ -102,8 +84,9 @@ func (s *SyncRunMetainfo) AddFailure(key, value string) {
 	(*s.Fail)[key] = append((*s.Fail)[key], value)
 }
 
+// ContainsFailure checks if a specific name is in the failure list for a given type.
 func ContainsFailure(ctx context.Context, name string) bool {
-	if meta, ok := ctx.Value(SyncRunMetainfoKey{}).(SyncRunMetainfo); ok {
+	if meta, ok := ctx.Value(SyncRunMetainfoKey{}).(*SyncRunMetainfo); ok {
 		failList := (*meta.Fail)["invalid"]
 
 		return slices.Contains(failList, name)
@@ -112,10 +95,46 @@ func ContainsFailure(ctx context.Context, name string) bool {
 	return false
 }
 
-// If an entry for the given key already exists, the new value is appended to the existing slice.
-// Example usage:
-//
-//	metainfo := NewSyncRunMetainfo(1, "database_a", "database_b", 1000)
-//	metainfo.AddFailure("data_integrity", "Checksum mismatch for record 42")
-//	metainfo.AddFailure("network", "Connection timeout at 50% completion")
-//	fmt.Println(metainfo)
+// GetSyncRunMetainfo retrieves SyncRunMetainfo from context.
+func GetSyncRunMetainfo(ctx context.Context) (*SyncRunMetainfo, bool) {
+	meta, ok := ctx.Value(SyncRunMetainfoKey{}).(*SyncRunMetainfo)
+
+	return meta, ok
+}
+
+// WithSyncRunMetainfo adds SyncRunMetainfo to context.
+func WithSyncRunMetainfo(ctx context.Context, meta *SyncRunMetainfo) context.Context {
+	return context.WithValue(ctx, SyncRunMetainfoKey{}, meta)
+}
+
+// GetFailuresByType returns failures of a specific type.
+func (s *SyncRunMetainfo) GetFailuresByType(failureType string) []string {
+	if s.Fail == nil {
+		return nil
+	}
+
+	return (*s.Fail)[failureType]
+}
+
+// HasFailures returns true if there are any failures recorded.
+func (s *SyncRunMetainfo) HasFailures() bool {
+	if s.Fail == nil {
+		return false
+	}
+
+	return len(*s.Fail) > 0
+}
+
+// GetTotalFailures returns the total number of failures across all types.
+func (s *SyncRunMetainfo) GetTotalFailures() int {
+	if s.Fail == nil {
+		return 0
+	}
+
+	total := 0
+	for _, failures := range *s.Fail {
+		total += len(failures)
+	}
+
+	return total
+}
