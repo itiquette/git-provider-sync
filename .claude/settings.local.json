@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(go test:*)"
+      "Bash(go test:*)",
+      "Bash(git mv:*)"
     ],
     "deny": []
   }
