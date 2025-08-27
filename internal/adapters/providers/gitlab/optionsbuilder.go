@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
@@ -8,8 +8,13 @@ import (
 	"gitlab.com/gitlab-org/api/client-go"
 )
 
+const (
+	visibilityPublic = "public"
+)
+
 // ProjectOptionsBuilder provides sophisticated GitLab repository creation options.
-// This restores the advanced options builder functionality from main branch.
+//
+//	advanced options builder functionality .
 type ProjectOptionsBuilder struct {
 	opts *gitlab.CreateProjectOptions
 }
@@ -34,7 +39,8 @@ func (b *ProjectOptionsBuilder) WithBasicOpts(visibility, name, description, def
 }
 
 // WithDisabledFeatures disables all GitLab features for a minimalist repository.
-// This restores the sophisticated feature disabling from main branch.
+//
+//	sophisticated feature disabling .
 func (b *ProjectOptionsBuilder) WithDisabledFeatures() {
 	b.configureAllFeatures(false)
 }
@@ -44,56 +50,12 @@ func (b *ProjectOptionsBuilder) WithEnabledFeatures() {
 	b.configureAllFeatures(true)
 }
 
-// configureAllFeatures configures all GitLab features to enabled or disabled state.
-func (b *ProjectOptionsBuilder) configureAllFeatures(enabled bool) {
-	// Core DevOps features
-	b.opts.AutoDevopsEnabled = gitlab.Ptr(enabled)
-	b.opts.BuildsAccessLevel = b.accessLevel(enabled)
-	b.opts.GroupRunnersEnabled = gitlab.Ptr(enabled)
-	b.opts.SharedRunnersEnabled = gitlab.Ptr(enabled)
-	b.opts.PublicBuilds = gitlab.Ptr(enabled)
-
-	// Repository features
-	b.opts.IssuesAccessLevel = b.accessLevel(enabled)
-	b.opts.MergeRequestsAccessLevel = b.accessLevel(enabled)
-	b.opts.WikiAccessLevel = b.accessLevel(enabled)
-	b.opts.SnippetsAccessLevel = b.accessLevel(enabled)
-
-	// Package and container registry
-	b.opts.ContainerRegistryAccessLevel = b.accessLevel(enabled)
-	b.opts.PackagesEnabled = gitlab.Ptr(enabled)
-
-	// Pages and documentation
-	b.opts.PagesAccessLevel = b.accessLevel(enabled)
-
-	// Monitoring and observability
-	b.opts.MonitorAccessLevel = b.accessLevel(enabled)
-
-	// Security and compliance
-	b.opts.SecurityAndComplianceAccessLevel = b.accessLevel(enabled)
-	b.opts.RequirementsAccessLevel = b.accessLevel(enabled)
-
-	// Release and deployment
-	b.opts.ReleasesAccessLevel = b.accessLevel(enabled)
-	b.opts.EnvironmentsAccessLevel = b.accessLevel(enabled)
-	b.opts.InfrastructureAccessLevel = b.accessLevel(enabled)
-
-	// Feature flags and experimentation
-	b.opts.FeatureFlagsAccessLevel = b.accessLevel(enabled)
-	b.opts.ModelExperimentsAccessLevel = b.accessLevel(enabled)
-
-	// Git LFS and access requests
-	b.opts.LFSEnabled = gitlab.Ptr(enabled)
-	b.opts.RequestAccessEnabled = gitlab.Ptr(enabled)
-}
-
 // WithDevOpsFeatures configures CI/CD and DevOps-related features.
 func (b *ProjectOptionsBuilder) WithDevOpsFeatures(enabled bool) {
 	b.opts.AutoDevopsEnabled = gitlab.Ptr(enabled)
 	b.opts.BuildsAccessLevel = b.accessLevel(enabled)
 	b.opts.GroupRunnersEnabled = gitlab.Ptr(enabled)
 	b.opts.SharedRunnersEnabled = gitlab.Ptr(enabled)
-	b.opts.PublicBuilds = gitlab.Ptr(enabled)
 }
 
 // WithCollaborationFeatures configures collaboration-related features.
@@ -180,6 +142,48 @@ func (b *ProjectOptionsBuilder) Reset() {
 	b.opts = &gitlab.CreateProjectOptions{}
 }
 
+// configureAllFeatures configures all GitLab features to enabled or disabled state.
+func (b *ProjectOptionsBuilder) configureAllFeatures(enabled bool) {
+	// Core DevOps features
+	b.opts.AutoDevopsEnabled = gitlab.Ptr(enabled)
+	b.opts.BuildsAccessLevel = b.accessLevel(enabled)
+	b.opts.GroupRunnersEnabled = gitlab.Ptr(enabled)
+	b.opts.SharedRunnersEnabled = gitlab.Ptr(enabled)
+
+	// Repository features
+	b.opts.IssuesAccessLevel = b.accessLevel(enabled)
+	b.opts.MergeRequestsAccessLevel = b.accessLevel(enabled)
+	b.opts.WikiAccessLevel = b.accessLevel(enabled)
+	b.opts.SnippetsAccessLevel = b.accessLevel(enabled)
+
+	// Package and container registry
+	b.opts.ContainerRegistryAccessLevel = b.accessLevel(enabled)
+	b.opts.PackagesEnabled = gitlab.Ptr(enabled)
+
+	// Pages and documentation
+	b.opts.PagesAccessLevel = b.accessLevel(enabled)
+
+	// Monitoring and observability
+	b.opts.MonitorAccessLevel = b.accessLevel(enabled)
+
+	// Security and compliance
+	b.opts.SecurityAndComplianceAccessLevel = b.accessLevel(enabled)
+	b.opts.RequirementsAccessLevel = b.accessLevel(enabled)
+
+	// Release and deployment
+	b.opts.ReleasesAccessLevel = b.accessLevel(enabled)
+	b.opts.EnvironmentsAccessLevel = b.accessLevel(enabled)
+	b.opts.InfrastructureAccessLevel = b.accessLevel(enabled)
+
+	// Feature flags and experimentation
+	b.opts.FeatureFlagsAccessLevel = b.accessLevel(enabled)
+	b.opts.ModelExperimentsAccessLevel = b.accessLevel(enabled)
+
+	// Git LFS and access requests
+	b.opts.LFSEnabled = gitlab.Ptr(enabled)
+	b.opts.RequestAccessEnabled = gitlab.Ptr(enabled)
+}
+
 // accessLevel helper function to convert boolean to access level.
 func (b *ProjectOptionsBuilder) accessLevel(enabled bool) *gitlab.AccessControlValue {
 	if enabled {
@@ -192,11 +196,11 @@ func (b *ProjectOptionsBuilder) accessLevel(enabled bool) *gitlab.AccessControlV
 // toVisibility converts string visibility to GitLab visibility value.
 func (b *ProjectOptionsBuilder) toVisibility(visibility string) gitlab.VisibilityValue {
 	switch visibility {
-	case "private":
+	case visibilityPrivate:
 		return gitlab.PrivateVisibility
-	case "internal":
+	case visibilityInternal:
 		return gitlab.InternalVisibility
-	case "public":
+	case visibilityPublic:
 		return gitlab.PublicVisibility
 	default:
 		return gitlab.InternalVisibility
@@ -207,12 +211,12 @@ func (b *ProjectOptionsBuilder) toVisibility(visibility string) gitlab.Visibilit
 func GetVisibilityString(vis gitlab.VisibilityValue) string {
 	switch vis {
 	case gitlab.PublicVisibility:
-		return "public"
+		return visibilityPublic
 	case gitlab.PrivateVisibility:
-		return "private"
+		return visibilityPrivate
 	case gitlab.InternalVisibility:
-		return "internal"
+		return visibilityInternal
 	default:
-		return "public"
+		return visibilityPublic
 	}
 }

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
@@ -6,7 +6,6 @@ package composition
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -17,140 +16,49 @@ import (
 	"itiquette/git-provider-sync/internal/adapters/providers/github"
 	"itiquette/git-provider-sync/internal/adapters/providers/gitlab"
 	"itiquette/git-provider-sync/internal/adapters/transport"
+	"itiquette/git-provider-sync/internal/domain"
 	"itiquette/git-provider-sync/internal/domain/ports"
 )
 
-// ProviderFactory creates provider instances with sophisticated configuration.
-// This ports the provider client creation logic from main branch to hexagonal architecture.
+// ProviderFactory creates provider instances with simplified configuration.
 type ProviderFactory struct {
-	httpClientFactory HTTPClientFactory
-	logger            ports.Logger
-}
-
-// HTTPClientFactory provides HTTP clients with proper configuration.
-type HTTPClientFactory interface {
-	CreateHTTPClient(ctx context.Context, config HTTPClientConfig) (*http.Client, error)
-}
-
-// HTTPClientFactoryAdapter adapts transport.HTTPFactory to HTTPClientFactory interface.
-type HTTPClientFactoryAdapter struct {
 	httpFactory *transport.HTTPFactory
+	logger      ports.Logger
 }
 
-// NewHTTPClientFactoryAdapter creates a new adapter.
-func NewHTTPClientFactoryAdapter(httpFactory *transport.HTTPFactory) HTTPClientFactory {
-	return &HTTPClientFactoryAdapter{
-		httpFactory: httpFactory,
-	}
-}
-
-// HTTPClientConfig contains configuration for HTTP client creation.
-type HTTPClientConfig struct {
-	Timeout         time.Duration
-	DisableSSL      bool
-	TrustDomains    []string
-	MaxRetries      int
-	RetryWaitMin    time.Duration
-	RetryWaitMax    time.Duration
-	UserAgent       string
-	ProxyURL        string
-	CustomHeaders   map[string]string
-	RateLimitConfig RateLimitConfig
-}
-
-// RateLimitConfig contains rate limiting configuration.
-type RateLimitConfig struct {
-	Enabled         bool
-	RequestsPerHour int
-	BurstSize       int
-	RetryAfter      time.Duration
-}
-
-// ProviderClientConfig contains advanced provider configuration.
-// This ports the GitProviderClientOption functionality from main branch.
-type ProviderClientConfig struct {
-	// Basic configuration
+// ProviderConfig contains simplified provider configuration.
+type ProviderConfig struct {
 	ProviderType string
 	Domain       string
 	Owner        string
-	AuthConfig   AuthenticationConfig
-
-	// Advanced configuration
-	HTTPScheme    string
-	UploadURL     string
-	APIVersion    string
-	DisableSSL    bool
-	CustomHeaders map[string]string
-	Timeout       time.Duration
-	MaxRetries    int
-	UserAgent     string
-	ProxyURL      string
-
-	// Provider-specific options
-	GitHubOptions GitHubProviderOptions
-	GitLabOptions GitLabProviderOptions
-	GiteaOptions  GiteaProviderOptions
-}
-
-// AuthenticationConfig contains authentication settings.
-type AuthenticationConfig struct {
-	Token      string
-	Username   string
-	SSHKeyPath string
-	SSHKey     string
-	HTTPScheme string
-}
-
-// GitHubProviderOptions contains GitHub-specific options.
-type GitHubProviderOptions struct {
-	BaseURL            string
-	UploadURL          string
-	EnabledRateLimit   bool
-	SecondaryRateLimit bool
-	AppID              int64
-	InstallationID     int64
-	PrivateKeyPath     string
-}
-
-// GitLabProviderOptions contains GitLab-specific options.
-type GitLabProviderOptions struct {
-	BaseURL         string
-	APIVersion      string
-	GroupsEnabled   bool
-	ProjectsEnabled bool
-	IssuesEnabled   bool
-	MergeEnabled    bool
-}
-
-// GiteaProviderOptions contains Gitea-specific options.
-type GiteaProviderOptions struct {
-	BaseURL       string
-	APIVersion    string
-	AdminToken    string
-	OrgMode       bool
-	SkipVerifySSL bool
+	Token        string
+	Username     string
+	SSHKeyPath   string
+	SSHKey       string
+	BaseURL      string
+	APIVersion   string
+	DisableSSL   bool
+	Timeout      time.Duration
+	MaxRetries   int
+	UserAgent    string
+	Options      map[string]interface{} // Provider-specific options
 }
 
 // NewProviderFactory creates a new provider factory.
-func NewProviderFactory(httpClientFactory HTTPClientFactory, logger ports.Logger) *ProviderFactory {
+func NewProviderFactory(httpFactory *transport.HTTPFactory, logger ports.Logger) *ProviderFactory {
 	return &ProviderFactory{
-		httpClientFactory: httpClientFactory,
-		logger:            logger,
+		httpFactory: httpFactory,
+		logger:      logger,
 	}
 }
 
-// NewProviderFactoryWithTransport creates a new provider factory using transport.HTTPFactory.
-func NewProviderFactoryWithTransport(httpFactory *transport.HTTPFactory, logger ports.Logger) *ProviderFactory {
-	adapter := NewHTTPClientFactoryAdapter(httpFactory)
-
-	return NewProviderFactory(adapter, logger)
-}
-
 // CreateProvider creates a provider instance based on configuration.
-// This ports the sophisticated provider creation logic from main branch.
+// This ports the sophisticated provider creation logic .
+//
+//nolint:ireturn // Factory method returns interface
 func (pf *ProviderFactory) CreateProvider(
 	ctx context.Context,
-	config ProviderClientConfig,
+	config ProviderConfig,
 ) (ports.RepositoryProvider, error) {
 	pf.logger.Info(ctx, "Creating provider client", map[string]interface{}{
 		"provider_type": config.ProviderType,
@@ -160,13 +68,13 @@ func (pf *ProviderFactory) CreateProvider(
 
 	// Validate configuration
 	if err := pf.validateConfig(config); err != nil {
-		return nil, fmt.Errorf("invalid provider configuration: %w", err)
+		return nil, fmt.Errorf("provider configuration validation failed for %s: %w", config.ProviderType, err)
 	}
 
 	// Create HTTP client with advanced configuration
 	httpClient, err := pf.createHTTPClient(ctx, config)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create HTTP client: %w", err)
+		return nil, fmt.Errorf("HTTP client creation failed for %s provider: %w", config.ProviderType, err)
 	}
 
 	// Create provider-specific client
@@ -178,256 +86,36 @@ func (pf *ProviderFactory) CreateProvider(
 	case "gitea":
 		return pf.createGiteaProvider(ctx, httpClient, config)
 	default:
-		return nil, fmt.Errorf("unsupported provider type: %s", config.ProviderType)
+		return nil, fmt.Errorf("%w: %s", domain.ErrUnsupportedProviderType, config.ProviderType)
 	}
 }
 
 // CreateProviderFromConfig creates a provider from ports.ProviderConfig.
+//
+//nolint:ireturn // Factory method returns interface
 func (pf *ProviderFactory) CreateProviderFromConfig(
 	ctx context.Context,
 	config ports.ProviderConfig,
 ) (ports.RepositoryProvider, error) {
-	clientConfig := ProviderClientConfig{
+	clientConfig := ProviderConfig{
 		ProviderType: config.ProviderType,
 		Domain:       config.Domain,
 		Owner:        config.Owner,
-		AuthConfig: AuthenticationConfig{
-			Token:      config.AuthConfig.Token,
-			Username:   config.AuthConfig.Username,
-			SSHKeyPath: config.AuthConfig.SSHKeyPath,
-			SSHKey:     config.AuthConfig.SSHKey,
-		},
-		HTTPScheme: "https",
-		Timeout:    30 * time.Second,
-		MaxRetries: 3,
-		UserAgent:  "git-provider-sync/1.0",
+		Token:        config.AuthConfig.Token,
+		Username:     config.AuthConfig.Username,
+		SSHKeyPath:   config.AuthConfig.SSHKeyPath,
+		SSHKey:       config.AuthConfig.SSHKey,
+		Timeout:      30 * time.Second,
+		MaxRetries:   3,
+		UserAgent:    "git-provider-sync/1.0",
 	}
 
 	return pf.CreateProvider(ctx, clientConfig)
 }
 
-// validateConfig validates the provider configuration.
-func (pf *ProviderFactory) validateConfig(config ProviderClientConfig) error {
-	if config.ProviderType == "" {
-		return errors.New("provider type is required")
-	}
-
-	if config.Owner == "" {
-		return errors.New("owner is required")
-	}
-
-	// Validate authentication
-	if config.AuthConfig.Token == "" && config.AuthConfig.SSHKey == "" && config.AuthConfig.SSHKeyPath == "" {
-		return errors.New("authentication is required (token, SSH key, or SSH key path)")
-	}
-
-	// Validate domain format
-	if config.Domain != "" {
-		if !strings.Contains(config.Domain, ".") {
-			return fmt.Errorf("invalid domain format: %s", config.Domain)
-		}
-	}
-
-	return nil
-}
-
-// CreateHTTPClient implements HTTPClientFactory interface.
-func (a *HTTPClientFactoryAdapter) CreateHTTPClient(ctx context.Context, config HTTPClientConfig) (*http.Client, error) {
-	// Convert HTTPClientConfig to transport.HTTPClientOptions
-	options := transport.HTTPClientOptions{
-		Provider:      "",    // Will be set by provider-specific methods
-		Authenticated: false, // Will be handled by provider adapters
-		Custom: map[string]interface{}{
-			"timeout":        config.Timeout,
-			"disable_ssl":    config.DisableSSL,
-			"max_retries":    config.MaxRetries,
-			"user_agent":     config.UserAgent,
-			"proxy_url":      config.ProxyURL,
-			"custom_headers": config.CustomHeaders,
-		},
-	}
-
-	client, err := a.httpFactory.CreateClient(options)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create HTTP client: %w", err)
-	}
-
-	return client, nil
-}
-
-// createHTTPClient creates an HTTP client with advanced configuration.
-func (pf *ProviderFactory) createHTTPClient(ctx context.Context, config ProviderClientConfig) (*http.Client, error) {
-	httpConfig := HTTPClientConfig{
-		Timeout:       config.Timeout,
-		DisableSSL:    config.DisableSSL,
-		MaxRetries:    config.MaxRetries,
-		UserAgent:     config.UserAgent,
-		ProxyURL:      config.ProxyURL,
-		CustomHeaders: config.CustomHeaders,
-	}
-
-	if httpConfig.Timeout == 0 {
-		httpConfig.Timeout = 30 * time.Second
-	}
-
-	if httpConfig.UserAgent == "" {
-		httpConfig.UserAgent = "git-provider-sync/1.0"
-	}
-
-	client, err := pf.httpClientFactory.CreateHTTPClient(ctx, httpConfig)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create HTTP client: %w", err)
-	}
-
-	return client, nil
-}
-
-// createGitHubProvider creates a GitHub provider with advanced configuration.
-func (pf *ProviderFactory) createGitHubProvider(
-	ctx context.Context,
-	httpClient *http.Client,
-	config ProviderClientConfig,
-) (ports.RepositoryProvider, error) {
-	pf.logger.Debug(ctx, "Creating GitHub provider", map[string]interface{}{
-		"domain":     config.Domain,
-		"base_url":   config.GitHubOptions.BaseURL,
-		"upload_url": config.GitHubOptions.UploadURL,
-	})
-
-	// Use enhanced GitHub adapter creation
-	adapter := github.NewWithConfig(ctx, github.Config{
-		Token:      config.AuthConfig.Token,
-		HTTPClient: httpClient,
-		BaseURL:    pf.determineGitHubBaseURL(config),
-		UploadURL:  pf.determineGitHubUploadURL(config),
-		UserAgent:  config.UserAgent,
-	})
-
-	return adapter, nil
-}
-
-// createGitLabProvider creates a GitLab provider with advanced configuration.
-func (pf *ProviderFactory) createGitLabProvider(
-	ctx context.Context,
-	httpClient *http.Client,
-	config ProviderClientConfig,
-) (ports.RepositoryProvider, error) {
-	pf.logger.Debug(ctx, "Creating GitLab provider", map[string]interface{}{
-		"domain":   config.Domain,
-		"base_url": config.GitLabOptions.BaseURL,
-	})
-
-	// Use enhanced GitLab adapter creation
-	adapter, err := gitlab.NewWithConfig(ctx, gitlab.Config{
-		Token:      config.AuthConfig.Token,
-		HTTPClient: httpClient,
-		BaseURL:    pf.determineGitLabBaseURL(config),
-		UserAgent:  config.UserAgent,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create GitLab adapter: %w", err)
-	}
-
-	return adapter, nil
-}
-
-// createGiteaProvider creates a Gitea provider with advanced configuration.
-func (pf *ProviderFactory) createGiteaProvider(
-	ctx context.Context,
-	httpClient *http.Client,
-	config ProviderClientConfig,
-) (ports.RepositoryProvider, error) {
-	pf.logger.Debug(ctx, "Creating Gitea provider", map[string]interface{}{
-		"domain":   config.Domain,
-		"base_url": config.GiteaOptions.BaseURL,
-	})
-
-	// Use enhanced Gitea adapter creation
-	adapter, err := gitea.NewWithConfig(ctx, gitea.Config{
-		Token:         config.AuthConfig.Token,
-		HTTPClient:    httpClient,
-		BaseURL:       pf.determineGiteaBaseURL(config),
-		UserAgent:     config.UserAgent,
-		SkipVerifySSL: config.GiteaOptions.SkipVerifySSL,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create Gitea adapter: %w", err)
-	}
-
-	return adapter, nil
-}
-
-// Helper methods for URL determination
-
-func (pf *ProviderFactory) determineGitHubBaseURL(config ProviderClientConfig) string {
-	if config.GitHubOptions.BaseURL != "" {
-		return config.GitHubOptions.BaseURL
-	}
-
-	if config.Domain != "" && config.Domain != "github.com" {
-		return pf.buildURL(config.HTTPScheme, config.Domain, "/api/v3/")
-	}
-
-	return "https://api.github.com/"
-}
-
-func (pf *ProviderFactory) determineGitHubUploadURL(config ProviderClientConfig) string {
-	if config.GitHubOptions.UploadURL != "" {
-		return config.GitHubOptions.UploadURL
-	}
-
-	if config.Domain != "" && config.Domain != "github.com" {
-		return pf.buildURL(config.HTTPScheme, config.Domain, "/api/uploads/")
-	}
-
-	return "https://uploads.github.com/"
-}
-
-func (pf *ProviderFactory) determineGitLabBaseURL(config ProviderClientConfig) string {
-	if config.GitLabOptions.BaseURL != "" {
-		return config.GitLabOptions.BaseURL
-	}
-
-	if config.Domain != "" {
-		return pf.buildURL(config.HTTPScheme, config.Domain, "/")
-	}
-
-	return "https://gitlab.com/"
-}
-
-func (pf *ProviderFactory) determineGiteaBaseURL(config ProviderClientConfig) string {
-	if config.GiteaOptions.BaseURL != "" {
-		return config.GiteaOptions.BaseURL
-	}
-
-	if config.Domain != "" {
-		return pf.buildURL(config.HTTPScheme, config.Domain, "/")
-	}
-
-	return "https://gitea.com/"
-}
-
-func (pf *ProviderFactory) buildURL(scheme, domain, path string) string {
-	if scheme == "" {
-		scheme = "https"
-	}
-
-	parsedURL := &url.URL{
-		Scheme: scheme,
-		Host:   domain,
-		Path:   path,
-	}
-
-	return parsedURL.String()
-}
-
-// DomainWithScheme returns domain with proper HTTP scheme.
-// This ports the DomainWithScheme functionality from main branch.
-func (ac AuthenticationConfig) DomainWithScheme(domain string) string {
-	scheme := ac.HTTPScheme
-	if scheme == "" {
-		scheme = "https"
-	}
+// ensureHTTPSScheme returns domain with proper HTTPS scheme.
+func ensureHTTPSScheme(domain string) string {
+	scheme := "https"
 
 	if strings.HasPrefix(domain, "http://") || strings.HasPrefix(domain, "https://") {
 		return domain
@@ -450,7 +138,7 @@ func (pf *ProviderFactory) ValidateProviderType(providerType string) error {
 		}
 	}
 
-	return fmt.Errorf("unsupported provider type: %s, supported: %v", providerType, supportedProviders)
+	return fmt.Errorf("%w: %s, supported: %v", domain.ErrUnsupportedProviderType, providerType, supportedProviders)
 }
 
 // CreateProvidersFromMirrorsWithContext creates provider instances from mirror configurations.
@@ -482,4 +170,196 @@ func (pf *ProviderFactory) CreateProvidersFromMirrorsWithContext(
 	}
 
 	return providers, nil
+}
+
+// validateConfig validates the provider configuration.
+func (pf *ProviderFactory) validateConfig(config ProviderConfig) error {
+	if config.ProviderType == "" {
+		return domain.ErrProviderTypeRequired
+	}
+
+	if config.Owner == "" {
+		return domain.ErrOwnerRequired
+	}
+
+	// Validate authentication
+	if config.Token == "" && config.SSHKey == "" && config.SSHKeyPath == "" {
+		return domain.ErrAuthenticationRequired
+	}
+
+	// Validate domain format
+	if config.Domain != "" {
+		if !strings.Contains(config.Domain, ".") {
+			return fmt.Errorf("%w: %s", domain.ErrInvalidDomainFormat, config.Domain)
+		}
+	}
+
+	return nil
+}
+
+// createHTTPClient creates an HTTP client with proper configuration.
+func (pf *ProviderFactory) createHTTPClient(_ context.Context, config ProviderConfig) (*http.Client, error) {
+	timeout := config.Timeout
+	if timeout == 0 {
+		timeout = 30 * time.Second
+	}
+
+	maxRetries := config.MaxRetries
+	if maxRetries == 0 {
+		maxRetries = 3
+	}
+
+	userAgent := config.UserAgent
+	if userAgent == "" {
+		userAgent = "git-provider-sync/1.0"
+	}
+
+	options := transport.HTTPClientOptions{
+		Provider:      config.ProviderType,
+		Authenticated: config.Token != "",
+		Custom: map[string]interface{}{
+			"timeout":     timeout,
+			"disable_ssl": config.DisableSSL,
+			"max_retries": maxRetries,
+			"user_agent":  userAgent,
+		},
+	}
+
+	client, err := pf.httpFactory.CreateClient(options)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create HTTP client: %w", err)
+	}
+
+	return client, nil
+}
+
+// createGitHubProvider creates a GitHub provider with advanced configuration.
+//
+//nolint:ireturn // Factory helper method returns interface
+func (pf *ProviderFactory) createGitHubProvider(
+	ctx context.Context,
+	httpClient *http.Client,
+	config ProviderConfig,
+) (ports.RepositoryProvider, error) {
+	pf.logger.Debug(ctx, "Creating GitHub provider", map[string]interface{}{
+		"domain":   config.Domain,
+		"base_url": config.BaseURL,
+	})
+
+	// Use enhanced GitHub adapter creation
+	adapter := github.NewWithConfig(ctx, github.Config{
+		Token:      config.Token,
+		HTTPClient: httpClient,
+		BaseURL:    pf.determineGitHubBaseURL(config),
+		UserAgent:  config.UserAgent,
+	})
+
+	return adapter, nil
+}
+
+// createGitLabProvider creates a GitLab provider with advanced configuration.
+//
+//nolint:ireturn // Factory helper method returns interface
+func (pf *ProviderFactory) createGitLabProvider(
+	ctx context.Context,
+	httpClient *http.Client,
+	config ProviderConfig,
+) (ports.RepositoryProvider, error) {
+	pf.logger.Debug(ctx, "Creating GitLab provider", map[string]interface{}{
+		"domain":   config.Domain,
+		"base_url": config.BaseURL,
+	})
+
+	// Use enhanced GitLab adapter creation
+	adapter, err := gitlab.NewWithConfig(ctx, gitlab.Config{
+		Token:      config.Token,
+		HTTPClient: httpClient,
+		BaseURL:    pf.determineGitLabBaseURL(config),
+		UserAgent:  config.UserAgent,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create GitLab adapter: %w", err)
+	}
+
+	return adapter, nil
+}
+
+// createGiteaProvider creates a Gitea provider with advanced configuration.
+//
+//nolint:ireturn // Factory helper method returns interface
+func (pf *ProviderFactory) createGiteaProvider(
+	ctx context.Context,
+	httpClient *http.Client,
+	config ProviderConfig,
+) (ports.RepositoryProvider, error) {
+	pf.logger.Debug(ctx, "Creating Gitea provider", map[string]interface{}{
+		"domain":   config.Domain,
+		"base_url": config.BaseURL,
+	})
+
+	// Use enhanced Gitea adapter creation
+	adapter, err := gitea.NewWithConfig(ctx, gitea.Config{
+		Token:         config.Token,
+		HTTPClient:    httpClient,
+		BaseURL:       pf.determineGiteaBaseURL(config),
+		UserAgent:     config.UserAgent,
+		SkipVerifySSL: config.DisableSSL,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Gitea adapter: %w", err)
+	}
+
+	return adapter, nil
+}
+
+// Helper methods for URL determination
+
+func (pf *ProviderFactory) determineGitHubBaseURL(config ProviderConfig) string {
+	if config.BaseURL != "" {
+		return config.BaseURL
+	}
+
+	if config.Domain != "" && config.Domain != "github.com" {
+		return pf.buildURL("https", config.Domain, "/api/v3/")
+	}
+
+	return "https://api.github.com/"
+}
+
+func (pf *ProviderFactory) determineGitLabBaseURL(config ProviderConfig) string {
+	if config.BaseURL != "" {
+		return config.BaseURL
+	}
+
+	if config.Domain != "" {
+		return pf.buildURL("https", config.Domain, "/")
+	}
+
+	return "https://gitlab.com/"
+}
+
+func (pf *ProviderFactory) determineGiteaBaseURL(config ProviderConfig) string {
+	if config.BaseURL != "" {
+		return config.BaseURL
+	}
+
+	if config.Domain != "" {
+		return pf.buildURL("https", config.Domain, "/")
+	}
+
+	return "https://gitea.com/"
+}
+
+func (pf *ProviderFactory) buildURL(scheme, domain, path string) string {
+	if scheme == "" {
+		scheme = "https"
+	}
+
+	parsedURL := &url.URL{
+		Scheme: scheme,
+		Host:   domain,
+		Path:   path,
+	}
+
+	return parsedURL.String()
 }

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
@@ -8,12 +8,12 @@ package ports
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
+	"itiquette/git-provider-sync/internal/domain"
 	"itiquette/git-provider-sync/internal/domain/entities"
-	"itiquette/git-provider-sync/internal/domain/types"
+	"itiquette/git-provider-sync/internal/domain/filter"
 	"itiquette/git-provider-sync/internal/model"
 )
 
@@ -47,7 +47,7 @@ type BranchProtectionManager interface {
 	ListProtectedBranches(ctx context.Context, config ProviderConfig, repoName string) ([]string, error)
 }
 
-// ProviderPushOperations provides push-to-provider functionality from main branch.
+// ProviderPushOperations provides push-to-provider functionality .
 type ProviderPushOperations interface {
 	CreateRepositoryForPush(ctx context.Context, request CreateRepositoryRequest) (string, error)
 	ProjectExists(ctx context.Context, owner, repo string) (bool, string, error)
@@ -227,50 +227,74 @@ type ProviderInfo struct {
 type ProviderFeature string
 
 const (
-	// Repository management.
-	FeatureRepositoryCreation  ProviderFeature = "repository_creation"
-	FeatureRepositoryDeletion  ProviderFeature = "repository_deletion"
-	FeatureRepositoryTransfer  ProviderFeature = "repository_transfer"
+	// FeatureRepositoryCreation represents repository creation capability.
+	FeatureRepositoryCreation ProviderFeature = "repository_creation"
+	// FeatureRepositoryDeletion represents repository deletion capability.
+	FeatureRepositoryDeletion ProviderFeature = "repository_deletion"
+	// FeatureRepositoryTransfer represents repository transfer capability.
+	FeatureRepositoryTransfer ProviderFeature = "repository_transfer"
+	// FeatureRepositoryTemplates represents repository templates capability.
 	FeatureRepositoryTemplates ProviderFeature = "repository_templates"
 
-	// Branch protection.
-	FeatureBranchProtection     ProviderFeature = "branch_protection"
+	// FeatureBranchProtection represents branch protection capability.
+	FeatureBranchProtection ProviderFeature = "branch_protection"
+	// FeatureRequiredStatusChecks represents required status checks capability.
 	FeatureRequiredStatusChecks ProviderFeature = "required_status_checks"
-	FeatureRequiredReviews      ProviderFeature = "required_reviews"
-	FeatureBranchRestrictions   ProviderFeature = "branch_restrictions"
+	// FeatureRequiredReviews represents required reviews capability.
+	FeatureRequiredReviews ProviderFeature = "required_reviews"
+	// FeatureBranchRestrictions represents branch restrictions capability.
+	FeatureBranchRestrictions ProviderFeature = "branch_restrictions"
 
-	// Collaboration.
+	// FeatureIssueTracking represents issue tracking capability.
 	FeatureIssueTracking ProviderFeature = "issue_tracking"
-	FeaturePullRequests  ProviderFeature = "pull_requests"
+	// FeaturePullRequests represents pull requests capability.
+	FeaturePullRequests ProviderFeature = "pull_requests"
+	// FeatureMergeRequests represents merge requests capability.
 	FeatureMergeRequests ProviderFeature = "merge_requests"
-	FeatureWikis         ProviderFeature = "wikis"
-	FeatureProjects      ProviderFeature = "projects"
+	// FeatureWikis represents wikis capability.
+	FeatureWikis ProviderFeature = "wikis"
+	// FeatureProjects represents projects capability.
+	FeatureProjects ProviderFeature = "projects"
 
-	// CI/CD.
+	// FeatureContinuousIntegration represents CI/CD capability.
 	FeatureContinuousIntegration ProviderFeature = "continuous_integration"
-	FeatureActions               ProviderFeature = "actions"
-	FeaturePipelines             ProviderFeature = "pipelines"
-	FeaturePackageRegistry       ProviderFeature = "package_registry"
+	// FeatureActions represents actions capability.
+	FeatureActions ProviderFeature = "actions"
+	// FeaturePipelines represents pipelines capability.
+	FeaturePipelines ProviderFeature = "pipelines"
+	// FeaturePackageRegistry represents package registry capability.
+	FeaturePackageRegistry ProviderFeature = "package_registry"
 
-	// Security.
-	FeatureSecurityAdvisories  ProviderFeature = "security_advisories"
-	FeatureDependencyGraph     ProviderFeature = "dependency_graph"
+	// FeatureSecurityAdvisories represents security advisories capability.
+	FeatureSecurityAdvisories ProviderFeature = "security_advisories"
+	// FeatureDependencyGraph represents dependency graph capability.
+	FeatureDependencyGraph ProviderFeature = "dependency_graph"
+	// FeatureVulnerabilityAlerts represents vulnerability alerts capability.
 	FeatureVulnerabilityAlerts ProviderFeature = "vulnerability_alerts"
-	FeatureCodeScanning        ProviderFeature = "code_scanning"
-	FeatureSecretScanning      ProviderFeature = "secret_scanning"
+	// FeatureCodeScanning represents code scanning capability.
+	FeatureCodeScanning ProviderFeature = "code_scanning"
+	// FeatureSecretScanning represents secret scanning capability.
+	FeatureSecretScanning ProviderFeature = "secret_scanning"
 
-	// Organization management.
-	FeatureOrganizations   ProviderFeature = "organizations"
-	FeatureTeams           ProviderFeature = "teams"
+	// FeatureOrganizations represents organization management capability.
+	FeatureOrganizations ProviderFeature = "organizations"
+	// FeatureTeams represents team management capability.
+	FeatureTeams ProviderFeature = "teams"
+	// FeatureGroupManagement represents group management capability.
 	FeatureGroupManagement ProviderFeature = "group_management"
-	FeatureUserManagement  ProviderFeature = "user_management"
+	// FeatureUserManagement represents user management capability.
+	FeatureUserManagement ProviderFeature = "user_management"
 
-	// Advanced features.
-	FeatureWebhooks   ProviderFeature = "webhooks"
+	// FeatureWebhooks represents webhook capability.
+	FeatureWebhooks ProviderFeature = "webhooks"
+	// FeatureDeployKeys represents deploy keys capability.
 	FeatureDeployKeys ProviderFeature = "deploy_keys"
-	FeatureGitLFS     ProviderFeature = "git_lfs"
-	FeatureTopics     ProviderFeature = "topics"
-	FeatureReleases   ProviderFeature = "releases"
+	// FeatureGitLFS represents Git LFS capability.
+	FeatureGitLFS ProviderFeature = "git_lfs"
+	// FeatureTopics represents topics capability.
+	FeatureTopics ProviderFeature = "topics"
+	// FeatureReleases represents releases capability.
+	FeatureReleases ProviderFeature = "releases"
 )
 
 // ProviderCapabilities represents the capabilities of a provider.
@@ -304,7 +328,7 @@ type RepositoryFilter interface {
 // FilterServicer provides repository filtering using function types.
 type FilterServicer interface {
 	// FilterProjectinfos filters repositories using functional filtering
-	FilterProjectinfos(ctx context.Context, projectinfos []model.ProjectInfo, filterFunc types.FilterIncludedExcludedFunc, intervalFunc types.IsInIntervalFunc) ([]model.ProjectInfo, error)
+	FilterProjectinfos(ctx context.Context, projectinfos []model.ProjectInfo, filterFunc filter.IncludedExcludedFunc, intervalFunc filter.IsInIntervalFunc) ([]model.ProjectInfo, error)
 }
 
 // ProviderFactory creates provider instances based on configuration.
@@ -380,10 +404,15 @@ type SyncDifference struct {
 type DifferenceType string
 
 const (
-	DifferenceTypeMetadata    DifferenceType = "metadata"
-	DifferenceTypeBranches    DifferenceType = "branches"
-	DifferenceTypeProtection  DifferenceType = "protection"
-	DifferenceTypeContent     DifferenceType = "content"
+	// DifferenceTypeMetadata represents metadata differences.
+	DifferenceTypeMetadata DifferenceType = "metadata"
+	// DifferenceTypeBranches represents branch differences.
+	DifferenceTypeBranches DifferenceType = "branches"
+	// DifferenceTypeProtection represents protection differences.
+	DifferenceTypeProtection DifferenceType = "protection"
+	// DifferenceTypeContent represents content differences.
+	DifferenceTypeContent DifferenceType = "content"
+	// DifferenceTypePermissions represents permissions differences.
 	DifferenceTypePermissions DifferenceType = "permissions"
 )
 
@@ -399,9 +428,12 @@ type ValidationError struct {
 type ValidationSeverity string
 
 const (
-	ValidationSeverityError   ValidationSeverity = "error"
+	// ValidationSeverityError represents error severity level.
+	ValidationSeverityError ValidationSeverity = "error"
+	// ValidationSeverityWarning represents warning severity level.
 	ValidationSeverityWarning ValidationSeverity = "warning"
-	ValidationSeverityInfo    ValidationSeverity = "info"
+	// ValidationSeverityInfo represents info severity level.
+	ValidationSeverityInfo ValidationSeverity = "info"
 )
 
 // Error implements the error interface for ValidationError.
@@ -451,11 +483,11 @@ func (pc ProviderConfig) WithSSHKey(keyPath, username string) ProviderConfig {
 // Validate validates the provider configuration.
 func (pc ProviderConfig) Validate() error {
 	if pc.ProviderType == "" {
-		return errors.New("provider type is required")
+		return domain.ErrProviderTypeRequired
 	}
 
 	if pc.Owner == "" {
-		return errors.New("owner is required")
+		return domain.ErrOwnerRequired
 	}
 
 	return nil

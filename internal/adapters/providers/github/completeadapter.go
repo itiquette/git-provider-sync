@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
@@ -10,13 +10,13 @@ import (
 
 	"github.com/google/go-github/v71/github"
 
+	"itiquette/git-provider-sync/internal/domain"
 	"itiquette/git-provider-sync/internal/domain/constants"
 	"itiquette/git-provider-sync/internal/domain/entities"
 	"itiquette/git-provider-sync/internal/domain/ports"
 )
 
 // CompleteAdapter provides a comprehensive GitHub adapter with all services.
-// This integrates all the sophisticated functionality from the main branch.
 type CompleteAdapter struct {
 	*Adapter // Embed the basic adapter
 
@@ -40,6 +40,21 @@ func NewCompleteAdapter(ctx context.Context, config Config, logger ports.Logger)
 		client = github.NewClient(config.HTTPClient)
 	} else {
 		client = github.NewClient(nil)
+	}
+
+	// Set BaseURL if provided (important for testing with mock servers)
+	if config.BaseURL != "" {
+		var err error
+
+		client, err = client.WithEnterpriseURLs(config.BaseURL, config.UploadURL)
+		if err != nil {
+			// Log error but continue with default client
+			logger.Error(ctx, "Failed to set GitHub enterprise URLs", map[string]interface{}{
+				"baseURL":   config.BaseURL,
+				"uploadURL": config.UploadURL,
+				"error":     err.Error(),
+			})
+		}
 	}
 
 	if config.Token != "" {
@@ -137,7 +152,7 @@ func (ca *CompleteAdapter) FilterRepositoriesWithAdvancedCriteria(
 	return ca.filterService.FilterRepositories(ctx, filterOptions)
 }
 
-// ValidateAndTransformRepositoryName validates and transforms a repository name.
+// ValidateAndTransformRepositoryName validates and transforms a repository name according to transformation rules.
 func (ca *CompleteAdapter) ValidateAndTransformRepositoryName(
 	name string,
 	options ports.NameTransformOptions,
@@ -167,7 +182,7 @@ func (ca *CompleteAdapter) ValidateAndTransformRepositoryName(
 
 // GetRepositoryStatistics returns detailed statistics about repositories.
 func (ca *CompleteAdapter) GetRepositoryStatistics(
-	ctx context.Context,
+	_ context.Context,
 	repositories []entities.Repository,
 ) map[string]interface{} {
 	stats := map[string]interface{}{
@@ -232,7 +247,7 @@ func (ca *CompleteAdapter) BulkApplyProtection(
 	}
 
 	if len(errors) > 0 {
-		return fmt.Errorf("protection failed for %d repositories: %v", len(errors), errors)
+		return fmt.Errorf("%w: %d repositories failed: %v", domain.ErrBulkProtectionFailed, len(errors), errors)
 	}
 
 	ca.logger.Info(ctx, "Bulk repository protection completed successfully", map[string]interface{}{
@@ -269,7 +284,7 @@ func (ca *CompleteAdapter) BulkRemoveProtection(
 	}
 
 	if len(errors) > 0 {
-		return fmt.Errorf("protection removal failed for %d repositories: %v", len(errors), errors)
+		return fmt.Errorf("%w: %d repositories failed: %v", domain.ErrBulkRemovalFailed, len(errors), errors)
 	}
 
 	ca.logger.Info(ctx, "Bulk repository protection removal completed successfully", map[string]interface{}{

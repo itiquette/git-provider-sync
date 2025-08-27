@@ -1,20 +1,29 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-// Package log provides logging functionality
-// using zerolog and cobra. It offers easy setup of leveled logging.
+// Package log provides logging functionality using zerolog.
 package log
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"os"
 	"time"
 
 	"github.com/rs/zerolog"
-	"github.com/spf13/cobra"
+
+	"itiquette/git-provider-sync/internal/adapters/logging"
+	"itiquette/git-provider-sync/internal/domain/ports"
+	"itiquette/git-provider-sync/internal/shared"
 )
+
+// contextKey is a type for context keys to avoid collisions.
+type contextKey string
+
+// debugLogPathKey is the context key for storing the debug log file path.
+const debugLogPathKey contextKey = "debugLogPath"
 
 // Level represents the available log levels.
 type Level string
@@ -31,7 +40,9 @@ const (
 type Format string
 
 const (
-	JSON    Format = "json"
+	// JSON represents JSON log format.
+	JSON Format = "json"
+	// CONSOLE represents console log format.
 	CONSOLE Format = "console"
 )
 
@@ -51,123 +62,112 @@ func (l Level) ToZerologLevel() zerolog.Level {
 	}
 }
 
+// setupConsoleWriter creates and configures a console writer with optional debug file tee.
+func setupConsoleWriter(logLevel string) (io.Writer, string) {
+	consoleWriter := zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}
+
+	// Set up debug file tee for debug/trace levels
+	if logLevel == "debug" || logLevel == "trace" {
+		return logging.TeeWriter(consoleWriter, logLevel)
+	}
+
+	return consoleWriter, ""
+}
+
 // InitLogger initializes and returns a context with a configured logger.
-// It sets up the logger based on the command line flags for verbosity and quiet mode.
+// It sets up the logger based on the provided log level and quiet parameters.
 //
 // Parameters:
 //   - ctx: The parent context
-//   - cmd: The cobra.Command instance, used to retrieve flags
-//
-// Returns:
-//   - context.Context with the configured logger
+//   - logLevel: The log level string (quiet | brief | verbose | debug | trace)
+//   - quiet: Whether quiet mode is enabled
+//   - withCaller: Whether to include caller information in logs
+//   - outputFormat: The output format ("json" or "console")
 //
 // The logger is set up with a console writer for human-readable output.
-// If the log level is set to trace, it includes the caller information in the log output.
-func InitLogger(ctx context.Context, cmd *cobra.Command, withVerbosityCaller bool, outputFormat string) context.Context {
-	level := getLogLevel(cmd)
+// If withCaller is true, it includes the caller information in the log output.
+// For debug/trace levels, output is also written to a debug file.
+func InitLogger(ctx context.Context, logLevel string, quiet bool, withCaller bool, outputFormat string) context.Context {
+	level := getLogLevel(logLevel, quiet)
 
 	var writer io.Writer
+
+	var debugPath string
+
 	if outputFormat == "json" {
 		writer = os.Stdout
-		zerolog.TimeFieldFormat = time.RFC3339
 	} else {
-		writer = zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}
+		writer, debugPath = setupConsoleWriter(logLevel)
+		if debugPath != "" {
+			// Store debug path in context for later reference
+			ctx = context.WithValue(ctx, debugLogPathKey, debugPath)
+		}
 	}
 
 	var logger zerolog.Logger
 
-	if withVerbosityCaller {
-		if level == zerolog.TraceLevel {
-			logger = zerolog.New(writer).
-				Level(level).
-				With().
-				Caller().
-				Timestamp().
-				Logger()
-		} else {
-			logger = zerolog.New(writer).
-				Level(level).
-				With().
-				Caller().
-				Timestamp().
-				Logger()
-		}
+	if withCaller {
+		// Include caller information in logs
+		logger = zerolog.New(writer).
+			Level(level).
+			With().
+			Caller().
+			Timestamp().
+			Logger()
 	} else {
-		if level == zerolog.TraceLevel {
-			logger = zerolog.New(writer).
-				Level(level).
-				With().
-				Timestamp().
-				Logger()
-		} else {
-			logger = zerolog.New(writer).
-				Level(level).
-				With().
-				Timestamp().Logger()
-		}
+		// Standard logging without caller information
+		logger = zerolog.New(writer).
+			Level(level).
+			With().
+			Timestamp().
+			Logger()
 	}
 
 	return logger.WithContext(ctx)
 }
 
 // Logger retrieves the zerolog.Logger from the given context.
-// This function should be used to obtain a logger instance for logging.
-//
-// Parameters:
-//   - ctx: The context containing the logger
-//
-// Returns:
-//   - *zerolog.Logger: A pointer to the logger instance
-//
-// Usage:
-//
-//	logger := log.Logger(ctx)
-//	logger.Info().Msg("This is an info message")
 func Logger(ctx context.Context) *zerolog.Logger {
 	return zerolog.Ctx(ctx)
 }
 
-// getLogLevel determines the log level based on command flags.
-// It checks for the "quiet" flag first, then falls back to the "verbosity" flag.
-//
-// Parameters:
-//   - cmd: The cobra.Command instance to retrieve flags from
-//
-// Returns:
-//   - zerolog.Level: The determined log level
-//
-// Note: This function assumes that the "verbosity" flag is a string
-// and the "quiet" flag is a boolean.
-func getLogLevel(cmd *cobra.Command) zerolog.Level {
-	level, _ := cmd.Flags().GetString("verbosity")
-	quiet, _ := cmd.Flags().GetBool("quiet")
+// CreateDomainLogger retrieves a domain ports.Logger from the context.
+// This maintains hexagonal architecture by returning the domain interface,
+// not the concrete zerolog implementation.
+func CreateDomainLogger(ctx context.Context) ports.Logger {
+	zerologInstance := zerolog.Ctx(ctx)
 
+	return logging.NewZerologAdapter(zerologInstance)
+}
+
+// getLogLevel determines the log level based on command flags.
+func getLogLevel(logLevel string, quiet bool) zerolog.Level {
 	if quiet {
 		return LevelQuiet.ToZerologLevel()
 	}
 
-	return Level(level).ToZerologLevel()
+	return Level(logLevel).ToZerologLevel()
 }
 
-// Example usage:
-//
-//	func Execute() {
-//		cmd := &cobra.Command{
-//			Use:   "myapp",
-//			Short: "A brief description of your application",
-//			Run: func(cmd *cobra.Command, args []string) {
-//				ctx := context.Background()
-//				ctx = log.InitLogger(ctx, cmd)
-//				logger := log.Logger(ctx)
-//				logger.Info().Msg("Application started")
-//				// Your application logic here
-//			},
-//		}
-//
-//		cmd.PersistentFlags().String("verbosity", "brief", "Log level (quiet, brief, debug, trace)")
-//		cmd.PersistentFlags().Bool("quiet", false, "Suppress all output except errors")
-//
-//		if err := cmd.Execute(); err != nil {
-//			os.Exit(1)
-//		}
-//	}
+// GetDebugLogPath retrieves the debug log file path from context.
+func GetDebugLogPath(ctx context.Context) string {
+	if path := ctx.Value(debugLogPathKey); path != nil {
+		if pathStr, ok := path.(string); ok {
+			return pathStr
+		}
+	}
+
+	return ""
+}
+
+// SanitizeError creates a sanitized error that removes credentials from error messages.
+// This should be used when logging errors that might contain URLs with embedded credentials.
+func SanitizeError(err error) error {
+	if err == nil {
+		return nil
+	}
+
+	sanitized := shared.SanitizeError(err)
+
+	return fmt.Errorf("%s", sanitized)
+}

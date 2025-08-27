@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
@@ -17,7 +17,7 @@ var gitlabNameRegex = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9.+\- ]*$`)
 
 // invalidGitLabNames is a comprehensive set of repository names that are not allowed in GitLab.
 // These names are reserved for GitLab's internal use or have special meanings.
-var invalidGitLabNames = map[string]bool{
+var invalidGitLabNames = map[string]bool{ //nolint:gochecknoglobals // GitLab name validation constants
 	// Basic reserved names
 	"-":  true,
 	".":  true,
@@ -89,6 +89,7 @@ func ValidateAndCleanGitLabName(name string) (string, bool, []string) {
 	// Check for empty name
 	if cleanName == "" {
 		issues = append(issues, "repository name cannot be empty")
+
 		return cleanName, false, issues
 	}
 

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
@@ -6,10 +6,10 @@ package mirror
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
+	"itiquette/git-provider-sync/internal/domain"
 	"itiquette/git-provider-sync/internal/domain/ports"
 )
 
@@ -34,6 +34,9 @@ func NewEffectInterpreter(
 }
 
 // ExecuteOperation executes a pure operation plan by interpreting its effects.
+// The operation parameter contains a sequence of effects to execute with dependency resolution.
+// Uses simple dependency resolution: unsatisfied effects are moved to end of queue for retry.
+// This ensures operations execute in correct order (e.g., CreateRepository before ProtectBranch).
 func (ei *EffectInterpreter) ExecuteOperation(ctx context.Context, operation Operation) OperationResult {
 	start := time.Now()
 
@@ -56,7 +59,7 @@ func (ei *EffectInterpreter) ExecuteOperation(ctx context.Context, operation Ope
 		for _, validationResult := range validationResults {
 			if !validationResult.Valid {
 				result.Success = false
-				result.Error = fmt.Errorf("validation failed: %s", validationResult.Message)
+				result.Error = fmt.Errorf("%w: %s", domain.ErrValidationFailed, validationResult.Message)
 				ei.logger.Error(ctx, "Operation validation failed", map[string]interface{}{
 					"operation_id": operation.Metadata.ID,
 					"error":        result.Error,
@@ -68,15 +71,17 @@ func (ei *EffectInterpreter) ExecuteOperation(ctx context.Context, operation Ope
 		}
 	}
 
-	// Execute effects in dependency order
+	// Execute effects in dependency order using simple dependency resolution algorithm.
+	// This implements a basic topological sort by moving unsatisfied effects to the end of the queue.
+	// The algorithm retries effects until all dependencies are satisfied or no progress can be made.
 	completedEffects := make(map[string]bool)
 
 	for effectIndex := 0; effectIndex < len(operation.Effects); effectIndex++ {
 		effect := operation.Effects[effectIndex]
 
-		// Check if dependencies are satisfied
+		// Check if all dependencies for this effect are satisfied
 		if !ei.dependenciesSatisfied(effect, completedEffects) {
-			// Move this effect to the end and try again
+			// Move this effect to the end and try again (queue rotation for dependency resolution)
 			operation.Effects = append(operation.Effects[effectIndex+1:], effect)
 			effectIndex-- // Adjust counter since we removed an element
 
@@ -119,17 +124,36 @@ func (ei *EffectInterpreter) ExecuteOperation(ctx context.Context, operation Ope
 func (ei *EffectInterpreter) executeEffect(ctx context.Context, effect Effect, operation Operation) CompletedEffect {
 	start := time.Now()
 
-	completedEffect := CompletedEffect{
+	completedEffect := ei.initializeCompletedEffect(effect)
+
+	ei.logEffectExecution(ctx, effect, operation)
+
+	ei.executeEffectByType(ctx, effect, operation, &completedEffect)
+
+	ei.finalizeCompletedEffect(&completedEffect, start)
+
+	return completedEffect
+}
+
+// initializeCompletedEffect creates a new CompletedEffect with default values.
+func (ei *EffectInterpreter) initializeCompletedEffect(effect Effect) CompletedEffect {
+	return CompletedEffect{
 		Effect:  effect,
 		Success: true,
 	}
+}
 
+// logEffectExecution logs the start of effect execution.
+func (ei *EffectInterpreter) logEffectExecution(ctx context.Context, effect Effect, operation Operation) {
 	ei.logger.Debug(ctx, "Executing effect", map[string]interface{}{
 		"effect_type":  effect.Type,
 		"description":  effect.Description,
 		"operation_id": operation.Metadata.ID,
 	})
+}
 
+// executeEffectByType dispatches the effect execution based on its type.
+func (ei *EffectInterpreter) executeEffectByType(ctx context.Context, effect Effect, operation Operation, completedEffect *CompletedEffect) {
 	switch effect.Type {
 	case EffectTypeCloneRepository:
 		completedEffect.Result, completedEffect.Error = ei.executeCloneRepository(ctx, effect, operation)
@@ -137,6 +161,16 @@ func (ei *EffectInterpreter) executeEffect(ctx context.Context, effect Effect, o
 		completedEffect.Result, completedEffect.Error = ei.executeCreateRepository(ctx, effect, operation)
 	case EffectTypePushToRepository:
 		completedEffect.Result, completedEffect.Error = ei.executePushToRepository(ctx, effect, operation)
+	case EffectTypeUpdateDescription, EffectTypeUpdateVisibility, EffectTypeUpdateTopics, EffectTypeUpdateDefaultBranch, EffectTypeSyncBranchProtection, EffectTypeCreateDirectories, EffectTypeCleanupTempFiles, EffectTypeLogOperation, EffectTypeRecordMetrics:
+		ei.executeSecondaryEffects(ctx, effect, operation, completedEffect)
+	default:
+		ei.executeSecondaryEffects(ctx, effect, operation, completedEffect)
+	}
+}
+
+// executeSecondaryEffects handles secondary effect types.
+func (ei *EffectInterpreter) executeSecondaryEffects(ctx context.Context, effect Effect, operation Operation, completedEffect *CompletedEffect) {
+	switch effect.Type {
 	case EffectTypeUpdateDescription:
 		completedEffect.Result, completedEffect.Error = ei.executeUpdateDescription(ctx, effect, operation)
 	case EffectTypeUpdateVisibility:
@@ -147,6 +181,16 @@ func (ei *EffectInterpreter) executeEffect(ctx context.Context, effect Effect, o
 		completedEffect.Result = ei.executeUpdateDefaultBranch(ctx, effect, operation)
 	case EffectTypeSyncBranchProtection:
 		completedEffect.Result = ei.executeSyncBranchProtection(ctx, effect, operation)
+	case EffectTypeCloneRepository, EffectTypeCreateRepository, EffectTypePushToRepository, EffectTypeCreateDirectories, EffectTypeCleanupTempFiles, EffectTypeLogOperation, EffectTypeRecordMetrics:
+		ei.executeUtilityEffects(ctx, effect, operation, completedEffect)
+	default:
+		ei.executeUtilityEffects(ctx, effect, operation, completedEffect)
+	}
+}
+
+// executeUtilityEffects handles utility effect types.
+func (ei *EffectInterpreter) executeUtilityEffects(ctx context.Context, effect Effect, operation Operation, completedEffect *CompletedEffect) {
+	switch effect.Type {
 	case EffectTypeCreateDirectories:
 		completedEffect.Result = ei.executeCreateDirectories(ctx, effect, operation)
 	case EffectTypeRecordMetrics:
@@ -155,17 +199,20 @@ func (ei *EffectInterpreter) executeEffect(ctx context.Context, effect Effect, o
 		completedEffect.Result, completedEffect.Error = ei.executeCleanupTempFiles(ctx, effect, operation)
 	case EffectTypeLogOperation:
 		completedEffect.Result = ei.executeLogOperation(ctx, effect, operation)
+	case EffectTypeCloneRepository, EffectTypeCreateRepository, EffectTypePushToRepository, EffectTypeUpdateDescription, EffectTypeUpdateVisibility, EffectTypeUpdateTopics, EffectTypeUpdateDefaultBranch, EffectTypeSyncBranchProtection:
+		completedEffect.Error = fmt.Errorf("%w: %s", domain.ErrEffectTypeShouldNotReachHandler, effect.Type)
 	default:
-		completedEffect.Error = fmt.Errorf("unknown effect type: %s", effect.Type)
+		completedEffect.Error = fmt.Errorf("%w: %s", domain.ErrUnknownEffectType, effect.Type)
 	}
+}
 
+// finalizeCompletedEffect sets final fields on the completed effect.
+func (ei *EffectInterpreter) finalizeCompletedEffect(completedEffect *CompletedEffect, start time.Time) {
 	if completedEffect.Error != nil {
 		completedEffect.Success = false
 	}
 
 	completedEffect.Duration = time.Since(start)
-
-	return completedEffect
 }
 
 // Effect execution implementations
@@ -182,17 +229,17 @@ func (ei *EffectInterpreter) executeCloneRepository(ctx context.Context, effect 
 
 	url, exists := effect.Parameters["url"].(string)
 	if !exists {
-		return nil, errors.New("clone effect missing url parameter")
+		return nil, domain.ErrCloneEffectMissingURL
 	}
 
 	localPath, pathExists := effect.Parameters["local_path"].(string)
 	if !pathExists {
-		return nil, errors.New("clone effect missing local_path parameter")
+		return nil, domain.ErrCloneEffectMissingPath
 	}
 
 	auth, authExists := effect.Parameters["auth"].(AuthSpec)
 	if !authExists {
-		return nil, errors.New("clone effect missing auth parameter")
+		return nil, domain.ErrCloneEffectMissingAuth
 	}
 
 	// Convert auth spec to ports auth
@@ -232,12 +279,12 @@ func (ei *EffectInterpreter) executeCreateRepository(ctx context.Context, effect
 
 	name, nameExists := effect.Parameters["name"].(string)
 	if !nameExists {
-		return nil, errors.New("create repository effect missing name parameter")
+		return nil, domain.ErrCreateRepoMissingName
 	}
 
 	owner, ownerExists := effect.Parameters["owner"].(string)
 	if !ownerExists {
-		return nil, errors.New("create repository effect missing owner parameter")
+		return nil, domain.ErrCreateRepoMissingOwner
 	}
 
 	description, _ := effect.Parameters["description"].(string)
@@ -285,12 +332,12 @@ func (ei *EffectInterpreter) executePushToRepository(ctx context.Context, effect
 
 	localPath, pathExists := effect.Parameters["local_path"].(string)
 	if !pathExists {
-		return nil, errors.New("push effect missing local_path parameter")
+		return nil, domain.ErrPushEffectMissingPath
 	}
 
 	auth, authExists := effect.Parameters["auth"].(AuthSpec)
 	if !authExists {
-		return nil, errors.New("push effect missing auth parameter")
+		return nil, domain.ErrPushEffectMissingAuth
 	}
 
 	force, _ := effect.Parameters["force"].(bool)
@@ -365,12 +412,12 @@ func (ei *EffectInterpreter) executeRepositoryUpdate(
 
 	repository, repoExists := effect.Parameters["repository"].(string)
 	if !repoExists {
-		return nil, errors.New("update " + dryRunAction + " effect missing repository parameter")
+		return nil, domain.ErrUpdateEffectMissingRepo
 	}
 
 	value, valueExists := effect.Parameters[paramName].(string)
 	if !valueExists {
-		return nil, errors.New("update " + dryRunAction + " effect missing " + paramName + " parameter")
+		return nil, domain.ErrUpdateEffectMissingParam
 	}
 
 	providerConfig := ports.ProviderConfig{
@@ -402,12 +449,12 @@ func (ei *EffectInterpreter) executeUpdateTopics(ctx context.Context, effect Eff
 
 	repository, repoExists := effect.Parameters["repository"].(string)
 	if !repoExists {
-		return nil, errors.New("update topics effect missing repository parameter")
+		return nil, domain.ErrUpdateTopicsMissingRepo
 	}
 
 	topics, topicsExist := effect.Parameters["topics"].([]string)
 	if !topicsExist {
-		return nil, errors.New("update topics effect missing topics parameter")
+		return nil, domain.ErrUpdateTopicsMissingTopics
 	}
 
 	providerConfig := ports.ProviderConfig{
@@ -440,7 +487,7 @@ func (ei *EffectInterpreter) executeCleanupTempFiles(ctx context.Context, effect
 
 	localPath, pathExists := effect.Parameters["local_path"].(string)
 	if !pathExists {
-		return nil, errors.New("cleanup effect missing local_path parameter")
+		return nil, domain.ErrCleanupMissingPath
 	}
 
 	err := ei.gitOps.Cleanup(ctx, localPath)
@@ -515,6 +562,7 @@ func (ei *EffectInterpreter) dependenciesSatisfied(effect Effect, completed map[
 	return true
 }
 
+//nolint:cyclop // Complex metrics updating logic with multiple effect types
 func (ei *EffectInterpreter) updateMetrics(metrics *OperationMetrics, effect Effect, completed CompletedEffect) {
 	switch effect.Type {
 	case EffectTypeCloneRepository:

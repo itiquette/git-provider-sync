@@ -1,10 +1,8 @@
-# SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+# SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 #
 # SPDX-License-Identifier: EUPL-1.2
-
 # Mockery v2.53+ configuration for hexagonal architecture
 # Note: Use command-line generation to avoid config conflicts
-
 with-expecter: true
 disable-version-string: true
 issue-845-fix: true

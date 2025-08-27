@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
@@ -15,11 +15,11 @@ import (
 type Service struct {
 	connectivityValidator ConnectivityValidator
 	fileSystemValidator   FileSystemValidator
-	config                ValidationConfig
+	config                Config
 }
 
-// ValidationConfig contains configuration for validation service.
-type ValidationConfig struct {
+// Config contains configuration for validation service.
+type Config struct {
 	EnableConnectivityTests bool
 	EnableFileSystemTests   bool
 	ConnectivityTimeout     time.Duration
@@ -36,7 +36,7 @@ type FileSystemValidator interface {
 func NewService(
 	connectivityValidator ConnectivityValidator,
 	fileSystemValidator FileSystemValidator,
-	config ValidationConfig,
+	config Config,
 ) *Service {
 	return &Service{
 		connectivityValidator: connectivityValidator,
@@ -45,21 +45,21 @@ func NewService(
 	}
 }
 
-// ComprehensiveValidationResult represents the result of complete validation.
-type ComprehensiveValidationResult struct {
-	ConfigurationResults ValidationResults
+// ComprehensiveResult represents the result of complete validation.
+type ComprehensiveResult struct {
+	ConfigurationResults Results
 	ConnectivityResults  []ConnectivityResult
 	FileSystemResults    []FileSystemResult
-	RepositoryResults    []RepositoryValidationResult
+	RepositoryResults    []RepositoryResult
 	OverallSuccess       bool
 	TotalErrors          int
 	TotalWarnings        int
 	Duration             time.Duration
-	Summary              ValidationSummary
+	Summary              Summary
 }
 
-// ValidationSummary provides a high-level summary of validation results.
-type ValidationSummary struct {
+// Summary provides a high-level summary of validation results.
+type Summary struct {
 	ConfigurationValid   bool
 	ConnectivityValid    bool
 	FileSystemValid      bool
@@ -69,23 +69,70 @@ type ValidationSummary struct {
 	Suggestions          []string
 }
 
-// RepositoryValidationResult represents repository-specific validation results.
-type RepositoryValidationResult struct {
+// RepositoryResult represents repository-specific validation results.
+type RepositoryResult struct {
 	RepositoryName string
 	ProviderType   string
-	Results        []ValidationResult
+	Results        []Result
 	Valid          bool
 }
 
+// NewDefaultValidationService creates a validation service with default configuration.
+func NewDefaultValidationService(
+	connectivityValidator ConnectivityValidator,
+	fileSystemValidator FileSystemValidator,
+) *Service {
+	config := Config{
+		EnableConnectivityTests: true,
+		EnableFileSystemTests:   true,
+		ConnectivityTimeout:     30 * time.Second,
+		SkipOptionalTests:       false,
+		MaxConcurrentTests:      5,
+	}
+
+	return NewService(connectivityValidator, fileSystemValidator, config)
+}
+
+// NewQuickValidationService creates a validation service for quick validation.
+func NewQuickValidationService() *Service {
+	config := Config{
+		EnableConnectivityTests: false,
+		EnableFileSystemTests:   false,
+		ConnectivityTimeout:     5 * time.Second,
+		SkipOptionalTests:       true,
+		MaxConcurrentTests:      1,
+	}
+
+	return NewService(nil, nil, config)
+}
+
+// NewFullValidationService creates a validation service with comprehensive validation.
+func NewFullValidationService(
+	connectivityValidator ConnectivityValidator,
+	fileSystemValidator FileSystemValidator,
+) *Service {
+	config := Config{
+		EnableConnectivityTests: true,
+		EnableFileSystemTests:   true,
+		ConnectivityTimeout:     60 * time.Second,
+		SkipOptionalTests:       false,
+		MaxConcurrentTests:      10,
+	}
+
+	return NewService(connectivityValidator, fileSystemValidator, config)
+}
+
 // ValidateConfiguration performs comprehensive configuration validation.
-func (s *Service) ValidateConfiguration(ctx context.Context, config ports.AppConfiguration) ComprehensiveValidationResult {
+//
+//nolint:cyclop // Complex validation orchestration with multiple validation types
+func (s *Service) ValidateConfiguration(ctx context.Context, config ports.AppConfiguration) ComprehensiveResult {
 	start := time.Now()
 
-	result := ComprehensiveValidationResult{
-		ConfigurationResults: ValidationResults{Valid: true},
+	result := ComprehensiveResult{
+		ConfigurationResults: Results{Valid: true},
 		ConnectivityResults:  []ConnectivityResult{},
 		FileSystemResults:    []FileSystemResult{},
-		RepositoryResults:    []RepositoryValidationResult{},
+		RepositoryResults:    []RepositoryResult{},
 		OverallSuccess:       true,
 	}
 
@@ -141,23 +188,23 @@ func (s *Service) ValidateConfiguration(ctx context.Context, config ports.AppCon
 	}
 
 	result.Duration = time.Since(start)
-	result.Summary = s.buildValidationSummary(result)
+	result.Summary = s.buildSummary(result)
 
 	return result
 }
 
 // ValidateEnvironment validates a single environment configuration.
-func (s *Service) ValidateEnvironment(ctx context.Context, env ports.EnvironmentConfiguration) ValidationResults {
+func (s *Service) ValidateEnvironment(_ context.Context, env ports.EnvironmentConfiguration) Results {
 	return ValidateEnvironment(env)
 }
 
 // ValidateRepositoryName validates a repository name for a specific provider.
-func (s *Service) ValidateRepositoryName(name, providerType string) ValidationResult {
+func (s *Service) ValidateRepositoryName(name, providerType string) Result {
 	return ValidateRepositoryName(name, providerType)
 }
 
 // ValidateURL validates a URL format.
-func (s *Service) ValidateURL(url string) ValidationResult {
+func (s *Service) ValidateURL(url string) Result {
 	return ValidateURL(url)
 }
 
@@ -174,16 +221,16 @@ func (s *Service) TestConnectivity(ctx context.Context, providerType, domain, ow
 
 // Private helper methods
 
-func (s *Service) validateRepositoryNames(config ports.AppConfiguration) []RepositoryValidationResult {
-	results := make([]RepositoryValidationResult, 0, len(config.Environments)*2)
+func (s *Service) validateRepositoryNames(config ports.AppConfiguration) []RepositoryResult {
+	results := make([]RepositoryResult, 0, len(config.Environments)*2)
 
 	for envName, env := range config.Environments {
 		// Validate source repositories (if we can enumerate them)
 		// This is placeholder logic - in practice, you'd get actual repo names from the provider
-		sourceResult := RepositoryValidationResult{
+		sourceResult := RepositoryResult{
 			RepositoryName: "source-repos-" + envName,
 			ProviderType:   env.Source.ProviderType,
-			Results:        []ValidationResult{},
+			Results:        []Result{},
 			Valid:          true,
 		}
 
@@ -200,10 +247,10 @@ func (s *Service) validateRepositoryNames(config ports.AppConfiguration) []Repos
 
 		// Validate mirror repository names
 		for mirrorName, mirror := range env.Mirrors {
-			mirrorResult := RepositoryValidationResult{
+			mirrorResult := RepositoryResult{
 				RepositoryName: mirrorName,
 				ProviderType:   mirror.ProviderType,
-				Results:        []ValidationResult{},
+				Results:        []Result{},
 				Valid:          true,
 			}
 
@@ -231,8 +278,9 @@ func (s *Service) validateAllFileSystem(ctx context.Context, validations []FileS
 	return results
 }
 
-func (s *Service) buildValidationSummary(result ComprehensiveValidationResult) ValidationSummary {
-	summary := ValidationSummary{
+//nolint:cyclop // Complex summary building logic with multiple validation result types
+func (s *Service) buildSummary(result ComprehensiveResult) Summary {
+	summary := Summary{
 		ConfigurationValid:   result.ConfigurationResults.Valid,
 		ConnectivityValid:    true,
 		FileSystemValid:      true,
@@ -297,62 +345,17 @@ func (s *Service) buildValidationSummary(result ComprehensiveValidationResult) V
 	return summary
 }
 
-// Factory functions
-
-// NewDefaultValidationService creates a validation service with default configuration.
-func NewDefaultValidationService(
-	connectivityValidator ConnectivityValidator,
-	fileSystemValidator FileSystemValidator,
-) *Service {
-	config := ValidationConfig{
-		EnableConnectivityTests: true,
-		EnableFileSystemTests:   true,
-		ConnectivityTimeout:     30 * time.Second,
-		SkipOptionalTests:       false,
-		MaxConcurrentTests:      5,
-	}
-
-	return NewService(connectivityValidator, fileSystemValidator, config)
-}
-
-// NewQuickValidationService creates a validation service for fast validation (configuration only).
-func NewQuickValidationService() *Service {
-	config := ValidationConfig{
-		EnableConnectivityTests: false,
-		EnableFileSystemTests:   false,
-		ConnectivityTimeout:     5 * time.Second,
-		SkipOptionalTests:       true,
-		MaxConcurrentTests:      1,
-	}
-
-	return NewService(nil, nil, config)
-}
-
-// NewFullValidationService creates a validation service with comprehensive testing enabled.
-func NewFullValidationService(
-	connectivityValidator ConnectivityValidator,
-	fileSystemValidator FileSystemValidator,
-) *Service {
-	config := ValidationConfig{
-		EnableConnectivityTests: true,
-		EnableFileSystemTests:   true,
-		ConnectivityTimeout:     60 * time.Second,
-		SkipOptionalTests:       false,
-		MaxConcurrentTests:      10,
-	}
-
-	return NewService(connectivityValidator, fileSystemValidator, config)
-}
-
 // Utility functions for validation results
 
 // HasCriticalErrors checks if validation results contain critical errors.
-func HasCriticalErrors(result ComprehensiveValidationResult) bool {
+func HasCriticalErrors(result ComprehensiveResult) bool {
 	return !result.OverallSuccess || result.TotalErrors > 0
 }
 
 // GetValidationErrors extracts all error messages from validation results.
-func GetValidationErrors(result ComprehensiveValidationResult) []string {
+//
+//nolint:cyclop // Complex error extraction logic with multiple validation result types
+func GetValidationErrors(result ComprehensiveResult) []string {
 	var errors []string
 
 	// Configuration errors
@@ -389,7 +392,7 @@ func GetValidationErrors(result ComprehensiveValidationResult) []string {
 }
 
 // GetValidationWarnings extracts all warning messages from validation results.
-func GetValidationWarnings(result ComprehensiveValidationResult) []string {
+func GetValidationWarnings(result ComprehensiveResult) []string {
 	var warnings []string
 
 	// Connectivity warnings

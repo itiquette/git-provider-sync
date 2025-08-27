@@ -1,13 +1,11 @@
-# SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+# SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 #
 # SPDX-License-Identifier: CC0-1.0
-
 gitprovidersync:
   env1:
     asource:
       provider_type: gitlab
       owner: user
-
       mirrors:
         atarget:
           provider_type: gitea
@@ -19,12 +17,10 @@ gitprovidersync:
           auth:
             token: anothertoken
           owner: anothergroup
-
   env2:
     absource:
       provider_type: gitea
       owner: user
-
       mirrors:
         abtarget:
           provider_type: gitea

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
@@ -13,8 +13,25 @@ import (
 	"strings"
 	"time"
 
+	"itiquette/git-provider-sync/internal/domain"
 	"itiquette/git-provider-sync/internal/domain/constants"
 	"itiquette/git-provider-sync/internal/domain/ports"
+)
+
+// Static errors for err113 compliance.
+var (
+	ErrCreateBranchNotSupported     = errors.New("creating branches is not supported for archive repositories")
+	ErrOnlyMainBranchExists         = errors.New("only 'main' branch exists in archive repositories")
+	ErrDeleteBranchNotSupported     = errors.New("deleting branches is not supported for archive repositories")
+	ErrSetDefaultBranchNotSupported = errors.New("setting default branch is not supported for archive repositories")
+	ErrCommitNotFoundInArchive      = errors.New("commit not found in archive repository")
+	ErrAddRemoteNotSupported        = errors.New("adding remotes is not supported for archive repositories")
+	ErrArchiveReposNoRemotes        = errors.New("archive repositories don't have remotes")
+	ErrRemoveRemoteNotSupported     = errors.New("removing remotes is not supported for archive repositories")
+	ErrUpdateRemoteNotSupported     = errors.New("updating remotes is not supported for archive repositories")
+	ErrCreateTagNotSupported        = errors.New("creating tags is not supported for archive repositories")
+	ErrDeleteTagNotSupported        = errors.New("deleting tags is not supported for archive repositories")
+	ErrDiffNotSupported             = errors.New("diff is not supported for archive repositories")
 )
 
 // Repository represents an archive-based repository.
@@ -30,12 +47,12 @@ func (r *Repository) Path() string {
 	return r.path
 }
 
-// URL returns an empty string as archive repositories don't have URLs.
+// URL returns empty string for archive repositories.
 func (r *Repository) URL() string {
 	return ""
 }
 
-// Name returns the repository name (directory name).
+// Name returns the directory name.
 func (r *Repository) Name() string {
 	return filepath.Base(r.path)
 }
@@ -59,7 +76,7 @@ func (r *Repository) HasChanges() bool {
 
 // GetCurrentCommit returns a dummy commit for archive repositories.
 // Archive repositories don't have real git history.
-func (r *Repository) GetCurrentCommit(ctx context.Context) (ports.CommitInfo, error) {
+func (r *Repository) GetCurrentCommit(_ context.Context) (ports.CommitInfo, error) {
 	// Return a dummy commit representing the archive extraction time
 	return ports.CommitInfo{
 		Hash:    "archive-extraction",
@@ -79,7 +96,7 @@ func (r *Repository) GetCurrentCommit(ctx context.Context) (ports.CommitInfo, er
 }
 
 // ListBranches returns a single "main" branch for archive repositories.
-func (r *Repository) ListBranches(ctx context.Context) ([]ports.BranchInfo, error) {
+func (r *Repository) ListBranches(_ context.Context) ([]ports.BranchInfo, error) {
 	return []ports.BranchInfo{
 		{
 			Name:      "main",
@@ -92,7 +109,7 @@ func (r *Repository) ListBranches(ctx context.Context) ([]ports.BranchInfo, erro
 }
 
 // GetBranches returns a single "main" branch for archive repositories (legacy method).
-func (r *Repository) GetBranches(ctx context.Context) ([]string, error) {
+func (r *Repository) GetBranches(_ context.Context) ([]string, error) {
 	return []string{"main"}, nil
 }
 
@@ -102,36 +119,36 @@ func (r *Repository) CurrentBranch() (string, error) {
 }
 
 // GetCurrentBranch returns "main" as the current branch (legacy method).
-func (r *Repository) GetCurrentBranch(ctx context.Context) (string, error) {
+func (r *Repository) GetCurrentBranch(_ context.Context) (string, error) {
 	return constants.DefaultBranch, nil
 }
 
 // CreateBranch is not supported for archive repositories.
-func (r *Repository) CreateBranch(ctx context.Context, name, source string) error {
-	return errors.New("creating branches is not supported for archive repositories")
+func (r *Repository) CreateBranch(_ context.Context, _, _ string) error {
+	return ErrCreateBranchNotSupported
 }
 
 // CheckoutBranch is not supported for archive repositories.
-func (r *Repository) CheckoutBranch(ctx context.Context, branchName string) error {
+func (r *Repository) CheckoutBranch(_ context.Context, branchName string) error {
 	if branchName != "main" {
-		return errors.New("only 'main' branch exists in archive repositories")
+		return ErrOnlyMainBranchExists
 	}
 
 	return nil
 }
 
 // DeleteBranch is not supported for archive repositories.
-func (r *Repository) DeleteBranch(ctx context.Context, name string, force bool) error {
-	return errors.New("deleting branches is not supported for archive repositories")
+func (r *Repository) DeleteBranch(_ context.Context, _ string, _ bool) error {
+	return ErrDeleteBranchNotSupported
 }
 
 // SetDefaultBranch is not supported for archive repositories.
-func (r *Repository) SetDefaultBranch(ctx context.Context, name string) error {
-	return errors.New("setting default branch is not supported for archive repositories")
+func (r *Repository) SetDefaultBranch(_ context.Context, _ string) error {
+	return ErrSetDefaultBranchNotSupported
 }
 
 // ListCommits returns a single dummy commit.
-func (r *Repository) ListCommits(ctx context.Context, options ports.ListCommitsOptions) ([]ports.CommitInfo, error) {
+func (r *Repository) ListCommits(ctx context.Context, _ ports.ListCommitsOptions) ([]ports.CommitInfo, error) {
 	commit, err := r.GetCurrentCommit(ctx)
 	if err != nil {
 		return nil, err
@@ -151,57 +168,57 @@ func (r *Repository) GetCommit(ctx context.Context, hash string) (ports.CommitIn
 		return r.GetCurrentCommit(ctx)
 	}
 
-	return ports.CommitInfo{}, errors.New("commit not found in archive repository")
+	return ports.CommitInfo{}, ErrCommitNotFoundInArchive
 }
 
 // AddRemote is not supported for archive repositories.
-func (r *Repository) AddRemote(ctx context.Context, name, url string) error {
-	return errors.New("adding remotes is not supported for archive repositories")
+func (r *Repository) AddRemote(_ context.Context, _, _ string) error {
+	return ErrAddRemoteNotSupported
 }
 
 // ListRemotes returns an empty list for archive repositories.
-func (r *Repository) ListRemotes(ctx context.Context) ([]ports.RemoteInfo, error) {
+func (r *Repository) ListRemotes(_ context.Context) ([]ports.RemoteInfo, error) {
 	return []ports.RemoteInfo{}, nil
 }
 
 // GetRemote returns an error as archive repositories don't have remotes.
-func (r *Repository) GetRemote(ctx context.Context, name string) (ports.RemoteInfo, error) {
-	return ports.RemoteInfo{}, errors.New("archive repositories don't have remotes")
+func (r *Repository) GetRemote(_ context.Context, _ string) (ports.RemoteInfo, error) {
+	return ports.RemoteInfo{}, ErrArchiveReposNoRemotes
 }
 
 // RemoveRemote is not supported for archive repositories.
-func (r *Repository) RemoveRemote(ctx context.Context, name string) error {
-	return errors.New("removing remotes is not supported for archive repositories")
+func (r *Repository) RemoveRemote(_ context.Context, _ string) error {
+	return ErrRemoveRemoteNotSupported
 }
 
 // UpdateRemote is not supported for archive repositories.
-func (r *Repository) UpdateRemote(ctx context.Context, name, url string) error {
-	return errors.New("updating remotes is not supported for archive repositories")
+func (r *Repository) UpdateRemote(_ context.Context, _, _ string) error {
+	return ErrUpdateRemoteNotSupported
 }
 
-// ListTags returns an empty list as archive repositories don't have tags.
-func (r *Repository) ListTags(ctx context.Context) ([]ports.TagInfo, error) {
+// ListTags returns an empty list for archive repositories.
+func (r *Repository) ListTags(_ context.Context) ([]ports.TagInfo, error) {
 	return []ports.TagInfo{}, nil
 }
 
 // CreateTag is not supported for archive repositories.
-func (r *Repository) CreateTag(ctx context.Context, name, message, ref string) error {
-	return errors.New("creating tags is not supported for archive repositories")
+func (r *Repository) CreateTag(_ context.Context, _, _, _ string) error {
+	return ErrCreateTagNotSupported
 }
 
 // DeleteTag is not supported for archive repositories.
-func (r *Repository) DeleteTag(ctx context.Context, name string) error {
-	return errors.New("deleting tags is not supported for archive repositories")
+func (r *Repository) DeleteTag(_ context.Context, _ string) error {
+	return ErrDeleteTagNotSupported
 }
 
 // Status returns the status of files in the archive directory.
-func (r *Repository) Status(ctx context.Context) (ports.StatusResult, error) {
+func (r *Repository) Status(_ context.Context) (ports.StatusResult, error) {
 	var status ports.StatusResult
 
 	// Check if the repository directory exists and has content
 	entries, err := os.ReadDir(r.path)
 	if err != nil {
-		return status, err
+		return status, fmt.Errorf("failed to read directory: %w", err)
 	}
 
 	// Count files as "untracked" since archive repos don't have git tracking
@@ -215,8 +232,8 @@ func (r *Repository) Status(ctx context.Context) (ports.StatusResult, error) {
 }
 
 // Diff is not supported for archive repositories.
-func (r *Repository) Diff(ctx context.Context, options ports.DiffOptions) (string, error) {
-	return "", errors.New("diff is not supported for archive repositories")
+func (r *Repository) Diff(_ context.Context, _ ports.DiffOptions) (string, error) {
+	return "", ErrDiffNotSupported
 }
 
 // GetStatus returns the status of files in the archive directory (legacy method).
@@ -225,28 +242,28 @@ func (r *Repository) GetStatus(ctx context.Context) (ports.StatusResult, error) 
 }
 
 // Fetch is not supported for archive repositories.
-func (r *Repository) Fetch(ctx context.Context, options ports.FetchOptions) error {
-	return errors.New("fetch is not supported for archive repositories")
+func (r *Repository) Fetch(_ context.Context, _ ports.FetchOptions) error {
+	return domain.ErrUnsupportedOperation
 }
 
 // Pull is not supported for archive repositories.
-func (r *Repository) Pull(ctx context.Context, options ports.PullOptions) error {
-	return errors.New("pull is not supported for archive repositories")
+func (r *Repository) Pull(_ context.Context, _ ports.PullOptions) error {
+	return domain.ErrPullNotSupportedArchive
 }
 
 // Push is not supported for archive repositories.
-func (r *Repository) Push(ctx context.Context, options ports.PushOptions) error {
-	return errors.New("push is not supported for archive repositories")
+func (r *Repository) Push(_ context.Context, _ ports.PushOptions) error {
+	return domain.ErrPushNotSupportedArchive
 }
 
 // Add is not supported for archive repositories.
-func (r *Repository) Add(ctx context.Context, files []string) error {
-	return errors.New("adding files is not supported for archive repositories")
+func (r *Repository) Add(_ context.Context, _ []string) error {
+	return domain.ErrAddFilesNotSupportedArchive
 }
 
 // Commit is not supported for archive repositories.
-func (r *Repository) Commit(ctx context.Context, message string) error {
-	return errors.New("committing is not supported for archive repositories")
+func (r *Repository) Commit(_ context.Context, _ string) error {
+	return domain.ErrCommitNotSupportedArchive
 }
 
 // GetConfig returns the git configuration for this repository.
@@ -255,13 +272,13 @@ func (r *Repository) GetConfig() ports.GitConfig {
 }
 
 // GetRemoteURL returns an empty string as archive repositories don't have remotes.
-func (r *Repository) GetRemoteURL(ctx context.Context, remoteName string) (string, error) {
-	return "", errors.New("archive repositories don't have remotes")
+func (r *Repository) GetRemoteURL(_ context.Context, _ string) (string, error) {
+	return "", ErrArchiveReposNoRemotes
 }
 
 // SetRemoteURL is not supported for archive repositories.
-func (r *Repository) SetRemoteURL(ctx context.Context, remoteName, url string) error {
-	return errors.New("setting remote URLs is not supported for archive repositories")
+func (r *Repository) SetRemoteURL(_ context.Context, _, _ string) error {
+	return domain.ErrRemoteURLNotSupportedArchive
 }
 
 // GetWorkingDirectory returns the repository path.
@@ -275,27 +292,27 @@ func (r *Repository) GetGitDirectory() string {
 }
 
 // HasUncommittedChanges always returns false for archive repositories.
-func (r *Repository) HasUncommittedChanges(ctx context.Context) (bool, error) {
+func (r *Repository) HasUncommittedChanges(_ context.Context) (bool, error) {
 	return false, nil
 }
 
 // GetFileContent reads the content of a file in the archive directory.
-func (r *Repository) GetFileContent(ctx context.Context, filePath string) ([]byte, error) {
+func (r *Repository) GetFileContent(_ context.Context, filePath string) ([]byte, error) {
 	fullPath := filepath.Join(r.path, filePath)
 
 	// Security check: ensure the path is within the repository
 	absRepoPath, err := filepath.Abs(r.path)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get absolute repository path: %w", err)
 	}
 
 	absFilePath, err := filepath.Abs(fullPath)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get absolute file path: %w", err)
 	}
 
 	if !strings.HasPrefix(absFilePath, absRepoPath+string(filepath.Separator)) && absFilePath != absRepoPath {
-		return nil, errors.New("file path is outside repository")
+		return nil, domain.ErrFilePathOutsideRepository
 	}
 
 	// #nosec G304 - Path is validated above for security
@@ -308,28 +325,28 @@ func (r *Repository) GetFileContent(ctx context.Context, filePath string) ([]byt
 }
 
 // WriteFile writes content to a file in the archive directory.
-func (r *Repository) WriteFile(ctx context.Context, filePath string, content []byte) error {
+func (r *Repository) WriteFile(_ context.Context, filePath string, content []byte) error {
 	fullPath := filepath.Join(r.path, filePath)
 
 	// Security check: ensure the path is within the repository
 	absRepoPath, err := filepath.Abs(r.path)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get absolute repository path: %w", err)
 	}
 
 	absFilePath, err := filepath.Abs(fullPath)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get absolute file path: %w", err)
 	}
 
 	if !strings.HasPrefix(absFilePath, absRepoPath+string(filepath.Separator)) && absFilePath != absRepoPath {
-		return errors.New("file path is outside repository")
+		return domain.ErrFilePathOutsideRepository
 	}
 
 	// Ensure parent directory exists
 	err = os.MkdirAll(filepath.Dir(fullPath), 0750)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create parent directory: %w", err)
 	}
 
 	if err := os.WriteFile(fullPath, content, 0600); err != nil {
@@ -340,7 +357,7 @@ func (r *Repository) WriteFile(ctx context.Context, filePath string, content []b
 }
 
 // ListFiles returns a list of files in the archive directory.
-func (r *Repository) ListFiles(ctx context.Context, path string) ([]string, error) {
+func (r *Repository) ListFiles(_ context.Context, path string) ([]string, error) {
 	searchPath := r.path
 	if path != "" {
 		searchPath = filepath.Join(r.path, path)
@@ -356,7 +373,7 @@ func (r *Repository) ListFiles(ctx context.Context, path string) ([]string, erro
 		if !info.IsDir() {
 			relPath, err := filepath.Rel(r.path, filePath)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to get relative path: %w", err)
 			}
 
 			files = append(files, relPath)
@@ -364,8 +381,11 @@ func (r *Repository) ListFiles(ctx context.Context, path string) ([]string, erro
 
 		return nil
 	})
+	if err != nil {
+		return files, fmt.Errorf("failed to walk directory: %w", err)
+	}
 
-	return files, err
+	return files, nil
 }
 
 // Close performs any necessary cleanup for the repository.

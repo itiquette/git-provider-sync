@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
@@ -13,7 +13,6 @@ import (
 )
 
 // SyncRunMetadata tracks metadata about a synchronization run.
-// This restores the sophisticated sync tracking functionality from main branch.
 type SyncRunMetadata struct {
 	StartTime         time.Time
 	EndTime           time.Time
@@ -34,7 +33,6 @@ type SyncRunMetadata struct {
 }
 
 // SyncRunOptions contains options for synchronization runs.
-// Note: Using different name to avoid conflict with existing SyncOptions.
 type SyncRunOptions struct {
 	AlphaNumHyphName  bool
 	ActiveFromLimit   string
@@ -228,14 +226,12 @@ func (srm *SyncRunMetadata) GetProgressPercentage() float64 {
 	return (float64(srm.ProcessedCount) / float64(srm.TotalRepositories)) * 100.0
 }
 
-// Context-based functionality - restores missing functionality from main branch
+// Context-based functionality for sync metadata tracking.
 
 // SyncRunMetadataKey is used as a key for context values.
-// This restores the context-based metadata tracking from main branch.
 type SyncRunMetadataKey struct{}
 
 // GetMetadataFromContext retrieves sync metadata from context.
-// This restores the context-based metadata access from main branch.
 func GetMetadataFromContext(ctx context.Context) (*SyncRunMetadata, bool) {
 	if metadata, ok := ctx.Value(SyncRunMetadataKey{}).(*SyncRunMetadata); ok {
 		return metadata, true
@@ -245,13 +241,11 @@ func GetMetadataFromContext(ctx context.Context) (*SyncRunMetadata, bool) {
 }
 
 // AddMetadataToContext adds sync metadata to context.
-// This enables the context-based tracking pattern from main branch.
 func AddMetadataToContext(ctx context.Context, metadata *SyncRunMetadata) context.Context {
 	return context.WithValue(ctx, SyncRunMetadataKey{}, metadata)
 }
 
 // ContainsFailure checks if a specific failure exists in this metadata.
-// This restores the failure checking functionality from main branch.
 func (srm *SyncRunMetadata) ContainsFailure(category, repositoryName string) bool {
 	if failureList, exists := srm.Failures[category]; exists {
 		return slices.Contains(failureList, repositoryName)
@@ -261,7 +255,6 @@ func (srm *SyncRunMetadata) ContainsFailure(category, repositoryName string) boo
 }
 
 // ContainsFailureInContext checks if a specific failure exists in context metadata.
-// This restores the context-based failure checking from main branch.
 func ContainsFailureInContext(ctx context.Context, category, repositoryName string) bool {
 	if metadata, ok := GetMetadataFromContext(ctx); ok {
 		return metadata.ContainsFailure(category, repositoryName)
@@ -271,7 +264,6 @@ func ContainsFailureInContext(ctx context.Context, category, repositoryName stri
 }
 
 // String provides a comprehensive string representation of sync metadata.
-// This restores and enhances the string formatting from main branch.
 func (srm *SyncRunMetadata) String() string {
 	var parts []string
 
@@ -291,7 +283,7 @@ func (srm *SyncRunMetadata) String() string {
 		parts = append(parts, fmt.Sprintf("Duration: %v", srm.Duration()))
 	}
 
-	// Failure details (similar to main branch format)
+	// Failure details
 	if len(srm.Failures) > 0 {
 		var failureDetails []string
 		for category, details := range srm.Failures {

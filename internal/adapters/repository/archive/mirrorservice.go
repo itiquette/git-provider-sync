@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
@@ -20,7 +20,8 @@ import (
 )
 
 // MirrorService provides archive-based repository mirroring operations.
-// This restores the sophisticated archive mirror service functionality from main branch.
+//
+//	sophisticated archive mirror service functionality .
 type MirrorService struct {
 	logger         ports.Logger
 	tempDir        string
@@ -138,8 +139,9 @@ func (ms *MirrorService) Mirror(ctx context.Context, request MirrorRequest) (*Mi
 	duration := time.Since(startTime)
 	result.PerformanceInfo.Duration = duration.String()
 
-	if duration.Seconds() > 0 {
-		result.PerformanceInfo.ProcessingRate = result.ArchiveSize / int64(duration.Seconds())
+	durationSeconds := int64(duration.Seconds())
+	if durationSeconds > 0 {
+		result.PerformanceInfo.ProcessingRate = result.ArchiveSize / durationSeconds
 	}
 
 	ms.logger.Info(ctx, "Archive mirror completed successfully", map[string]interface{}{
@@ -297,17 +299,17 @@ This document describes the architecture of the system.
 `,
 		".gitignore": `*.log
 *.tmp
-dist/
+bin/
 .env
 `,
 		"Makefile": `build:
-	go build -o dist/app .
+	go build -o bin/app .
 
 test:
 	go test ./...
 
 clean:
-	rm -rf dist/
+	rm -rf bin/
 `,
 		"CHANGELOG.md": fmt.Sprintf(`# Changelog
 
@@ -358,12 +360,12 @@ func (ms *MirrorService) createArchive(ctx context.Context, sourceDir, archivePa
 	case "tar":
 		return ms.createTarArchive(ctx, sourceDir, archivePath, request, result)
 	default:
-		return fmt.Errorf("unsupported archive format: %s", request.ArchiveFormat)
+		return fmt.Errorf("%w: %s", ErrUnsupportedArchiveFormat, request.ArchiveFormat)
 	}
 }
 
 // createTarGzArchive creates a tar.gz archive.
-func (ms *MirrorService) createTarGzArchive(ctx context.Context, sourceDir, archivePath string, request MirrorRequest, result *MirrorResult) error {
+func (ms *MirrorService) createTarGzArchive(_ /* ctx */ context.Context, sourceDir, archivePath string, request MirrorRequest, result *MirrorResult) error {
 	// #nosec G304 - Archive path comes from controlled mirror operations
 	file, err := os.Create(archivePath)
 	if err != nil {
@@ -392,6 +394,7 @@ func (ms *MirrorService) createTarGzArchive(ctx context.Context, sourceDir, arch
 
 	// Create tar writer
 	tarWriter := tar.NewWriter(gzipWriter)
+
 	defer func() {
 		if err := tarWriter.Close(); err != nil {
 			// Log close error
@@ -404,7 +407,7 @@ func (ms *MirrorService) createTarGzArchive(ctx context.Context, sourceDir, arch
 }
 
 // createTarArchive creates a tar archive (without compression).
-func (ms *MirrorService) createTarArchive(ctx context.Context, sourceDir, archivePath string, request MirrorRequest, result *MirrorResult) error {
+func (ms *MirrorService) createTarArchive(_ /* ctx */ context.Context, sourceDir, archivePath string, request MirrorRequest, result *MirrorResult) error {
 	// #nosec G304 - Archive path comes from controlled mirror operations
 	file, err := os.Create(archivePath)
 	if err != nil {
@@ -420,6 +423,7 @@ func (ms *MirrorService) createTarArchive(ctx context.Context, sourceDir, archiv
 
 	// Create tar writer
 	tarWriter := tar.NewWriter(file)
+
 	defer func() {
 		if err := tarWriter.Close(); err != nil {
 			// Log close error
@@ -432,7 +436,7 @@ func (ms *MirrorService) createTarArchive(ctx context.Context, sourceDir, archiv
 }
 
 // walkAndAddToTar walks the source directory and adds files to the tar archive.
-func (ms *MirrorService) walkAndAddToTar(sourceDir string, tarWriter *tar.Writer, request MirrorRequest, result *MirrorResult) error {
+func (ms *MirrorService) walkAndAddToTar(sourceDir string, tarWriter *tar.Writer, request MirrorRequest, result *MirrorResult) error { //nolint:gocognit,cyclop // Complex archive processing logic
 	err := filepath.Walk(sourceDir, func(filePath string, fileInfo os.FileInfo, err error) error {
 		if err != nil {
 			result.Errors = append(result.Errors, fmt.Sprintf("walk error for %s: %v", filePath, err))
@@ -565,8 +569,12 @@ func (ms *MirrorService) matchesPattern(filePath, pattern string) bool {
 // generateArchiveName generates a name for the archive file.
 func (ms *MirrorService) generateArchiveName(request MirrorRequest) string {
 	if request.ArchiveNamePattern != "" {
-		// TODO: Implement pattern substitution
-		return request.ArchiveNamePattern
+		// Simple pattern substitution for repository name
+		pattern := request.ArchiveNamePattern
+		pattern = strings.ReplaceAll(pattern, "{name}", request.SourceRepository.Name())
+		pattern = strings.ReplaceAll(pattern, "{repo}", request.SourceRepository.Name())
+
+		return pattern
 	}
 
 	// Default naming pattern
@@ -585,5 +593,5 @@ func (ms *MirrorService) generateArchiveName(request MirrorRequest) string {
 
 // generateTimestamp generates a timestamp string for temporary directories.
 func generateTimestamp() string {
-	return time.Now().Format("20060102-150405-000")
+	return time.Now().Format("20060102-150405.000")
 }

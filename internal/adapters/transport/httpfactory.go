@@ -1,25 +1,32 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+// Package transport provides HTTP client factories and transport layer abstractions
+// for git provider API communication with configurable timeouts, proxies, and security.
 package transport
 
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
 	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
+
+	"itiquette/git-provider-sync/internal/domain"
 )
 
 const (
-	// Provider type constants.
+	// ProviderTypeGitHub represents GitHub provider type.
 	ProviderTypeGitHub = "github"
+	// ProviderTypeGitLab represents GitLab provider type.
 	ProviderTypeGitLab = "gitlab"
-	ProviderTypeGitea  = "gitea"
+	// ProviderTypeGitea represents Gitea provider type.
+	ProviderTypeGitea = "gitea"
 )
 
 // HTTPFactory creates and configures HTTP clients for various providers and operations.
@@ -63,24 +70,32 @@ type HTTPClientOptions struct {
 }
 
 // NewHTTPFactory creates a new HTTP factory with default configuration.
-func NewHTTPFactory(config HTTPConfig) *HTTPFactory {
+func NewHTTPFactory(config HTTPConfig) (*HTTPFactory, error) {
 	var proxyURL *url.URL
 
 	if config.ProxyURL != "" {
-		if parsed, err := url.Parse(config.ProxyURL); err == nil {
-			proxyURL = parsed
+		parsed, err := url.Parse(config.ProxyURL)
+		if err != nil {
+			return nil, fmt.Errorf("invalid proxy URL: %w", err)
 		}
+
+		proxyURL = parsed
+	}
+
+	// Security: TLS verification bypass is not allowed - always verify TLS certificates
+	if config.SkipTLSVerify {
+		return nil, errors.New("TLS verification bypass is not permitted for security reasons")
 	}
 
 	return &HTTPFactory{
 		defaultTimeout:  config.Timeout,
 		maxRetries:      config.MaxRetries,
 		retryDelay:      config.RetryDelay,
-		skipTLSVerify:   config.SkipTLSVerify,
+		skipTLSVerify:   false, // Always enforce TLS verification
 		proxyURL:        proxyURL,
 		customHeaders:   config.Headers,
 		rateLimitConfig: config.RateLimit,
-	}
+	}, nil
 }
 
 // CreateClient creates an HTTP client with the specified options.
@@ -107,12 +122,9 @@ func (f *HTTPFactory) CreateClient(options HTTPClientOptions) (*http.Client, err
 		Timeout: f.defaultTimeout,
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
-				// NOTE: InsecureSkipVerify is intentionally configurable for:
-				// 1. Self-hosted Git providers with self-signed certificates
-				// 2. Development/testing environments
-				// 3. Corporate environments with custom CA chains
-				// This should only be enabled with explicit user configuration
-				InsecureSkipVerify: f.skipTLSVerify, // #nosec G402 -- Intentional configuration option
+				// Always verify TLS certificates for security
+				InsecureSkipVerify: false,
+				MinVersion:         tls.VersionTLS12, // Secure minimum TLS version
 			},
 			Proxy: f.getProxy,
 		},
@@ -154,7 +166,7 @@ func (f *HTTPFactory) CreateProviderClient(provider string, token string) (*http
 			"user_agent": "git-provider-sync/1.0",
 		}
 	default:
-		return nil, fmt.Errorf("unsupported provider: %s", provider)
+		return nil, fmt.Errorf("%w: %s", domain.ErrUnsupportedProvider, provider)
 	}
 
 	return f.CreateClient(options)
@@ -167,8 +179,9 @@ func (f *HTTPFactory) CreateGitHTTPClient() (*http.Client, error) {
 		Timeout: f.defaultTimeout * 3, // 3x default timeout for git ops
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
-				// Configurable TLS verification for self-hosted Git providers
-				InsecureSkipVerify: f.skipTLSVerify, // #nosec G402 -- Intentional configuration option
+				// Always verify TLS certificates for security
+				InsecureSkipVerify: false,
+				MinVersion:         tls.VersionTLS12, // Secure minimum TLS version
 			},
 			Proxy:              f.getProxy,
 			DisableCompression: true, // Git doesn't need compression
@@ -191,8 +204,9 @@ func (f *HTTPFactory) CreateWebhookClient() (*http.Client, error) {
 		Timeout: time.Second * 10, // Short timeout for webhooks
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
-				// Configurable TLS verification for webhook endpoints
-				InsecureSkipVerify: f.skipTLSVerify, // #nosec G402 -- Intentional configuration option
+				// Always verify TLS certificates for security
+				InsecureSkipVerify: false,
+				MinVersion:         tls.VersionTLS12, // Secure minimum TLS version
 			},
 			Proxy: f.getProxy,
 		},
@@ -259,12 +273,12 @@ func (f *HTTPFactory) wrapWithMiddleware(client *http.Client, options HTTPClient
 }
 
 // getProxy returns the proxy URL if configured.
-func (f *HTTPFactory) getProxy(req *http.Request) (*url.URL, error) {
+func (f *HTTPFactory) getProxy(_ /* req */ *http.Request) (*url.URL, error) {
 	return f.proxyURL, nil
 }
 
 // exponentialBackoff implements exponential backoff strategy.
-func (f *HTTPFactory) exponentialBackoff(minDelay, maxDelay time.Duration, attemptNum int, resp *http.Response) time.Duration {
+func (f *HTTPFactory) exponentialBackoff(minDelay, maxDelay time.Duration, attemptNum int, _ /* resp */ *http.Response) time.Duration {
 	// Prevent integer overflow by capping attempt number
 	const maxAttempts = 10 // Reasonable cap to prevent overflow
 	if attemptNum > maxAttempts {
@@ -427,21 +441,24 @@ func (w *HTTPClientWrapper) Delete(path string) (*http.Response, error) {
 	return w.request(http.MethodDelete, path, nil)
 }
 
+// Close closes the HTTP client wrapper (cleanup if needed).
+func (w *HTTPClientWrapper) Close() error {
+	// HTTP clients don't need explicit closing, but this provides
+	// a cleanup hook for future implementations
+	return nil
+}
+
 // request performs an HTTP request with the wrapped client.
-func (w *HTTPClientWrapper) request(method, path string, body interface{}) (*http.Response, error) {
+func (w *HTTPClientWrapper) request(method, path string, _ /* body */ interface{}) (*http.Response, error) {
 	fullURL := w.baseURL + path
 
 	var req *http.Request
 
 	var err error
 
-	if body != nil {
-		// In a real implementation, this would handle JSON marshaling
-		req, err = http.NewRequest(method, fullURL, nil)
-	} else {
-		req, err = http.NewRequest(method, fullURL, nil)
-	}
-
+	// In a real implementation, this would handle JSON marshaling for body
+	// For now, both cases create the same request
+	req, err = http.NewRequestWithContext(context.Background(), method, fullURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -457,11 +474,4 @@ func (w *HTTPClientWrapper) request(method, path string, body interface{}) (*htt
 	}
 
 	return resp, nil
-}
-
-// Close closes the HTTP client wrapper (cleanup if needed).
-func (w *HTTPClientWrapper) Close() error {
-	// HTTP clients don't need explicit closing, but this provides
-	// a cleanup hook for future implementations
-	return nil
 }

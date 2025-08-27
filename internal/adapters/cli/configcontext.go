@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
@@ -11,14 +11,14 @@ import (
 	"itiquette/git-provider-sync/internal/domain/entities"
 )
 
-// CLIConfigKey is used as a key for storing and retrieving CLIConfig from a context.
-type CLIConfigKey struct{}
+// ConfigKey is used as a key for storing and retrieving CLIConfig from a context.
+type ConfigKey struct{}
 
-// CLIConfigFromContext retrieves the CLIConfig from the given context.
+// ConfigFromContext retrieves the CLIConfig from the given context.
 // This is an infrastructure concern for CLI applications and is placed in adapters layer.
 // Returns the CLIConfig and a boolean indicating if it was found.
-func CLIConfigFromContext(ctx context.Context) (entities.CLIConfig, bool) {
-	config, ok := ctx.Value(CLIConfigKey{}).(entities.CLIConfig)
+func ConfigFromContext(ctx context.Context) (entities.CLIConfig, bool) {
+	config, ok := ctx.Value(ConfigKey{}).(entities.CLIConfig)
 
 	return config, ok
 }
@@ -26,5 +26,5 @@ func CLIConfigFromContext(ctx context.Context) (entities.CLIConfig, bool) {
 // WithCLIConfig returns a new context with the given CLIConfig added.
 // This is an infrastructure concern for CLI applications and is placed in adapters layer.
 func WithCLIConfig(ctx context.Context, config entities.CLIConfig) context.Context {
-	return context.WithValue(ctx, CLIConfigKey{}, config)
+	return context.WithValue(ctx, ConfigKey{}, config)
 }

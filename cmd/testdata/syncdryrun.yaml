@@ -1,7 +1,6 @@
-# SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+# SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 #
 # SPDX-License-Identifier: CC0-1.0
-
 gitprovidersync:
   env1:
     conf1:
@@ -10,7 +9,6 @@ gitprovidersync:
       owner: user
       repositories:
         include: aproject
-
       mirrors:
         tar:
           provider_type: archive

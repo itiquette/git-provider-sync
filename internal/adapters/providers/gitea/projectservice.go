@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
@@ -16,8 +16,19 @@ import (
 	"itiquette/git-provider-sync/internal/domain/ports"
 )
 
+// Static errors for err113 compliance.
+var (
+	ErrProjectNameEmpty                  = errors.New("repository name cannot be empty")
+	ErrProjectNameTooLong                = errors.New("repository name too long (max 100 characters)")
+	ErrProjectNameStartsOrEndsWithPeriod = errors.New("repository name cannot start or end with a period")
+	ErrProjectNameStartsOrEndsWithHyphen = errors.New("repository name cannot start or end with a hyphen")
+	ErrProjectNameInvalidCharacter       = errors.New("repository name contains invalid character")
+	ErrProjectNameReserved               = errors.New("repository name is reserved")
+)
+
 // ProjectService provides Gitea-specific project operations.
-// This restores the sophisticated project service functionality from main branch.
+//
+//	sophisticated project service functionality .
 type ProjectService struct {
 	client *gitea.Client
 	logger ports.Logger
@@ -55,7 +66,7 @@ func (ps *ProjectService) CreateProject(ctx context.Context, request CreateProje
 	createOpts := gitea.CreateRepoOption{
 		Name:        request.Name,
 		Description: request.Description,
-		Private:     request.Visibility == "private",
+		Private:     request.Visibility == visibilityPrivate,
 		AutoInit:    request.AutoInit,
 	}
 
@@ -156,35 +167,72 @@ func (ps *ProjectService) UpdateProject(ctx context.Context, owner, name string,
 
 // ValidateProjectName validates a Gitea repository name.
 func (ps *ProjectService) ValidateProjectName(name string) error {
+	if err := ps.validateBasicRequirements(name); err != nil {
+		return err
+	}
+
+	if err := ps.validateNamingRules(name); err != nil {
+		return err
+	}
+
+	if err := ps.validateCharacters(name); err != nil {
+		return err
+	}
+
+	return ps.validateReservedNames(name)
+}
+
+// validateBasicRequirements checks basic naming requirements.
+func (ps *ProjectService) validateBasicRequirements(name string) error {
 	if name == "" {
-		return errors.New("repository name cannot be empty")
+		return ErrProjectNameEmpty
 	}
 
 	if len(name) > 100 {
-		return errors.New("repository name too long (max 100 characters)")
+		return ErrProjectNameTooLong
 	}
 
-	// Gitea repository naming rules
+	return nil
+}
+
+// validateNamingRules checks Gitea naming rules.
+func (ps *ProjectService) validateNamingRules(name string) error {
+	// Gitea naming rules
 	if strings.HasPrefix(name, ".") || strings.HasSuffix(name, ".") {
-		return errors.New("repository name cannot start or end with a period")
+		return ErrProjectNameStartsOrEndsWithPeriod
 	}
 
 	if strings.HasPrefix(name, "-") || strings.HasSuffix(name, "-") {
-		return errors.New("repository name cannot start or end with a hyphen")
+		return ErrProjectNameStartsOrEndsWithHyphen
 	}
 
+	return nil
+}
+
+// validateCharacters checks for invalid characters.
+func (ps *ProjectService) validateCharacters(name string) error {
 	// Check for invalid characters
 	for _, char := range name {
 		if !isValidGiteaRepoChar(char) {
-			return fmt.Errorf("repository name contains invalid character: %c", char)
+			return fmt.Errorf("%w: %c", ErrProjectNameInvalidCharacter, char)
 		}
 	}
 
+	return nil
+}
+
+// validateReservedNames checks against reserved names.
+func (ps *ProjectService) validateReservedNames(name string) error {
 	// Reserved names
-	reservedNames := []string{".", "..", ".git"}
+	reservedNames := []string{
+		".", "..", ".git", ".well-known", "admin", "api", "root", "help",
+		"install", "assets", "css", "js", "img", "debug", "raw", "user",
+		"org", "repo", "issues", "pulls", "commits", "releases", "wiki",
+	}
+
 	for _, reserved := range reservedNames {
 		if strings.EqualFold(name, reserved) {
-			return fmt.Errorf("repository name '%s' is reserved", name)
+			return fmt.Errorf("%w: %s", ErrProjectNameReserved, name)
 		}
 	}
 

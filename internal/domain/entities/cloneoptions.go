@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
@@ -7,6 +7,8 @@ package entities
 import (
 	"fmt"
 	"strings"
+
+	"itiquette/git-provider-sync/internal/domain"
 )
 
 // CloneOptions represents immutable clone operation configuration as domain value object.
@@ -39,65 +41,117 @@ func NewCloneOptionsBuilder() CloneOptionsBuilder {
 	}
 }
 
-// WithRepositoryName sets the repository name.
+// WithRepositoryName specifies the repository identifier for clone operations.
 func (b CloneOptionsBuilder) WithRepositoryName(name string) CloneOptionsBuilder {
 	b.options.repositoryName = strings.TrimSpace(name)
+
 	return b
 }
 
-// WithSourceURL sets the source repository URL.
+// WithSourceURL specifies the source repository location for cloning.
 func (b CloneOptionsBuilder) WithSourceURL(url string) CloneOptionsBuilder {
 	b.options.sourceURL = strings.TrimSpace(url)
+
 	return b
 }
 
-// WithTargetPath sets the target clone path.
+// WithTargetPath specifies where the repository should be cloned locally.
 func (b CloneOptionsBuilder) WithTargetPath(path string) CloneOptionsBuilder {
 	b.options.targetPath = strings.TrimSpace(path)
+
 	return b
 }
 
 // WithMirror sets whether this is a mirror clone.
 func (b CloneOptionsBuilder) WithMirror(mirror bool) CloneOptionsBuilder {
 	b.options.isMirror = mirror
+
 	return b
 }
 
 // WithNonBare sets whether to create a non-bare repository (with working tree).
 func (b CloneOptionsBuilder) WithNonBare(nonBare bool) CloneOptionsBuilder {
 	b.options.isNonBare = nonBare
+
 	return b
 }
 
 // WithASCIIName sets whether to use ASCII-cleaned name.
 func (b CloneOptionsBuilder) WithASCIIName(ascii bool) CloneOptionsBuilder {
 	b.options.useASCIIName = ascii
+
 	return b
 }
 
 // WithAuthentication sets the authentication configuration.
 func (b CloneOptionsBuilder) WithAuthentication(auth AuthConfig) CloneOptionsBuilder {
 	b.options.authConfig = auth
+
 	return b
 }
 
 // WithProtocol sets the protocol (https, ssh).
 func (b CloneOptionsBuilder) WithProtocol(protocol string) CloneOptionsBuilder {
 	b.options.protocol = strings.ToLower(strings.TrimSpace(protocol))
+
 	return b
 }
 
 // Build creates immutable clone options after validation.
 func (b CloneOptionsBuilder) Build() (CloneOptions, error) {
 	if b.options.repositoryName == "" {
-		return CloneOptions{}, fmt.Errorf("repository name is required")
+		return CloneOptions{}, domain.ErrRepositoryNameRequired
 	}
 
 	if b.options.sourceURL == "" {
-		return CloneOptions{}, fmt.Errorf("source URL is required")
+		return CloneOptions{}, domain.ErrSourceURLRequired
 	}
 
 	return b.options, nil
+}
+
+// Factory functions for common patterns
+
+// NewCloneOptionsFromRepository creates clone options from repository entity.
+func NewCloneOptionsFromRepository(repo Repository, auth AuthConfig, mirror bool) (CloneOptions, error) {
+	builder := NewCloneOptionsBuilder().
+		WithRepositoryName(repo.Name()).
+		WithMirror(mirror).
+		WithAuthentication(auth)
+
+	// Prefer HTTPS URL if available
+	if repo.HTTPSURL() != "" { //nolint:gocritic // if-else chain is more readable for URL preference logic
+		builder = builder.WithSourceURL(repo.HTTPSURL()).WithProtocol("https")
+	} else if repo.SSHURL() != "" {
+		builder = builder.WithSourceURL(repo.SSHURL()).WithProtocol("ssh")
+	} else {
+		return CloneOptions{}, domain.ErrNoCloneURLs
+	}
+
+	return builder.Build()
+}
+
+// NewMirrorCloneOptions creates clone options for mirror operations.
+func NewMirrorCloneOptions(repoName, sourceURL string, auth AuthConfig) (CloneOptions, error) {
+	return NewCloneOptionsBuilder().
+		WithRepositoryName(repoName).
+		WithSourceURL(sourceURL).
+		WithMirror(true).
+		WithNonBare(false).
+		WithAuthentication(auth).
+		Build()
+}
+
+// NewRegularCloneOptions creates clone options for regular repository clones.
+func NewRegularCloneOptions(repoName, sourceURL, targetPath string, auth AuthConfig) (CloneOptions, error) {
+	return NewCloneOptionsBuilder().
+		WithRepositoryName(repoName).
+		WithSourceURL(sourceURL).
+		WithTargetPath(targetPath).
+		WithMirror(false).
+		WithNonBare(true).
+		WithAuthentication(auth).
+		Build()
 }
 
 // Immutable accessor methods
@@ -149,6 +203,7 @@ func (co CloneOptions) EffectiveName() string {
 	if co.useASCIIName && co.repositoryName != "" {
 		return CleanRepositoryName(co.repositoryName)
 	}
+
 	return co.repositoryName
 }
 
@@ -167,6 +222,7 @@ func (co CloneOptions) GetCloneURL(httpsURL, sshURL string) string {
 	if co.protocol == "ssh" && sshURL != "" {
 		return sshURL
 	}
+
 	return httpsURL
 }
 
@@ -174,6 +230,7 @@ func (co CloneOptions) GetCloneURL(httpsURL, sshURL string) string {
 func (co CloneOptions) WithUpdatedAuth(auth AuthConfig) CloneOptions {
 	updated := co
 	updated.authConfig = auth
+
 	return updated
 }
 
@@ -181,6 +238,7 @@ func (co CloneOptions) WithUpdatedAuth(auth AuthConfig) CloneOptions {
 func (co CloneOptions) WithUpdatedProtocol(protocol string) CloneOptions {
 	updated := co
 	updated.protocol = strings.ToLower(strings.TrimSpace(protocol))
+
 	return updated
 }
 
@@ -193,48 +251,4 @@ func (co CloneOptions) String() string {
 		co.isNonBare,
 		co.protocol,
 		co.authConfig.String())
-}
-
-// Factory functions for common patterns
-
-// NewCloneOptionsFromRepository creates clone options from repository entity.
-func NewCloneOptionsFromRepository(repo Repository, auth AuthConfig, mirror bool) (CloneOptions, error) {
-	builder := NewCloneOptionsBuilder().
-		WithRepositoryName(repo.Name()).
-		WithMirror(mirror).
-		WithAuthentication(auth)
-
-	// Prefer HTTPS URL if available
-	if repo.HTTPSURL() != "" {
-		builder = builder.WithSourceURL(repo.HTTPSURL()).WithProtocol("https")
-	} else if repo.SSHURL() != "" {
-		builder = builder.WithSourceURL(repo.SSHURL()).WithProtocol("ssh")
-	} else {
-		return CloneOptions{}, fmt.Errorf("repository has no clone URLs")
-	}
-
-	return builder.Build()
-}
-
-// NewMirrorCloneOptions creates clone options for mirror operations.
-func NewMirrorCloneOptions(repoName, sourceURL string, auth AuthConfig) (CloneOptions, error) {
-	return NewCloneOptionsBuilder().
-		WithRepositoryName(repoName).
-		WithSourceURL(sourceURL).
-		WithMirror(true).
-		WithNonBare(false).
-		WithAuthentication(auth).
-		Build()
-}
-
-// NewRegularCloneOptions creates clone options for regular repository clones.
-func NewRegularCloneOptions(repoName, sourceURL, targetPath string, auth AuthConfig) (CloneOptions, error) {
-	return NewCloneOptionsBuilder().
-		WithRepositoryName(repoName).
-		WithSourceURL(sourceURL).
-		WithTargetPath(targetPath).
-		WithMirror(false).
-		WithNonBare(true).
-		WithAuthentication(auth).
-		Build()
 }

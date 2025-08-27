@@ -1,16 +1,20 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+// Package gogit provides go-git based repository operations for Git Provider Sync.
 package gogit
 
 import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/go-git/go-billy/v5"
+	"github.com/go-git/go-billy/v5/memfs"
 	"github.com/go-git/go-billy/v5/osfs"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
@@ -19,8 +23,12 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
+	"github.com/go-git/go-git/v5/storage"
 	"github.com/go-git/go-git/v5/storage/filesystem"
+	"github.com/go-git/go-git/v5/storage/memory"
 
+	"itiquette/git-provider-sync/internal/domain"
+	"itiquette/git-provider-sync/internal/domain/entities"
 	"itiquette/git-provider-sync/internal/domain/ports"
 )
 
@@ -36,7 +44,46 @@ func New(config ports.GitConfig) *Adapter {
 	}
 }
 
-// Clone clones a repository using go-git.
+// isGitDir checks if a directory contains git repository files (like config, HEAD, etc.)
+func isGitDir(path string) bool {
+	// Check for common git directory markers
+	markers := []string{"config", "HEAD", "objects", "refs"}
+	for _, marker := range markers {
+		if _, err := os.Stat(filepath.Join(path, marker)); err != nil {
+			return false
+		}
+	}
+
+	return true
+}
+
+// createStorer creates an appropriate storer based on the configuration.
+func (a *Adapter) createStorer(path string) storage.Storer {
+	switch a.config.StorageMode {
+	case ports.StorageModeFilesystem:
+		fs := osfs.New(path)
+
+		return filesystem.NewStorage(fs, nil)
+	case ports.StorageModeMemory:
+		fallthrough
+	default:
+		return memory.NewStorage()
+	}
+}
+
+// createFilesystem creates an appropriate filesystem based on the configuration.
+func (a *Adapter) createFilesystem(path string) billy.Filesystem {
+	switch a.config.StorageMode {
+	case ports.StorageModeFilesystem:
+		return osfs.New(path)
+	case ports.StorageModeMemory:
+		fallthrough
+	default:
+		return memfs.New()
+	}
+}
+
+// Clone clones a repository using configurable storage.
 func (a *Adapter) Clone(ctx context.Context, options ports.CloneOptions) (ports.GitRepository, error) {
 	auth, err := a.buildAuth(options.Auth)
 	if err != nil {
@@ -57,15 +104,21 @@ func (a *Adapter) Clone(ctx context.Context, options ports.CloneOptions) (ports.
 		cloneOptions.Mirror = true
 	}
 
-	var repo *git.Repository
+	var (
+		storer storage.Storer
+		repo   *git.Repository
+	)
 
 	if options.Bare {
-		// For bare repositories, clone to filesystem storage
-		fs := osfs.New(options.Path)
-		storage := filesystem.NewStorage(fs, nil)
-		repo, err = git.CloneContext(ctx, storage, nil, cloneOptions)
+		// For bare repositories, don't use a worktree
+		storer = a.createStorer(options.Path)
+		repo, err = git.CloneContext(ctx, storer, nil, cloneOptions)
 	} else {
-		repo, err = git.PlainCloneContext(ctx, options.Path, false, cloneOptions)
+		// For non-bare repositories, store git data in .git subdirectory
+		gitPath := filepath.Join(options.Path, ".git")
+		storer = a.createStorer(gitPath)
+		worktree := a.createFilesystem(options.Path)
+		repo, err = git.CloneContext(ctx, storer, worktree, cloneOptions)
 	}
 
 	if err != nil {
@@ -79,24 +132,27 @@ func (a *Adapter) Clone(ctx context.Context, options ports.CloneOptions) (ports.
 	}, nil
 }
 
-// Open opens an existing repository.
-func (a *Adapter) Open(ctx context.Context, path string) (ports.GitRepository, error) {
-	repo, err := git.PlainOpen(path)
+// Open opens an existing repository using configurable storage.
+func (a *Adapter) Open(_ context.Context, path string) (ports.GitRepository, error) {
+	// For filesystem mode, try to open existing repository
+	if a.config.StorageMode == ports.StorageModeFilesystem {
+		return a.openFilesystemRepository(path)
+	}
+
+	// For in-memory mode (default), create new repository since we can't "open" from path
+	return a.createInMemoryRepository(path)
+}
+
+// openFilesystemRepository opens a repository from filesystem storage.
+func (a *Adapter) openFilesystemRepository(path string) (*Repository, error) {
+	storer, worktree := a.determineStorageLayout(path)
+
+	repo, err := git.Open(storer, worktree)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open repository: %w", err)
 	}
 
-	// Try to get remote URL
-	remotes, err := repo.Remotes()
-
-	var url string
-
-	if err == nil && len(remotes) > 0 {
-		urls := remotes[0].Config().URLs
-		if len(urls) > 0 {
-			url = urls[0]
-		}
-	}
+	url := a.extractRemoteURL(repo)
 
 	return &Repository{
 		repo: repo,
@@ -105,18 +161,74 @@ func (a *Adapter) Open(ctx context.Context, path string) (ports.GitRepository, e
 	}, nil
 }
 
-// Init initializes a new repository.
-func (a *Adapter) Init(ctx context.Context, path string, options ports.InitOptions) (ports.GitRepository, error) {
-	var repo *git.Repository
+// determineStorageLayout determines the correct storer and worktree based on repository type.
+func (a *Adapter) determineStorageLayout(path string) (storage.Storer, billy.Filesystem) {
+	// First try to open as a non-bare repository with .git subdirectory
+	gitPath := filepath.Join(path, ".git")
+	if _, err := os.Stat(gitPath); err == nil {
+		// Non-bare repository with .git subdirectory
+		return a.createStorer(gitPath), a.createFilesystem(path)
+	}
 
-	var err error
+	if strings.HasSuffix(path, ".git") || isGitDir(path) {
+		// Bare repository
+		return a.createStorer(path), nil
+	}
+
+	// Try as a bare repository in the given path
+	return a.createStorer(path), a.createFilesystem(path)
+}
+
+// extractRemoteURL extracts the remote URL from the repository.
+func (a *Adapter) extractRemoteURL(repo *git.Repository) string {
+	remotes, err := repo.Remotes()
+	if err != nil || len(remotes) == 0 {
+		return ""
+	}
+
+	urls := remotes[0].Config().URLs
+	if len(urls) == 0 {
+		return ""
+	}
+
+	return urls[0]
+}
+
+// createInMemoryRepository creates a new in-memory repository.
+func (a *Adapter) createInMemoryRepository(path string) (*Repository, error) {
+	storer := a.createStorer(path)
+	worktree := a.createFilesystem(path)
+
+	repo, err := git.Init(storer, worktree)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create in-memory repository: %w", err)
+	}
+
+	return &Repository{
+		repo: repo,
+		path: path,
+		url:  "",
+	}, nil
+}
+
+// Init initializes a new repository using configurable storage.
+func (a *Adapter) Init(_ context.Context, path string, options ports.InitOptions) (ports.GitRepository, error) {
+	var (
+		storer storage.Storer
+		repo   *git.Repository
+		err    error
+	)
 
 	if options.Bare {
-		fs := osfs.New(path)
-		storage := filesystem.NewStorage(fs, nil)
-		repo, err = git.Init(storage, nil)
+		// For bare repositories, don't use a worktree
+		storer = a.createStorer(path)
+		repo, err = git.Init(storer, nil)
 	} else {
-		repo, err = git.PlainInit(path, false)
+		// For non-bare repositories, store git data in .git subdirectory
+		gitPath := filepath.Join(path, ".git")
+		storer = a.createStorer(gitPath)
+		worktree := a.createFilesystem(path)
+		repo, err = git.Init(storer, worktree)
 	}
 
 	if err != nil {
@@ -156,9 +268,38 @@ func (a *Adapter) GetName() string {
 }
 
 // Cleanup cleans up resources at the given path.
-func (a *Adapter) Cleanup(ctx context.Context, path string) error {
+func (a *Adapter) Cleanup(_ context.Context, _ string) error {
 	// For go-git, cleanup mainly involves removing temporary directories
 	// The actual implementation would depend on what needs to be cleaned up
+	return nil
+}
+
+// CreateTmpDir implements the ports.GitOperations interface.
+func (a *Adapter) CreateTmpDir(ctx context.Context, dir, prefix string) (context.Context, error) {
+	ctxWithTmp, err := entities.CreateTmpDir(ctx, dir, prefix)
+	if err != nil {
+		return ctx, fmt.Errorf("failed to create temporary directory: %w", err)
+	}
+
+	return ctxWithTmp, nil
+}
+
+// GetTmpDirPath implements the ports.GitOperations interface.
+func (a *Adapter) GetTmpDirPath(ctx context.Context) (string, error) {
+	path, err := entities.GetTmpDirPath(ctx)
+	if err != nil {
+		return "", fmt.Errorf("failed to get temporary directory path: %w", err)
+	}
+
+	return path, nil
+}
+
+// DeleteTmpDir implements the ports.GitOperations interface.
+func (a *Adapter) DeleteTmpDir(ctx context.Context) error {
+	if err := entities.DeleteTmpDir(ctx); err != nil {
+		return fmt.Errorf("failed to delete temporary directory: %w", err)
+	}
+
 	return nil
 }
 
@@ -230,7 +371,7 @@ func (r *Repository) CurrentBranch() (string, error) {
 }
 
 // ListBranches lists all branches in the repository.
-func (r *Repository) ListBranches(ctx context.Context) ([]ports.BranchInfo, error) {
+func (r *Repository) ListBranches(_ context.Context) ([]ports.BranchInfo, error) {
 	refs, err := r.repo.References()
 	if err != nil {
 		return nil, fmt.Errorf("failed to list references: %w", err)
@@ -253,7 +394,6 @@ func (r *Repository) ListBranches(ctx context.Context) ([]ports.BranchInfo, erro
 
 		return nil
 	})
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to iterate references: %w", err)
 	}
@@ -262,7 +402,7 @@ func (r *Repository) ListBranches(ctx context.Context) ([]ports.BranchInfo, erro
 }
 
 // CreateBranch creates a new branch.
-func (r *Repository) CreateBranch(ctx context.Context, name, source string) error {
+func (r *Repository) CreateBranch(_ context.Context, name, source string) error {
 	var sourceRef *plumbing.Reference
 
 	var err error
@@ -290,9 +430,9 @@ func (r *Repository) CreateBranch(ctx context.Context, name, source string) erro
 }
 
 // CheckoutBranch checks out a branch.
-func (r *Repository) CheckoutBranch(ctx context.Context, name string) error {
+func (r *Repository) CheckoutBranch(_ context.Context, name string) error {
 	if r.IsBare() {
-		return errors.New("cannot checkout branch in bare repository")
+		return domain.ErrCannotCheckoutBare
 	}
 
 	worktree, err := r.repo.Worktree()
@@ -311,7 +451,7 @@ func (r *Repository) CheckoutBranch(ctx context.Context, name string) error {
 }
 
 // DeleteBranch deletes a branch.
-func (r *Repository) DeleteBranch(ctx context.Context, name string, force bool) error {
+func (r *Repository) DeleteBranch(_ context.Context, name string, _ bool) error {
 	ref := plumbing.ReferenceName("refs/heads/" + name)
 
 	err := r.repo.Storer.RemoveReference(ref)
@@ -323,7 +463,7 @@ func (r *Repository) DeleteBranch(ctx context.Context, name string, force bool) 
 }
 
 // SetDefaultBranch sets the default branch.
-func (r *Repository) SetDefaultBranch(ctx context.Context, name string) error {
+func (r *Repository) SetDefaultBranch(_ context.Context, name string) error {
 	headRef := plumbing.NewSymbolicReference(plumbing.HEAD, plumbing.ReferenceName("refs/heads/"+name))
 
 	err := r.repo.Storer.SetReference(headRef)
@@ -335,7 +475,7 @@ func (r *Repository) SetDefaultBranch(ctx context.Context, name string) error {
 }
 
 // ListRemotes lists all remotes.
-func (r *Repository) ListRemotes(ctx context.Context) ([]ports.RemoteInfo, error) {
+func (r *Repository) ListRemotes(_ context.Context) ([]ports.RemoteInfo, error) {
 	remotes, err := r.repo.Remotes()
 	if err != nil {
 		return nil, fmt.Errorf("failed to list remotes: %w", err)
@@ -362,7 +502,7 @@ func (r *Repository) ListRemotes(ctx context.Context) ([]ports.RemoteInfo, error
 }
 
 // AddRemote adds a new remote.
-func (r *Repository) AddRemote(ctx context.Context, name, url string) error {
+func (r *Repository) AddRemote(_ context.Context, name, url string) error {
 	_, err := r.repo.CreateRemote(&config.RemoteConfig{
 		Name: name,
 		URLs: []string{url},
@@ -375,7 +515,7 @@ func (r *Repository) AddRemote(ctx context.Context, name, url string) error {
 }
 
 // RemoveRemote removes a remote.
-func (r *Repository) RemoveRemote(ctx context.Context, name string) error {
+func (r *Repository) RemoveRemote(_ context.Context, name string) error {
 	err := r.repo.DeleteRemote(name)
 	if err != nil {
 		return fmt.Errorf("failed to remove remote: %w", err)
@@ -385,7 +525,7 @@ func (r *Repository) RemoveRemote(ctx context.Context, name string) error {
 }
 
 // UpdateRemote updates a remote URL.
-func (r *Repository) UpdateRemote(ctx context.Context, name, url string) error {
+func (r *Repository) UpdateRemote(_ context.Context, name, url string) error {
 	err := r.repo.DeleteRemote(name)
 	if err != nil {
 		return fmt.Errorf("failed to remove existing remote: %w", err)
@@ -434,7 +574,7 @@ func (r *Repository) Fetch(ctx context.Context, options ports.FetchOptions) erro
 // Pull pulls from a remote.
 func (r *Repository) Pull(ctx context.Context, options ports.PullOptions) error {
 	if r.IsBare() {
-		return errors.New("cannot pull in bare repository")
+		return domain.ErrCannotPullBare
 	}
 
 	worktree, err := r.repo.Worktree()
@@ -495,7 +635,7 @@ func (r *Repository) Push(ctx context.Context, options ports.PushOptions) error 
 }
 
 // GetCommit gets a commit by reference.
-func (r *Repository) GetCommit(ctx context.Context, ref string) (ports.CommitInfo, error) {
+func (r *Repository) GetCommit(_ context.Context, ref string) (ports.CommitInfo, error) {
 	hash, err := r.repo.ResolveRevision(plumbing.Revision(ref))
 	if err != nil {
 		return ports.CommitInfo{}, fmt.Errorf("failed to resolve revision: %w", err)
@@ -510,7 +650,9 @@ func (r *Repository) GetCommit(ctx context.Context, ref string) (ports.CommitInf
 }
 
 // ListCommits lists commits based on options.
-func (r *Repository) ListCommits(ctx context.Context, options ports.ListCommitsOptions) ([]ports.CommitInfo, error) {
+//
+//nolint:cyclop // Complex commit listing logic with multiple filtering options
+func (r *Repository) ListCommits(_ context.Context, options ports.ListCommitsOptions) ([]ports.CommitInfo, error) {
 	var startRef plumbing.Hash
 
 	var err error
@@ -545,7 +687,7 @@ func (r *Repository) ListCommits(ctx context.Context, options ports.ListCommitsO
 
 	err = commitIter.ForEach(func(commit *object.Commit) error {
 		if options.MaxCount > 0 && count >= options.MaxCount {
-			return errors.New("reached max count")
+			return domain.ErrMaxCountReached
 		}
 
 		// Apply filters
@@ -570,7 +712,6 @@ func (r *Repository) ListCommits(ctx context.Context, options ports.ListCommitsO
 
 		return nil
 	})
-
 	if err != nil && !strings.Contains(err.Error(), "reached max count") {
 		return nil, fmt.Errorf("failed to iterate commits: %w", err)
 	}
@@ -579,7 +720,7 @@ func (r *Repository) ListCommits(ctx context.Context, options ports.ListCommitsO
 }
 
 // ListTags lists all tags.
-func (r *Repository) ListTags(ctx context.Context) ([]ports.TagInfo, error) {
+func (r *Repository) ListTags(_ context.Context) ([]ports.TagInfo, error) {
 	tagRefs, err := r.repo.Tags()
 	if err != nil {
 		return nil, fmt.Errorf("failed to list tags: %w", err)
@@ -615,7 +756,6 @@ func (r *Repository) ListTags(ctx context.Context) ([]ports.TagInfo, error) {
 
 		return nil
 	})
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to iterate tags: %w", err)
 	}
@@ -624,7 +764,7 @@ func (r *Repository) ListTags(ctx context.Context) ([]ports.TagInfo, error) {
 }
 
 // CreateTag creates a new tag.
-func (r *Repository) CreateTag(ctx context.Context, name, message, ref string) error {
+func (r *Repository) CreateTag(_ context.Context, name, _, ref string) error {
 	var hash plumbing.Hash
 
 	var err error
@@ -656,7 +796,7 @@ func (r *Repository) CreateTag(ctx context.Context, name, message, ref string) e
 }
 
 // DeleteTag deletes a tag.
-func (r *Repository) DeleteTag(ctx context.Context, name string) error {
+func (r *Repository) DeleteTag(_ context.Context, name string) error {
 	tagRef := plumbing.ReferenceName("refs/tags/" + name)
 
 	err := r.repo.Storer.RemoveReference(tagRef)
@@ -668,7 +808,9 @@ func (r *Repository) DeleteTag(ctx context.Context, name string) error {
 }
 
 // Status returns the status of the working directory.
-func (r *Repository) Status(ctx context.Context) (ports.StatusResult, error) {
+//
+//nolint:cyclop // Complex status checking logic with multiple file states
+func (r *Repository) Status(_ context.Context) (ports.StatusResult, error) {
 	if r.IsBare() {
 		return ports.StatusResult{IsClean: true}, nil
 	}
@@ -711,7 +853,7 @@ func (r *Repository) Status(ctx context.Context) (ports.StatusResult, error) {
 }
 
 // Diff generates a diff between two references.
-func (r *Repository) Diff(ctx context.Context, options ports.DiffOptions) (string, error) {
+func (r *Repository) Diff(_ context.Context, _ ports.DiffOptions) (string, error) {
 	// For simplicity, return a basic diff implementation
 	// A full implementation would use go-git's diff capabilities
 	return "Diff functionality not yet implemented in go-git adapter", nil
@@ -725,50 +867,76 @@ func (r *Repository) Close() error {
 
 // Helper methods
 
-func (a *Adapter) buildAuth(authOptions ports.AuthOptions) (transport.AuthMethod, error) {
+func (a *Adapter) buildAuth(authOptions ports.AuthOptions) (transport.AuthMethod, error) { //nolint:ireturn
 	switch authOptions.Type {
 	case ports.AuthTypeNone:
-		// No authentication required - return a no-op auth method
 		return &noAuth{}, nil
+	case ports.AuthTypeSSH:
+		// Generic SSH type - fallback to SSH key auth
+		return a.buildSSHKeyAuth(authOptions)
 	case ports.AuthTypeSSHAgent:
-		// SSH agent auth is not implemented in this adapter
-		return nil, errors.New("SSH agent auth not supported by go-git adapter")
+		return nil, domain.ErrSSHAgentNotSupported
 	case ports.AuthTypeBasic:
-		return &http.BasicAuth{
-			Username: authOptions.Username,
-			Password: authOptions.Password,
-		}, nil
+		return a.buildBasicAuth(authOptions), nil
 	case ports.AuthTypeToken:
-		return &http.BasicAuth{
-			Username: authOptions.Username,
-			Password: authOptions.Token,
-		}, nil
+		return a.buildTokenAuth(authOptions), nil
 	case ports.AuthTypeSSHKey:
-		if authOptions.SSHKeyPath != "" {
-			publicKeys, err := ssh.NewPublicKeysFromFile(authOptions.Username, authOptions.SSHKeyPath, authOptions.Passphrase)
-			if err != nil {
-				return nil, fmt.Errorf("failed to load SSH key from file: %w", err)
-			}
-
-			return publicKeys, nil
-		}
-
-		if len(authOptions.SSHKey) > 0 {
-			publicKeys, err := ssh.NewPublicKeys(authOptions.Username, authOptions.SSHKey, authOptions.Passphrase)
-			if err != nil {
-				return nil, fmt.Errorf("failed to load SSH key from bytes: %w", err)
-			}
-
-			return publicKeys, nil
-		}
-
-		return nil, errors.New("SSH key auth requires either SSHKeyPath or SSHKey")
+		return a.buildSSHKeyAuth(authOptions)
 	default:
-		return nil, fmt.Errorf("unsupported auth type: %v", authOptions.Type)
+		return nil, fmt.Errorf("%w: %v", domain.ErrUnsupportedAuthType, authOptions.Type)
 	}
 }
 
-func (r *Repository) buildAuth(authOptions ports.AuthOptions) (transport.AuthMethod, error) {
+// buildBasicAuth creates basic authentication.
+func (a *Adapter) buildBasicAuth(authOptions ports.AuthOptions) transport.AuthMethod { //nolint:ireturn
+	return &http.BasicAuth{
+		Username: authOptions.Username,
+		Password: authOptions.Password,
+	}
+}
+
+// buildTokenAuth creates token-based authentication.
+func (a *Adapter) buildTokenAuth(authOptions ports.AuthOptions) transport.AuthMethod { //nolint:ireturn
+	return &http.BasicAuth{
+		Username: authOptions.Username,
+		Password: authOptions.Token,
+	}
+}
+
+// buildSSHKeyAuth creates SSH key authentication.
+func (a *Adapter) buildSSHKeyAuth(authOptions ports.AuthOptions) (transport.AuthMethod, error) { //nolint:ireturn
+	if authOptions.SSHKeyPath != "" {
+		return a.buildSSHKeyFromFile(authOptions)
+	}
+
+	if len(authOptions.SSHKey) > 0 {
+		return a.buildSSHKeyFromBytes(authOptions)
+	}
+
+	return nil, domain.ErrSSHKeyRequired
+}
+
+// buildSSHKeyFromFile creates SSH authentication from a key file.
+func (a *Adapter) buildSSHKeyFromFile(authOptions ports.AuthOptions) (transport.AuthMethod, error) { //nolint:ireturn
+	publicKeys, err := ssh.NewPublicKeysFromFile(authOptions.Username, authOptions.SSHKeyPath, authOptions.Passphrase)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load SSH key from file: %w", err)
+	}
+
+	return publicKeys, nil
+}
+
+// buildSSHKeyFromBytes creates SSH authentication from key bytes.
+func (a *Adapter) buildSSHKeyFromBytes(authOptions ports.AuthOptions) (transport.AuthMethod, error) { //nolint:ireturn
+	publicKeys, err := ssh.NewPublicKeys(authOptions.Username, authOptions.SSHKey, authOptions.Passphrase)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load SSH key from bytes: %w", err)
+	}
+
+	return publicKeys, nil
+}
+
+func (r *Repository) buildAuth(authOptions ports.AuthOptions) (transport.AuthMethod, error) { //nolint:ireturn
 	adapter := &Adapter{}
 
 	return adapter.buildAuth(authOptions)
@@ -776,12 +944,16 @@ func (r *Repository) buildAuth(authOptions ports.AuthOptions) (transport.AuthMet
 
 func (a *Adapter) convertTagMode(mode ports.TagMode) git.TagMode {
 	switch mode {
+	case ports.TagModeDefault:
+		return git.NoTags // Default to no tags
 	case ports.TagModeAll:
 		return git.AllTags
-	case ports.TagModeFollow:
-		return git.TagFollowing
 	case ports.TagModeNone:
 		return git.NoTags
+	case ports.TagModeFollowing:
+		return git.TagFollowing
+	case ports.TagModeFollow:
+		return git.TagFollowing
 	default:
 		return git.NoTags
 	}

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
@@ -10,44 +10,48 @@ import (
 	"fmt"
 	"strings"
 
-	"itiquette/git-provider-sync/internal/adapters/filesystem"
+	"itiquette/git-provider-sync/internal/domain"
 	"itiquette/git-provider-sync/internal/domain/entities"
 	"itiquette/git-provider-sync/internal/domain/ports"
+	"itiquette/git-provider-sync/internal/log"
 )
 
-// SyncRepositoriesUseCase orchestrates the synchronization of repositories from source to mirrors.
-// This preserves the core sync functionality from the main branch while following hexagonal architecture.
-type SyncRepositoriesUseCase struct {
+// RepositoriesUseCase orchestrates the synchronization of repositories from source to mirrors.
+// This orchestrates repository synchronization using hexagonal architecture principles.
+type RepositoriesUseCase struct {
 	configProvider     ports.Configuration
 	repositoryProvider ports.RepositoryProvider
 	gitOperations      ports.GitOperations
+	archiveOperations  ports.ArchiveOperations
 	logger             ports.Logger
 }
 
-// NewSyncRepositoriesUseCase creates a new sync repositories use case with explicit dependencies.
-func NewSyncRepositoriesUseCase(
+// NewRepositoriesUseCase creates a new sync repositories use case with explicit dependencies.
+func NewRepositoriesUseCase(
 	configProvider ports.Configuration,
 	repositoryProvider ports.RepositoryProvider,
 	gitOps ports.GitOperations,
+	archiveOps ports.ArchiveOperations,
 	logger ports.Logger,
-) SyncRepositoriesUseCase {
-	return SyncRepositoriesUseCase{
+) RepositoriesUseCase {
+	return RepositoriesUseCase{
 		configProvider:     configProvider,
 		repositoryProvider: repositoryProvider,
 		gitOperations:      gitOps,
+		archiveOperations:  archiveOps,
 		logger:             logger,
 	}
 }
 
-// SyncRequest represents the input for sync operation.
-type SyncRequest struct {
+// Request represents the input for sync operation.
+type Request struct {
 	ConfigPath  string
 	Environment string
 	DryRun      bool
 }
 
-// SyncResponse represents the result of sync operation.
-type SyncResponse struct {
+// Response represents the result of sync operation.
+type Response struct {
 	Success         bool
 	ProcessedRepos  int
 	SuccessfulSyncs int
@@ -57,36 +61,69 @@ type SyncResponse struct {
 }
 
 // Execute performs the repository synchronization operation.
-// This implements the core sync logic from main branch: sourceToMirror workflow.
-func (uc SyncRepositoriesUseCase) Execute(ctx context.Context, request SyncRequest) (SyncResponse, error) {
-	uc.logger.Info(ctx, "Starting repository synchronization", map[string]interface{}{
+// This implements the core sync logic using the sourceToMirror workflow pattern.
+func (uc RepositoriesUseCase) Execute(ctx context.Context, request Request) (Response, error) {
+	logger := log.CreateDomainLogger(ctx)
+
+	var response Response
+
+	var err error
+
+	// Check for cancellation early (idiomatic Go)
+	if ctx.Err() != nil {
+		return Response{}, fmt.Errorf("sync cancelled before start: %w", ctx.Err())
+	}
+
+	// TRACE: Use case entry point (hexagonal boundary)
+	logger.Trace(ctx, "RepositoriesUseCase.Execute entry", map[string]interface{}{
 		"config_path": request.ConfigPath,
 		"environment": request.Environment,
 		"dry_run":     request.DryRun,
 	})
 
-	// Create temporary directory for sync operations (from main branch functionality)
-	ctx, err := filesystem.CreateTmpDir(ctx, "", "gitprovidersync")
+	defer func() {
+		// TRACE: Use case exit point with outcome
+		logger.Trace(ctx, "RepositoriesUseCase.Execute exit", map[string]interface{}{
+			"success":          response.Success,
+			"processed_repos":  response.ProcessedRepos,
+			"successful_syncs": response.SuccessfulSyncs,
+			"failed_syncs":     response.FailedSyncs,
+			"error":            err != nil,
+		})
+	}()
+
+	logger.Info(ctx, "Starting repository synchronization", map[string]interface{}{
+		"config_path": request.ConfigPath,
+		"environment": request.Environment,
+		"dry_run":     request.DryRun,
+	})
+
+	// Create temporary directory for sync operations
+	ctx, err = uc.gitOperations.CreateTmpDir(ctx, "", "gitprovidersync")
 	if err != nil {
-		return SyncResponse{}, fmt.Errorf("failed to create temporary directory: %w", err)
+		return Response{}, fmt.Errorf("failed to create temporary directory: %w", err)
 	}
-	// Note: Cleanup is handled by the caller or defer in CLI layer
 
 	// Load configuration
-	configSource := ports.ConfigurationSource{} // TODO: Extract from request
+	configSource := ports.ConfigurationSource{
+		Location: request.ConfigPath,
+		Type:     ports.SourceTypeFile,
+		Required: true,
+	}
 
 	config, err := uc.configProvider.Load(ctx, configSource)
 	if err != nil {
-		return SyncResponse{}, fmt.Errorf("failed to load configuration: %w", err)
+		return Response{}, fmt.Errorf("failed to load configuration: %w", err)
 	}
 
 	// Check if any environments are configured before validation
 	if len(config.Environments) == 0 {
-		return SyncResponse{}, errors.New("no environments configured")
+		return Response{}, domain.ErrNoEnvironmentsConfigured
 	}
 
 	// Extract source configuration from first enabled environment for validation
 	var sourceConfig ports.ProviderConfig
+
 	for _, env := range config.Environments {
 		if env.Enabled {
 			sourceConfig = ports.ProviderConfig{
@@ -100,52 +137,31 @@ func (uc SyncRepositoriesUseCase) Execute(ctx context.Context, request SyncReque
 					SSHKey:     env.Source.Authentication.SSHKey,
 				},
 			}
+
 			break
 		}
 	}
 
-	// Skip validation for now - this should be a separate integration test
-	// TODO: Add proper validation with working mocks
-	if false && sourceConfig.ProviderType != "" && !request.DryRun {
-		validationRequest := ValidateSyncRequest{
-			SourceConfig: sourceConfig,
-			Options: ValidationOptions{
-				CheckConnectivity:     false, // Disable connectivity checks in unit tests
-				CheckAuthentication:   false, // Disable auth checks in unit tests
-				CheckRepositoryAccess: false, // Disable repo access checks in unit tests
-			},
-		}
-
-		validateUseCase := NewValidateSyncUseCase(uc.repositoryProvider, uc.configProvider)
-
-		validationResponse, err := validateUseCase.Execute(ctx, validationRequest)
-		if err != nil {
-			return SyncResponse{}, fmt.Errorf("validation failed: %w", err)
-		}
-
-		if !validationResponse.Valid {
-			return SyncResponse{
-				Success: false,
-				Errors:  convertValidationErrors(validationResponse.Errors),
-			}, errors.New("configuration validation failed")
-		}
+	// Validate configuration using the existing validation infrastructure
+	if err := uc.validateSourceConfig(ctx, sourceConfig); err != nil {
+		return Response{}, fmt.Errorf("source configuration validation failed: %w", err)
 	}
 
 	// Execute sync for each environment
-	response := SyncResponse{Success: true}
+	response = Response{Success: true}
 
-	// Initialize sync run metadata tracking (from main branch functionality)
+	// Initialize sync run metadata tracking
 	metadata := entities.NewSyncRunMetadata("source", "mirrors", "sync", "default")
 	metadata.SetTotalRepositories(len(config.Environments))
 	ctx = entities.AddMetadataToContext(ctx, metadata)
 
-	// Implementation of sourceToMirror logic from main branch
-	// This preserves the core workflow: fetch source repos → sync to each mirror
+	// Implementation of sourceToMirror workflow pattern
+	// Core workflow: fetch source repos → sync to each mirror
 	if err := uc.executeSourceToMirror(ctx, config, request, &response); err != nil {
 		return response, fmt.Errorf("sync execution failed: %w", err)
 	}
 
-	uc.logger.Info(ctx, "Repository synchronization completed", map[string]interface{}{
+	logger.Info(ctx, "Repository synchronization completed", map[string]interface{}{
 		"processed_repos":  response.ProcessedRepos,
 		"successful_syncs": response.SuccessfulSyncs,
 		"failed_syncs":     response.FailedSyncs,
@@ -155,32 +171,45 @@ func (uc SyncRepositoriesUseCase) Execute(ctx context.Context, request SyncReque
 	return response, nil
 }
 
-// executeSourceToMirror implements the core sync logic from main branch.
-// This preserves the original sourceToMirror workflow using hexagonal architecture.
-func (uc SyncRepositoriesUseCase) executeSourceToMirror(
+// executeSourceToMirror implements the core sync logic using hexagonal architecture.
+// This follows the sourceToMirror workflow pattern with proper dependency injection.
+func (uc RepositoriesUseCase) executeSourceToMirror(
 	ctx context.Context,
 	config ports.AppConfiguration,
-	_ SyncRequest,
-	response *SyncResponse,
+	_ Request,
+	response *Response,
 ) error {
-	uc.logger.Info(ctx, "Executing source to mirror synchronization", nil)
+	logger := log.CreateDomainLogger(ctx)
 
-	// Step 1: Extract environments from config (equivalent to main branch loop)
+	// TRACE: Internal orchestration method entry
+	logger.Trace(ctx, "executeSourceToMirror entry", map[string]interface{}{
+		"environments_count": len(config.Environments),
+	})
+
+	logger.Info(ctx, "Executing source to mirror synchronization", nil)
+
+	// Step 1: Extract environments from config
 	environments := config.Environments
 	if len(environments) == 0 {
-		return errors.New("no environments configured")
+		return domain.ErrNoEnvironmentsConfigured
 	}
 
 	for envName, env := range environments {
 		if !env.Enabled {
-			uc.logger.Info(ctx, "Skipping disabled environment", map[string]interface{}{
+			logger.Info(ctx, "Skipping disabled environment", map[string]interface{}{
 				"environment": envName,
 			})
 
 			continue
 		}
 
-		uc.logger.Info(ctx, "Processing environment", map[string]interface{}{
+		// TRACE: Environment processing boundary
+		logger.Trace(ctx, "processing environment", map[string]interface{}{
+			"environment": envName,
+			"enabled":     env.Enabled,
+		})
+
+		logger.Info(ctx, "Processing environment", map[string]interface{}{
 			"environment": envName,
 		})
 
@@ -194,12 +223,20 @@ func (uc SyncRepositoriesUseCase) executeSourceToMirror(
 }
 
 // processEnvironment processes a single environment (equivalent to sourceToMirror per environment).
-func (uc SyncRepositoriesUseCase) processEnvironment(
+func (uc RepositoriesUseCase) processEnvironment(
 	ctx context.Context,
 	envName string,
 	env ports.EnvironmentConfiguration,
-	response *SyncResponse,
+	response *Response,
 ) error {
+	logger := log.CreateDomainLogger(ctx)
+
+	// TRACE: Per-environment processing entry
+	logger.Trace(ctx, "processEnvironment entry", map[string]interface{}{
+		"environment": envName,
+		"provider":    env.Source.ProviderType,
+		"mirrors":     len(env.Mirrors),
+	})
 	// Step 1: Create source provider config
 	sourceConfig := env.Source
 
@@ -210,12 +247,11 @@ func (uc SyncRepositoriesUseCase) processEnvironment(
 	fetchUseCase := NewFetchSourceRepositoriesUseCase(
 		uc.repositoryProvider,
 		uc.gitOperations,
-		uc.logger,
 	)
 
 	fetchRequest := FetchSourceRequest{
 		ProviderConfig: providerConfig,
-		DryRun:         false, // TODO: Extract from CLI options
+		DryRun:         false, // Repository fetching doesn't support dry run
 		IncludeForks:   uc.extractIncludeForks(env),
 		Filters:        uc.convertToFilterOptions(env),
 	}
@@ -226,12 +262,19 @@ func (uc SyncRepositoriesUseCase) processEnvironment(
 	}
 
 	if len(fetchResponse.ClonedRepos) == 0 && !fetchRequest.DryRun {
-		uc.logger.Warn(ctx, "No repositories to sync", map[string]interface{}{
+		logger.Warn(ctx, "No repositories to sync", map[string]interface{}{
 			"environment": envName,
 		})
 
 		return nil
 	}
+
+	// TRACE: Step boundary - fetch completed, starting sync
+	logger.Trace(ctx, "fetch completed, starting sync to mirrors", map[string]interface{}{
+		"environment":   envName,
+		"cloned_repos":  len(fetchResponse.ClonedRepos),
+		"total_mirrors": len(env.Mirrors),
+	})
 
 	response.ProcessedRepos += fetchResponse.ProcessedCount
 
@@ -239,20 +282,21 @@ func (uc SyncRepositoriesUseCase) processEnvironment(
 	mirrorTargets := uc.convertMirrorsToTargets(env.Mirrors)
 
 	// Sync to all mirrors using our ported use case
-	syncToMirrorsUseCase := NewSyncToMirrorsUseCase(
+	syncToMirrorsUseCase := NewToMirrorsUseCase(
 		uc.repositoryProvider,
 		uc.gitOperations,
+		uc.archiveOperations,
 		uc.logger,
 	)
 
-	syncRequest := SyncToMirrorsRequest{
+	syncRequest := ToMirrorsRequest{
 		SourceRepositories: fetchResponse.ClonedRepos,
 		MirrorTargets:      mirrorTargets,
 		SourceConfig:       providerConfig,
 		DryRun:             fetchRequest.DryRun,
-		Options: SyncOptions{
-			ForcePush:          uc.extractForcePush(env),
-			IgnoreInvalidNames: uc.extractIgnoreInvalidNames(env),
+		Options: Options{
+			ForcePush:          false, // Default to false for safety (CLI option)
+			IgnoreInvalidNames: false, // Default to false (CLI option)
 			CreateIfNotExists:  true,
 			UpdateDescription:  true,
 		},
@@ -272,7 +316,7 @@ func (uc SyncRepositoriesUseCase) processEnvironment(
 		response.Success = false
 	}
 
-	uc.logger.Info(ctx, "Environment processing completed", map[string]interface{}{
+	logger.Info(ctx, "Environment processing completed", map[string]interface{}{
 		"environment":      envName,
 		"successful_syncs": syncResponse.SuccessfulSyncs,
 		"failed_syncs":     syncResponse.FailedSyncs,
@@ -281,20 +325,10 @@ func (uc SyncRepositoriesUseCase) processEnvironment(
 	return nil
 }
 
-// Helper function to convert validation errors.
-func convertValidationErrors(validationErrors []ValidationError) []error {
-	errors := make([]error, len(validationErrors))
-	for i, ve := range validationErrors {
-		errors[i] = fmt.Errorf("%s: %s", ve.Component, ve.Message)
-	}
-
-	return errors
-}
-
 // Adapter functions to convert between different type systems
 
 // convertSourceToProviderConfig converts SourceConfiguration to ProviderConfig.
-func (uc SyncRepositoriesUseCase) convertSourceToProviderConfig(source ports.SourceConfiguration) ports.ProviderConfig {
+func (uc RepositoriesUseCase) convertSourceToProviderConfig(source ports.SourceConfiguration) ports.ProviderConfig {
 	return ports.ProviderConfig{
 		ProviderType: source.ProviderType,
 		Domain:       source.Domain,
@@ -309,7 +343,7 @@ func (uc SyncRepositoriesUseCase) convertSourceToProviderConfig(source ports.Sou
 }
 
 // convertToFilterOptions converts environment configuration to FilterOptions.
-func (uc SyncRepositoriesUseCase) convertToFilterOptions(env ports.EnvironmentConfiguration) ports.FilterOptions {
+func (uc RepositoriesUseCase) convertToFilterOptions(env ports.EnvironmentConfiguration) ports.FilterOptions {
 	return ports.FilterOptions{
 		IncludePatterns: env.Source.Repository.IncludePatterns,
 		ExcludePatterns: env.Source.Repository.ExcludePatterns,
@@ -326,7 +360,7 @@ func (uc SyncRepositoriesUseCase) convertToFilterOptions(env ports.EnvironmentCo
 }
 
 // convertMirrorsToTargets converts mirror configuration map to MirrorTarget slice.
-func (uc SyncRepositoriesUseCase) convertMirrorsToTargets(mirrors map[string]ports.MirrorConfiguration) []entities.MirrorTarget {
+func (uc RepositoriesUseCase) convertMirrorsToTargets(mirrors map[string]ports.MirrorConfiguration) []entities.MirrorTarget {
 	targets := make([]entities.MirrorTarget, 0, len(mirrors))
 
 	for name, mirror := range mirrors {
@@ -363,23 +397,64 @@ func (uc SyncRepositoriesUseCase) convertMirrorsToTargets(mirrors map[string]por
 	return targets
 }
 
+// validateSourceConfig performs basic validation of source configuration without external calls.
+// Basic validation: checks required fields are present but doesn't verify connectivity or credentials.
+// For full validation (including network connectivity), use the ValidationService.
+func (uc RepositoriesUseCase) validateSourceConfig(ctx context.Context, config ports.ProviderConfig) error {
+	logger := log.CreateDomainLogger(ctx)
+
+	// TRACE: Validation boundary entry
+	logger.Trace(ctx, "validateSourceConfig entry", map[string]interface{}{
+		"provider": config.ProviderType,
+		"domain":   config.Domain,
+		"owner":    config.Owner,
+	})
+	// Basic validation that doesn't require external dependencies
+	if config.ProviderType == "" {
+		return errors.New("provider type is required")
+	}
+
+	if config.Owner == "" {
+		return errors.New("owner is required")
+	}
+
+	if config.Domain == "" {
+		return errors.New("domain is required")
+	}
+
+	// Check for supported provider types
+	validProviders := []string{"github", "gitlab", "gitea"}
+
+	var validProvider bool
+
+	for _, provider := range validProviders {
+		if config.ProviderType == provider {
+			validProvider = true
+
+			break
+		}
+	}
+
+	if !validProvider {
+		return fmt.Errorf("unsupported provider type: %s (supported: %v)", config.ProviderType, validProviders)
+	}
+
+	logger.Debug(ctx, "Source configuration validation passed", map[string]interface{}{
+		"provider": config.ProviderType,
+		"domain":   config.Domain,
+		"owner":    config.Owner,
+	})
+
+	return nil
+}
+
 // Helper methods to extract values from environment configuration
 
-func (uc SyncRepositoriesUseCase) extractIncludeForks(env ports.EnvironmentConfiguration) bool {
+func (uc RepositoriesUseCase) extractIncludeForks(env ports.EnvironmentConfiguration) bool {
 	return env.Source.Repository.IncludeForks
 }
 
-func (uc SyncRepositoriesUseCase) extractForcePush(env ports.EnvironmentConfiguration) bool {
-	// Check if force push is enabled in options (would need to be added to config)
-	return false // Default to false for safety
-}
-
-func (uc SyncRepositoriesUseCase) extractIgnoreInvalidNames(env ports.EnvironmentConfiguration) bool {
-	// Check if ignore invalid names is enabled in options (would need to be added to config)
-	return false // Default to false
-}
-
-func (uc SyncRepositoriesUseCase) convertProviderType(providerType string) entities.ProviderType {
+func (uc RepositoriesUseCase) convertProviderType(providerType string) entities.ProviderType {
 	switch strings.ToLower(providerType) {
 	case "github":
 		return entities.ProviderTypeGitHub

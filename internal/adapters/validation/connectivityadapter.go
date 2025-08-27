@@ -1,17 +1,18 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+// Package validation provides adapters for validation operations.
 package validation
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net"
 	"net/http"
 	"time"
 
+	"itiquette/git-provider-sync/internal/domain"
 	"itiquette/git-provider-sync/internal/domain/validation"
 )
 
@@ -62,7 +63,7 @@ func (c *ConnectivityAdapter) ValidateConnectivity(ctx context.Context, val vali
 	case validation.ConnectivityTypeSSH:
 		result.Success, result.Error = c.validateSSH(ctx, val.Target)
 	default:
-		result.Error = fmt.Errorf("unsupported connectivity validation type: %s", val.Type)
+		result.Error = fmt.Errorf("%w: %s", domain.ErrUnsupportedConnectivityType, val.Type)
 	}
 
 	result.Duration = time.Since(start)
@@ -74,12 +75,12 @@ func (c *ConnectivityAdapter) ValidateConnectivity(ctx context.Context, val vali
 func (c *ConnectivityAdapter) validateHTTP(ctx context.Context, target string) (bool, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodHead, target, nil)
 	if err != nil {
-		return false, fmt.Errorf("failed to create HTTP request: %w", err)
+		return false, fmt.Errorf("failed to create HTTP request for connectivity check to %s: %w", target, err)
 	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return false, fmt.Errorf("HTTP request failed: %w", err)
+		return false, fmt.Errorf("HTTP connectivity check failed for %s: %w", target, err)
 	}
 
 	defer func() {
@@ -94,19 +95,19 @@ func (c *ConnectivityAdapter) validateHTTP(ctx context.Context, target string) (
 		return true, nil
 	}
 
-	return false, fmt.Errorf("HTTP request returned status %d", resp.StatusCode)
+	return false, fmt.Errorf("%w: %d", domain.ErrHTTPRequestFailed, resp.StatusCode)
 }
 
 // validateProvider tests provider API connectivity.
 func (c *ConnectivityAdapter) validateProvider(ctx context.Context, target string) (bool, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, target, nil)
 	if err != nil {
-		return false, fmt.Errorf("failed to create provider request: %w", err)
+		return false, fmt.Errorf("failed to create provider API request for %s: %w", target, err)
 	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return false, fmt.Errorf("provider API request failed: %w", err)
+		return false, fmt.Errorf("provider API connectivity test failed for %s: %w", target, err)
 	}
 
 	defer func() {
@@ -122,7 +123,7 @@ func (c *ConnectivityAdapter) validateProvider(ctx context.Context, target strin
 		return true, nil
 	}
 
-	return false, fmt.Errorf("provider API returned server error: %d", resp.StatusCode)
+	return false, fmt.Errorf("%w: %d", domain.ErrProviderAPIServerError, resp.StatusCode)
 }
 
 // validateGit tests Git connectivity (simplified - just HTTP check).
@@ -149,7 +150,7 @@ func (c *ConnectivityAdapter) validateSSH(ctx context.Context, target string) (b
 
 	conn, err := dialer.DialContext(ctx, "tcp", host)
 	if err != nil {
-		return false, fmt.Errorf("SSH connection failed: %w", err)
+		return false, fmt.Errorf("SSH connectivity test failed for %s (trying %s): %w", target, host, err)
 	}
 
 	defer func() {
@@ -171,7 +172,7 @@ func NewFileSystemAdapter() *FileSystemAdapter {
 }
 
 // ValidateFileSystem executes a file system validation.
-func (f *FileSystemAdapter) ValidateFileSystem(ctx context.Context, val validation.FileSystemValidation) validation.FileSystemResult {
+func (f *FileSystemAdapter) ValidateFileSystem(_ context.Context, val validation.FileSystemValidation) validation.FileSystemResult {
 	result := validation.FileSystemResult{
 		Validation: val,
 		Success:    false,
@@ -186,7 +187,7 @@ func (f *FileSystemAdapter) ValidateFileSystem(ctx context.Context, val validati
 	case validation.FileSystemTypeArchive:
 		result.Success, result.Exists, result.Readable, result.Writable, result.Error = f.validateArchive(val.Path)
 	default:
-		result.Error = fmt.Errorf("unsupported file system validation type: %s", val.Type)
+		result.Error = fmt.Errorf("%w: %s", domain.ErrUnsupportedFileSystemType, val.Type)
 	}
 
 	// Add details
@@ -206,7 +207,7 @@ func (f *FileSystemAdapter) validateDirectory(path string, needsWritable bool) (
 	}
 
 	if !info.IsDir() {
-		return false, true, false, false, errors.New("path exists but is not a directory")
+		return false, true, false, false, domain.ErrPathNotDirectory
 	}
 
 	readable := isReadable(path)
@@ -225,7 +226,7 @@ func (f *FileSystemAdapter) validateFile(path string, needsWritable bool) (bool,
 	}
 
 	if info.IsDir() {
-		return false, true, false, false, errors.New("path exists but is a directory")
+		return false, true, false, false, domain.ErrPathIsDirectory
 	}
 
 	readable := isReadable(path)

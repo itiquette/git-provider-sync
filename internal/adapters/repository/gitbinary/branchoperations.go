@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
@@ -13,34 +13,32 @@ import (
 )
 
 // BranchOperations provides sophisticated branch management for git binary operations.
-// This restores the CreateTrackingBranches functionality from main branch gitbinary/operation.go.
+//
+//	CreateTrackingBranches functionality  gitbinary/operation.go.
 type BranchOperations struct {
-	executor GitCommandExecutor
+	executor ExecutorService
 	logger   ports.Logger
 }
 
 // NewBranchOperations creates a new branch operations service.
-func NewBranchOperations(executor GitCommandExecutor, logger ports.Logger) *BranchOperations {
+func NewBranchOperations(executor ExecutorService, logger ports.Logger) *BranchOperations {
 	return &BranchOperations{
 		executor: executor,
 		logger:   logger,
 	}
 }
 
-// GitCommandExecutor defines the interface for executing git commands.
-type GitCommandExecutor interface {
-	RunGitCommand(ctx context.Context, env []string, workingDir string, args ...string) error
-	RunGitCommandWithOutput(ctx context.Context, workingDir string, args ...string) ([]byte, error)
-}
+// Note: Using ExecutorService interface from executorservice.go to avoid redundancy
 
 // Fetch performs a comprehensive fetch operation with branch tracking.
-// This restores the exact Fetch functionality from main branch.
+//
+//	exact Fetch functionality .
 func (bo *BranchOperations) Fetch(ctx context.Context, targetPath string) error {
 	bo.logger.Debug(ctx, "Starting comprehensive fetch operation", map[string]interface{}{
 		"target_path": targetPath,
 	})
 
-	// Execute the fetch commands sequence from main branch
+	// Execute the fetch commands sequence
 	commands := [][]string{
 		{"fetch", "--all", "--prune"},
 		{"pull", "--all"},
@@ -62,7 +60,8 @@ func (bo *BranchOperations) Fetch(ctx context.Context, targetPath string) error 
 }
 
 // CreateTrackingBranches creates local tracking branches for all remote branches.
-// This restores the exact CreateTrackingBranches functionality from main branch.
+//
+//	exact CreateTrackingBranches functionality .
 func (bo *BranchOperations) CreateTrackingBranches(ctx context.Context, targetPath string) error {
 	bo.logger.Debug(ctx, "Creating tracking branches", map[string]interface{}{
 		"target_path": targetPath,
@@ -79,7 +78,8 @@ func (bo *BranchOperations) CreateTrackingBranches(ctx context.Context, targetPa
 }
 
 // ProcessTrackingBranches processes remote branch output and creates tracking branches.
-// This restores the exact ProcessTrackingBranches functionality from main branch.
+//
+//	exact ProcessTrackingBranches functionality .
 func (bo *BranchOperations) ProcessTrackingBranches(ctx context.Context, targetPath string, output []byte) error {
 	bo.logger.Debug(ctx, "Processing tracking branches", map[string]interface{}{
 		"target_path": targetPath,
@@ -115,6 +115,7 @@ func (bo *BranchOperations) ProcessTrackingBranches(ctx context.Context, targetP
 					"branch":       branch,
 					"local_branch": localBranch,
 				})
+
 				skippedCount++
 			} else {
 				bo.logger.Warn(ctx, "Could not create tracking branch", map[string]interface{}{
@@ -128,6 +129,7 @@ func (bo *BranchOperations) ProcessTrackingBranches(ctx context.Context, targetP
 				"branch":       branch,
 				"local_branch": localBranch,
 			})
+
 			createdCount++
 		}
 	}
@@ -153,7 +155,8 @@ func (bo *BranchOperations) ListRemoteBranches(ctx context.Context, targetPath s
 	}
 
 	remoteBranches := strings.Split(strings.TrimSpace(string(output)), "\n")
-	var cleanBranches []string
+
+	cleanBranches := make([]string, 0, len(remoteBranches))
 
 	for _, branch := range remoteBranches {
 		branch = strings.TrimSpace(branch)
@@ -181,6 +184,7 @@ func (bo *BranchOperations) ListLocalBranches(ctx context.Context, targetPath st
 	}
 
 	localBranches := strings.Split(strings.TrimSpace(string(output)), "\n")
+
 	var cleanBranches []string
 
 	for _, branch := range localBranches {

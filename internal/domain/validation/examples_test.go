@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
@@ -15,7 +15,11 @@ import (
 
 // TestPureValidationFunctions demonstrates pure validation functions.
 func TestPureValidationFunctions(t *testing.T) {
+	t.Parallel()
+
 	t.Run("ValidateAuthentication", func(t *testing.T) {
+		t.Parallel()
+
 		// Test auth validation directly with existing function
 		auth := ports.AuthenticationConfiguration{
 			Type:  ports.AuthenticationTypeToken,
@@ -28,7 +32,11 @@ func TestPureValidationFunctions(t *testing.T) {
 
 // TestConfigurationValidation demonstrates configuration validation.
 func TestConfigurationValidation(t *testing.T) {
+	t.Parallel()
+
 	t.Run("ValidConfiguration", func(t *testing.T) {
+		t.Parallel()
+
 		config := ports.AppConfiguration{
 			GlobalSettings: ports.GlobalSettings{
 				LogLevel:     ports.LogLevelInfo,
@@ -41,7 +49,7 @@ func TestConfigurationValidation(t *testing.T) {
 					Name: "dev",
 					Source: ports.SourceConfiguration{
 						ProviderType: "github",
-						Domain:       "github.com",
+						Domain:       "test-github.example.com",
 						Owner:        "myorg",
 						Authentication: ports.AuthenticationConfiguration{
 							Type:  ports.AuthenticationTypeToken,
@@ -67,6 +75,8 @@ func TestConfigurationValidation(t *testing.T) {
 	})
 
 	t.Run("InvalidConfiguration", func(t *testing.T) {
+		t.Parallel()
+
 		config := ports.AppConfiguration{
 			GlobalSettings: ports.GlobalSettings{
 				LogLevel:     "invalid_level", // Invalid log level
@@ -105,13 +115,15 @@ func TestConfigurationValidation(t *testing.T) {
 
 // TestConnectivityValidationPlanning demonstrates connectivity validation planning.
 func TestConnectivityValidationPlanning(t *testing.T) {
+	t.Parallel()
+
 	config := ports.AppConfiguration{
 		Environments: map[string]ports.EnvironmentConfiguration{
 			"prod": {
 				Name: "prod",
 				Source: ports.SourceConfiguration{
 					ProviderType: "github",
-					Domain:       "github.com",
+					Domain:       "test-github.example.com",
 					Owner:        "myorg",
 					Authentication: ports.AuthenticationConfiguration{
 						Type:  ports.AuthenticationTypeToken,
@@ -122,7 +134,7 @@ func TestConnectivityValidationPlanning(t *testing.T) {
 					"gitlab": {
 						Name:         "gitlab",
 						ProviderType: "gitlab",
-						Domain:       "gitlab.com",
+						Domain:       "test-gitlab.example.com",
 						Owner:        "myorg",
 						Enabled:      true,
 						Authentication: ports.AuthenticationConfiguration{

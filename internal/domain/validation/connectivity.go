@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
@@ -12,13 +12,16 @@ import (
 )
 
 const (
-	// Provider type constants.
+	// ProviderTypeGitHub represents GitHub provider type.
 	ProviderTypeGitHub = "github"
+	// ProviderTypeGitLab represents GitLab provider type.
 	ProviderTypeGitLab = "gitlab"
-	ProviderTypeGitea  = "gitea"
+	// ProviderTypeGitea represents Gitea provider type.
+	ProviderTypeGitea = "gitea"
 
-	// Default domain constants.
+	// DefaultGitHubDomain represents the default GitHub domain.
 	DefaultGitHubDomain = "github.com"
+	// DefaultGitLabDomain represents the default GitLab domain.
 	DefaultGitLabDomain = "gitlab.com"
 )
 
@@ -35,9 +38,13 @@ type ConnectivityValidation struct {
 type ConnectivityType string
 
 const (
-	ConnectivityTypeHTTP     ConnectivityType = "http"
-	ConnectivityTypeGit      ConnectivityType = "git"
-	ConnectivityTypeSSH      ConnectivityType = "ssh"
+	// ConnectivityTypeHTTP represents HTTP connectivity validation.
+	ConnectivityTypeHTTP ConnectivityType = "http"
+	// ConnectivityTypeGit represents Git connectivity validation.
+	ConnectivityTypeGit ConnectivityType = "git"
+	// ConnectivityTypeSSH represents SSH connectivity validation.
+	ConnectivityTypeSSH ConnectivityType = "ssh"
+	// ConnectivityTypeProvider represents provider connectivity validation.
 	ConnectivityTypeProvider ConnectivityType = "provider"
 )
 
@@ -202,9 +209,12 @@ type FileSystemValidation struct {
 type FileSystemType string
 
 const (
-	FileSystemTypeFile      FileSystemType = "file"
+	// FileSystemTypeFile represents file system validation.
+	FileSystemTypeFile FileSystemType = "file"
+	// FileSystemTypeDirectory represents directory validation.
 	FileSystemTypeDirectory FileSystemType = "directory"
-	FileSystemTypeArchive   FileSystemType = "archive"
+	// FileSystemTypeArchive represents archive validation.
+	FileSystemTypeArchive FileSystemType = "archive"
 )
 
 // FileSystemResult represents the result of a file system validation.
@@ -429,18 +439,18 @@ func FilterConnectivityResults(results []ConnectivityResult, filterType Connecti
 
 // Common validation errors.
 var (
-	ErrValidationSkipped = ValidationError{
+	ErrValidationSkipped = Error{
 		Code:    "VALIDATION_SKIPPED",
 		Message: "Validation was skipped due to previous failure",
 	}
 )
 
-// ValidationError represents a validation error.
-type ValidationError struct {
+// Error represents a validation error.
+type Error struct {
 	Code    string
 	Message string
 }
 
-func (e ValidationError) Error() string {
+func (e Error) Error() string {
 	return e.Message
 }

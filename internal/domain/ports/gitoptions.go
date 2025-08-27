@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
@@ -185,12 +185,28 @@ func NewDiffOptions() DiffOptions {
 type AuthType int
 
 const (
+	// AuthTypeNone represents no authentication.
 	AuthTypeNone AuthType = iota
+	// AuthTypeBasic represents basic authentication.
 	AuthTypeBasic
+	// AuthTypeToken represents token authentication.
 	AuthTypeToken
+	// AuthTypeSSH represents SSH authentication.
 	AuthTypeSSH
+	// AuthTypeSSHAgent represents SSH agent authentication.
 	AuthTypeSSHAgent
+	// AuthTypeSSHKey represents SSH key authentication.
 	AuthTypeSSHKey
+)
+
+// StorageMode defines storage backend types for git operations.
+type StorageMode int
+
+const (
+	// StorageModeMemory uses in-memory storage (default for production).
+	StorageModeMemory StorageMode = iota
+	// StorageModeFilesystem uses filesystem-based storage (useful for persistent operations).
+	StorageModeFilesystem
 )
 
 // ProgressCallback is called during long-running operations to report progress.
@@ -210,4 +226,12 @@ type GitConfig struct {
 	Timeout                 time.Duration
 	TrustDomains            []string
 	LogFile                 string
+	StorageMode             StorageMode
+}
+
+// MirrorOptions contains options for mirror operations.
+type MirrorOptions struct {
+	SourcePath string
+	TargetPath string
+	Bare       bool
 }

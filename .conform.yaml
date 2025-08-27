@@ -1,8 +1,6 @@
-# SPDX-FileCopyrightText: 2025 itiquette/git-provider-sync
+# SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 #
 # SPDX-License-Identifier: CC0-1.0
-
----
 policies:
   - type: commit
     spec:
@@ -17,18 +15,5 @@ policies:
       body:
         required: false
       conventional:
-        types:
-          [
-            "build",
-            "chore",
-            "ci",
-            "docs",
-            "feat",
-            "fix",
-            "perf",
-            "refactor",
-            "revert",
-            "style",
-            "test",
-          ]
+        types: ["build", "chore", "ci", "docs", "feat", "fix", "perf", "refactor", "revert", "style", "test"]
         scopes: [".*"]

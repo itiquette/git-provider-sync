@@ -1,12 +1,9 @@
-# SPDX-FileCopyrightText: itiquette
+# SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 #
 # SPDX-License-Identifier: CC0-1.0
-
----
 name: Feature Suggestion
 description: Suggest something for this project.
 labels: ["enhancement"]
-
 body:
   - type: markdown
     attributes:

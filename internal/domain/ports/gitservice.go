@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
@@ -18,6 +18,11 @@ type GitOperations interface {
 
 	// Cleanup operations
 	Cleanup(ctx context.Context, path string) error
+
+	// Temporary directory operations
+	CreateTmpDir(ctx context.Context, dir, prefix string) (context.Context, error)
+	GetTmpDirPath(ctx context.Context) (string, error)
+	DeleteTmpDir(ctx context.Context) error
 
 	// Factory methods
 	SupportsURL(url string) bool

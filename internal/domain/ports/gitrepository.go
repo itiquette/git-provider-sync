@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
@@ -148,9 +148,13 @@ type StatusResult struct {
 type FastForwardMode int
 
 const (
+	// FastForwardDefault represents the default fast-forward mode.
 	FastForwardDefault FastForwardMode = iota
+	// FastForwardOnly represents fast-forward only mode.
 	FastForwardOnly
+	// FastForwardModeOnly represents fast-forward mode only.
 	FastForwardModeOnly
+	// FastForwardNever represents never fast-forward mode.
 	FastForwardNever
 )
 
@@ -158,10 +162,15 @@ const (
 type MergeStrategy int
 
 const (
+	// MergeStrategyDefault represents the default merge strategy.
 	MergeStrategyDefault MergeStrategy = iota
+	// MergeStrategyRecursive represents recursive merge strategy.
 	MergeStrategyRecursive
+	// MergeStrategyOctopus represents octopus merge strategy.
 	MergeStrategyOctopus
+	// MergeStrategyOurs represents ours merge strategy.
 	MergeStrategyOurs
+	// MergeStrategySubtree represents subtree merge strategy.
 	MergeStrategySubtree
 )
 
@@ -169,9 +178,14 @@ const (
 type TagMode int
 
 const (
+	// TagModeDefault represents the default tag mode.
 	TagModeDefault TagMode = iota
+	// TagModeAll represents all tags mode.
 	TagModeAll
+	// TagModeNone represents no tags mode.
 	TagModeNone
+	// TagModeFollowing represents following tags mode.
 	TagModeFollowing
+	// TagModeFollow represents follow tags mode.
 	TagModeFollow
 )

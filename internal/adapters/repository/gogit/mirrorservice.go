@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
@@ -23,7 +23,8 @@ import (
 )
 
 // MirrorService provides sophisticated go-git based repository mirroring operations.
-// This restores the advanced mirror service functionality from main branch.
+//
+//	advanced mirror service functionality .
 type MirrorService struct {
 	logger         ports.Logger
 	tempDir        string
@@ -249,7 +250,7 @@ func (ms *MirrorService) analyzeSourceRepository(ctx context.Context, repo *git.
 
 	commitCount := 0
 
-	err = commitIter.ForEach(func(c *object.Commit) error {
+	err = commitIter.ForEach(func(_ *object.Commit) error {
 		commitCount++
 
 		return nil
@@ -305,7 +306,6 @@ func (ms *MirrorService) filterReferences(ctx context.Context, repo *git.Reposit
 
 		return nil
 	})
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to iterate references: %w", err)
 	}

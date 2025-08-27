@@ -1,472 +1,427 @@
-# SPDX-FileCopyrightText: 2025 itiquette/git-provider-sync
+# SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 #
 # SPDX-License-Identifier: CC0-1.0
-
 # yaml-language-server: $schema=https://goreleaser.com/static/schema.json
----
-version: 2
-project_name: gitprovidersync
-
-# https://goreleaser.com/customization/env
+# ==================================================================================== #
+# PROJECT CONFIGURATION - Basic project metadata and versioning
+# ==================================================================================== #
+version: 2 # GoReleaser configuration format version
+project_name: gitprovidersync # Project name used in templates and naming
+# ==================================================================================== #
+# ENVIRONMENT VARIABLES - Build-time configuration and compilation flags  
+# ==================================================================================== #
 env:
-  - CGO_ENABLED=0
-  - LDFLAGS=-s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{ .CommitDate }}
-
+  - CGO_ENABLED=0 # Disable CGO for static linking
+  - LDFLAGS=all=-w -buildid= -X 'main.version={{.Version}}' -X 'main.commit={{.FullCommit}}' -X 'main.date={{.CommitTimestamp}}' -X 'main.builtBy=goreleaser' # Global linker flags with version injection
+# ==================================================================================== #
+# PRE-BUILD HOOKS - Tasks executed before building binaries
+# ==================================================================================== #
 before:
   hooks:
-    - go mod tidy
-    - ./scripts/manpage.sh
-    - ./scripts/completions.sh
-
-# https://goreleaser.com/customization/builds/
+    - go mod tidy # Clean up go.mod and go.sum files
+    - go mod verify # Verify module dependencies
+    - ./scripts/docs/manpage.sh # Generate manual pages
+    - ./scripts/docs/completions.sh # Generate shell completion files
+# ==================================================================================== #
+# BINARY BUILDS - Cross-platform compilation matrix
+# ==================================================================================== #
 builds:
-  ## linux -------------------
-  - id: "linux-amd64"
-    binary: gitprovidersync-{{ .Os }}-{{ .Arch }}
-    main: ./main.go
-    no_unique_dist_dir: true
-    goos:
-      - linux
-    goarch:
-      - amd64
-    mod_timestamp: "{{ .CommitTimestamp }}"
-    flags:
-      - -trimpath
-    ldflags:
+  # PIE build for Linux only (until supported on other platforms)
+  - id: "gitprovidersync-pie" # Unique identifier for this build configuration
+    binary: gitprovidersync # Output binary name
+    main: ./cmd/gitprovidersync # Path to main package/file
+    mod_timestamp: "{{ .CommitTimestamp }}" # Use commit timestamp for reproducible builds
+    buildmode: pie # Position Independent Executable for security
+    tags: # Build tags to include
+      - netgo # Use pure Go network implementation
+      - osusergo # Use pure Go OS user/group implementation
+    flags: # Compiler flags
+      - -trimpath # Remove file system paths from executable
+      - -buildvcs=false # Disable VCS stamping for reproducibility
+    ldflags: # Linker flags (references global LDFLAGS env)
       - "{{ .Env.LDFLAGS }}"
-
-  - id: "linux-arm64"
-    binary: gitprovidersync-{{ .Os }}-{{ .Arch }}
-    main: ./main.go
-    no_unique_dist_dir: true
-    goos:
+    env: # Build-specific environment variables
+      - CGO_ENABLED=0 # Disable CGO for static linking
+    goos: # Target operating systems
       - linux
-    goarch:
+    goarch: # Target architectures
+      - amd64
       - arm64
-    mod_timestamp: "{{ .CommitTimestamp }}"
-    flags:
-      - -trimpath
-    ldflags:
+  # Standard build for BSD variants and RISC-V (PIE not supported)
+  # BSD: PIE not supported in Go for any BSD variant (https://github.com/golang/go/issues/59866)
+  # RISC-V: PIE not supported with static linking - https://github.com/golang/go/issues/64875
+  - id: "gitprovidersync-nopie" # Unique identifier for non-PIE builds
+    binary: gitprovidersync # Output binary name
+    main: ./cmd/gitprovidersync # Path to main package/file
+    mod_timestamp: "{{ .CommitTimestamp }}" # Use commit timestamp for reproducible builds
+    tags: # Build tags to include
+      - netgo # Use pure Go network implementation
+      - osusergo # Use pure Go OS user/group implementation
+    flags: # Compiler flags
+      - -trimpath # Remove file system paths from executable
+      - -buildvcs=false # Disable VCS stamping for reproducibility
+    ldflags: # Linker flags (references global LDFLAGS env)
       - "{{ .Env.LDFLAGS }}"
-
-  - id: "linux-ppc64le"
-    binary: gitprovidersync-{{ .Os }}-{{ .Arch }}
-    main: ./main.go
-    no_unique_dist_dir: true
-    goos:
+    env: # Build-specific environment variables
+      - CGO_ENABLED=0 # Disable CGO for static linking
+    goos: # Target operating systems
       - linux
-    goarch:
-      - ppc64le
-    mod_timestamp: "{{ .CommitTimestamp }}"
-    flags:
-      - -trimpath
-    ldflags:
-      - "{{ .Env.LDFLAGS }}"
-
-  - id: "linux-riscv64"
-    binary: gitprovidersync-{{ .Os }}-{{ .Arch }}
-    main: ./main.go
-    no_unique_dist_dir: true
-    goos:
-      - linux
-    goarch:
-      - riscv64
-    mod_timestamp: "{{ .CommitTimestamp }}"
-    flags:
-      - -trimpath
-    ldflags:
-      - "{{ .Env.LDFLAGS }}"
-
-  ## darwin -------------------
-  - id: "darwin-amd64"
-    binary: gitprovidersync-{{ .Os }}-{{ .Arch }}
-    main: ./main.go
-    no_unique_dist_dir: true
-    goos:
-      - darwin
-    goarch:
-      - amd64
-    mod_timestamp: "{{ .CommitTimestamp }}"
-    flags:
-      - -trimpath
-    ldflags:
-      - "{{ .Env.LDFLAGS }}"
-
-  - id: "darwin-arm64"
-    binary: gitprovidersync-{{ .Os }}-{{ .Arch }}
-    main: ./main.go
-    no_unique_dist_dir: true
-    goos:
-      - darwin
-    goarch:
-      - arm64
-    mod_timestamp: "{{ .CommitTimestamp }}"
-    flags:
-      - -trimpath
-    ldflags:
-      - "{{ .Env.LDFLAGS }}"
-
-  ## freebsd -------------------
-  - id: "freebsd-amd64"
-    binary: gitprovidersync-{{ .Os }}-{{ .Arch }}
-    main: ./main.go
-    no_unique_dist_dir: true
-    goos:
       - freebsd
-    goarch:
-      - amd64
-    mod_timestamp: "{{ .CommitTimestamp }}"
-    flags:
-      - -trimpath
-    ldflags:
-      - "{{ .Env.LDFLAGS }}"
-
-  - id: "freebsd-arm"
-    binary: gitprovidersync-{{ .Os }}-{{ .Arch }}
-    main: ./main.go
-    no_unique_dist_dir: true
-    goos:
-      - freebsd
-    goarch:
-      - arm64
-    mod_timestamp: "{{ .CommitTimestamp }}"
-    flags:
-      - -trimpath
-    ldflags:
-      - "{{ .Env.LDFLAGS }}"
-
-  - id: "freebsd-risc"
-    binary: gitprovidersync-{{ .Os }}-{{ .Arch }}
-    main: ./main.go
-    no_unique_dist_dir: true
-    goos:
-      - freebsd
-    goarch:
-      - riscv64
-    mod_timestamp: "{{ .CommitTimestamp }}"
-    flags:
-      - -trimpath
-    ldflags:
-      - "{{ .Env.LDFLAGS }}"
-
-  ## dragonfly -------------------
-  - id: "dragonfly-amd64"
-    binary: gitprovidersync-{{ .Os }}-{{ .Arch }}
-    main: ./main.go
-    no_unique_dist_dir: true
-    goos:
-      - dragonfly
-    goarch:
-      - amd64
-    mod_timestamp: "{{ .CommitTimestamp }}"
-    flags:
-      - -trimpath
-    ldflags:
-      - "{{ .Env.LDFLAGS }}"
-
-  ## netbsd -------------------
-  - id: "netbsd-amd64"
-    binary: gitprovidersync-{{ .Os }}-{{ .Arch }}
-    main: ./main.go
-    no_unique_dist_dir: true
-    goos:
       - netbsd
-    goarch:
+      - openbsd
+    goarch: # Target architectures
       - amd64
-    mod_timestamp: "{{ .CommitTimestamp }}"
-    flags:
-      - -trimpath
-    ldflags:
-      - "{{ .Env.LDFLAGS }}"
-
-  - id: "netbsd-arm64"
-    binary: gitprovidersync-{{ .Os }}-{{ .Arch }}
-    main: ./main.go
-    no_unique_dist_dir: true
-    goos:
-      - netbsd
-    goarch:
       - arm64
-    mod_timestamp: "{{ .CommitTimestamp }}"
-    flags:
-      - -trimpath
-    ldflags:
-      - "{{ .Env.LDFLAGS }}"
-
-  ## openbsd -------------------
-  - id: "openbsd-amd64"
-    binary: gitprovidersync-{{ .Os }}-{{ .Arch }}
-    main: ./main.go
-    no_unique_dist_dir: true
-    goos:
-      - openbsd
-    goarch:
-      - amd64
-    mod_timestamp: "{{ .CommitTimestamp }}"
-    flags:
-      - -trimpath
-    ldflags:
-      - "{{ .Env.LDFLAGS }}"
-
-  - id: "openbsd-arm64"
-    binary: gitprovidersync-{{ .Os }}-{{ .Arch }}
-    main: ./main.go
-    no_unique_dist_dir: true
-    goos:
-      - openbsd
-    goarch:
-      - arm64
-    mod_timestamp: "{{ .CommitTimestamp }}"
-    flags:
-      - -trimpath
-    ldflags:
-      - "{{ .Env.LDFLAGS }}"
-
-  - id: "openbsd-riscv64"
-    binary: gitprovidersync-{{ .Os }}-{{ .Arch }}
-    main: ./main.go
-    no_unique_dist_dir: true
-    goos:
-      - openbsd
-    goarch:
       - riscv64
-    mod_timestamp: "{{ .CommitTimestamp }}"
-    flags:
-      - -trimpath
-    ldflags:
-      - "{{ .Env.LDFLAGS }}"
-
-  ## plan9 ------------------- disabled, flaky https://github.com/golang/go/issues/49338
-  # - id: "plan9-amd64"
-  #   binary: gitprovidersync-{{ .Os }}-{{ .Arch }}
-  #   main: ./main.go
-  #   no_unique_dist_dir: true
-  #   goos:
-  #     - plan9
-  #   goarch:
-  #     - amd64
-  #   mod_timestamp: "{{ .CommitTimestamp }}"
-  #   flags:
-  #     - -trimpath
-  #   ldflags:
-  #     - "{{ .Env.LDFLAGS }}"
-
-  # - id: "plan9-arm"
-  #   binary: gitprovidersync-{{ .Os }}-{{ .Arch }}
-  #   main: ./main.go
-  #   no_unique_dist_dir: true
-  #   goos:
-  #     - plan9
-  #   goarch:
-  #     - arm
-  #   mod_timestamp: "{{ .CommitTimestamp }}"
-  #   flags:
-  #     - -trimpath
-  #   ldflags:
-  #     - "{{ .Env.LDFLAGS }}"
-  #
-# verifiable builds TO-DO enable when repo public
-# https://goreleaser.com/customization/verifiable_builds/
-# gomod:
-#   proxy: true
-
-# source archive
+    ignore: # Platform combinations to skip
+      # Linux AMD64/ARM64 handled by PIE build
+      - goos: linux
+        goarch: amd64
+      - goos: linux
+        goarch: arm64
+# ==================================================================================== #
+# REPRODUCIBLE BUILDS - Enable verifiable build reproducibility
+# ==================================================================================== #
+gomod:
+  proxy: true # Use module proxy for consistent dependency fetching
+# ==================================================================================== #
+# SOURCE ARCHIVES - Source code distribution packages
+# ==================================================================================== #
 source:
-  enabled: true
-  name_template: "{{ .ProjectName }}-{{ .Version }}-src"
-
-# https://goreleaser.com/customization/archive/
-# tar.gz archives - binary, license info, docs
+  enabled: true # Enable source archive creation
+  name_template: "{{ .ProjectName }}-{{ .Version }}-src" # Source archive naming template
+  format: tar.gz # Compression format for source archive
+# ==================================================================================== #
+# BINARY ARCHIVES - Packaged binary distributions with documentation
+# ==================================================================================== #
 archives:
-  - id: archive
-    format: tar.gz
-    wrap_in_directory: true
-    allow_different_binary_count: true
-    files:
-      - LICENSE
-      - README.adoc
-      - REUSE.toml
-      - LICENSES
-      - SECURITY.md
-      - docs/*
-      - generated/manpages/*
-      - generated/completions/*
-
-# https://goreleaser.com/customization/nfpm/
-# to-do: sign deb rpm
-# deb, rpm, apk, rpm
+  - id: archive # Unique identifier for this archive configuration
+    name_template: >- # Archive naming template (multi-line string)
+      {{- .ProjectName }}- {{- .Version }}- {{- .Os }}- {{- if eq .Arch "amd64" }}x86_64 {{- else }}{{ .Arch }}{{ end }} {{- if .Arm }}v{{ .Arm }}{{ end }}
+    wrap_in_directory: true # Extract files into subdirectory (prevents tar bombs)
+    allow_different_binary_count: true # Disable binary count validation across platforms
+    files: # Additional files to include in archive
+      - LICENSE # License file
+      - README.adoc # Project documentation
+      - REUSE.toml # REUSE compliance specification
+      - SECURITY.md # Security policy and contact info
+      - CHANGELOG.md # Release notes and version history
+      - src: LICENSES # License texts directory
+        strip_parent: false # Keep directory structure: LICENSES/
+      - src: docs/* # Documentation files
+        strip_parent: false # Keep directory structure: docs/
+      - src: generated/manpages/* # Manual pages
+        dst: man/ # Destination path in archive
+        strip_parent: true # Remove generated/manpages/ prefix
+      - src: generated/completions/* # Shell completion files
+        dst: completions/ # Destination path in archive
+        strip_parent: true # Remove generated/completions/ prefix
+# ==================================================================================== #
+# SYSTEM PACKAGES - Native package manager distributions (deb, rpm, apk)
+# ==================================================================================== #
 nfpms:
-  - file_name_template: "{{ .ConventionalFileName }}"
-    maintainer: Josef Andersson <janderssonse@proton.me>
-    vendor: Itiquette
-    homepage: https://github.com/itiquette/git-provider-sync
-    description: A tool for syncing Git providers.
-    license: EUPL-1.2
-    section: utils
-    bindir: /usr/bin
-    contents:
-      - src: ./generated/completions/gitprovidersync.bash
-        dst: /usr/share/bash-completion/completions/gitprovidersync
-        file_info:
-          mode: 0644
+  - id: packages # Unique identifier for package configuration
+    file_name_template: "{{ .ConventionalFileName }}" # Use conventional naming format
+    maintainer: Josef Andersson <janderssonse@proton.me> # Package maintainer contact
+    vendor: Itiquette # Organization/vendor name
+    homepage: https://github.com/itiquette/git-provider-sync # Project homepage URL
+    description: |- # Package description (multi-line)
+      A Git provider synchronization tool for mirroring repositories.
+      Enables seamless syncing between GitHub, GitLab, Gitea and other providers.
+    license: EUPL-1.2 # Software license identifier
+    section: devel # Package section/category
+    priority: optional # Package installation priority
+    bindir: /usr/bin # Binary installation directory (default: /usr/bin)
+    epoch: 1 # Package epoch for version comparison
+    contents: # Additional files to include in package
+      # Shell completions
+      - src: ./generated/completions/gitprovidersync.bash # Source file path
+        dst: /usr/share/bash-completion/completions/gitprovidersync # Destination in package
+        file_info: # File metadata
+          mode: 0644 # File permissions (readable by all)
       - src: ./generated/completions/gitprovidersync.fish
-        dst: /usr/share/fish/vendor_completions.d/gitprovidersync
+        dst: /usr/share/fish/vendor_completions.d/gitprovidersync.fish
         file_info:
           mode: 0644
       - src: ./generated/completions/gitprovidersync.zsh
         dst: /usr/share/zsh/vendor-completions/_gitprovidersync
         file_info:
           mode: 0644
+      # Manual pages
       - src: ./generated/manpages/gitprovidersync.1.gz
-        dst: /usr/share/man/man1/
+        dst: /usr/share/man/man1/gitprovidersync.1.gz
         file_info:
           mode: 0644
+      # Documentation
       - src: ./LICENSE
         dst: /usr/share/doc/gitprovidersync/copyright
         file_info:
           mode: 0644
-    dependencies:
-      - git
-    formats:
-      - deb
-      - rpm
-      - apk
-    deb:
-      lintian_overrides:
-        - statically-linked-binary
-# https://goreleaser.com/customization/snapcraft/
-# to-do: consider snap
-
-# https://goreleaser.com/customization/docker/#customization
-# to-do: copy extra files - license, doc etc
-# to-do: consider use ko instead https://goreleaser.com/customization/ko/
-# container image , multi arch
+      - src: ./README.adoc
+        dst: /usr/share/doc/gitprovidersync/README.adoc
+        file_info:
+          mode: 0644
+      - src: ./SECURITY.md
+        dst: /usr/share/doc/gitprovidersync/SECURITY.md
+        file_info:
+          mode: 0644
+    dependencies: # Required packages for functionality
+      - git # Git is required for repository operations
+    recommends: # Recommended but optional packages
+      - ca-certificates # For HTTPS certificate validation
+    formats: # Package formats to generate
+      - deb # Debian/Ubuntu packages (.deb)
+      - rpm # Red Hat/SUSE packages (.rpm)
+      - apk # Alpine packages (.apk)
+    deb: # Debian-specific configuration
+      lintian_overrides: # Override lintian (Debian package checker) warnings
+        - statically-linked-binary # Allow static linking
+      fields: # Additional Debian control fields
+        Bugs: https://github.com/itiquette/git-provider-sync/issues # Bug report URL
+    rpm: # RPM-specific configuration
+      group: Development/Tools # RPM package group classification
+      summary: Git provider synchronization tool # Short package summary
+# ==================================================================================== #
+# CONTAINER IMAGES - Multi-architecture Docker/OCI container builds
+# ==================================================================================== #
 dockers:
-  - image_templates:
+  # AMD64 Docker image
+  - image_templates: # Image name templates to generate
       - "ghcr.io/itiquette/{{.ProjectName}}:v{{ .Version }}-amd64"
-    dockerfile: Containerfile
-    use: buildx
-    goos: linux
-    goarch: amd64
-    build_flag_templates:
-      - --pull
-      - --platform=linux/amd64
-      - --label=org.opencontainers.image.title={{ .ProjectName }}
-      - --label=org.opencontainers.image.description={{ .ProjectName }}
-      - --label=org.opencontainers.image.source={{ .GitURL}}
-      - --label=org.opencontainers.image.version={{ .Version }}
-      - --label=org.opencontainers.image.created={{ .Date }}
-      - --label=org.opencontainers.image.revision={{ .FullCommit }}
-      - --label=org.opencontainers.image.licenses=EUPL-1.2
-
-  - image_templates:
+    dockerfile: Containerfile # Dockerfile path to use for build
+    use: buildx # Docker build backend (docker/buildx/podman)
+    ids: # Build IDs to include in this image
+      - gitprovidersync-pie # Use PIE build for Linux
+    goos: linux # Target operating system
+    goarch: amd64 # Target architecture
+    build_flag_templates: # Docker build flags
+      - "--pull" # Always pull base image updates
+      - "--platform=linux/amd64" # Specify target platform
+      - "--label=org.opencontainers.image.title={{ .ProjectName }}"
+      - "--label=org.opencontainers.image.description=Git provider synchronization tool for mirroring repositories"
+      - "--label=org.opencontainers.image.source={{ .GitURL }}"
+      - "--label=org.opencontainers.image.url=https://github.com/itiquette/{{ .ProjectName }}"
+      - "--label=org.opencontainers.image.documentation=https://github.com/itiquette/{{ .ProjectName }}#readme"
+      - "--label=org.opencontainers.image.version={{ .Version }}"
+      - "--label=org.opencontainers.image.created={{ .Date }}"
+      - "--label=org.opencontainers.image.revision={{ .FullCommit }}"
+      - "--label=org.opencontainers.image.licenses=EUPL-1.2"
+      - "--label=org.opencontainers.image.ref.name={{ .Tag }}"
+      - "--label=org.opencontainers.image.authors=Josef Andersson <janderssonse@proton.me>"
+      - "--label=org.opencontainers.image.vendor=Itiquette"
+  # ARM64 Docker image  
+  - image_templates: # Image name templates to generate
       - "ghcr.io/itiquette/{{.ProjectName}}:v{{ .Version }}-arm64"
-    dockerfile: Containerfile
-    use: buildx
-    goos: linux
-    goarch: arm64
-    build_flag_templates:
-      - --pull
-      - --platform=linux/arm64
-      - --label=org.opencontainers.image.title={{ .ProjectName }}
-      - --label=org.opencontainers.image.description={{ .ProjectName }}
-      - --label=org.opencontainers.image.source={{ .GitURL}}
-      - --label=org.opencontainers.image.version={{ .Version }}
-      - --label=org.opencontainers.image.created={{ .Date }}
-      - --label=org.opencontainers.image.revision={{ .FullCommit }}
-      - --label=org.opencontainers.image.licenses=EUPL-1.2
-
-# https://goreleaser.com/customization/docker_manifest/
+    dockerfile: Containerfile # Dockerfile path to use for build
+    use: buildx # Docker build backend (docker/buildx/podman)
+    ids: # Build IDs to include in this image
+      - gitprovidersync-pie # Use PIE build for Linux
+    goos: linux # Target operating system
+    goarch: arm64 # Target architecture
+    build_flag_templates: # Docker build flags
+      - "--pull" # Always pull base image updates
+      - "--platform=linux/arm64" # Specify target platform
+      - "--label=org.opencontainers.image.title={{ .ProjectName }}"
+      - "--label=org.opencontainers.image.description=Git provider synchronization tool for mirroring repositories"
+      - "--label=org.opencontainers.image.source={{ .GitURL }}"
+      - "--label=org.opencontainers.image.url=https://github.com/itiquette/{{ .ProjectName }}"
+      - "--label=org.opencontainers.image.documentation=https://github.com/itiquette/{{ .ProjectName }}#readme"
+      - "--label=org.opencontainers.image.version={{ .Version }}"
+      - "--label=org.opencontainers.image.created={{ .Date }}"
+      - "--label=org.opencontainers.image.revision={{ .FullCommit }}"
+      - "--label=org.opencontainers.image.licenses=EUPL-1.2"
+      - "--label=org.opencontainers.image.ref.name={{ .Tag }}"
+      - "--label=org.opencontainers.image.authors=Josef Andersson <janderssonse@proton.me>"
+      - "--label=org.opencontainers.image.vendor=Itiquette"
+# ==================================================================================== #
+# CONTAINER MANIFESTS - Multi-architecture container image manifests
+# ==================================================================================== #
 docker_manifests:
-  - name_template: "ghcr.io/itiquette/{{.ProjectName}}:v{{ .Version }}"
-    image_templates:
-      - "ghcr.io/itiquette/{{.ProjectName}}:v{{ .Version }}-amd64"
-      - "ghcr.io/itiquette/{{.ProjectName}}:v{{ .Version }}-arm64"
-
-# https://goreleaser.com/customization/checksum/
-# artifacts checksum
+  - name_template: "ghcr.io/itiquette/{{.ProjectName}}:v{{ .Version }}" # Multi-arch manifest name
+    image_templates: # Individual architecture images to combine
+      - "ghcr.io/itiquette/{{.ProjectName}}:v{{ .Version }}-amd64" # AMD64 image
+      - "ghcr.io/itiquette/{{.ProjectName}}:v{{ .Version }}-arm64" # ARM64 image
+# ==================================================================================== #
+# CHECKSUMS - Cryptographic verification of release artifacts
+# ==================================================================================== #
 checksum:
-  name_template: "{{ .ProjectName }}_checksums_sha256.txt"
-  algorithm: sha256
-
-# https://goreleaser.com/customization/metadata/
-# metadata
+  name_template: "{{ .ProjectName }}_{{ .Version }}_checksums.txt" # Checksum file name
+  algorithm: sha256 # Hashing algorithm to use
+  extra_files: # Additional files to include in checksums
+    - glob: ./dist/*.json # Include all JSON files (SBOM, metadata)
+    - glob: ./dist/*.pem # Include certificate files
+# ==================================================================================== #
+# METADATA - Build metadata and timestamps for reproducibility
+# ==================================================================================== #
 metadata:
-  mod_timestamp: "{{ .CommitTimestamp }}"
-
-# https://goreleaser.com/customization/sbom/
-# sboms - output sbom for archive, source and linux-packages (with syft)
+  mod_timestamp: "{{ .CommitTimestamp }}" # Use commit timestamp for reproducible builds
+# ==================================================================================== #
+# SOFTWARE BILL OF MATERIALS - Security and compliance documentation
+# ==================================================================================== #
 sboms:
-  - id: archive
-    artifacts: archive
-  - id: source
-    artifacts: source
-  - id: package
-    artifacts: package
-
-# https://goreleaser.com/customization/reportsizes/
-report_sizes: true
-
-# sign (checksum file)
-# https://goreleaser.com/customization/sign
+  - id: archive-sbom # SBOM configuration for binary archives
+    artifacts: archive # Generate SBOM for archive artifacts
+    documents: # SBOM document naming templates
+      - "{{ .ProjectName }}_{{ .Version }}_archive_{{ .Os }}_{{ .Arch }}.sbom.json"
+  - id: source-sbom # SBOM configuration for source archives
+    artifacts: source # Generate SBOM for source artifacts
+    documents:
+      - "{{ .ProjectName }}_{{ .Version }}_src.sbom.json"
+  - id: package-sbom # SBOM configuration for system packages
+    artifacts: package # Generate SBOM for package artifacts (deb/rpm/apk)
+    documents:
+      - "{{ .ArtifactName }}.sbom.json" # Use artifact name for uniqueness
+# ==================================================================================== #
+# BINARY SIZE REPORTING - Track and report artifact sizes
+# ==================================================================================== #
+report_sizes: true # Generate size reports for all artifacts
+# ==================================================================================== #
+# ARTIFACT SIGNING - Cryptographic signing with Cosign
+# ==================================================================================== #
 signs:
-  - cmd: cosign
-    certificate: "${artifact}.pem"
-    args:
-      - sign-blob
-      - "--output-certificate=${certificate}"
-      - "--output-signature=${signature}"
-      - "${artifact}"
-      - "--yes" # needed on cosign 2.0.0+
-    artifacts: checksum
-    output: true
-
-# sign (container image)
-# https://goreleaser.com/customization/docker_sign
+  - cmd: cosign # Signing tool command
+    args: # Command arguments for signing
+      - sign-blob # Sign arbitrary blob (not container) 
+      - "--output-certificate=${certificate}" # Output certificate path
+      - "--output-signature=${signature}" # Output signature path
+      - "${artifact}" # Artifact to sign
+      - "--yes" # Auto-confirm signing
+    certificate: "${artifact}.pem" # Certificate output path template
+    artifacts: checksum # Sign checksum files
+    output: true # Include signature files in release
+  - id: sbom-signing # SBOM signing configuration
+    cmd: cosign # Signing tool command
+    args: # Command arguments for signing
+      - sign-blob # Sign arbitrary blob (not container)
+      - "--output-certificate=${certificate}" # Output certificate path
+      - "--output-signature=${signature}" # Output signature path
+      - "${artifact}" # Artifact to sign
+      - "--yes" # Auto-confirm signing
+    certificate: "${artifact}.pem" # Certificate output path template
+    ids: # SBOM IDs to sign
+      - archive-sbom
+      - source-sbom
+      - package-sbom
+    artifacts: sbom # Sign SBOM artifacts specifically
+    output: true # Include signature files in release
+  - id: package-signing # GPG package signing configuration
+    cmd: gpg # GPG signing tool command
+    artifacts: package # Sign DEB/RPM/APK packages
+    signature: "${artifact}.sig" # GPG signature file extension
+    args: # GPG command arguments
+      - "--batch" # Non-interactive mode
+      - "--local-user" # Use specific key
+      - "{{ .Env.GPG_FINGERPRINT }}" # Key fingerprint from environment
+      - "--output" # Output signature file
+      - "${signature}" # Signature file path
+      - "--detach-sign" # Create detached signature
+      - "${artifact}" # Package file to sign
+    output: true # Include signature files in release
+# ==================================================================================== #
+# CONTAINER SIGNING - Cryptographic signing of container images
+# ==================================================================================== #
 docker_signs:
-  - cmd: cosign
-    artifacts: all
-    output: true
-    args:
-      - "sign"
-      - "${artifact}@${digest}"
-      - "--yes" # needed on cosign 2.0.0+
-
-# changelog
+  - cmd: cosign # Container signing tool
+    artifacts: all # Sign all container artifacts
+    output: true # Include signatures in release
+    args: # Command arguments for container signing
+      - "sign" # Sign container image
+      - "${artifact}@${digest}" # Image reference with digest
+      - "--yes" # Auto-confirm signing
+# ==================================================================================== #
+# CHANGELOG GENERATION - Automated release notes from Git history
+# ==================================================================================== #
 changelog:
-  sort: asc
-  use: github
-  filters:
-    exclude:
-      - "^test:"
-      - "^test\\("
-      - "merge conflict"
-      - Merge pull request
-      - Merge remote-tracking branch
-      - Merge branch
-      - go mod tidy
-  groups:
-    - title: Dependency updates
-      regexp: '^.*?(.+)\(deps\)!?:.+$'
-      order: 300
-    - title: "New Features"
-      regexp: '^.*?feat(\(.+\))??!?:.+$'
-      order: 100
-    - title: "Bug fixes"
-      regexp: '^.*?(fix|refactor)(\(.+\))??!?:.+$'
-      order: 200
-    - title: "Documentation updates"
-      regexp: ^.*?docs?(\(.+\))??!?:.+$
-      order: 400
-    - title: "Build process updates"
-      regexp: ^.*?(build|ci)(\(.+\))??!?:.+$
-      order: 400
-    - title: Other work
-      order: 9999
-
+  sort: asc # Sort changelog entries in ascending order
+  use: github # Use GitHub for changelog generation
+  abbrev: 12 # Abbreviate commit hashes to 12 characters
+  filters: # Commit message filters
+    exclude: # Patterns to exclude from changelog
+      - "^test:" # Test commits
+      - "^test\\(" # Test commits with scope
+      - "^tests?:" # Test/tests commits  
+      - "merge conflict" # Merge conflict resolution
+      - "Merge pull request" # GitHub merge commits
+      - "Merge remote-tracking branch" # Git merge commits
+      - "Merge branch" # Branch merge commits
+      - "go mod tidy" # Dependency maintenance
+      - "^WIP:" # Work in progress commits
+      - "^wip:" # Work in progress commits (lowercase)
+      - "^bump:" # Version bump commits
+      - "^chore\\(deps\\):" # Dependency update commits
+  groups: # Changelog section groupings
+    - title: "New Features" # Features section
+      regexp: '^.*?feat(\(.+\))??!?:.+$' # Match feat: commits
+      order: 0 # Display order (first)
+    - title: "Bug Fixes" # Bug fixes section
+      regexp: '^.*?fix(\(.+\))??!?:.+$' # Match fix: commits
+      order: 1 # Display order (second)
+    - title: "Maintenance" # Code maintenance section
+      regexp: '^.*?(refactor|perf|style)(\(.+\))??!?:.+$' # Match refactor/perf/style commits
+      order: 2 # Display order (third)
+    - title: "Documentation" # Documentation section
+      regexp: '^.*?docs?(\(.+\))??!?:.+$' # Match docs: commits
+      order: 3 # Display order (fourth)
+    - title: "Build & CI" # Build and CI section
+      regexp: '^.*?(build|ci|chore)(\(.+\))??!?:.+$' # Match build/ci/chore commits
+      order: 4 # Display order (fifth)
+    - title: "Dependencies" # Dependency updates section
+      regexp: '^.*?(deps|dependencies)(\(.+\))??!?:.+$' # Match deps commits
+      order: 5 # Display order (sixth)
+    - title: "Security" # Security-related changes
+      regexp: '^.*?(sec|security)(\(.+\))??!?:.+$' # Match security commits
+      order: 6 # Display order (seventh)
+    - title: "Other Changes" # Catch-all for uncategorized commits
+      order: 999 # Display order (last)
+# ==================================================================================== #
+# RELEASE CONFIGURATION - GitHub release settings and automation
+# ==================================================================================== #
 release:
-  name_template: "v{{ .Version }}"
-  draft: false
-  replace_existing_draft: true
+  name_template: "{{ .ProjectName }} v{{ .Version }}" # Release title template
+  draft: false # Publish release immediately (not as draft)
+  replace_existing_draft: true # Replace any existing draft release
+  target_commitish: "{{ .Commit }}" # Git commit/branch for release
+  discussion_category_name: "Releases" # GitHub Discussions category
+  prerelease: auto # Auto-detect prerelease based on version
+  mode: replace # Replace existing release if it exists
+  # Public key distributed via documentation, not individual releases
+  header: |
+    ## {{ .ProjectName }} {{ .Version }}
+
+    Welcome to this release of {{ .ProjectName }}!
+
+    ### Quick Install
+
+    **Direct Download (Linux AMD64):**
+    ```bash
+    curl -sSfL https://github.com/itiquette/git-provider-sync/releases/download/v{{ .Version }}/gitprovidersync-{{ .Version }}-linux-x86_64.tar.gz | tar -xzf - -C /usr/local/bin gitprovidersync
+    ```
+
+    **Debian/Ubuntu:**
+    ```bash
+    curl -sSfL -o gitprovidersync.deb https://github.com/itiquette/git-provider-sync/releases/download/v{{ .Version }}/gitprovidersync_{{ .Version }}_linux_amd64.deb
+    sudo dpkg -i gitprovidersync.deb
+    ```
+
+    **Container:**
+    ```bash
+    docker run --rm ghcr.io/itiquette/gitprovidersync:v{{ .Version }}
+    ```
   footer: |
-    **Full Changelog**: https://github.com/itiquette/git-provider-sync/compare/{{ .PreviousTag }}...{{ if .IsNightly }}nightly{{ else }}{{ .Tag }}{{ end }}
+    ### Verification
+
+    All artifacts are signed with [Cosign](https://github.com/sigstore/cosign) and can be verified:
+    ```bash
+    cosign verify-blob --certificate {{ .ProjectName }}_{{ .Version }}_checksums.txt.pem --signature {{ .ProjectName }}_{{ .Version }}_checksums.txt.sig {{ .ProjectName }}_{{ .Version }}_checksums.txt
+    ```
+
+    **Full Changelog**: https://github.com/itiquette/git-provider-sync/compare/{{ .PreviousTag }}...{{ .Tag }}
+
+    ---
+
+    **Having issues?** Report them at https://github.com/itiquette/git-provider-sync/issues
+    **Questions?** Start a discussion at https://github.com/itiquette/git-provider-sync/discussions
+  # ==================================================================================== #
+  # ANNOUNCEMENTS - Automated release notifications
+  # ==================================================================================== #
+  # announcements:

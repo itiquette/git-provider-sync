@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
@@ -11,19 +11,25 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"itiquette/git-provider-sync/internal/domain/entities"
 	"itiquette/git-provider-sync/internal/domain/ports"
+	"itiquette/git-provider-sync/internal/shared"
 )
 
 var (
+	// ErrGitBinaryNotFound indicates git binary was not found in system PATH.
 	ErrGitBinaryNotFound = errors.New("git binary not found")
-	ErrEmptyBinaryPath   = errors.New("empty git binary path")
-	ErrPermissionDenied  = errors.New("permission denied (publickey)")
+	// ErrEmptyBinaryPath indicates git binary path is empty.
+	ErrEmptyBinaryPath = errors.New("empty git binary path")
+	// ErrPermissionDenied indicates SSH permission was denied.
+	ErrPermissionDenied = errors.New("permission denied (publickey)")
 )
 
 // MirrorService provides sophisticated Git mirroring operations using git binary.
-// This restores the git binary mirror functionality from main branch in hexagonal architecture.
+//
+//	git binary mirror functionality  in hexagonal architecture.
 type MirrorService struct {
 	logger        ports.Logger
 	binaryPath    string
@@ -33,17 +39,23 @@ type MirrorService struct {
 }
 
 // NewMirrorService creates a new git binary mirror service.
-func NewMirrorService(logger ports.Logger, tempDir string) (*MirrorService, error) {
-	binaryPath, err := ValidateGitBinary()
+func NewMirrorService(ctx context.Context, logger ports.Logger, tempDir string) (*MirrorService, error) {
+	// Use default timeout
+	return NewMirrorServiceWithTimeout(ctx, logger, tempDir, 5*time.Minute)
+}
+
+// NewMirrorServiceWithTimeout creates a new git binary mirror service with configurable timeout.
+func NewMirrorServiceWithTimeout(ctx context.Context, logger ports.Logger, tempDir string, timeout time.Duration) (*MirrorService, error) {
+	binaryPath, err := ValidateGitBinary(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrGitBinaryNotFound, err)
+		return nil, fmt.Errorf("git binary validation failed: %w", err)
 	}
 
 	if len(binaryPath) == 0 {
 		return nil, ErrEmptyBinaryPath
 	}
 
-	executorSvc := NewExecutorService(binaryPath)
+	executorSvc := NewExecutorServiceWithTimeout(binaryPath, logger, timeout)
 	operationsSvc := NewOperationServiceImpl(executorSvc)
 
 	return &MirrorService{
@@ -86,7 +98,8 @@ type CloneResult struct {
 }
 
 // Clone performs a sophisticated git clone operation using git binary.
-// This restores the Clone functionality from main branch with enhancements.
+//
+//	Clone functionality  with enhancements.
 func (ms *MirrorService) Clone(ctx context.Context, config MirrorConfig) (CloneResult, error) {
 	ms.logger.Info(ctx, "Starting git binary clone operation", map[string]interface{}{
 		"source_url":    config.SourceURL,
@@ -114,7 +127,7 @@ func (ms *MirrorService) Clone(ctx context.Context, config MirrorConfig) (CloneR
 	cloneURL := ms.prepareCloneURL(ctx, config)
 
 	ms.logger.Debug(ctx, "Executing git clone", map[string]interface{}{
-		"clone_url":       ms.sanitizeURL(cloneURL),
+		"clone_url":       ms.sanitizeURL(ctx, cloneURL),
 		"destination_dir": destinationDir,
 		"parent_dir":      parentDir,
 	})
@@ -142,14 +155,15 @@ func (ms *MirrorService) Clone(ctx context.Context, config MirrorConfig) (CloneR
 
 	ms.logger.Info(ctx, "Git binary clone completed successfully", map[string]interface{}{
 		"destination_dir": destinationDir,
-		"source_url":      ms.sanitizeURL(cloneURL),
+		"source_url":      ms.sanitizeURL(ctx, cloneURL),
 	})
 
 	return result, nil
 }
 
 // Pull performs a sophisticated git pull operation using git binary.
-// This restores the Pull functionality from main branch.
+//
+//	Pull functionality .
 func (ms *MirrorService) Pull(ctx context.Context, targetPath string, config MirrorConfig) error {
 	ms.logger.Info(ctx, "Starting git binary pull operation", map[string]interface{}{
 		"target_path": targetPath,
@@ -183,7 +197,8 @@ func (ms *MirrorService) Pull(ctx context.Context, targetPath string, config Mir
 }
 
 // Push performs a sophisticated git push operation using git binary.
-// This restores the Push functionality from main branch.
+//
+//	Push functionality .
 func (ms *MirrorService) Push(ctx context.Context, repo entities.Repository, config MirrorConfig) error {
 	ms.logger.Info(ctx, "Starting git binary push operation", map[string]interface{}{
 		"target_url": config.TargetURL,
@@ -207,7 +222,7 @@ func (ms *MirrorService) Push(ctx context.Context, repo entities.Repository, con
 	destinationDir := filepath.Join(tmpDirPath, repoName)
 
 	ms.logger.Debug(ctx, "Executing git push", map[string]interface{}{
-		"target_url":      ms.sanitizeURL(config.TargetURL),
+		"target_url":      ms.sanitizeURL(ctx, config.TargetURL),
 		"destination_dir": destinationDir,
 		"force":           config.ForcePush,
 	})
@@ -217,7 +232,7 @@ func (ms *MirrorService) Push(ctx context.Context, repo entities.Repository, con
 	}
 
 	ms.logger.Info(ctx, "Git binary push completed successfully", map[string]interface{}{
-		"target_url": ms.sanitizeURL(config.TargetURL),
+		"target_url": ms.sanitizeURL(ctx, config.TargetURL),
 	})
 
 	return nil
@@ -226,7 +241,7 @@ func (ms *MirrorService) Push(ctx context.Context, repo entities.Repository, con
 // performDryRunClone simulates a clone operation without making changes.
 func (ms *MirrorService) performDryRunClone(ctx context.Context, config MirrorConfig) (CloneResult, error) {
 	ms.logger.Info(ctx, "Performing dry run clone analysis", map[string]interface{}{
-		"source_url": ms.sanitizeURL(config.SourceURL),
+		"source_url": ms.sanitizeURL(ctx, config.SourceURL),
 		"name":       config.Name,
 	})
 
@@ -246,10 +261,11 @@ func (ms *MirrorService) performDryRunClone(ctx context.Context, config MirrorCo
 }
 
 // prepareCloneURL prepares the clone URL with authentication if needed.
-// This restores the prepareCloneURL functionality from main branch.
+//
+//	prepareCloneURL functionality .
 func (ms *MirrorService) prepareCloneURL(ctx context.Context, config MirrorConfig) string {
 	ms.logger.Debug(ctx, "Preparing clone URL", map[string]interface{}{
-		"source_url":    ms.sanitizeURL(config.SourceURL),
+		"source_url":    ms.sanitizeURL(ctx, config.SourceURL),
 		"source_type":   config.SourceType,
 		"auth_protocol": config.AuthConfig.Protocol,
 	})
@@ -265,11 +281,12 @@ func (ms *MirrorService) prepareCloneURL(ctx context.Context, config MirrorConfi
 }
 
 // finalizeClone finalizes the clone operation and creates repository entity.
-// This restores the finalizeClone functionality from main branch.
+//
+//	finalizeClone functionality .
 func (ms *MirrorService) finalizeClone(ctx context.Context, destinationDir, cloneURL string, config MirrorConfig) (CloneResult, error) {
 	ms.logger.Debug(ctx, "Finalizing clone operation", map[string]interface{}{
 		"destination_dir": destinationDir,
-		"clone_url":       ms.sanitizeURL(cloneURL),
+		"clone_url":       ms.sanitizeURL(ctx, cloneURL),
 		"source_type":     config.SourceType,
 	})
 
@@ -294,11 +311,12 @@ func (ms *MirrorService) finalizeClone(ctx context.Context, destinationDir, clon
 }
 
 // updateRepoConfig updates repository configuration to remove authentication from URLs.
-// This restores the updateRepoConfig functionality from main branch.
+//
+//	updateRepoConfig functionality .
 func (ms *MirrorService) updateRepoConfig(ctx context.Context, repoPath, cloneURL string) error {
 	ms.logger.Debug(ctx, "Updating repository configuration", map[string]interface{}{
 		"repo_path": repoPath,
-		"clone_url": ms.sanitizeURL(cloneURL),
+		"clone_url": ms.sanitizeURL(ctx, cloneURL),
 	})
 
 	// Remove basic auth from URL
@@ -313,7 +331,8 @@ func (ms *MirrorService) updateRepoConfig(ctx context.Context, repoPath, cloneUR
 }
 
 // setupSSHCommandEnv sets up environment variables for SSH commands.
-// This restores the SetupSSHCommandEnv functionality from main branch.
+//
+//	SetupSSHCommandEnv functionality .
 func (ms *MirrorService) setupSSHCommandEnv(authConfig AuthConfig) []string {
 	if authConfig.SSHCommand == "" {
 		return []string{}
@@ -351,11 +370,11 @@ func (ms *MirrorService) createTempDirectory(ctx context.Context) (string, error
 
 // Helper methods
 
-func (ms *MirrorService) sanitizeURL(url string) string {
-	return ms.removeBasicAuthFromURL(context.Background(), url)
+func (ms *MirrorService) sanitizeURL(_ context.Context, url string) string {
+	return shared.SanitizeURL(url)
 }
 
-func (ms *MirrorService) addBasicAuthToURL(ctx context.Context, url, username, token string) string {
+func (ms *MirrorService) addBasicAuthToURL(_ context.Context, url, username, token string) string {
 	// Simple implementation - in production, use proper URL parsing
 	if strings.HasPrefix(url, "https://") {
 		return strings.Replace(url, "https://", fmt.Sprintf("https://%s:%s@", username, token), 1)
@@ -364,7 +383,7 @@ func (ms *MirrorService) addBasicAuthToURL(ctx context.Context, url, username, t
 	return url
 }
 
-func (ms *MirrorService) removeBasicAuthFromURL(ctx context.Context, url string) string {
+func (ms *MirrorService) removeBasicAuthFromURL(_ context.Context, url string) string {
 	// Simple implementation - in production, use proper URL parsing
 	if strings.Contains(url, "@") {
 		parts := strings.Split(url, "@")
@@ -376,13 +395,13 @@ func (ms *MirrorService) removeBasicAuthFromURL(ctx context.Context, url string)
 	return url
 }
 
-func (ms *MirrorService) createRepositoryEntity(ctx context.Context, repoPath string, config MirrorConfig) entities.Repository {
+func (ms *MirrorService) createRepositoryEntity(_ context.Context, _ string, _ MirrorConfig) entities.Repository {
 	// This would need to be implemented based on your entities.Repository interface
 	// For now, returning a placeholder
 	return entities.Repository{} // Placeholder
 }
 
-func (ms *MirrorService) getRepositoryName(repo entities.Repository) string {
+func (ms *MirrorService) getRepositoryName(_ entities.Repository) string {
 	// This would need to be implemented based on your entities.Repository interface
 	// The entity should provide the repository name
 	return "unknown" // Placeholder
@@ -390,4 +409,4 @@ func (ms *MirrorService) getRepositoryName(repo entities.Repository) string {
 
 // Note: ExecutorService, OperationServiceInterface, and ValidateGitBinary
 // are now implemented in separate files (executor_service.go, operations_service.go, validation.go)
-// with complete functionality restored from main branch.
+// with complete functionality restored .

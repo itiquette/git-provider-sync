@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
@@ -11,6 +11,7 @@ import (
 	"github.com/rs/zerolog"
 
 	"itiquette/git-provider-sync/internal/domain/ports"
+	"itiquette/git-provider-sync/internal/shared"
 )
 
 // ZerologAdapter adapts zerolog.Logger to implement the domain ports.Logger interface.
@@ -19,55 +20,60 @@ type ZerologAdapter struct {
 }
 
 // NewZerologAdapter creates a new zerolog adapter.
-func NewZerologAdapter(logger *zerolog.Logger) ports.Logger {
+func NewZerologAdapter(logger *zerolog.Logger) ports.Logger { //nolint:ireturn // Factory function returning interface
 	return &ZerologAdapter{logger: logger}
 }
 
 // Trace logs a trace level message with the provided fields.
-func (z *ZerologAdapter) Trace(ctx context.Context, msg string, fields map[string]interface{}) {
+func (z *ZerologAdapter) Trace(_ /* ctx */ context.Context, msg string, fields map[string]interface{}) {
 	event := z.logger.Trace()
 	z.addFields(event, fields)
-	event.Msg(msg)
+	event.Msg(z.sanitizeMessage(msg))
 }
 
-func (z *ZerologAdapter) Debug(ctx context.Context, msg string, fields map[string]interface{}) {
+// Debug logs a debug level message with the provided fields.
+func (z *ZerologAdapter) Debug(_ context.Context, msg string, fields map[string]interface{}) {
 	event := z.logger.Debug()
 	z.addFields(event, fields)
-	event.Msg(msg)
+	event.Msg(z.sanitizeMessage(msg))
 }
 
-func (z *ZerologAdapter) Info(ctx context.Context, msg string, fields map[string]interface{}) {
+// Info logs an info level message with the provided fields.
+func (z *ZerologAdapter) Info(_ context.Context, msg string, fields map[string]interface{}) {
 	event := z.logger.Info()
 	z.addFields(event, fields)
-	event.Msg(msg)
+	event.Msg(z.sanitizeMessage(msg))
 }
 
-func (z *ZerologAdapter) Warn(ctx context.Context, msg string, fields map[string]interface{}) {
+// Warn logs a warn level message with the provided fields.
+func (z *ZerologAdapter) Warn(_ context.Context, msg string, fields map[string]interface{}) {
 	event := z.logger.Warn()
 	z.addFields(event, fields)
-	event.Msg(msg)
+	event.Msg(z.sanitizeMessage(msg))
 }
 
-func (z *ZerologAdapter) Error(ctx context.Context, msg string, fields map[string]interface{}) {
+func (z *ZerologAdapter) Error(_ context.Context, msg string, fields map[string]interface{}) {
 	event := z.logger.Error()
 	z.addFields(event, fields)
-	event.Msg(msg)
+	event.Msg(z.sanitizeMessage(msg))
 }
 
-func (z *ZerologAdapter) Fatal(ctx context.Context, msg string, fields map[string]interface{}) {
+// Fatal logs a fatal message and terminates the program.
+func (z *ZerologAdapter) Fatal(_ context.Context, msg string, fields map[string]interface{}) {
 	event := z.logger.Fatal()
 	z.addFields(event, fields)
-	event.Msg(msg)
+	event.Msg(z.sanitizeMessage(msg))
 }
 
 // WithField returns a new logger instance with the specified field added.
-func (z *ZerologAdapter) WithField(key string, value interface{}) ports.Logger {
+func (z *ZerologAdapter) WithField(key string, value interface{}) ports.Logger { //nolint:ireturn // Interface implementation
 	newLogger := z.logger.With().Interface(key, value).Logger()
 
 	return &ZerologAdapter{logger: &newLogger}
 }
 
-func (z *ZerologAdapter) WithFields(fields map[string]interface{}) ports.Logger {
+// WithFields creates a new logger with additional fields.
+func (z *ZerologAdapter) WithFields(fields map[string]interface{}) ports.Logger { //nolint:ireturn // Interface implementation
 	ctx := z.logger.With()
 	for key, value := range fields {
 		ctx = ctx.Interface(key, value)
@@ -78,7 +84,8 @@ func (z *ZerologAdapter) WithFields(fields map[string]interface{}) ports.Logger 
 	return &ZerologAdapter{logger: &newLogger}
 }
 
-func (z *ZerologAdapter) WithContext(ctx context.Context) ports.Logger {
+// WithContext creates a new logger with the provided context.
+func (z *ZerologAdapter) WithContext(ctx context.Context) ports.Logger { //nolint:ireturn // Interface implementation
 	newLogger := z.logger.WithContext(ctx)
 
 	return &ZerologAdapter{logger: zerolog.Ctx(newLogger)}
@@ -86,22 +93,36 @@ func (z *ZerologAdapter) WithContext(ctx context.Context) ports.Logger {
 
 // SetLevel sets the minimum log level for this logger.
 func (z *ZerologAdapter) SetLevel(level ports.LogLevel) {
-	z.logger.Level(z.convertLogLevel(level))
+	*z.logger = z.logger.Level(z.convertLogLevel(level))
 }
 
+// GetLevel returns the current logging level.
 func (z *ZerologAdapter) GetLevel() ports.LogLevel {
 	return z.convertZerologLevel(z.logger.GetLevel())
 }
 
+// IsLevelEnabled checks if the given log level is enabled.
 func (z *ZerologAdapter) IsLevelEnabled(level ports.LogLevel) bool {
 	return z.logger.GetLevel() <= z.convertLogLevel(level)
 }
 
 // Helper methods.
 func (z *ZerologAdapter) addFields(event *zerolog.Event, fields map[string]interface{}) {
-	for key, value := range fields {
+	// Sanitize the fields before logging to prevent credential leaks
+	sanitized := shared.SanitizeStringMap(fields)
+	for key, value := range sanitized {
 		event.Interface(key, value)
 	}
+}
+
+// sanitizeMessage sanitizes URLs and credentials in log messages.
+func (z *ZerologAdapter) sanitizeMessage(msg string) string {
+	// Check if message contains URL patterns
+	if shared.ContainsURL(msg) {
+		return shared.SanitizeURL(msg)
+	}
+
+	return msg
 }
 
 func (z *ZerologAdapter) convertLogLevel(level ports.LogLevel) zerolog.Level {

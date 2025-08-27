@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
@@ -10,9 +10,11 @@ import (
 
 	"gitlab.com/gitlab-org/api/client-go"
 
+	"itiquette/git-provider-sync/internal/domain"
 	"itiquette/git-provider-sync/internal/domain/constants"
 	"itiquette/git-provider-sync/internal/domain/entities"
 	"itiquette/git-provider-sync/internal/domain/ports"
+	"itiquette/git-provider-sync/internal/domain/validation"
 )
 
 // CompleteAdapter provides a comprehensive GitLab adapter with all services.
@@ -47,6 +49,11 @@ func NewCompleteAdapter(ctx context.Context, config Config, logger ports.Logger)
 
 	if config.HTTPClient != nil {
 		options = append(options, gitlab.WithHTTPClient(config.HTTPClient))
+	}
+
+	// Allow overriding retry settings for testing
+	if config.CustomRetryMax != nil {
+		options = append(options, gitlab.WithCustomRetryMax(*config.CustomRetryMax))
 	}
 
 	client, err := gitlab.NewClient(config.Token, options...)
@@ -84,9 +91,23 @@ func (ca *CompleteAdapter) CreateRepositoryWithAdvancedOptions(
 		"is_org":     options.IsOrganization,
 	})
 
-	// Validate repository name using advanced validation
-	cleanName, isValid, issues := ValidateAndCleanGitLabName(options.Name)
-	if !isValid {
+	// Validate repository name using domain validation
+	result := validation.ValidateRepositoryName(options.Name, "gitlab")
+
+	cleanName := options.Name
+	if !result.Valid {
+		cleanName = constants.DefaultRepositoryName // Use default if invalid
+	}
+
+	var issues []string
+	if !result.Valid {
+		issues = append(issues, result.Message)
+		if result.Suggestion != "" {
+			issues = append(issues, "Suggestion: "+result.Suggestion)
+		}
+	}
+
+	if !result.Valid {
 		ca.logger.Warn(ctx, "Repository name validation issues", map[string]interface{}{
 			"original_name": options.Name,
 			"clean_name":    cleanName,
@@ -161,6 +182,9 @@ func (ca *CompleteAdapter) FilterRepositoriesWithAdvancedCriteria(
 }
 
 // ValidateAndTransformRepositoryName validates and transforms a GitLab repository name.
+// The name parameter is the original repository name to validate/transform.
+// The options parameter contains transformation rules including case conversion, replacements, and prefix/suffix addition.
+// Returns the validated/transformed name or an error if validation fails even after transformation.
 func (ca *CompleteAdapter) ValidateAndTransformRepositoryName(
 	name string,
 	options ports.NameTransformOptions,
@@ -192,7 +216,7 @@ func (ca *CompleteAdapter) ValidateAndTransformRepositoryName(
 
 // GetRepositoryStatistics returns detailed statistics about GitLab repositories.
 func (ca *CompleteAdapter) GetRepositoryStatistics(
-	ctx context.Context,
+	_ context.Context,
 	repositories []entities.Repository,
 ) map[string]interface{} {
 	stats := map[string]interface{}{
@@ -262,7 +286,7 @@ func (ca *CompleteAdapter) BulkApplyProtection(
 	}
 
 	if len(errors) > 0 {
-		return fmt.Errorf("protection failed for %d repositories: %v", len(errors), errors)
+		return fmt.Errorf("%w: %d repositories failed: %v", domain.ErrBulkProtectionFailed, len(errors), errors)
 	}
 
 	ca.logger.Info(ctx, "Bulk GitLab repository protection completed successfully", map[string]interface{}{
@@ -299,7 +323,7 @@ func (ca *CompleteAdapter) BulkRemoveProtection(
 	}
 
 	if len(errors) > 0 {
-		return fmt.Errorf("protection removal failed for %d repositories: %v", len(errors), errors)
+		return fmt.Errorf("%w: %d repositories failed: %v", domain.ErrBulkRemovalFailed, len(errors), errors)
 	}
 
 	ca.logger.Info(ctx, "Bulk GitLab repository protection removal completed successfully", map[string]interface{}{
@@ -337,7 +361,7 @@ func (ca *CompleteAdapter) GetProjectInfos(
 	}
 
 	// Filter out forks if not requested
-	var result []*entities.Repository
+	result := make([]*entities.Repository, 0, len(repos))
 
 	for _, repo := range repos {
 		if !includeForks && repo.IsFork() {
@@ -374,19 +398,19 @@ func (ca *CompleteAdapter) ResolveNamespace(ctx context.Context, owner string) (
 	}
 
 	// Find exact match
-	for _, ns := range namespaces {
-		if ns.Path == owner {
+	for _, namespace := range namespaces {
+		if namespace.Path == owner {
 			ca.logger.Debug(ctx, "Namespace resolved successfully", map[string]interface{}{
 				"owner":        owner,
-				"namespace_id": ns.ID,
-				"namespace":    ns.FullPath,
+				"namespace_id": namespace.ID,
+				"namespace":    namespace.FullPath,
 			})
 
-			return ns.ID, nil
+			return namespace.ID, nil
 		}
 	}
 
-	return 0, fmt.Errorf("namespace not found: %s", owner)
+	return 0, fmt.Errorf("%w: %s", domain.ErrNamespaceNotFound, owner)
 }
 
 // GetAdvancedProjectOptions creates sophisticated project options for repository creation.

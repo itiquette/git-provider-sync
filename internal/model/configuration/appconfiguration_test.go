@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
@@ -13,6 +13,8 @@ import (
 )
 
 func TestBaseConfig_GetDomain(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name     string
 		config   BaseConfig
@@ -58,6 +60,8 @@ func TestBaseConfig_GetDomain(t *testing.T) {
 
 	for _, tabletest := range tests {
 		t.Run(tabletest.name, func(t *testing.T) {
+			t.Parallel()
+
 			result := tabletest.config.GetDomain()
 			require.Equal(t, tabletest.expected, result)
 		})
@@ -65,6 +69,8 @@ func TestBaseConfig_GetDomain(t *testing.T) {
 }
 
 func TestBaseConfig_FillDefaults(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name     string
 		config   BaseConfig
@@ -83,6 +89,8 @@ func TestBaseConfig_FillDefaults(t *testing.T) {
 					HTTPScheme:     HTTPS,
 					Protocol:       TLS,
 					RequestTimeout: 30,
+					GitTimeout:     300,
+					HTTPTimeout:    30,
 				},
 			},
 		},
@@ -106,6 +114,8 @@ func TestBaseConfig_FillDefaults(t *testing.T) {
 					HTTPScheme:     HTTP,
 					Protocol:       SSH,
 					RequestTimeout: 31,
+					GitTimeout:     300, // Default is set
+					HTTPTimeout:    30,  // Default is set
 				},
 			},
 		},
@@ -113,6 +123,8 @@ func TestBaseConfig_FillDefaults(t *testing.T) {
 
 	for _, tabletest := range tests {
 		t.Run(tabletest.name, func(t *testing.T) {
+			t.Parallel()
+
 			tabletest.config.FillDefaults()
 			require.Equal(t, tabletest.expected, tabletest.config)
 		})
@@ -120,6 +132,8 @@ func TestBaseConfig_FillDefaults(t *testing.T) {
 }
 
 func TestSyncConfig_String(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name     string
 		config   SyncConfig
@@ -161,6 +175,8 @@ func TestSyncConfig_String(t *testing.T) {
 
 	for _, tabletest := range tests {
 		t.Run(tabletest.name, func(t *testing.T) {
+			t.Parallel()
+
 			result := tabletest.config.String()
 			require.Equal(t, tabletest.expected, result)
 		})
@@ -168,6 +184,8 @@ func TestSyncConfig_String(t *testing.T) {
 }
 
 func TestSyncConfig_DebugLog(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name     string
 		config   SyncConfig
@@ -206,7 +224,10 @@ func TestSyncConfig_DebugLog(t *testing.T) {
 
 	for _, tabletest := range tests {
 		t.Run(tabletest.name, func(t *testing.T) {
+			t.Parallel()
+
 			var buf bytes.Buffer
+
 			logger := zerolog.New(&buf)
 			tabletest.config.DebugLog(&logger).Msg(tabletest.name)
 
@@ -219,6 +240,8 @@ func TestSyncConfig_DebugLog(t *testing.T) {
 }
 
 func TestAppConfiguration_DebugLog(t *testing.T) {
+	t.Parallel()
+
 	config := AppConfiguration{
 		GitProviderSyncConfs: map[string]Environment{
 			"test": {
@@ -253,6 +276,7 @@ func TestAppConfiguration_DebugLog(t *testing.T) {
 	}
 
 	var buf bytes.Buffer
+
 	logger := zerolog.New(&buf)
 
 	config.DebugLog(&logger)
@@ -268,6 +292,8 @@ func TestAppConfiguration_DebugLog(t *testing.T) {
 }
 
 func TestAuthConfig_String(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name     string
 		config   AuthConfig
@@ -295,6 +321,8 @@ func TestAuthConfig_String(t *testing.T) {
 
 	for _, tabletest := range tests {
 		t.Run(tabletest.name, func(t *testing.T) {
+			t.Parallel()
+
 			result := tabletest.config.String()
 			require.Equal(t, tabletest.expected, result)
 		})
@@ -302,6 +330,8 @@ func TestAuthConfig_String(t *testing.T) {
 }
 
 func TestMirrorConfig_ProviderTypes(t *testing.T) {
+	t.Parallel()
+
 	mirrors := map[string]MirrorConfig{
 		"archive": {
 			BaseConfig: BaseConfig{
@@ -330,6 +360,8 @@ func TestMirrorConfig_ProviderTypes(t *testing.T) {
 	require.False(t, mirrors["git"].IsDirectory())
 }
 func TestSyncConfig_DebugLogNoTokens(t *testing.T) {
+	t.Parallel()
+
 	// Create a config with a token that should be hidden
 	config := SyncConfig{
 		BaseConfig: BaseConfig{
@@ -357,6 +389,7 @@ func TestSyncConfig_DebugLogNoTokens(t *testing.T) {
 
 	// Capture log output
 	var buf bytes.Buffer
+
 	logger := zerolog.New(&buf)
 
 	// Log the config

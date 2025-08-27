@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
@@ -6,12 +6,38 @@ package model
 
 import (
 	"context"
-	"errors"
 	"fmt"
+	"io"
+	"os"
+
+	"itiquette/git-provider-sync/internal/domain"
 )
 
 // CLIOptionKey is used as a key for storing and retrieving CLIOption from a context.
 type CLIOptionKey struct{}
+
+// ErrorHandlerKey is used as a key for storing and retrieving error handler from a context.
+type ErrorHandlerKey struct{}
+
+// ErrorHandler defines an interface for handling CLI option errors.
+type ErrorHandler interface {
+	HandleError(ctx context.Context, err error)
+}
+
+// StderrErrorHandler is the default error handler that writes to stderr.
+type StderrErrorHandler struct {
+	Writer io.Writer
+}
+
+// HandleError implements ErrorHandler interface for stderr output.
+func (h *StderrErrorHandler) HandleError(_ context.Context, err error) {
+	writer := h.Writer
+	if writer == nil {
+		writer = os.Stderr
+	}
+
+	_, _ = fmt.Fprintf(writer, "CLI Option Error: %v\n", err)
+}
 
 // CLIOption represents the set of command-line options available in the application.
 type CLIOption struct {
@@ -35,13 +61,27 @@ type CLIOption struct {
 func CLIOptions(ctx context.Context) CLIOption {
 	cliOptions, ok := ctx.Value(CLIOptionKey{}).(CLIOption)
 	if !ok {
-		err := errors.New("failed to retrieve or type-assert CLIOption from context")
-		HandleError(ctx, err)
+		err := domain.ErrCLIOptionRetrievalFailed
+		getErrorHandler(ctx).HandleError(ctx, err)
 		// If HandleError doesn't terminate the program, return a zero-value CLIOption
 		return CLIOption{}
 	}
 
 	return cliOptions
+}
+
+// getErrorHandler retrieves error handler from context or returns default.
+func getErrorHandler(ctx context.Context) ErrorHandler {
+	if handler, ok := ctx.Value(ErrorHandlerKey{}).(ErrorHandler); ok {
+		return handler
+	}
+
+	return &StderrErrorHandler{}
+}
+
+// WithErrorHandler returns a new context with the given ErrorHandler added.
+func WithErrorHandler(ctx context.Context, handler ErrorHandler) context.Context {
+	return context.WithValue(ctx, ErrorHandlerKey{}, handler)
 }
 
 // WithCLIOpt returns a new context with the given CLIOption added.
@@ -62,7 +102,5 @@ func (c CLIOption) String() string {
 // This is a placeholder - in the actual implementation this would integrate with
 // the application's error handling strategy.
 func HandleError(ctx context.Context, err error) {
-	// For now, we'll just log the error
-	// In a real implementation, this might terminate the program or take other actions
-	fmt.Printf("CLI Option Error: %v\n", err)
+	getErrorHandler(ctx).HandleError(ctx, err)
 }

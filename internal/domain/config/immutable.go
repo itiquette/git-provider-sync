@@ -1,7 +1,8 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+// Package config provides immutable configuration utilities.
 package config
 
 import (
@@ -129,36 +130,59 @@ type ImmutableConfigurationMetadata struct {
 
 // AuthenticationType represents the type of authentication used for git providers.
 type AuthenticationType string
+
+// BackoffStrategy represents retry backoff strategies.
 type BackoffStrategy string
+
+// LogLevel represents logging levels.
 type LogLevel string
+
+// LogFormat represents log output formats.
 type LogFormat string
 
 const (
-	AuthenticationTypeNone  AuthenticationType = "none"
+	// AuthenticationTypeNone represents no authentication.
+	AuthenticationTypeNone AuthenticationType = "none"
+	// AuthenticationTypeToken represents token-based authentication.
 	AuthenticationTypeToken AuthenticationType = "token"
+	// AuthenticationTypeBasic represents basic authentication.
 	AuthenticationTypeBasic AuthenticationType = "basic"
-	AuthenticationTypeSSH   AuthenticationType = "ssh"
+	// AuthenticationTypeSSH represents SSH key authentication.
+	AuthenticationTypeSSH AuthenticationType = "ssh"
+	// AuthenticationTypeOAuth represents OAuth authentication.
 	AuthenticationTypeOAuth AuthenticationType = "oauth"
 )
 
 const (
-	BackoffStrategyLinear      BackoffStrategy = "linear"
+	// BackoffStrategyLinear represents linear backoff strategy.
+	BackoffStrategyLinear BackoffStrategy = "linear"
+	// BackoffStrategyExponential represents exponential backoff strategy.
 	BackoffStrategyExponential BackoffStrategy = "exponential"
-	BackoffStrategyFixed       BackoffStrategy = "fixed"
+	// BackoffStrategyFixed represents fixed backoff strategy.
+	BackoffStrategyFixed BackoffStrategy = "fixed"
 )
 
 const (
+	// LogLevelTrace represents trace log level.
 	LogLevelTrace LogLevel = "trace"
+	// LogLevelDebug represents debug log level.
 	LogLevelDebug LogLevel = "debug"
-	LogLevelInfo  LogLevel = "info"
-	LogLevelWarn  LogLevel = "warn"
+	// LogLevelInfo represents info log level.
+	LogLevelInfo LogLevel = "info"
+	// LogLevelWarn represents warn log level.
+	LogLevelWarn LogLevel = "warn"
+	// LogLevelError represents error log level.
 	LogLevelError LogLevel = "error"
+	// LogLevelFatal represents fatal log level.
 	LogLevelFatal LogLevel = "fatal"
 )
 
 const (
-	LogFormatJSON    LogFormat = "json"
-	LogFormatText    LogFormat = "text"
+	// LogFormatJSON represents JSON log format.
+	LogFormatJSON LogFormat = "json"
+	// LogFormatText represents text log format.
+	LogFormatText LogFormat = "text"
+	// LogFormatConsole represents console log format.
 	LogFormatConsole LogFormat = "console"
 )
 
@@ -171,25 +195,40 @@ type ConfigurationSource struct {
 	Format   ConfigurationFormat
 }
 
+// SourceType represents configuration source types.
 type SourceType string
+
+// ConfigurationFormat represents configuration file formats.
 type ConfigurationFormat string
 
 const (
-	SourceTypeFile        SourceType = "file"
+	// SourceTypeFile represents file source type.
+	SourceTypeFile SourceType = "file"
+	// SourceTypeEnvironment represents environment source type.
 	SourceTypeEnvironment SourceType = "environment"
-	SourceTypeEtcd        SourceType = "etcd"
-	SourceTypeConsul      SourceType = "consul"
-	SourceTypeVault       SourceType = "vault"
-	SourceTypeHTTP        SourceType = "http"
-	SourceTypeDefaults    SourceType = "defaults"
+	// SourceTypeEtcd represents etcd source type.
+	SourceTypeEtcd SourceType = "etcd"
+	// SourceTypeConsul represents consul source type.
+	SourceTypeConsul SourceType = "consul"
+	// SourceTypeVault represents vault source type.
+	SourceTypeVault SourceType = "vault"
+	// SourceTypeHTTP represents HTTP source type.
+	SourceTypeHTTP SourceType = "http"
+	// SourceTypeDefaults represents defaults source type.
+	SourceTypeDefaults SourceType = "defaults"
 )
 
 const (
+	// ConfigurationFormatYAML represents YAML configuration format.
 	ConfigurationFormatYAML ConfigurationFormat = "yaml"
+	// ConfigurationFormatJSON represents JSON configuration format.
 	ConfigurationFormatJSON ConfigurationFormat = "json"
+	// ConfigurationFormatTOML represents TOML configuration format.
 	ConfigurationFormatTOML ConfigurationFormat = "toml"
-	ConfigurationFormatINI  ConfigurationFormat = "ini"
-	ConfigurationFormatENV  ConfigurationFormat = "env"
+	// ConfigurationFormatINI represents INI configuration format.
+	ConfigurationFormatINI ConfigurationFormat = "ini"
+	// ConfigurationFormatENV represents ENV configuration format.
+	ConfigurationFormatENV ConfigurationFormat = "env"
 )
 
 // Accessor methods for ImmutableAppConfiguration

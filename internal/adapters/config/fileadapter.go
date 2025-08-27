@@ -1,7 +1,8 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+// Package config provides configuration file loading and parsing adapters.
 package config
 
 import (
@@ -16,7 +17,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/fsnotify/fsnotify"
 	"github.com/knadh/koanf/parsers/dotenv"
 	"github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/providers/env"
@@ -26,30 +26,50 @@ import (
 	"itiquette/git-provider-sync/internal/domain/ports"
 )
 
+// Static errors for err113 compliance.
+var (
+	ErrAtLeastOneEnvironmentRequired = errors.New("at least one environment is required")
+	ErrMirrorMustBeObject            = errors.New("mirror must be an object")
+	ErrEnvironmentMustBeObject       = errors.New("environment must be an object")
+	ErrAuthMustBeObject              = errors.New("authentication must be an object")
+	ErrEnvironmentValidationFailed   = errors.New("environment validation failed")
+	ErrSourceTypeNotImplemented      = errors.New("source type not yet implemented")
+	ErrUnsupportedSourceType         = errors.New("unsupported source type")
+	ErrRequiredConfigFileNotFound    = errors.New("required configuration file not found")
+	ErrOptionalFileNotFound          = errors.New("optional file not found")
+	ErrConfigFormatNotImplemented    = errors.New("configuration format not yet implemented")
+	ErrUnsupportedConfigFormat       = errors.New("unsupported configuration format")
+	ErrSourceMustBeObject            = errors.New("source must be an object")
+	ErrEnvironmentNameEmpty          = errors.New("environment name cannot be empty")
+	ErrOwnerRequired                 = errors.New("owner is required")
+	ErrAtLeastOneMirrorRequired      = errors.New("at least one mirror is required")
+	ErrPathRequired                  = errors.New("path is required")
+	ErrOwnerRequiredForProvider      = errors.New("owner is required for provider")
+	ErrProviderTypeRequired          = errors.New("provider type is required")
+	ErrInvalidLogLevel               = errors.New("invalid log level")
+	ErrMirrorsMustBeObject           = errors.New("mirrors must be an object")
+)
+
 // FileAdapter implements the Configuration interface using file-based configuration.
 type FileAdapter struct {
-	koanf         *koanfpkg.Koanf
-	sources       []ports.ConfigurationSource
-	lastModified  time.Time
-	version       string
-	watcher       *fsnotify.Watcher
-	watchCallback ports.ConfigurationChangeCallback
-	stopChan      chan struct{}
-	mu            sync.RWMutex
+	koanf        *koanfpkg.Koanf
+	sources      []ports.ConfigurationSource
+	lastModified time.Time
+	version      string
+	mu           sync.RWMutex
 }
 
 // New creates a new file-based configuration adapter.
 func New() *FileAdapter {
 	return &FileAdapter{
-		koanf:    koanfpkg.New("."),
-		sources:  []ports.ConfigurationSource{},
-		version:  "1.0.0",
-		stopChan: make(chan struct{}),
+		koanf:   koanfpkg.New("."),
+		sources: []ports.ConfigurationSource{},
+		version: "1.0.0",
 	}
 }
 
 // Load loads configuration from a single source.
-func (a *FileAdapter) Load(ctx context.Context, source ports.ConfigurationSource) (ports.AppConfiguration, error) {
+func (a *FileAdapter) Load(_ context.Context, source ports.ConfigurationSource) (ports.AppConfiguration, error) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
@@ -73,7 +93,7 @@ func (a *FileAdapter) Load(ctx context.Context, source ports.ConfigurationSource
 }
 
 // LoadMultiple loads configuration from multiple sources.
-func (a *FileAdapter) LoadMultiple(ctx context.Context, sources []ports.ConfigurationSource) (ports.AppConfiguration, error) {
+func (a *FileAdapter) LoadMultiple(_ context.Context, sources []ports.ConfigurationSource) (ports.AppConfiguration, error) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
@@ -86,8 +106,8 @@ func (a *FileAdapter) LoadMultiple(ctx context.Context, sources []ports.Configur
 	copy(sortedSources, sources)
 
 	// Simple bubble sort by priority
-	for i := 0; i < len(sortedSources); i++ {
-		for j := 0; j < len(sortedSources)-1; j++ {
+	for range sortedSources {
+		for j := range len(sortedSources) - 1 {
 			if sortedSources[j].Priority > sortedSources[j+1].Priority {
 				sortedSources[j], sortedSources[j+1] = sortedSources[j+1], sortedSources[j]
 			}
@@ -130,7 +150,7 @@ func (a *FileAdapter) Validate(config ports.AppConfiguration) ([]ports.Configura
 	if len(config.Environments) == 0 {
 		validationErrors = append(validationErrors, ports.ConfigurationError{
 			Field:    "environments",
-			Err:      errors.New("at least one environment is required"),
+			Err:      ErrAtLeastOneEnvironmentRequired,
 			Severity: ports.ErrorSeverityError,
 		})
 	}
@@ -151,61 +171,10 @@ func (a *FileAdapter) Validate(config ports.AppConfiguration) ([]ports.Configura
 func (a *FileAdapter) ValidateEnvironment(env ports.EnvironmentConfiguration) error {
 	validationErrors := a.validateEnvironment(env.Name, env)
 	if len(validationErrors) > 0 {
-		return fmt.Errorf("environment validation failed: %d errors found", len(validationErrors))
+		return fmt.Errorf("%w: %d errors found", ErrEnvironmentValidationFailed, len(validationErrors))
 	}
 
 	return nil
-}
-
-// Watch starts watching configuration files for changes.
-func (a *FileAdapter) Watch(ctx context.Context, callback ports.ConfigurationChangeCallback) error {
-	a.mu.Lock()
-	defer a.mu.Unlock()
-
-	if a.watcher != nil {
-		return errors.New("already watching configuration files")
-	}
-
-	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		return fmt.Errorf("failed to create file watcher: %w", err)
-	}
-
-	a.watcher = watcher
-	a.watchCallback = callback
-
-	// Add all file sources to watcher
-	for _, source := range a.sources {
-		if source.Type == ports.SourceTypeFile {
-			err = watcher.Add(source.Location)
-			if err != nil {
-				return fmt.Errorf("failed to watch file %s: %w", source.Location, err)
-			}
-		}
-	}
-
-	// Start watching in goroutine
-	go a.watchFiles(ctx)
-
-	return nil
-}
-
-// StopWatching stops watching configuration files.
-func (a *FileAdapter) StopWatching() error {
-	a.mu.Lock()
-	defer a.mu.Unlock()
-
-	if a.watcher == nil {
-		return nil
-	}
-
-	close(a.stopChan)
-	err := a.watcher.Close()
-	a.watcher = nil
-	a.watchCallback = nil
-	a.stopChan = make(chan struct{})
-
-	return fmt.Errorf("failed to close file watcher: %w", err)
 }
 
 // GetSources returns the configuration sources.
@@ -245,56 +214,88 @@ func (a *FileAdapter) loadSource(source ports.ConfigurationSource) error {
 	case ports.SourceTypeEnvironment:
 		return a.loadEnvironmentSource(source)
 	case ports.SourceTypeEtcd, ports.SourceTypeConsul, ports.SourceTypeVault, ports.SourceTypeHTTP, ports.SourceTypeDefaults:
-		return fmt.Errorf("source type %s not yet implemented", source.Type)
+		return fmt.Errorf("%w: %s", ErrSourceTypeNotImplemented, source.Type)
 	default:
-		return fmt.Errorf("unsupported source type: %s", source.Type)
+		return fmt.Errorf("%w: %s", ErrUnsupportedSourceType, source.Type)
 	}
 }
 
 // loadFileSource loads configuration from a file.
 func (a *FileAdapter) loadFileSource(source ports.ConfigurationSource) error {
-	// Check if file exists
+	if err := a.checkFileExists(source); err != nil {
+		// If it's an optional file that doesn't exist, skip it
+		if strings.Contains(err.Error(), "optional file not found") {
+			return nil
+		}
+
+		return err
+	}
+
+	format := a.determineFileFormat(source)
+
+	parser, err := a.createParser(format)
+	if err != nil {
+		return err
+	}
+
+	if err := a.loadFileWithParser(source.Location, parser); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// checkFileExists checks if the configuration file exists and handles optional/required logic.
+func (a *FileAdapter) checkFileExists(source ports.ConfigurationSource) error {
 	if _, err := os.Stat(source.Location); os.IsNotExist(err) {
 		if source.Required {
-			return fmt.Errorf("required configuration file not found: %s", source.Location)
+			return fmt.Errorf("%w: %s", ErrRequiredConfigFileNotFound, source.Location)
 		}
-
-		return nil // Skip optional files that don't exist
+		// Return a special error to indicate the file should be skipped
+		return fmt.Errorf("%w: %s", ErrOptionalFileNotFound, source.Location)
 	}
 
-	var parser koanfpkg.Parser
+	return nil
+}
 
-	// Determine parser based on format or file extension
-	format := source.Format
-	if format == "" {
-		ext := strings.ToLower(filepath.Ext(source.Location))
-		switch ext {
-		case ".yaml", ".yml":
-			format = ports.ConfigurationFormatYAML
-		case ".json":
-			format = ports.ConfigurationFormatJSON
-		case ".env":
-			format = ports.ConfigurationFormatENV
-		default:
-			format = ports.ConfigurationFormatYAML // Default to YAML
-		}
+// determineFileFormat determines the configuration format based on source format or file extension.
+func (a *FileAdapter) determineFileFormat(source ports.ConfigurationSource) ports.ConfigurationFormat {
+	if source.Format != "" {
+		return source.Format
 	}
 
+	ext := strings.ToLower(filepath.Ext(source.Location))
+	switch ext {
+	case ".yaml", ".yml":
+		return ports.ConfigurationFormatYAML
+	case ".json":
+		return ports.ConfigurationFormatJSON
+	case ".env":
+		return ports.ConfigurationFormatENV
+	default:
+		return ports.ConfigurationFormatYAML // Default to YAML
+	}
+}
+
+// createParser creates the appropriate parser for the given format.
+func (a *FileAdapter) createParser(format ports.ConfigurationFormat) (koanfpkg.Parser, error) { //nolint:ireturn
 	switch format {
 	case ports.ConfigurationFormatYAML:
-		parser = yaml.Parser()
+		return yaml.Parser(), nil
 	case ports.ConfigurationFormatENV:
-		parser = dotenv.Parser()
+		return dotenv.Parser(), nil
 	case ports.ConfigurationFormatJSON, ports.ConfigurationFormatTOML, ports.ConfigurationFormatINI:
-		return fmt.Errorf("configuration format %s not yet implemented", format)
+		return nil, fmt.Errorf("%w: %s", ErrConfigFormatNotImplemented, format)
 	default:
-		return fmt.Errorf("unsupported configuration format: %s", format)
+		return nil, fmt.Errorf("%w: %s", ErrUnsupportedConfigFormat, format)
 	}
+}
 
-	// Load the file
-	err := a.koanf.Load(file.Provider(source.Location), parser)
+// loadFileWithParser loads the configuration file using the specified parser.
+func (a *FileAdapter) loadFileWithParser(location string, parser koanfpkg.Parser) error {
+	err := a.koanf.Load(file.Provider(location), parser)
 	if err != nil {
-		return fmt.Errorf("failed to load configuration file %s: %w", source.Location, err)
+		return fmt.Errorf("failed to load configuration file %s: %w", location, err)
 	}
 
 	return nil
@@ -316,7 +317,6 @@ func (a *FileAdapter) loadEnvironmentSource(source ports.ConfigurationSource) er
 
 		return envVar
 	}), nil)
-
 	if err != nil {
 		return fmt.Errorf("failed to load environment variables: %w", err)
 	}
@@ -378,49 +378,23 @@ func (a *FileAdapter) parseEnvironment(name string, data interface{}) (ports.Env
 
 	envMap, ok := data.(map[string]interface{})
 	if !ok {
-		return env, errors.New("environment must be an object")
+		return env, ErrEnvironmentMustBeObject
 	}
 
-	// Parse enabled flag
-	if enabled, exists := envMap["enabled"]; exists {
-		if enabledBool, ok := enabled.(bool); ok {
-			env.Enabled = enabledBool
-		}
+	if err := a.parseEnvironmentEnabled(&env, envMap); err != nil {
+		return env, err
 	}
 
-	// Parse source configuration
-	if sourceData, exists := envMap["source"]; exists {
-		source, err := a.parseSourceConfiguration(sourceData)
-		if err != nil {
-			return env, fmt.Errorf("failed to parse source: %w", err)
-		}
-
-		env.Source = source
+	if err := a.parseEnvironmentSource(&env, envMap); err != nil {
+		return env, err
 	}
 
-	// Parse mirrors
-	if mirrorsData, exists := envMap["mirrors"]; exists {
-		mirrorsMap, ok := mirrorsData.(map[string]interface{})
-		if !ok {
-			return env, errors.New("mirrors must be an object")
-		}
-
-		for mirrorName, mirrorData := range mirrorsMap {
-			mirror, err := a.parseMirrorConfiguration(mirrorName, mirrorData)
-			if err != nil {
-				return env, fmt.Errorf("failed to parse mirror %s: %w", mirrorName, err)
-			}
-
-			env.Mirrors[mirrorName] = mirror
-		}
+	if err := a.parseEnvironmentMirrors(&env, envMap); err != nil {
+		return env, err
 	}
 
-	// Parse options
-	if optionsData, exists := envMap["options"]; exists {
-		var options ports.EnvironmentOptions
-		// Simple type assertion for now - a full implementation would use reflection
-		_ = optionsData // Use the variable to avoid compiler error
-		env.Options = options
+	if err := a.parseEnvironmentOptions(&env, envMap); err != nil {
+		return env, err
 	}
 
 	return env, nil
@@ -432,7 +406,7 @@ func (a *FileAdapter) parseSourceConfiguration(data interface{}) (ports.SourceCo
 
 	sourceMap, ok := data.(map[string]interface{})
 	if !ok {
-		return source, errors.New("source must be an object")
+		return source, ErrSourceMustBeObject
 	}
 
 	// Extract basic fields
@@ -476,51 +450,61 @@ func (a *FileAdapter) parseMirrorConfiguration(name string, data interface{}) (p
 
 	mirrorMap, ok := data.(map[string]interface{})
 	if !ok {
-		return mirror, errors.New("mirror must be an object")
+		return mirror, ErrMirrorMustBeObject
 	}
 
-	// Extract basic fields
-	if providerType, exists := mirrorMap["provider_type"]; exists {
-		if pt, ok := providerType.(string); ok {
-			mirror.ProviderType = pt
+	if err := a.parseMirrorBasicFields(&mirror, mirrorMap); err != nil {
+		return mirror, err
+	}
+
+	if err := a.parseMirrorAuthenticationField(&mirror, mirrorMap); err != nil {
+		return mirror, err
+	}
+
+	return mirror, nil
+}
+
+// parseMirrorBasicFields parses the basic fields of a mirror configuration.
+func (a *FileAdapter) parseMirrorBasicFields(mirror *ports.MirrorConfiguration, mirrorMap map[string]interface{}) error { //nolint:unparam // Error return reserved for future validation
+	// Define field mappings for type-safe parsing
+	stringFields := map[string]*string{
+		"provider_type": &mirror.ProviderType,
+		"domain":        &mirror.Domain,
+		"owner":         &mirror.Owner,
+		"path":          &mirror.Path,
+	}
+
+	// Parse string fields
+	for fieldName, fieldPtr := range stringFields {
+		if value, exists := mirrorMap[fieldName]; exists {
+			if strValue, ok := value.(string); ok {
+				*fieldPtr = strValue
+			}
 		}
 	}
 
-	if domain, exists := mirrorMap["domain"]; exists {
-		if d, ok := domain.(string); ok {
-			mirror.Domain = d
-		}
-	}
-
-	if owner, exists := mirrorMap["owner"]; exists {
-		if o, ok := owner.(string); ok {
-			mirror.Owner = o
-		}
-	}
-
-	if path, exists := mirrorMap["path"]; exists {
-		if p, ok := path.(string); ok {
-			mirror.Path = p
-		}
-	}
-
+	// Parse boolean fields
 	if enabled, exists := mirrorMap["enabled"]; exists {
-		if e, ok := enabled.(bool); ok {
-			mirror.Enabled = e
+		if boolValue, ok := enabled.(bool); ok {
+			mirror.Enabled = boolValue
 		}
 	}
 
-	// Parse authentication
+	return nil
+}
+
+// parseMirrorAuthenticationField parses the authentication field of a mirror configuration.
+func (a *FileAdapter) parseMirrorAuthenticationField(mirror *ports.MirrorConfiguration, mirrorMap map[string]interface{}) error {
 	if authData, exists := mirrorMap["authentication"]; exists {
 		auth, err := a.parseAuthConfiguration(authData)
 		if err != nil {
-			return mirror, fmt.Errorf("failed to parse authentication: %w", err)
+			return fmt.Errorf("failed to parse authentication: %w", err)
 		}
 
 		mirror.Authentication = auth
 	}
 
-	return mirror, nil
+	return nil
 }
 
 // parseAuthConfiguration parses authentication configuration.
@@ -529,38 +513,11 @@ func (a *FileAdapter) parseAuthConfiguration(data interface{}) (ports.Authentica
 
 	authMap, ok := data.(map[string]interface{})
 	if !ok {
-		return auth, errors.New("authentication must be an object")
+		return auth, ErrAuthMustBeObject
 	}
 
-	if authType, exists := authMap["type"]; exists {
-		if at, ok := authType.(string); ok {
-			auth.Type = ports.AuthenticationType(at)
-		}
-	}
-
-	if token, exists := authMap["token"]; exists {
-		if t, ok := token.(string); ok {
-			auth.Token = t
-		}
-	}
-
-	if username, exists := authMap["username"]; exists {
-		if u, ok := username.(string); ok {
-			auth.Username = u
-		}
-	}
-
-	if password, exists := authMap["password"]; exists {
-		if p, ok := password.(string); ok {
-			auth.Password = p
-		}
-	}
-
-	if sshKeyPath, exists := authMap["ssh_key_path"]; exists {
-		if skp, ok := sshKeyPath.(string); ok {
-			auth.SSHKeyPath = skp
-		}
-	}
+	a.parseAuthType(&auth, authMap)
+	a.parseAuthCredentials(&auth, authMap)
 
 	return auth, nil
 }
@@ -573,7 +530,7 @@ func (a *FileAdapter) validateEnvironment(envName string, env ports.EnvironmentC
 	if envName == "" {
 		validationErrors = append(validationErrors, ports.ConfigurationError{
 			Field:    "name",
-			Err:      errors.New("environment name cannot be empty"),
+			Err:      ErrEnvironmentNameEmpty,
 			Severity: ports.ErrorSeverityError,
 		})
 	}
@@ -582,7 +539,7 @@ func (a *FileAdapter) validateEnvironment(envName string, env ports.EnvironmentC
 	if env.Source.ProviderType == "" {
 		validationErrors = append(validationErrors, ports.ConfigurationError{
 			Field:    envName + ".source.provider_type",
-			Err:      errors.New("provider type is required"),
+			Err:      ErrProviderTypeRequired,
 			Severity: ports.ErrorSeverityError,
 		})
 	}
@@ -590,7 +547,7 @@ func (a *FileAdapter) validateEnvironment(envName string, env ports.EnvironmentC
 	if env.Source.Owner == "" {
 		validationErrors = append(validationErrors, ports.ConfigurationError{
 			Field:    envName + ".source.owner",
-			Err:      errors.New("owner is required"),
+			Err:      ErrOwnerRequired,
 			Severity: ports.ErrorSeverityError,
 		})
 	}
@@ -599,7 +556,7 @@ func (a *FileAdapter) validateEnvironment(envName string, env ports.EnvironmentC
 	if len(env.Mirrors) == 0 {
 		validationErrors = append(validationErrors, ports.ConfigurationError{
 			Field:    envName + ".mirrors",
-			Err:      errors.New("at least one mirror is required"),
+			Err:      ErrAtLeastOneMirrorRequired,
 			Severity: ports.ErrorSeverityWarning,
 		})
 	}
@@ -621,7 +578,7 @@ func (a *FileAdapter) validateMirror(envName, mirrorName string, mirror ports.Mi
 	if mirror.ProviderType == "" {
 		validationErrors = append(validationErrors, ports.ConfigurationError{
 			Field:    fieldPrefix + ".provider_type",
-			Err:      errors.New("provider type is required"),
+			Err:      ErrProviderTypeRequired,
 			Severity: ports.ErrorSeverityError,
 		})
 	}
@@ -632,7 +589,7 @@ func (a *FileAdapter) validateMirror(envName, mirrorName string, mirror ports.Mi
 		if mirror.Path == "" {
 			validationErrors = append(validationErrors, ports.ConfigurationError{
 				Field:    fieldPrefix + ".path",
-				Err:      fmt.Errorf("path is required for %s provider", mirror.ProviderType),
+				Err:      fmt.Errorf("%w for %s provider", ErrPathRequired, mirror.ProviderType),
 				Severity: ports.ErrorSeverityError,
 			})
 		}
@@ -640,7 +597,7 @@ func (a *FileAdapter) validateMirror(envName, mirrorName string, mirror ports.Mi
 		if mirror.Owner == "" {
 			validationErrors = append(validationErrors, ports.ConfigurationError{
 				Field:    fieldPrefix + ".owner",
-				Err:      fmt.Errorf("owner is required for %s provider", mirror.ProviderType),
+				Err:      fmt.Errorf("%w for %s provider", ErrOwnerRequiredForProvider, mirror.ProviderType),
 				Severity: ports.ErrorSeverityError,
 			})
 		}
@@ -677,57 +634,12 @@ func (a *FileAdapter) validateGlobalSettings(settings ports.GlobalSettings) []po
 		validationErrors = append(validationErrors, ports.ConfigurationError{
 			Field:    "global.log_level",
 			Value:    settings.LogLevel,
-			Err:      errors.New("invalid log level"),
+			Err:      ErrInvalidLogLevel,
 			Severity: ports.ErrorSeverityError,
 		})
 	}
 
 	return validationErrors
-}
-
-// watchFiles watches configuration files for changes.
-func (a *FileAdapter) watchFiles(ctx context.Context) {
-	defer func() {
-		if a.watcher != nil {
-			if err := a.watcher.Close(); err != nil {
-				// Log error but don't return it as this is cleanup
-				_ = err
-			}
-		}
-	}()
-
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-a.stopChan:
-			return
-		case event, ok := <-a.watcher.Events:
-			if !ok {
-				return
-			}
-
-			if event.Op&fsnotify.Write == fsnotify.Write {
-				// File was modified, reload configuration
-				if a.watchCallback != nil {
-					oldConfig, _ := a.parseConfiguration()
-					newConfig, err := a.Reload(ctx)
-
-					if err == nil {
-						a.watchCallback(oldConfig, newConfig)
-					}
-					_ = oldConfig // Suppress unused variable warning
-					_ = newConfig // Suppress unused variable warning
-				}
-			}
-		case err, ok := <-a.watcher.Errors:
-			if !ok {
-				return
-			}
-			// Log error (in a real implementation, use proper logging)
-			_ = err
-		}
-	}
 }
 
 // calculateChecksum calculates a checksum of the current configuration.
@@ -736,4 +648,98 @@ func (a *FileAdapter) calculateChecksum() string {
 	hash := sha256.Sum256([]byte(data))
 
 	return hex.EncodeToString(hash[:])
+}
+
+// parseEnvironmentEnabled parses the enabled flag for an environment.
+func (a *FileAdapter) parseEnvironmentEnabled(env *ports.EnvironmentConfiguration, envMap map[string]interface{}) error { //nolint:unparam // Error return reserved for future validation
+	if enabled, exists := envMap["enabled"]; exists {
+		if enabledBool, ok := enabled.(bool); ok {
+			env.Enabled = enabledBool
+		}
+	}
+
+	return nil
+}
+
+// parseEnvironmentSource parses the source configuration for an environment.
+func (a *FileAdapter) parseEnvironmentSource(env *ports.EnvironmentConfiguration, envMap map[string]interface{}) error {
+	if sourceData, exists := envMap["source"]; exists {
+		source, err := a.parseSourceConfiguration(sourceData)
+		if err != nil {
+			return fmt.Errorf("failed to parse source: %w", err)
+		}
+
+		env.Source = source
+	}
+
+	return nil
+}
+
+// parseEnvironmentMirrors parses the mirrors configuration for an environment.
+func (a *FileAdapter) parseEnvironmentMirrors(env *ports.EnvironmentConfiguration, envMap map[string]interface{}) error {
+	if mirrorsData, exists := envMap["mirrors"]; exists {
+		mirrorsMap, ok := mirrorsData.(map[string]interface{})
+		if !ok {
+			return ErrMirrorsMustBeObject
+		}
+
+		for mirrorName, mirrorData := range mirrorsMap {
+			mirror, err := a.parseMirrorConfiguration(mirrorName, mirrorData)
+			if err != nil {
+				return fmt.Errorf("failed to parse mirror %s: %w", mirrorName, err)
+			}
+
+			env.Mirrors[mirrorName] = mirror
+		}
+	}
+
+	return nil
+}
+
+// parseEnvironmentOptions parses the options configuration for an environment.
+func (a *FileAdapter) parseEnvironmentOptions(env *ports.EnvironmentConfiguration, envMap map[string]interface{}) error { //nolint:unparam // Error return reserved for future validation
+	if optionsData, exists := envMap["options"]; exists {
+		var options ports.EnvironmentOptions
+		// Simple type assertion for now - a full implementation would use reflection
+		_ = optionsData // Use the variable to avoid compiler error
+		env.Options = options
+	}
+
+	return nil
+}
+
+// parseAuthType parses the authentication type field.
+func (a *FileAdapter) parseAuthType(auth *ports.AuthenticationConfiguration, authMap map[string]interface{}) {
+	if authType, exists := authMap["type"]; exists {
+		if at, ok := authType.(string); ok {
+			auth.Type = ports.AuthenticationType(at)
+		}
+	}
+}
+
+// parseAuthCredentials parses authentication credential fields.
+func (a *FileAdapter) parseAuthCredentials(auth *ports.AuthenticationConfiguration, authMap map[string]interface{}) {
+	if token, exists := authMap["token"]; exists {
+		if t, ok := token.(string); ok {
+			auth.Token = t
+		}
+	}
+
+	if username, exists := authMap["username"]; exists {
+		if u, ok := username.(string); ok {
+			auth.Username = u
+		}
+	}
+
+	if password, exists := authMap["password"]; exists {
+		if p, ok := password.(string); ok {
+			auth.Password = p
+		}
+	}
+
+	if sshKeyPath, exists := authMap["ssh_key_path"]; exists {
+		if skp, ok := sshKeyPath.(string); ok {
+			auth.SSHKeyPath = skp
+		}
+	}
 }

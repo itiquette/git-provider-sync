@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"itiquette/git-provider-sync/internal/domain"
 )
 
 // Domain errors for sync operations.
@@ -217,45 +219,6 @@ func (s SyncOperation) FilterRepositories() []Repository {
 	return filtered
 }
 
-// shouldIncludeRepository determines if a repository should be included in sync.
-func (s SyncOperation) shouldIncludeRepository(repo Repository) bool {
-	// Check fork inclusion
-	if repo.IsFork() && !s.options.includeForks {
-		return false
-	}
-
-	// Check archived inclusion
-	if repo.IsArchived() && !s.options.includeArchived {
-		return false
-	}
-
-	// Check include patterns
-	if len(s.sourceConfig.includePatterns) > 0 {
-		included := false
-
-		for _, pattern := range s.sourceConfig.includePatterns {
-			if matchesPattern(repo.Name(), pattern) {
-				included = true
-
-				break
-			}
-		}
-
-		if !included {
-			return false
-		}
-	}
-
-	// Check exclude patterns
-	for _, pattern := range s.sourceConfig.excludePatterns {
-		if matchesPattern(repo.Name(), pattern) {
-			return false
-		}
-	}
-
-	return true
-}
-
 // ValidateRepositoriesForMirrors validates all repositories against all mirror targets.
 func (s SyncOperation) ValidateRepositoriesForMirrors() []RepositoryValidationError {
 	var errors []RepositoryValidationError
@@ -276,7 +239,7 @@ func (s SyncOperation) ValidateRepositoriesForMirrors() []RepositoryValidationEr
 }
 
 // GetRepositoryNameForMirror gets the appropriate repository name for a specific mirror.
-func (s SyncOperation) GetRepositoryNameForMirror(repo Repository, mirror MirrorConfig) string {
+func (s SyncOperation) GetRepositoryNameForMirror(repo Repository, _ MirrorConfig) string {
 	if s.options.alphaNumericName {
 		return repo.CleanName()
 	}
@@ -316,16 +279,66 @@ func (s SyncOperation) CreateSyncPlan() SyncPlan {
 	}
 }
 
+// shouldIncludeRepository determines if a repository should be included in sync.
+//
+//nolint:cyclop // Complex filtering logic with multiple criteria
+func (s SyncOperation) shouldIncludeRepository(repo Repository) bool {
+	// Check fork inclusion
+	if repo.IsFork() && !s.options.includeForks {
+		return false
+	}
+
+	// Check archived inclusion
+	if repo.IsArchived() && !s.options.includeArchived {
+		return false
+	}
+
+	// Check include patterns
+	if len(s.sourceConfig.includePatterns) > 0 {
+		included := false
+
+		for _, pattern := range s.sourceConfig.includePatterns {
+			if matchesPattern(repo.Name(), pattern) {
+				included = true
+
+				break
+			}
+		}
+
+		if !included {
+			return false
+		}
+	}
+
+	// Check exclude patterns
+	for _, pattern := range s.sourceConfig.excludePatterns {
+		if matchesPattern(repo.Name(), pattern) {
+			return false
+		}
+	}
+
+	return true
+}
+
 // SourceConfig methods
+
+// NewSourceConfig creates a new source configuration.
+func NewSourceConfig(providerType, domain, owner string) SourceConfig {
+	return SourceConfig{
+		providerType: providerType,
+		domain:       domain,
+		owner:        owner,
+	}
+}
 
 // Validate validates the source configuration.
 func (sc SourceConfig) Validate() error {
 	if strings.TrimSpace(sc.providerType) == "" {
-		return errors.New("provider type is required")
+		return domain.ErrProviderTypeRequired
 	}
 
 	if strings.TrimSpace(sc.owner) == "" {
-		return errors.New("owner is required")
+		return domain.ErrOwnerRequired
 	}
 
 	validProviders := map[string]bool{
@@ -333,7 +346,7 @@ func (sc SourceConfig) Validate() error {
 	}
 
 	if !validProviders[strings.ToLower(sc.providerType)] {
-		return fmt.Errorf("unsupported provider type: %s", sc.providerType)
+		return fmt.Errorf("%w: %s", domain.ErrUnsupportedProviderType, sc.providerType)
 	}
 
 	return nil
@@ -341,14 +354,24 @@ func (sc SourceConfig) Validate() error {
 
 // MirrorConfig methods
 
+// NewMirrorConfig creates a new mirror configuration.
+func NewMirrorConfig(name, providerType, domain, owner string) MirrorConfig {
+	return MirrorConfig{
+		name:         strings.TrimSpace(name),
+		providerType: strings.ToLower(strings.TrimSpace(providerType)),
+		domain:       strings.TrimSpace(domain),
+		owner:        strings.TrimSpace(owner),
+	}
+}
+
 // Validate validates the mirror configuration.
 func (mc MirrorConfig) Validate() error {
 	if strings.TrimSpace(mc.name) == "" {
-		return errors.New("mirror name is required")
+		return domain.ErrMirrorNameRequired
 	}
 
 	if strings.TrimSpace(mc.providerType) == "" {
-		return errors.New("provider type is required")
+		return domain.ErrProviderTypeRequired
 	}
 
 	validProviders := map[string]bool{
@@ -357,12 +380,12 @@ func (mc MirrorConfig) Validate() error {
 	}
 
 	if !validProviders[strings.ToLower(mc.providerType)] {
-		return fmt.Errorf("unsupported provider type: %s", mc.providerType)
+		return fmt.Errorf("%w: %s", domain.ErrUnsupportedProviderType, mc.providerType)
 	}
 
 	// Directory and archive providers require a path
 	if (mc.providerType == "directory" || mc.providerType == "archive") && mc.path == "" {
-		return fmt.Errorf("path is required for %s provider", mc.providerType)
+		return fmt.Errorf("%w: %s", domain.ErrPathRequiredForProvider, mc.providerType)
 	}
 
 	return nil
@@ -418,15 +441,6 @@ func (sp SyncPlan) StepsForMirror(mirrorName string) []SyncStep {
 
 // Builder functions for configurations
 
-// NewSourceConfig creates a new source configuration.
-func NewSourceConfig(providerType, domain, owner string) SourceConfig {
-	return SourceConfig{
-		providerType: strings.ToLower(strings.TrimSpace(providerType)),
-		domain:       strings.TrimSpace(domain),
-		owner:        strings.TrimSpace(owner),
-	}
-}
-
 // WithIncludePatterns adds include patterns to source config.
 func (sc SourceConfig) WithIncludePatterns(patterns []string) SourceConfig {
 	sc.includePatterns = patterns
@@ -446,16 +460,6 @@ func (sc SourceConfig) WithForkInclusion(include bool) SourceConfig {
 	sc.includeForks = include
 
 	return sc
-}
-
-// NewMirrorConfig creates a new mirror configuration.
-func NewMirrorConfig(name, providerType, domain, owner string) MirrorConfig {
-	return MirrorConfig{
-		name:         strings.TrimSpace(name),
-		providerType: strings.ToLower(strings.TrimSpace(providerType)),
-		domain:       strings.TrimSpace(domain),
-		owner:        strings.TrimSpace(owner),
-	}
 }
 
 // WithPath sets the path for directory/archive providers.

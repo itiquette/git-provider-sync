@@ -1,7 +1,8 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+// Package gitbinary provides git binary repository adapter.
 package gitbinary
 
 import (
@@ -10,12 +11,19 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
+	"itiquette/git-provider-sync/internal/domain"
+	"itiquette/git-provider-sync/internal/domain/entities"
 	"itiquette/git-provider-sync/internal/domain/ports"
 )
 
+const (
+	protocolHTTPS = "https"
+	protocolSSH   = "ssh"
+)
+
 // Adapter provides git binary implementation of GitOperations port.
-// This restores the git binary functionality from main branch in hexagonal architecture.
 type Adapter struct {
 	config      ports.GitConfig
 	mirrorSvc   *MirrorService
@@ -40,8 +48,13 @@ func (a *Adapter) Initialize(ctx context.Context, logger ports.Logger) error {
 	// Create temporary directory
 	a.tempDir = "/tmp/git-provider-sync-binary"
 
-	// Create mirror service
-	mirrorSvc, err := NewMirrorService(logger, a.tempDir)
+	// Create mirror service with timeout from config
+	timeout := a.config.Timeout
+	if timeout == 0 {
+		timeout = 5 * time.Minute
+	}
+
+	mirrorSvc, err := NewMirrorServiceWithTimeout(ctx, logger, a.tempDir, timeout)
 	if err != nil {
 		return fmt.Errorf("failed to create git binary mirror service: %w", err)
 	}
@@ -53,9 +66,9 @@ func (a *Adapter) Initialize(ctx context.Context, logger ports.Logger) error {
 }
 
 // Clone implements the ports.GitOperations interface using git binary.
-func (a *Adapter) Clone(ctx context.Context, options ports.CloneOptions) (ports.GitRepository, error) {
+func (a *Adapter) Clone(ctx context.Context, options ports.CloneOptions) (ports.GitRepository, error) { //nolint:ireturn
 	if !a.initialized {
-		return nil, fmt.Errorf("adapter not initialized")
+		return nil, domain.ErrAdapterNotInitialized
 	}
 
 	// Ensure path exists
@@ -85,23 +98,23 @@ func (a *Adapter) Clone(ctx context.Context, options ports.CloneOptions) (ports.
 }
 
 // Open implements the ports.GitOperations interface.
-func (a *Adapter) Open(ctx context.Context, path string) (ports.GitRepository, error) {
+func (a *Adapter) Open(_ context.Context, path string) (ports.GitRepository, error) { //nolint:ireturn
 	if !a.initialized {
-		return nil, fmt.Errorf("adapter not initialized")
+		return nil, domain.ErrAdapterNotInitialized
 	}
 
 	// Check if path exists and is a git repository
 	if _, err := os.Stat(filepath.Join(path, ".git")); err != nil {
-		return nil, fmt.Errorf("not a git repository: %s", path)
+		return nil, fmt.Errorf("%w: %s", domain.ErrNotGitRepository, path)
 	}
 
 	return NewGitRepository(path, a), nil
 }
 
 // Init implements the ports.GitOperations interface.
-func (a *Adapter) Init(ctx context.Context, path string, options ports.InitOptions) (ports.GitRepository, error) {
+func (a *Adapter) Init(ctx context.Context, path string, options ports.InitOptions) (ports.GitRepository, error) { //nolint:ireturn
 	if !a.initialized {
-		return nil, fmt.Errorf("adapter not initialized")
+		return nil, domain.ErrAdapterNotInitialized
 	}
 
 	// Create directory if it doesn't exist
@@ -114,12 +127,15 @@ func (a *Adapter) Init(ctx context.Context, path string, options ports.InitOptio
 	if options.Bare {
 		args = append(args, "--bare")
 	}
+
 	if options.DefaultBranch != "" {
 		args = append(args, "--initial-branch", options.DefaultBranch)
 	}
+
 	if options.Template != "" {
 		args = append(args, "--template", options.Template)
 	}
+
 	args = append(args, path)
 
 	// Execute git init
@@ -131,7 +147,7 @@ func (a *Adapter) Init(ctx context.Context, path string, options ports.InitOptio
 }
 
 // Cleanup implements the ports.GitOperations interface.
-func (a *Adapter) Cleanup(ctx context.Context, path string) error {
+func (a *Adapter) Cleanup(_ context.Context, path string) error {
 	if path == "" {
 		return nil
 	}
@@ -145,7 +161,7 @@ func (a *Adapter) Cleanup(ctx context.Context, path string) error {
 }
 
 // SupportsURL implements the ports.GitOperations interface.
-func (a *Adapter) SupportsURL(url string) bool {
+func (a *Adapter) SupportsURL(_ string) bool {
 	// Git binary supports all git URLs
 	return true
 }
@@ -153,6 +169,35 @@ func (a *Adapter) SupportsURL(url string) bool {
 // GetName implements the ports.GitOperations interface.
 func (a *Adapter) GetName() string {
 	return "git-binary"
+}
+
+// CreateTmpDir implements the ports.GitOperations interface.
+func (a *Adapter) CreateTmpDir(ctx context.Context, dir, prefix string) (context.Context, error) {
+	ctxWithTmp, err := entities.CreateTmpDir(ctx, dir, prefix)
+	if err != nil {
+		return ctx, fmt.Errorf("failed to create temporary directory: %w", err)
+	}
+
+	return ctxWithTmp, nil
+}
+
+// GetTmpDirPath implements the ports.GitOperations interface.
+func (a *Adapter) GetTmpDirPath(ctx context.Context) (string, error) {
+	path, err := entities.GetTmpDirPath(ctx)
+	if err != nil {
+		return "", fmt.Errorf("failed to get temporary directory path: %w", err)
+	}
+
+	return path, nil
+}
+
+// DeleteTmpDir implements the ports.GitOperations interface.
+func (a *Adapter) DeleteTmpDir(ctx context.Context) error {
+	if err := entities.DeleteTmpDir(ctx); err != nil {
+		return fmt.Errorf("failed to delete temporary directory: %w", err)
+	}
+
+	return nil
 }
 
 // Helper methods
@@ -164,12 +209,18 @@ func (a *Adapter) convertAuthOptions(auth ports.AuthOptions) AuthConfig {
 	}
 
 	switch auth.Type {
+	case ports.AuthTypeNone:
+		// No authentication required
+		authConfig.Protocol = protocolHTTPS
 	case ports.AuthTypeBasic:
-		authConfig.Protocol = "https"
+		authConfig.Protocol = protocolHTTPS
 	case ports.AuthTypeToken:
-		authConfig.Protocol = "https"
+		authConfig.Protocol = protocolHTTPS
+	case ports.AuthTypeSSH:
+		// Generic SSH type
+		authConfig.Protocol = protocolSSH
 	case ports.AuthTypeSSHKey, ports.AuthTypeSSHAgent:
-		authConfig.Protocol = "ssh"
+		authConfig.Protocol = protocolSSH
 		if len(auth.SSHKey) > 0 {
 			authConfig.SSHCommand = "ssh -i /tmp/ssh_key"
 		}
@@ -183,9 +234,11 @@ func (a *Adapter) determineMirrorType(options ports.CloneOptions) string {
 	if options.Mirror {
 		return "mirror"
 	}
+
 	if options.Bare {
 		return "bare"
 	}
+
 	if options.Depth > 0 {
 		return "shallow"
 	}
@@ -202,5 +255,4 @@ func (a *Adapter) detectSourceType(url string) string {
 	return "https"
 }
 
-// Ensure Adapter implements ports.GitOperations interface
 var _ ports.GitOperations = (*Adapter)(nil)

@@ -1,0 +1,126 @@
+# SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
+#
+# SPDX-License-Identifier: CC0-1.0
+# Complete reference guide with all available configuration options for Git Provider Sync
+# Each option is documented with its requirements and description
+# Everything OPTIONAL will have a default value.
+gitprovidersync: # MANDATORY: Root configuration object containing all project configurations
+  example-environment: # MANDATORY: An environment name. Can be anything. At least one.
+    gitlab-main: # MANDATORY: A sync configuration in the environment. At least one.
+      active_from_limit: 24h # OPTIONAL: Discard items older than duration (golang format)
+      domain: gitlab.com # OPTIONAL: FQDN Domain name of the Git provider, (defaults: github.com, gitlab.com, gitea.com depending on providertype)
+      include_forks: false # OPTIONAL: Whether to include forked repositories
+      owner: myusername # MANDATORY: Repository owner username
+      owner_type: user # MANDATORY: Repository owner type (user or group)
+      provider_type: gitlab # MANDATORY: Git provider type (supported: gitlab, github, gitea)
+      use_git_binary: false # OPTIONAL: Use system git binary instead of go-git library
+      repositories: # OPTIONAL: Repository filtering options
+        exclude:
+          - old-repo
+          - deprecated-project # OPTIONAL: list of repositories to exclude
+        include:
+          - important-repo
+          - active-project # OPTIONAL: list of repositories to include (default: all)
+      auth:
+        # cert_dir_path: /etc/ssl/certs # OPTIONAL: Directory path for custom certificates
+        http_scheme: https # OPTIONAL: Protocol scheme (https or http, defaults to https)
+        protocol: tls # OPTIONAL: Authentication type (tls or ssh, defaults to tls)
+        proxy_url: http://proxy.example.com:8080 # OPTIONAL: Proxy URL (environment HTTP_PROXY etc, is also supported)
+        request_timeout: 30 # OPTIONAL: HTTP request timeout in seconds (default: 30)
+        ssh_command: ssh -o ProxyCommand="nc -X 5 -x proxy:1080 %h %p" # OPTIONAL: Custom SSH proxy command
+        ssh_url_rewrite_from: "git@gitlab.com:" # OPTIONAL: Original SSH URL pattern to rewrite
+        ssh_url_rewrite_to: "git@proxy-gitlab.com:" # OPTIONAL: Target SSH URL pattern
+        # Token options (in order of precedence):
+        # 1. Auto-detected from GPS_GITLAB_TOKEN environment variable
+        # 2. Environment variable expansion:
+        # token: "${GITLAB_TOKEN}"
+        # 3. Read from file (secure for production):
+        # token_file: "/run/secrets/gitlab-token"
+      mirrors:
+        gitea-backup: # MANDATORY: Target configuration name. At least one.
+          provider_type: gitea # MANDATORY: Target Git provider type
+          domain: gitea.example.com # OPTIONAL: Target domain name
+          owner: backup-user # MANDATORY: Target repository owner username
+          owner_type: user # MANDATORY: Target repository owner type (user or group)
+          use_git_binary: false # OPTIONAL: Use system git binary instead of go-git library
+          auth:
+            # cert_dir_path: /etc/ssl/custom # OPTIONAL: Custom certificates directory
+            http_scheme: https # OPTIONAL: Protocol scheme
+            protocol: tls # OPTIONAL: Authentication type (tls or ssh, defaults to tls)
+            proxy_url: http://proxy.example.com:8080 # OPTIONAL: Proxy URL
+            request_timeout: 60 # OPTIONAL: HTTP request timeout in seconds
+            ssh_command: ssh -i ~/.ssh/gitea_key # OPTIONAL: Custom SSH proxy command
+            ssh_url_rewrite_from: "git@gitea.example.com:" # OPTIONAL: Original SSH URL pattern to rewrite
+            ssh_url_rewrite_to: "git@internal-gitea.lan:" # OPTIONAL: Target SSH URL pattern
+            # Token options (in order of precedence):
+            # 1. Auto-detected from GPS_GITEA_TOKEN environment variable
+            # 2. Environment variable expansion:
+            # token: "${GITEA_TOKEN}"
+            # 3. Read from file (secure for production):
+            # token_file: "/run/secrets/gitea-token"
+          settings: # OPTIONAL: Mirror-specific behavior settings
+            # Settings control how repositories are processed and mirrored to the target provider.
+            # All settings are optional with sensible defaults. Mirrors are disabled by default for safety.
+
+            # Repository naming and formatting options
+            alphanumhyph_name: true # OPTIONAL: Transform repo names to alphanumeric-hyphen format (removes special chars, default: false)
+            description_prefix: "[BACKUP] " # OPTIONAL: Text prefix added to mirrored repository descriptions (default: empty)
+            # Mirror control and safety options
+            disabled: false # OPTIONAL: Whether this mirror is disabled - set to true to skip during sync (default: true for safety)
+            force_push: true # OPTIONAL: Allow force pushes to overwrite target repositories - use with caution (default: false)
+            ignore_invalid_name: true # OPTIONAL: Skip repositories with invalid names instead of aborting the sync (default: false)
+            # Provider-specific settings
+            github_uploadurl: https://uploads.github.example.com # OPTIONAL: Custom GitHub Enterprise upload URL for file uploads
+            visibility: private # OPTIONAL: Default repository visibility on target provider (public, private, internal)
+        github-mirror: # Another mirror for the same source
+          provider_type: github
+          domain: github.com
+          owner: backup-org
+          owner_type: group
+          auth:
+          # Token auto-detected from GPS_GITHUB_TOKEN env var
+          # Or use: token: "${GITHUB_TOKEN}"
+          settings: # OPTIONAL: Mirror-specific behavior settings
+            description_prefix: "[Mirror from GitLab] " # OPTIONAL: Prefix for repository descriptions
+            disabled: false # OPTIONAL: Mirror is enabled for sync operations
+            force_push: false # OPTIONAL: Use normal push (safer for production mirrors)
+            visibility: private # OPTIONAL: Keep mirrored repositories private
+        local-archive:
+          provider_type: archive # MANDATORY: Must be 'archive' for tar files
+          path: /backup/archives # MANDATORY: Directory for tar file storage
+          settings: # OPTIONAL: Archive-specific settings
+            disabled: false # OPTIONAL: Archive mirror is enabled - creates tar files of repositories
+        local-directory:
+          provider_type: directory # MANDATORY: Must be 'directory' for direct file storage
+          path: /backup/repos # MANDATORY: Directory for repository storage
+          settings: # OPTIONAL: Directory-specific settings
+            disabled: false # OPTIONAL: Directory mirror is enabled - stores bare git repositories as files
+    github-source: # Another source with its own mirrors
+      provider_type: github
+      domain: github.com
+      owner: myorganization
+      owner_type: group
+      include_forks: true
+      active_from_limit: 720h
+      auth:
+        # Token auto-detected from GPS_GITHUB_TOKEN env var
+        # Or use: token: "${GITHUB_TOKEN}"
+        request_timeout: 45
+      repositories:
+        include:
+          - web-app
+          - api-service
+          - mobile-app
+      mirrors:
+        gitlab-backup:
+          provider_type: gitlab
+          domain: gitlab.com
+          owner: backup-group
+          owner_type: group
+          auth:
+          # Token auto-detected from GPS_GITLAB_TOKEN env var
+          # Or use: token: "${GITLAB_TOKEN}"
+          settings: # OPTIONAL: Mirror-specific behavior settings
+            description_prefix: "[GitHub Backup] " # OPTIONAL: Prefix added to mirrored repository descriptions  
+            disabled: false # OPTIONAL: Mirror is enabled for backup operations
+            visibility: private # OPTIONAL: Keep backup repositories private on GitLab

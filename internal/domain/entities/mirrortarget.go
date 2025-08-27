@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
@@ -10,6 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"itiquette/git-provider-sync/internal/domain"
 )
 
 // Domain errors for mirror targets.
@@ -38,11 +40,16 @@ type MirrorTarget struct {
 type ProviderType string
 
 const (
-	ProviderTypeGitHub    ProviderType = "github"
-	ProviderTypeGitLab    ProviderType = "gitlab"
-	ProviderTypeGitea     ProviderType = "gitea"
+	// ProviderTypeGitHub represents GitHub provider.
+	ProviderTypeGitHub ProviderType = "github"
+	// ProviderTypeGitLab represents GitLab provider.
+	ProviderTypeGitLab ProviderType = "gitlab"
+	// ProviderTypeGitea represents Gitea provider.
+	ProviderTypeGitea ProviderType = "gitea"
+	// ProviderTypeDirectory represents directory provider.
 	ProviderTypeDirectory ProviderType = "directory"
-	ProviderTypeArchive   ProviderType = "archive"
+	// ProviderTypeArchive represents archive provider.
+	ProviderTypeArchive ProviderType = "archive"
 )
 
 // AuthConfig represents authentication configuration for a mirror target.
@@ -90,7 +97,7 @@ func NewMirrorTargetBuilder() MirrorTargetBuilder {
 func (b MirrorTargetBuilder) WithName(name string) (MirrorTargetBuilder, error) {
 	name = strings.TrimSpace(name)
 	if name == "" {
-		return b, errors.New("mirror name cannot be empty")
+		return b, domain.ErrMirrorNameEmpty
 	}
 
 	b.target.name = name
@@ -121,7 +128,7 @@ func (b MirrorTargetBuilder) WithDomain(domain string) MirrorTargetBuilder {
 func (b MirrorTargetBuilder) WithOwner(owner string) (MirrorTargetBuilder, error) {
 	owner = strings.TrimSpace(owner)
 	if owner == "" && b.target.providerType.RequiresOwner() {
-		return b, fmt.Errorf("owner is required for %s provider", b.target.providerType)
+		return b, fmt.Errorf("%w: %s", domain.ErrOwnerRequiredForProvider, b.target.providerType)
 	}
 
 	b.target.owner = owner
@@ -140,7 +147,7 @@ func (b MirrorTargetBuilder) WithPath(path string) (MirrorTargetBuilder, error) 
 	if path != "" {
 		// Validate path format
 		if !filepath.IsAbs(path) && b.target.providerType == ProviderTypeDirectory {
-			return b, fmt.Errorf("directory path must be absolute: %s", path)
+			return b, fmt.Errorf("%w: %s", domain.ErrDirectoryPathMustBeAbsolute, path)
 		}
 	}
 
@@ -171,7 +178,6 @@ func (b MirrorTargetBuilder) WithOptions(options MirrorOptions) MirrorTargetBuil
 }
 
 // WithDisableProtection sets whether to temporarily disable protection during push.
-// This restores the main branch Settings.Disabled functionality.
 func (b MirrorTargetBuilder) WithDisableProtection(disable bool) MirrorTargetBuilder {
 	b.target.options.disableProtection = disable
 
@@ -188,6 +194,27 @@ func (b MirrorTargetBuilder) Build() (MirrorTarget, error) {
 }
 
 // MirrorTarget accessor methods
+
+// NewMirrorTarget creates a new mirror target.
+// This is a convenience function for use case code.
+func NewMirrorTarget(name string, providerType ProviderType, domain, owner, path string, authConfig AuthConfig, enabled bool) MirrorTarget {
+	return MirrorTarget{
+		name:         name,
+		providerType: providerType,
+		domain:       domain,
+		owner:        owner,
+		path:         path,
+		authConfig:   authConfig,
+		options: MirrorOptions{
+			createIfNotExists:    enabled,
+			updateDescription:    true,
+			setDefaultBranch:     true,
+			syncBranchProtection: false,
+			preserveVisibility:   true,
+			enableLFS:            false,
+		},
+	}
+}
 
 // Name returns the mirror target name.
 func (mt MirrorTarget) Name() string {
@@ -229,42 +256,41 @@ func (mt MirrorTarget) Options() MirrorOptions {
 	return mt.options
 }
 
-// MirrorOptions accessor methods
+// MirrorTarget direct option access methods
 
 // CreateIfNotExists returns whether to create repositories if they don't exist.
-func (mo MirrorOptions) CreateIfNotExists() bool {
-	return mo.createIfNotExists
+func (mt MirrorTarget) CreateIfNotExists() bool {
+	return mt.options.createIfNotExists
 }
 
 // UpdateDescription returns whether to update repository descriptions.
-func (mo MirrorOptions) UpdateDescription() bool {
-	return mo.updateDescription
+func (mt MirrorTarget) UpdateDescription() bool {
+	return mt.options.updateDescription
 }
 
 // SetDefaultBranch returns whether to set the default branch.
-func (mo MirrorOptions) SetDefaultBranch() bool {
-	return mo.setDefaultBranch
+func (mt MirrorTarget) SetDefaultBranch() bool {
+	return mt.options.setDefaultBranch
 }
 
 // SyncBranchProtection returns whether to sync branch protection rules.
-func (mo MirrorOptions) SyncBranchProtection() bool {
-	return mo.syncBranchProtection
+func (mt MirrorTarget) SyncBranchProtection() bool {
+	return mt.options.syncBranchProtection
 }
 
 // PreserveVisibility returns whether to preserve repository visibility.
-func (mo MirrorOptions) PreserveVisibility() bool {
-	return mo.preserveVisibility
+func (mt MirrorTarget) PreserveVisibility() bool {
+	return mt.options.preserveVisibility
 }
 
 // EnableLFS returns whether to enable Git LFS.
-func (mo MirrorOptions) EnableLFS() bool {
-	return mo.enableLFS
+func (mt MirrorTarget) EnableLFS() bool {
+	return mt.options.enableLFS
 }
 
 // DisableProtection returns whether to temporarily disable protection during push.
-// This restores the main branch Settings.Disabled functionality.
-func (mo MirrorOptions) DisableProtection() bool {
-	return mo.disableProtection
+func (mt MirrorTarget) DisableProtection() bool {
+	return mt.options.disableProtection
 }
 
 // MirrorTarget behavior methods
@@ -272,7 +298,7 @@ func (mo MirrorOptions) DisableProtection() bool {
 // Validate validates the mirror target configuration.
 func (mt MirrorTarget) Validate() error {
 	if mt.name == "" {
-		return errors.New("mirror name is required")
+		return domain.ErrMirrorNameRequired
 	}
 
 	if mt.providerType == "" {
@@ -280,7 +306,7 @@ func (mt MirrorTarget) Validate() error {
 	}
 
 	if mt.providerType.RequiresOwner() && mt.owner == "" {
-		return fmt.Errorf("owner is required for %s provider", mt.providerType)
+		return fmt.Errorf("%w: %s", domain.ErrOwnerRequiredForProvider, mt.providerType)
 	}
 
 	if mt.providerType.RequiresPath() && mt.path == "" {
@@ -288,7 +314,7 @@ func (mt MirrorTarget) Validate() error {
 	}
 
 	if mt.providerType.RequiresAuth() && !mt.authConfig.HasValidAuth() {
-		return fmt.Errorf("authentication is required for %s provider", mt.providerType)
+		return fmt.Errorf("%w: %s", domain.ErrAuthenticationRequiredForProvider, mt.providerType)
 	}
 
 	return nil
@@ -361,14 +387,14 @@ func (mt MirrorTarget) CanMirrorRepository(repo Repository) (bool, error) {
 
 	// Check authentication requirements
 	if mt.providerType.RequiresAuth() && !mt.authConfig.HasValidAuth() {
-		return false, fmt.Errorf("authentication required for %s provider", mt.providerType)
+		return false, fmt.Errorf("%w: %s", domain.ErrAuthenticationRequiredForProvider, mt.providerType)
 	}
 
 	return true, nil
 }
 
 // EstimateMirrorTime estimates the time needed to mirror a repository to this target.
-func (mt MirrorTarget) EstimateMirrorTime(repo Repository) time.Duration {
+func (mt MirrorTarget) EstimateMirrorTime(_ Repository) time.Duration {
 	baseTime := 30 * time.Second // Base mirror time
 
 	// Adjust based on provider type
@@ -490,65 +516,7 @@ func (pt ProviderType) SupportsVisibilityManagement() bool {
 	}
 }
 
-// AuthConfig methods
-
-// HasValidAuth returns true if the auth config has valid authentication.
-func (ac AuthConfig) HasValidAuth() bool {
-	return ac.token != "" || ac.sshKeyPath != "" || ac.sshKey != ""
-}
-
-// Token returns the authentication token.
-func (ac AuthConfig) Token() string {
-	return ac.token
-}
-
-// Username returns the username.
-func (ac AuthConfig) Username() string {
-	return ac.username
-}
-
-// SSHKeyPath returns the SSH key path.
-func (ac AuthConfig) SSHKeyPath() string {
-	return ac.sshKeyPath
-}
-
-// SSHKey returns the SSH key content.
-func (ac AuthConfig) SSHKey() string {
-	return ac.sshKey
-}
-
-// Supporting types and enums
-
-// MirrorOperation represents different types of mirror operations.
-type MirrorOperation string
-
-const (
-	MirrorOperationClone                MirrorOperation = "clone"
-	MirrorOperationPush                 MirrorOperation = "push"
-	MirrorOperationCreateRepository     MirrorOperation = "create_repository"
-	MirrorOperationBranchProtection     MirrorOperation = "branch_protection"
-	MirrorOperationVisibilityManagement MirrorOperation = "visibility_management"
-)
-
-// Helper functions
-
-// ParseProviderType parses a string into a ProviderType.
-func ParseProviderType(providerStr string) (ProviderType, error) {
-	switch strings.ToLower(strings.TrimSpace(providerStr)) {
-	case "github":
-		return ProviderTypeGitHub, nil
-	case "gitlab":
-		return ProviderTypeGitLab, nil
-	case "gitea":
-		return ProviderTypeGitea, nil
-	case "directory":
-		return ProviderTypeDirectory, nil
-	case "archive":
-		return ProviderTypeArchive, nil
-	default:
-		return "", fmt.Errorf("%w: %s", ErrInvalidProviderType, providerStr)
-	}
-}
+// AuthConfig constructors
 
 // NewAuthConfigWithToken creates auth config with token authentication.
 func NewAuthConfigWithToken(token, username string) AuthConfig {
@@ -585,6 +553,103 @@ func NewAuthenticationConfig(authType AuthType, token, username, sshKeyPath, ssh
 	}
 }
 
+// MirrorTarget direct auth access methods
+
+// HasValidAuth returns true if the auth config has valid authentication.
+func (mt MirrorTarget) HasValidAuth() bool {
+	return mt.authConfig.token != "" || mt.authConfig.sshKeyPath != "" || mt.authConfig.sshKey != ""
+}
+
+// Token returns the authentication token.
+func (mt MirrorTarget) Token() string {
+	return mt.authConfig.token
+}
+
+// Username returns the username.
+func (mt MirrorTarget) Username() string {
+	return mt.authConfig.username
+}
+
+// SSHKeyPath returns the SSH key path.
+func (mt MirrorTarget) SSHKeyPath() string {
+	return mt.authConfig.sshKeyPath
+}
+
+// SSHKey returns the SSH key content.
+func (mt MirrorTarget) SSHKey() string {
+	return mt.authConfig.sshKey
+}
+
+// AuthType returns the authentication type.
+func (mt MirrorTarget) AuthType() AuthType {
+	return mt.authConfig.authType
+}
+
+// AuthConfig methods
+
+// HasValidAuth returns true if the auth config has valid authentication.
+func (ac AuthConfig) HasValidAuth() bool {
+	return ac.token != "" || ac.sshKeyPath != "" || ac.sshKey != ""
+}
+
+// Token returns the authentication token.
+func (ac AuthConfig) Token() string {
+	return ac.token
+}
+
+// Username returns the username.
+func (ac AuthConfig) Username() string {
+	return ac.username
+}
+
+// SSHKeyPath returns the SSH key path.
+func (ac AuthConfig) SSHKeyPath() string {
+	return ac.sshKeyPath
+}
+
+// SSHKey returns the SSH key content.
+func (ac AuthConfig) SSHKey() string {
+	return ac.sshKey
+}
+
+// Supporting types and enums
+
+// MirrorOperation represents different types of mirror operations.
+type MirrorOperation string
+
+const (
+	// MirrorOperationClone represents repository cloning operation.
+	MirrorOperationClone MirrorOperation = "clone"
+	// MirrorOperationPush represents repository push operation.
+	MirrorOperationPush MirrorOperation = "push"
+	// MirrorOperationCreateRepository represents repository creation operation.
+	MirrorOperationCreateRepository MirrorOperation = "create_repository"
+	// MirrorOperationBranchProtection represents branch protection operation.
+	MirrorOperationBranchProtection MirrorOperation = "branch_protection"
+	// MirrorOperationVisibilityManagement represents visibility management operation.
+	MirrorOperationVisibilityManagement MirrorOperation = "visibility_management"
+)
+
+// Helper functions
+
+// ParseProviderType parses a string into a ProviderType.
+func ParseProviderType(providerStr string) (ProviderType, error) {
+	switch strings.ToLower(strings.TrimSpace(providerStr)) {
+	case "github":
+		return ProviderTypeGitHub, nil
+	case "gitlab":
+		return ProviderTypeGitLab, nil
+	case "gitea":
+		return ProviderTypeGitea, nil
+	case "directory":
+		return ProviderTypeDirectory, nil
+	case "archive":
+		return ProviderTypeArchive, nil
+	default:
+		return "", fmt.Errorf("%w: %s", ErrInvalidProviderType, providerStr)
+	}
+}
+
 // Type returns the authentication type.
 func (ac AuthConfig) Type() AuthType {
 	return ac.authType
@@ -596,34 +661,17 @@ func (ac AuthConfig) String() string {
 		ac.authType, ac.username, ac.token != "", ac.sshKey != "")
 }
 
-// NewMirrorTarget creates a new mirror target.
-// This is a convenience function for use case code.
-func NewMirrorTarget(name string, providerType ProviderType, domain, owner, path string, authConfig AuthConfig, enabled bool) MirrorTarget {
-	return MirrorTarget{
-		name:         name,
-		providerType: providerType,
-		domain:       domain,
-		owner:        owner,
-		path:         path,
-		authConfig:   authConfig,
-		options: MirrorOptions{
-			createIfNotExists:    enabled,
-			updateDescription:    true,
-			setDefaultBranch:     true,
-			syncBranchProtection: false,
-			preserveVisibility:   true,
-			enableLFS:            false,
-		},
-	}
-}
-
 // AuthType represents the type of authentication.
 type AuthType string
 
 const (
-	AuthTypeNone  AuthType = "none"
+	// AuthTypeNone represents no authentication.
+	AuthTypeNone AuthType = "none"
+	// AuthTypeToken represents token-based authentication.
 	AuthTypeToken AuthType = "token"
-	AuthTypeSSH   AuthType = "ssh"
+	// AuthTypeSSH represents SSH key authentication.
+	AuthTypeSSH AuthType = "ssh"
+	// AuthTypeBasic represents basic authentication.
 	AuthTypeBasic AuthType = "basic"
 )
 

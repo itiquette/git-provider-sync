@@ -1,22 +1,28 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
 package gitbinary
 
 import (
+	"context"
 	"os/exec"
 	"strings"
+	"time"
 )
 
 // ValidateGitBinary validates that git binary is available and working.
-// This restores the critical git binary validation from main branch.
-func ValidateGitBinary() (string, error) {
+//
+//	critical git binary validation .
+func ValidateGitBinary(ctx context.Context) (string, error) {
 	paths := []string{"git", "/usr/bin/git", "/usr/local/bin/git", "/opt/homebrew/bin/git"}
+
+	timeoutCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
 
 	for _, path := range paths {
 		// #nosec G204 - Validating known git binary paths
-		if output, err := exec.Command(path, "--version").Output(); err == nil && strings.HasPrefix(string(output), "git version") {
+		if output, err := exec.CommandContext(timeoutCtx, path, "--version").Output(); err == nil && strings.HasPrefix(string(output), "git version") {
 			return path, nil
 		}
 	}
@@ -25,7 +31,8 @@ func ValidateGitBinary() (string, error) {
 }
 
 // SetupSSHCommandEnv sets up SSH environment for git commands.
-// This restores the critical SSH environment setup from main branch.
+//
+//	critical SSH environment setup .
 func SetupSSHCommandEnv(sshcommand, rewriteurlfrom, rewriteurlto string) []string {
 	if sshcommand == "" {
 		return []string{}

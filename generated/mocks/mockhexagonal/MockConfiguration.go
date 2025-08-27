@@ -331,51 +331,6 @@ func (_c *Configuration_Reload_Call) RunAndReturn(run func(context.Context) (por
 	return _c
 }
 
-// StopWatching provides a mock function with no fields
-func (_m *Configuration) StopWatching() error {
-	ret := _m.Called()
-
-	if len(ret) == 0 {
-		panic("no return value specified for StopWatching")
-	}
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func() error); ok {
-		r0 = rf()
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
-// Configuration_StopWatching_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'StopWatching'
-type Configuration_StopWatching_Call struct {
-	*mock.Call
-}
-
-// StopWatching is a helper method to define mock.On call
-func (_e *Configuration_Expecter) StopWatching() *Configuration_StopWatching_Call {
-	return &Configuration_StopWatching_Call{Call: _e.mock.On("StopWatching")}
-}
-
-func (_c *Configuration_StopWatching_Call) Run(run func()) *Configuration_StopWatching_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run()
-	})
-	return _c
-}
-
-func (_c *Configuration_StopWatching_Call) Return(_a0 error) *Configuration_StopWatching_Call {
-	_c.Call.Return(_a0)
-	return _c
-}
-
-func (_c *Configuration_StopWatching_Call) RunAndReturn(run func() error) *Configuration_StopWatching_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
 // Validate provides a mock function with given fields: config
 func (_m *Configuration) Validate(config ports.AppConfiguration) ([]ports.ConfigurationError, error) {
 	ret := _m.Called(config)
@@ -476,53 +431,6 @@ func (_c *Configuration_ValidateEnvironment_Call) Return(_a0 error) *Configurati
 }
 
 func (_c *Configuration_ValidateEnvironment_Call) RunAndReturn(run func(ports.EnvironmentConfiguration) error) *Configuration_ValidateEnvironment_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// Watch provides a mock function with given fields: ctx, callback
-func (_m *Configuration) Watch(ctx context.Context, callback ports.ConfigurationChangeCallback) error {
-	ret := _m.Called(ctx, callback)
-
-	if len(ret) == 0 {
-		panic("no return value specified for Watch")
-	}
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, ports.ConfigurationChangeCallback) error); ok {
-		r0 = rf(ctx, callback)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
-// Configuration_Watch_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Watch'
-type Configuration_Watch_Call struct {
-	*mock.Call
-}
-
-// Watch is a helper method to define mock.On call
-//   - ctx context.Context
-//   - callback ports.ConfigurationChangeCallback
-func (_e *Configuration_Expecter) Watch(ctx interface{}, callback interface{}) *Configuration_Watch_Call {
-	return &Configuration_Watch_Call{Call: _e.mock.On("Watch", ctx, callback)}
-}
-
-func (_c *Configuration_Watch_Call) Run(run func(ctx context.Context, callback ports.ConfigurationChangeCallback)) *Configuration_Watch_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(ports.ConfigurationChangeCallback))
-	})
-	return _c
-}
-
-func (_c *Configuration_Watch_Call) Return(_a0 error) *Configuration_Watch_Call {
-	_c.Call.Return(_a0)
-	return _c
-}
-
-func (_c *Configuration_Watch_Call) RunAndReturn(run func(context.Context, ports.ConfigurationChangeCallback) error) *Configuration_Watch_Call {
 	_c.Call.Return(run)
 	return _c
 }

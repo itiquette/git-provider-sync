@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
@@ -14,7 +14,8 @@ import (
 )
 
 // ProtectionService provides GitLab-specific repository protection operations.
-// This restores the sophisticated protection service functionality from main branch.
+//
+//	sophisticated protection service functionality .
 type ProtectionService struct {
 	client *gitlab.Client
 	logger ports.Logger
@@ -143,7 +144,7 @@ func (ps *ProtectionService) UnprotectRepository(ctx context.Context, owner, rep
 			"error":      err.Error(),
 		})
 
-		return nil
+		return fmt.Errorf("failed to list protected branches: %w", err)
 	}
 
 	for _, branch := range protectedBranches {
@@ -226,7 +227,7 @@ func (ps *ProtectionService) enablePushRules(ctx context.Context, projectID int,
 }
 
 // removePushRules removes push rules from the project.
-func (ps *ProtectionService) removePushRules(ctx context.Context, projectID int) error {
+func (ps *ProtectionService) removePushRules(_ /* ctx */ context.Context, projectID int) error {
 	_, err := ps.client.Projects.DeleteProjectPushRule(projectID)
 	if err != nil && !isNotFoundError(err) {
 		return fmt.Errorf("failed to remove push rules: %w", err)

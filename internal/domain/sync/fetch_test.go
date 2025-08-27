@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
@@ -6,7 +6,6 @@ package sync
 
 import (
 	"context"
-	"errors"
 	"testing"
 	"time"
 
@@ -14,21 +13,25 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"itiquette/git-provider-sync/internal/adapters/filesystem"
+	"itiquette/git-provider-sync/internal/domain"
 	"itiquette/git-provider-sync/internal/domain/entities"
 	"itiquette/git-provider-sync/internal/domain/ports"
 )
 
+//nolint:cyclop,maintidx // Test function with multiple comprehensive test cases
 func TestFetchSourceRepositoriesUseCase_Execute(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name           string
-		setupMocks     func(*SharedMockRepositoryProvider, *SharedMockGitOperations, *SharedMockLogger)
+		setupMocks     func(*SharedMockRepositoryProvider, *SharedMockGitOperations)
 		request        FetchSourceRequest
 		expectedError  bool
 		expectedResult func(FetchSourceResponse) bool
 	}{
 		{
 			name: "successful_fetch_and_clone_repositories",
-			setupMocks: func(provider *SharedMockRepositoryProvider, gitOps *SharedMockGitOperations, logger *SharedMockLogger) {
+			setupMocks: func(provider *SharedMockRepositoryProvider, gitOps *SharedMockGitOperations) {
 				repos := []entities.Repository{
 					createTestRepositoryWithActivity("repo1", false, false, time.Now()),
 					createTestRepositoryWithActivity("repo2", false, false, time.Now()),
@@ -36,6 +39,9 @@ func TestFetchSourceRepositoriesUseCase_Execute(t *testing.T) {
 
 				// Mock repository listing
 				provider.On("ListRepositories", mock.Anything, mock.AnythingOfType("ports.ProviderConfig")).Return(repos, nil)
+
+				// Mock git operations for temporary directory
+				gitOps.On("GetTmpDirPath", mock.Anything).Return("/tmp/fetch_test", nil)
 
 				// Mock git cloning for each repository
 				for _, repo := range repos {
@@ -48,9 +54,6 @@ func TestFetchSourceRepositoriesUseCase_Execute(t *testing.T) {
 				}
 
 				// Mock logger calls (lenient)
-				logger.On("Info", mock.Anything, mock.AnythingOfType("string"), mock.Anything).Maybe()
-				logger.On("Debug", mock.Anything, mock.AnythingOfType("string"), mock.Anything).Maybe()
-				logger.On("Error", mock.Anything, mock.AnythingOfType("string"), mock.Anything).Maybe()
 			},
 			request: FetchSourceRequest{
 				ProviderConfig: createTestProviderConfig(),
@@ -70,7 +73,7 @@ func TestFetchSourceRepositoriesUseCase_Execute(t *testing.T) {
 		},
 		{
 			name: "dry_run_mode_skips_cloning",
-			setupMocks: func(provider *SharedMockRepositoryProvider, gitOps *SharedMockGitOperations, logger *SharedMockLogger) {
+			setupMocks: func(provider *SharedMockRepositoryProvider, _ *SharedMockGitOperations) {
 				repos := []entities.Repository{
 					createTestRepositoryWithActivity("dry-repo1", false, false, time.Now()),
 					createTestRepositoryWithActivity("dry-repo2", false, false, time.Now()),
@@ -81,9 +84,6 @@ func TestFetchSourceRepositoriesUseCase_Execute(t *testing.T) {
 
 				// No clone operations should be called in dry run
 				// Mock logger calls (lenient)
-				logger.On("Info", mock.Anything, mock.AnythingOfType("string"), mock.Anything).Maybe()
-				logger.On("Debug", mock.Anything, mock.AnythingOfType("string"), mock.Anything).Maybe()
-				logger.On("Error", mock.Anything, mock.AnythingOfType("string"), mock.Anything).Maybe()
 			},
 			request: FetchSourceRequest{
 				ProviderConfig: createTestProviderConfig(),
@@ -103,7 +103,7 @@ func TestFetchSourceRepositoriesUseCase_Execute(t *testing.T) {
 		},
 		{
 			name: "repository_filtering_excludes_forks_and_archived",
-			setupMocks: func(provider *SharedMockRepositoryProvider, gitOps *SharedMockGitOperations, logger *SharedMockLogger) {
+			setupMocks: func(provider *SharedMockRepositoryProvider, gitOps *SharedMockGitOperations) {
 				repos := []entities.Repository{
 					createTestRepositoryWithActivity("normal-repo", false, false, time.Now()),
 					createTestRepositoryWithActivity("fork-repo", true, false, time.Now()),     // Fork - should be excluded
@@ -114,6 +114,9 @@ func TestFetchSourceRepositoriesUseCase_Execute(t *testing.T) {
 				// Mock repository listing
 				provider.On("ListRepositories", mock.Anything, mock.AnythingOfType("ports.ProviderConfig")).Return(repos, nil)
 
+				// Mock git operations for temporary directory
+				gitOps.On("GetTmpDirPath", mock.Anything).Return("/tmp/fetch_test", nil)
+
 				// Only one repository should be cloned (normal-repo)
 				mockRepo := &SharedMockGitRepository{}
 				mockRepo.On("Name").Return("normal-repo")
@@ -123,9 +126,6 @@ func TestFetchSourceRepositoriesUseCase_Execute(t *testing.T) {
 				})).Return(mockRepo, nil)
 
 				// Mock logger calls (lenient)
-				logger.On("Info", mock.Anything, mock.AnythingOfType("string"), mock.Anything).Maybe()
-				logger.On("Debug", mock.Anything, mock.AnythingOfType("string"), mock.Anything).Maybe()
-				logger.On("Error", mock.Anything, mock.AnythingOfType("string"), mock.Anything).Maybe()
 			},
 			request: FetchSourceRequest{
 				ProviderConfig: createTestProviderConfig(),
@@ -145,15 +145,12 @@ func TestFetchSourceRepositoriesUseCase_Execute(t *testing.T) {
 		},
 		{
 			name: "provider_listing_failure",
-			setupMocks: func(provider *SharedMockRepositoryProvider, gitOps *SharedMockGitOperations, logger *SharedMockLogger) {
+			setupMocks: func(provider *SharedMockRepositoryProvider, _ *SharedMockGitOperations) {
 				// Mock repository listing failure
 				provider.On("ListRepositories", mock.Anything, mock.AnythingOfType("ports.ProviderConfig")).Return(
-					[]entities.Repository{}, errors.New("failed to authenticate with provider"))
+					[]entities.Repository{}, domain.ErrFailedToAuthenticateProvider)
 
 				// Mock logger calls (lenient)
-				logger.On("Info", mock.Anything, mock.AnythingOfType("string"), mock.Anything).Maybe()
-				logger.On("Debug", mock.Anything, mock.AnythingOfType("string"), mock.Anything).Maybe()
-				logger.On("Error", mock.Anything, mock.AnythingOfType("string"), mock.Anything).Maybe()
 			},
 			request: FetchSourceRequest{
 				ProviderConfig: createTestProviderConfig(),
@@ -168,7 +165,7 @@ func TestFetchSourceRepositoriesUseCase_Execute(t *testing.T) {
 		},
 		{
 			name: "partial_clone_failures",
-			setupMocks: func(provider *SharedMockRepositoryProvider, gitOps *SharedMockGitOperations, logger *SharedMockLogger) {
+			setupMocks: func(provider *SharedMockRepositoryProvider, gitOps *SharedMockGitOperations) {
 				repos := []entities.Repository{
 					createTestRepositoryWithActivity("success-repo", false, false, time.Now()),
 					createTestRepositoryWithActivity("fail-repo", false, false, time.Now()),
@@ -176,6 +173,9 @@ func TestFetchSourceRepositoriesUseCase_Execute(t *testing.T) {
 
 				// Mock repository listing
 				provider.On("ListRepositories", mock.Anything, mock.AnythingOfType("ports.ProviderConfig")).Return(repos, nil)
+
+				// Mock git operations for temporary directory
+				gitOps.On("GetTmpDirPath", mock.Anything).Return("/tmp/fetch_test", nil)
 
 				// Mock successful clone for first repo
 				mockRepo := &SharedMockGitRepository{}
@@ -188,13 +188,9 @@ func TestFetchSourceRepositoriesUseCase_Execute(t *testing.T) {
 				// Mock failed clone for second repo
 				gitOps.On("Clone", mock.Anything, mock.MatchedBy(func(opts ports.CloneOptions) bool {
 					return opts.URL == "https://github.com/test/fail-repo.git"
-				})).Return((*SharedMockGitRepository)(nil), errors.New("clone failed: repository not found"))
+				})).Return((*SharedMockGitRepository)(nil), domain.ErrCloneFailedRepoNotFound)
 
 				// Mock logger calls (lenient)
-				logger.On("Info", mock.Anything, mock.AnythingOfType("string"), mock.Anything).Maybe()
-				logger.On("Debug", mock.Anything, mock.AnythingOfType("string"), mock.Anything).Maybe()
-				logger.On("Error", mock.Anything, mock.AnythingOfType("string"), mock.Anything).Maybe()
-				logger.On("Error", mock.Anything, mock.AnythingOfType("string"), mock.Anything).Maybe()
 			},
 			request: FetchSourceRequest{
 				ProviderConfig: createTestProviderConfig(),
@@ -214,52 +210,55 @@ func TestFetchSourceRepositoriesUseCase_Execute(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
 			// Create mocks
 			mockProvider := &SharedMockRepositoryProvider{}
 			mockGitOps := &SharedMockGitOperations{}
-			mockLogger := &SharedMockLogger{}
 
 			// Setup test-specific mocks
-			tt.setupMocks(mockProvider, mockGitOps, mockLogger)
+			test.setupMocks(mockProvider, mockGitOps)
 
 			// Create use case
-			useCase := NewFetchSourceRepositoriesUseCase(mockProvider, mockGitOps, mockLogger)
+			useCase := NewFetchSourceRepositoriesUseCase(mockProvider, mockGitOps)
 
 			// Execute with temporary directory in context
 			ctx := context.Background()
 			ctx, err := filesystem.CreateTmpDir(ctx, "", "fetch_test")
 			require.NoError(t, err)
+
 			defer func() {
 				if cleanupErr := filesystem.DeleteTmpDir(ctx); cleanupErr != nil {
 					t.Logf("Failed to cleanup temp directory: %v", cleanupErr)
 				}
 			}()
 
-			result, err := useCase.Execute(ctx, tt.request)
+			result, err := useCase.Execute(ctx, test.request)
 
 			// Verify error expectation
-			if tt.expectedError {
+			if test.expectedError {
 				require.Error(t, err)
 			} else {
 				require.NoError(t, err)
 			}
 
 			// Verify result expectations
-			if tt.expectedResult != nil {
-				require.True(t, tt.expectedResult(result), "Result validation failed")
+			if test.expectedResult != nil {
+				require.True(t, test.expectedResult(result), "Result validation failed")
 			}
 
 			// Verify all mocks were called as expected
 			mockProvider.AssertExpectations(t)
 			mockGitOps.AssertExpectations(t)
-			mockLogger.AssertExpectations(t)
 		})
 	}
 }
 
 func TestFetchSourceRepositoriesUseCase_applyFilters(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name         string
 		repositories []entities.Repository
@@ -335,25 +334,28 @@ func TestFetchSourceRepositoriesUseCase_applyFilters(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
 			// Create use case with minimal dependencies for testing filtering
 			mockProvider := &SharedMockRepositoryProvider{}
 			mockGitOps := &SharedMockGitOperations{}
-			mockLogger := &SharedMockLogger{}
 
-			useCase := NewFetchSourceRepositoriesUseCase(mockProvider, mockGitOps, mockLogger)
+			useCase := NewFetchSourceRepositoriesUseCase(mockProvider, mockGitOps)
 
 			// Apply filters
-			filtered := useCase.applyFilters(tt.repositories, tt.filters, tt.includeForks)
+			filtered := useCase.applyFilters(context.Background(), test.repositories, test.filters, test.includeForks)
 
 			// Verify expected count
-			require.Equal(t, tt.expected, len(filtered), "Filtered repository count mismatch")
+			require.Len(t, filtered, test.expected, "Filtered repository count mismatch")
 		})
 	}
 }
 
 func TestFetchSourceRepositoriesUseCase_matchesPatterns(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name            string
 		repositoryName  string
@@ -405,19 +407,20 @@ func TestFetchSourceRepositoriesUseCase_matchesPatterns(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
 			// Create use case with minimal dependencies for testing pattern matching
 			mockProvider := &SharedMockRepositoryProvider{}
 			mockGitOps := &SharedMockGitOperations{}
-			mockLogger := &SharedMockLogger{}
 
-			useCase := NewFetchSourceRepositoriesUseCase(mockProvider, mockGitOps, mockLogger)
+			useCase := NewFetchSourceRepositoriesUseCase(mockProvider, mockGitOps)
 
 			// Test pattern matching
-			result := useCase.matchesPatterns(tt.repositoryName, tt.includePatterns, tt.excludePatterns)
+			result := useCase.matchesPatterns(context.Background(), test.repositoryName, test.includePatterns, test.excludePatterns)
 
-			require.Equal(t, tt.expected, result, "Pattern matching result mismatch")
+			require.Equal(t, test.expected, result, "Pattern matching result mismatch")
 		})
 	}
 }

@@ -1,10 +1,7 @@
-# SPDX-FileCopyrightText: 2025 itiquette/git-provider-sync
+# SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 #
 # SPDX-License-Identifier: CC0-1.0
-
----
 name: Pull Request Workflow
-
 on:
   push:
     branches:
@@ -12,10 +9,11 @@ on:
   pull_request:
     branches:
       - main
-
+env:
+  JUST_VERSION: "1.42.4"
+  JUST_CHECKSUM: "678efc1cfbd5fa5a88375daa7e2f3864a049d6d63a0296df925a2ae5f516cb56"
 permissions:
   contents: read
-
 jobs:
   commitlint:
     uses: itiquette/.github/.github/workflows/commit-lint.yml@main
@@ -24,15 +22,42 @@ jobs:
   licenselint:
     uses: itiquette/.github/.github/workflows/license-lint.yml@main
   misclint:
+    name: Miscellaneous Linting
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       security-events: write
-    uses: itiquette/.github/.github/workflows/mega-lint.yml@main
-  golint:
-    uses: ./.github/workflows/golint.yml
+    steps:
+      - name: Harden GitHub runner
+        uses: step-security/harden-runner@c6295a65d1254861815972266d5933fd6e532bdf # v2.11.1
+        with:
+          egress-policy: audit
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Setup Go
+        uses: actions/setup-go@0aaccfd150d50ccaeb58ebd88d36e91967a5f35b # v5.4.0
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Install just command runner
+        run: |
+          # Install pinned version of just for reproducible builds
+          cd /tmp
+          curl -sSfL "https://github.com/casey/just/releases/download/${JUST_VERSION}/just-${JUST_VERSION}-x86_64-unknown-linux-musl.tar.gz" -o just.tar.gz
+          # Verify checksum for security
+          echo "${JUST_CHECKSUM}  just.tar.gz" | sha256sum -c
+          tar -xzf just.tar.gz
+          sudo mv just /usr/local/bin/just
+          chmod +x /usr/local/bin/just
+          rm just.tar.gz
+          just --version
+      - name: Install development tools
+        run: just install-tools
+      - name: Run all linting
+        run: just lint
   test:
     permissions:
       contents: read
     if: ${{ !failure() }}
-    needs: [licenselint, commitlint, dependencyreviewlint, golint, misclint]
+    needs: [licenselint, commitlint, dependencyreviewlint, misclint]
     uses: ./.github/workflows/test.yml

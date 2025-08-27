@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
@@ -403,7 +403,8 @@ func validateGitLabName(name string) error {
 		return fmt.Errorf("%w: invalid GitLab name format", ErrInvalidRepositoryName)
 	}
 
-	// Check reserved names
+	// Check GitLab reserved names - these conflict with UI routes and Git internals
+	// See: https://docs.gitlab.com/ee/user/reserved_names.html
 	reservedNames := map[string]bool{
 		"badges": true, "blame": true, "blob": true, "builds": true,
 		"commits": true, "create": true, "edit": true, "files": true,

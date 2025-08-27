@@ -1,24 +1,19 @@
-# SPDX-FileCopyrightText: 2025 itiquette/git-provider-sync
+# SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 #
 # SPDX-License-Identifier: CC0-1.0
-
 name: Release Workflow
-
 on:
   push:
     tags:
       - "v[0-9]*.[0-9]*" # Forces at least vX.Y and then allows anything after
-
 permissions:
   contents: read
-
 jobs:
   version-bump:
     secrets: inherit
     permissions:
       contents: write
     uses: itiquette/.github/.github/workflows/version-bump-changelog.yml@main
-
   release:
     needs: [version-bump]
     permissions:
@@ -27,7 +22,6 @@ jobs:
       packages: write # For container registry
     secrets: inherit
     uses: ./.github/workflows/release.yml
-
   slsa:
     needs: [release]
     permissions:

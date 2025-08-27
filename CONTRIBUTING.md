@@ -1,7 +1,8 @@
 <!--
-SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
- 
+SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
+
 SPDX-License-Identifier: CC0-1.0
+
 -->
 
 # Contributing
@@ -43,17 +44,16 @@ If so, you can just add a comment to that with your information instead of creat
 
 Reporting bugs is a good and easy way to contribute.
 
-To do this, open an Issue that summarizes the bug and set the label to
-\"bug\".
+To do this, open an Issue that summarizes the bug and set the label to "bug".
 
 ### Suggest a feature
 
-To request a new feature you should and summarize the desired functionality and its use case.
-Set the Issue label to \"feature\" or \"enhancement\".
+To request a new feature you should summarize the desired functionality and its use case.
+Set the Issue label to "feature" or "enhancement".
 
 ## Contribute Code, Documentation and more
 
-You want to contribute code, documentation or \'your fantastic thing x\'.
+You want to contribute code, documentation or other improvements.
 Great, however, there are some practical points to check to make sure that everything runs as smoothly as possible.
 
 - It is always best to discuss your plans beforehand, to ensure that your contribution is in line with the project goals.
@@ -64,20 +64,22 @@ Great, however, there are some practical points to check to make sure that every
 
 - The project can decide to decline a contribution not following the general project guidelines, or deemed to not fit into the general project goal/architecture.
 
-- Make sure you have an understanding of the [Pull Request Lifecycle](#pull-request-lifecycle)
+- Make sure you have an understanding of the [Pull Request Process](#pull-request-process)
 
 - You agree to that in general, all contributions to this project will be released under the **inbound=outbound** norm, that is, contributions are submitted under the same terms as the project licenses.
+
 In a more formal way - \'Unless You explicitly state otherwise, any Contribution intentionally submitted for inclusion in the Work by You to the Licensor shall be under the terms and conditions of the projects License, without any additional terms or conditions.\'
 
 - [Sign your commits](#commit-guideline).
 
 ## Issues and Pull Request Feedback
 
-The listed project maintainers (see the [README](README.adoc)) of the project are doing their best to review and/or respond to Issues.
+The listed project maintainers of the project are doing their best to review and/or respond to Issues.
 **If the project is not listed as archived, it is maintained.**.
 You should expect feedback, for an Issue or a Pull Request, at some point.
 
-**Note**  
+## Note
+
 Feedback might mean a lot of things depending on the scope of your
 Issue/Pull Request. What you should expect is at least a comment on your
 Issue.
@@ -89,57 +91,44 @@ The quality of the given information in your Pull Request/Issue will affect the 
 So please keep the focus and topic, and be sure to give as much relevant information as possible.
 It is highly recommended that you fill in the requested fields when submitting a contribution.
 
-## Pull Request Lifecycle
+## Pull Request Process
 
-Generally speaking, you should fork this repository, make changes in your own fork, and then submit a pull-request. This workflow is common, maybe even expected if nothing else mentioned, and is called the
-[Fork-and-Pull model](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/getting-started/about-collaborative-development-models#fork-and-pull-model)
+We use the [Fork-and-Pull model](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/getting-started/about-collaborative-development-models#fork-and-pull-model):
 
-A practical example of such a workflow could be:
+### Steps to Submit a PR:
 
-1. Fork the repository.
+1. **Fork and clone** the repository
+2. **Create a feature branch** from main: `git checkout -b feature/my-feature`
+3. **Make your changes** following our code style guidelines
+4. **Test thoroughly**: `just verify` must pass
+5. **Commit** with sign-off and GPG signature: `git commit --signoff --gpg-sign -m "feat: add new feature"`
+6. **Push** to your fork: `git push origin feature/my-feature`
+7. **Open a Pull Request** with:
 
-2. Create a topic branch from your fork main branch, i.e. myfeaturebranch
+- Clear description of changes
+- Reference to related issues
+- Screenshots/examples if applicable
 
-3. Push your changes to the topic branch (in your fork) of the repository, i.e myfeaturebranch.
+### PR Requirements:
 
-4. Open a new pull request to main project.
-
-5. Project maintainers might comment and give feedback on your Pull Request.
+- [ ] All tests pass (`just test`)
+- [ ] Linting passes (`just lint-go`)
+- [ ] Commits are signed and follow conventional commits
+- [ ] Documentation updated if needed
+- [ ] Breaking changes are clearly documented
 
 ## Commit Guideline
 
-### DCO - Signoff and Signing a Commit
+### DCO - Signoff and Signing Required
 
-***A Signoff assures to the project that you have the right to
-contribute your content***\
-***A Sign assures that the commit came from you***
+All commits must be both signed-off (DCO agreement) and cryptographically signed.
 
-#### Signoff (DCO agree)
+**Required flags**: `git commit --signoff --gpg-sign -m "your message"`
 
-A standard practice in the Open Source communities is the [DCO - Developer Certificate of Origin](https://developercertificate.org/).
-DCO a lightweight way for a project to assure that the contributor wrote and/or have the right to submit the contribution.
+- **Signoff** (`--signoff`): Confirms you have rights to contribute ([DCO](https://developercertificate.org/))
+- **Sign** (`--gpg-sign`): Cryptographic verification of commit author
 
-It is super simple!
-
-As part of filing a pull request you agree to the DCO - by just adding a **sign off** to your commit.
-Technically, this is done by supplying the `-s`/`--signoff` flag to your Git commits:
-
-Example:
-
-``` console
-git commit --signoff -m 'fix: add fix for superbug x'
-```
-
-#### Sign
-
-You must also sign your commits (with `-S`/`--gpg-sign`).
-Besides extra trust, it also gives your commit a nice verified button in the UI on most Git platforms:)
-
-[Sign commit on GitHub with SSH key](https://github.blog/changelog/2022-08-23-ssh-commit-verification-now-supported/).
-
-``` console
-git commit --signoff --gpg-sign -m "fix: add fix for the bug"
-```
+**Setup**: Configure GPG or SSH signing - see [GitHub's guide](https://github.blog/changelog/2022-08-23-ssh-commit-verification-now-supported/)
 
 ### Commit Standard
 
@@ -174,7 +163,7 @@ Security reports are **greatly** appreciated.
 
 ## Development Guidelines
 
-For a guide on how to get started with Development, see the [DEVELOPMENT Guide](./DEVELOPMENT.adoc).
+For comprehensive development setup, build instructions, code style requirements, and testing guidelines, see the [DEVELOPMENT Guide](./DEVELOPMENT.adoc).
 
 ## Writing style and Translations
 

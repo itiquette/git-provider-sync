@@ -1,7 +1,10 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+// Package transport provides HTTP client factory and transport utilities for Git Provider Sync.
+//
+//nolint:funcorder // HTTP client factory with many helper methods
 package transport
 
 import (
@@ -20,11 +23,14 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/transport/client"
 	githttp "github.com/go-git/go-git/v5/plumbing/transport/http"
 
+	"itiquette/git-provider-sync/internal/domain"
 	"itiquette/git-provider-sync/internal/domain/ports"
 )
 
 var (
-	ErrInvalidProxy    = errors.New("invalid proxy configuration")
+	// ErrInvalidProxy indicates invalid proxy configuration.
+	ErrInvalidProxy = errors.New("invalid proxy configuration")
+	// ErrCertificateLoad indicates failure to load certificates.
 	ErrCertificateLoad = errors.New("failed to load certificates")
 )
 
@@ -32,7 +38,6 @@ var (
 type ProxyFunc func(req *http.Request) (*url.URL, error)
 
 // HTTPClientFactory provides sophisticated HTTP client creation with advanced features.
-// This restores the advanced HTTP client factory functionality from main branch.
 type HTTPClientFactory struct {
 	logger ports.Logger
 }
@@ -97,7 +102,6 @@ func DefaultHTTPClientConfig() HTTPClientConfig {
 }
 
 // CreateHTTPClient creates a new HTTP client with sophisticated configuration.
-// This restores the newHTTPClient functionality from main branch with enhancements.
 func (f *HTTPClientFactory) CreateHTTPClient(ctx context.Context, config HTTPClientConfig) (*http.Client, error) {
 	f.logger.Debug(ctx, "Creating HTTP client with advanced configuration", map[string]interface{}{
 		"cert_dir_path":   config.CertDirPath,
@@ -144,7 +148,6 @@ func (f *HTTPClientFactory) CreateHTTPClient(ctx context.Context, config HTTPCli
 }
 
 // createHTTPTransport creates an HTTP transport with production-ready settings.
-// This restores the newHTTPTransport functionality from main branch.
 func (f *HTTPClientFactory) createHTTPTransport(
 	ctx context.Context,
 	proxyFunc ProxyFunc,
@@ -203,7 +206,6 @@ func (f *HTTPClientFactory) createHTTPTransport(
 }
 
 // createTLSConfig creates a TLS configuration with security best practices.
-// This restores the newTLSConfig functionality from main branch.
 func (f *HTTPClientFactory) createTLSConfig(
 	ctx context.Context,
 	caCertPool *x509.CertPool,
@@ -228,7 +230,6 @@ func (f *HTTPClientFactory) createTLSConfig(
 }
 
 // setupProxy configures the proxy function.
-// This restores the setupProxy functionality from main branch.
 func (f *HTTPClientFactory) setupProxy(ctx context.Context, proxyURL string) (ProxyFunc, error) {
 	f.logger.Debug(ctx, "Setting up proxy configuration", map[string]interface{}{
 		"proxy_url": proxyURL,
@@ -254,7 +255,6 @@ func (f *HTTPClientFactory) setupProxy(ctx context.Context, proxyURL string) (Pr
 }
 
 // loadCertificates loads custom CA certificates from a directory.
-// This restores the loadCertificates functionality from main branch.
 func (f *HTTPClientFactory) loadCertificates(ctx context.Context, dirPath string) (*x509.CertPool, error) {
 	f.logger.Debug(ctx, "Loading custom certificates", map[string]interface{}{
 		"cert_dir_path": dirPath,
@@ -262,8 +262,13 @@ func (f *HTTPClientFactory) loadCertificates(ctx context.Context, dirPath string
 
 	if dirPath == "" {
 		f.logger.Debug(ctx, "No certificate directory provided, using system certificates", nil)
+		// Return system cert pool when no custom directory is provided
+		systemPool, err := x509.SystemCertPool()
+		if err != nil {
+			return nil, fmt.Errorf("%w: failed to load system certificates: %w", ErrCertificateLoad, err)
+		}
 
-		return nil, nil
+		return systemPool, nil
 	}
 
 	caCertPool := x509.NewCertPool()
@@ -294,7 +299,6 @@ func (f *HTTPClientFactory) loadCertificates(ctx context.Context, dirPath string
 }
 
 // processCertificateFile handles loading a single certificate file.
-// This restores the processCertificateFile functionality from main branch.
 func (f *HTTPClientFactory) processCertificateFile(
 	ctx context.Context,
 	entry os.DirEntry,
@@ -329,7 +333,6 @@ func (f *HTTPClientFactory) processCertificateFile(
 }
 
 // isCertFile checks if the filename has a certificate extension.
-// This restores the isCertFile functionality from main branch.
 func (f *HTTPClientFactory) isCertFile(filename string) bool {
 	ext := filepath.Ext(filename)
 
@@ -337,7 +340,6 @@ func (f *HTTPClientFactory) isCertFile(filename string) bool {
 }
 
 // CreateGitTransportClient creates an HTTP client optimized for Git operations.
-// This restores the main branch git protocol registration functionality completely.
 func (f *HTTPClientFactory) CreateGitTransportClient(ctx context.Context, config HTTPClientConfig) (*http.Client, error) {
 	// Git operations need longer timeouts and more lenient settings
 	gitConfig := config
@@ -351,7 +353,7 @@ func (f *HTTPClientFactory) CreateGitTransportClient(ctx context.Context, config
 		return nil, err
 	}
 
-	// Install git protocol handler (restored from main branch)
+	// Install git protocol handler
 	client.InstallProtocol("https", githttp.NewClient(httpClient))
 
 	f.logger.Info(ctx, "Git transport client created with protocol registration", map[string]interface{}{
@@ -376,37 +378,64 @@ func (f *HTTPClientFactory) CreateAPIClient(ctx context.Context, config HTTPClie
 
 // ValidateConfig validates the HTTP client configuration.
 func (f *HTTPClientFactory) ValidateConfig(config HTTPClientConfig) error {
+	if err := f.validateTimeouts(config); err != nil {
+		return err
+	}
+
+	if err := f.validateConnectionLimits(config); err != nil {
+		return err
+	}
+
+	if err := f.validatePaths(config); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validateTimeouts validates timeout-related configuration.
+func (f *HTTPClientFactory) validateTimeouts(config HTTPClientConfig) error {
 	if config.RequestTimeout <= 0 {
-		return errors.New("request timeout must be positive")
-	}
-
-	if config.MaxIdleConns <= 0 {
-		return errors.New("max idle connections must be positive")
-	}
-
-	if config.MaxIdleConnsPerHost <= 0 {
-		return errors.New("max idle connections per host must be positive")
-	}
-
-	if config.MaxConnsPerHost <= 0 {
-		return errors.New("max connections per host must be positive")
+		return domain.ErrRequestTimeoutMustBePositive
 	}
 
 	if config.IdleConnTimeout <= 0 {
-		return errors.New("idle connection timeout must be positive")
+		return domain.ErrIdleConnectionTimeoutMustBePositive
 	}
 
 	if config.DialTimeout <= 0 {
-		return errors.New("dial timeout must be positive")
+		return domain.ErrDialTimeoutMustBePositive
 	}
 
 	if config.KeepAlive <= 0 {
-		return errors.New("keep alive must be positive")
+		return domain.ErrKeepAliveMustBePositive
 	}
 
+	return nil
+}
+
+// validateConnectionLimits validates connection limit configuration.
+func (f *HTTPClientFactory) validateConnectionLimits(config HTTPClientConfig) error {
+	if config.MaxIdleConns <= 0 {
+		return domain.ErrMaxIdleConnectionsMustBePositive
+	}
+
+	if config.MaxIdleConnsPerHost <= 0 {
+		return domain.ErrMaxIdleConnectionsPerHostMustBePositive
+	}
+
+	if config.MaxConnsPerHost <= 0 {
+		return domain.ErrMaxConnectionsPerHostMustBePositive
+	}
+
+	return nil
+}
+
+// validatePaths validates path and URL configuration.
+func (f *HTTPClientFactory) validatePaths(config HTTPClientConfig) error {
 	if config.CertDirPath != "" {
 		if _, err := os.Stat(config.CertDirPath); os.IsNotExist(err) {
-			return fmt.Errorf("certificate directory does not exist: %s", config.CertDirPath)
+			return fmt.Errorf("%w: %s", domain.ErrCertificateDirectoryNotExist, config.CertDirPath)
 		}
 	}
 

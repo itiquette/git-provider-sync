@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
@@ -84,23 +84,35 @@ type ValidationWarning struct {
 type ValidationErrorType string
 
 const (
-	ErrorTypeConfiguration  ValidationErrorType = "configuration"
+	// ErrorTypeConfiguration indicates configuration validation errors.
+	ErrorTypeConfiguration ValidationErrorType = "configuration"
+	// ErrorTypeAuthentication indicates authentication validation errors.
 	ErrorTypeAuthentication ValidationErrorType = "authentication"
-	ErrorTypeConnectivity   ValidationErrorType = "connectivity"
-	ErrorTypePermissions    ValidationErrorType = "permissions"
-	ErrorTypeNaming         ValidationErrorType = "naming"
-	ErrorTypeQuota          ValidationErrorType = "quota"
-	ErrorTypeCompatibility  ValidationErrorType = "compatibility"
+	// ErrorTypeConnectivity indicates connectivity validation errors.
+	ErrorTypeConnectivity ValidationErrorType = "connectivity"
+	// ErrorTypePermissions indicates permissions validation errors.
+	ErrorTypePermissions ValidationErrorType = "permissions"
+	// ErrorTypeNaming indicates naming validation errors.
+	ErrorTypeNaming ValidationErrorType = "naming"
+	// ErrorTypeQuota indicates quota validation errors.
+	ErrorTypeQuota ValidationErrorType = "quota"
+	// ErrorTypeCompatibility indicates compatibility validation errors.
+	ErrorTypeCompatibility ValidationErrorType = "compatibility"
 )
 
 // ValidationWarningType represents different types of validation warnings.
 type ValidationWarningType string
 
 const (
-	WarningTypePerformance    ValidationWarningType = "performance"
-	WarningTypeNaming         ValidationWarningType = "naming"
-	WarningTypeQuota          ValidationWarningType = "quota"
-	WarningTypeCompatibility  ValidationWarningType = "compatibility"
+	// WarningTypePerformance indicates performance-related warnings.
+	WarningTypePerformance ValidationWarningType = "performance"
+	// WarningTypeNaming indicates naming-related warnings.
+	WarningTypeNaming ValidationWarningType = "naming"
+	// WarningTypeQuota indicates quota-related warnings.
+	WarningTypeQuota ValidationWarningType = "quota"
+	// WarningTypeCompatibility indicates compatibility warnings.
+	WarningTypeCompatibility ValidationWarningType = "compatibility"
+	// WarningTypeRecommendation indicates recommendation warnings.
 	WarningTypeRecommendation ValidationWarningType = "recommendation"
 )
 
@@ -108,10 +120,14 @@ const (
 type ValidationSeverity string
 
 const (
+	// SeverityCritical indicates critical severity level.
 	SeverityCritical ValidationSeverity = "critical"
-	SeverityHigh     ValidationSeverity = "high"
-	SeverityMedium   ValidationSeverity = "medium"
-	SeverityLow      ValidationSeverity = "low"
+	// SeverityHigh indicates high severity level.
+	SeverityHigh ValidationSeverity = "high"
+	// SeverityMedium indicates medium severity level.
+	SeverityMedium ValidationSeverity = "medium"
+	// SeverityLow indicates low severity level.
+	SeverityLow ValidationSeverity = "low"
 )
 
 // Execute performs comprehensive validation of the sync operation.
@@ -472,6 +488,8 @@ func (uc ValidateSyncUseCase) estimateRepositoryCount(
 }
 
 // generateRecommendations generates actionable recommendations.
+//
+//nolint:cyclop // Complex recommendation generation logic with multiple validation types
 func (uc ValidateSyncUseCase) generateRecommendations(
 	errors []ValidationError,
 	_ []ValidationWarning,
@@ -527,14 +545,16 @@ func (uc ValidateSyncUseCase) calculateEstimatedDuration(repoCount, mirrorCount 
 
 	if estimatedSeconds < 60 {
 		return fmt.Sprintf("%d seconds", estimatedSeconds)
-	} else if estimatedSeconds < 3600 {
-		return fmt.Sprintf("%d minutes", estimatedSeconds/60)
-	} else {
-		hours := estimatedSeconds / 3600
-		minutes := (estimatedSeconds % 3600) / 60
-
-		return fmt.Sprintf("%d hours %d minutes", hours, minutes)
 	}
+
+	if estimatedSeconds < 3600 {
+		return fmt.Sprintf("%d minutes", estimatedSeconds/60)
+	}
+
+	hours := estimatedSeconds / 3600
+	minutes := (estimatedSeconds % 3600) / 60
+
+	return fmt.Sprintf("%d hours %d minutes", hours, minutes)
 }
 
 // Helper functions
@@ -586,14 +606,14 @@ func hasValidAuthentication(auth ports.AuthenticationConfig) bool {
 }
 
 // testProviderConnectivity tests connectivity to a provider.
-func (uc ValidateSyncUseCase) testProviderConnectivity(ctx context.Context, config ports.ProviderConfig) bool {
+func (uc ValidateSyncUseCase) testProviderConnectivity(_ context.Context, _ ports.ProviderConfig) bool {
 	// This would implement actual connectivity testing
 	// For now, return true as a placeholder
 	return true
 }
 
 // testProviderAuthentication tests authentication to a provider.
-func (uc ValidateSyncUseCase) testProviderAuthentication(ctx context.Context, config ports.ProviderConfig) bool {
+func (uc ValidateSyncUseCase) testProviderAuthentication(_ context.Context, _ ports.ProviderConfig) bool {
 	// This would implement actual authentication testing
 	// For now, return true as a placeholder
 	return true

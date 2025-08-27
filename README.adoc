@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2025 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: CC0-1.0
 
@@ -7,6 +7,8 @@
 :doctype: article
 :imagesdir: assets
 :source-highlighter: rouge
+
+Sync Git repositories across providers, create backups, and archive your code - all from a single tool.
 
 ifdef::env-github[]
 :tip-caption: :bulb:
@@ -23,7 +25,6 @@ image:https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fapi.reuse.soft
 
 https://scorecard.dev/viewer/?uri=github.com/itiquette/git-provider-sync[image:https://api.scorecard.dev/projects/github.com/itiquette/git-provider-sync/badge?style=for-the-badge[OpenSSF Scorecard]]
 link:https://www.bestpractices.dev/en/projects/9434[image:https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fbestpractices.coreinfrastructure.org%2Fprojects%2F9434.json&amp;query=%24.badge_level&amp;style=for-the-badge&amp;label=OpenSSF%20Best%20Practice&amp;color=green[Dynamic JSON Badge]]
-//image:https://img.shields.io/endpoint?style=for-the-badge&url=https://gist.githubusercontent.com/janderssonse/87d513c639cf65c02ecc31c1670cbcd1/raw/go-coverage.json[Coverage]
 
 
 ifdef::env-github[]
@@ -63,48 +64,56 @@ And you can save your work to:
 
 == Getting Started
 
-1. Check out the link:docs/usage.adoc[Usage Guide] for a quick start.
-2. The link:INSTALL.adoc[Installation Guide] will get you up and running.
+**Documentation Map**
 
-== Make Git Provider Sync better?
+### New User Path
+**First time?** → link:INSTALL.adoc[Install] → link:docs/getting-started.md[Getting Started] → link:docs/configuration.md[Configuration]
 
-Here's how you can contribute:
+### Setup & Operations
+**Migrating?** → link:docs/usage.adoc[Usage Guide] → link:docs/ci-examples.md[CI/CD Examples]  
+**Troubleshooting?** → link:docs/usage.adoc[Usage Guide] → link:CONTRIBUTING.md[Contributing]
 
-* Found a bug or have a great idea? Let us know in our https://github.com/itiquette/git-provider-sync/issues[Issue Tracker]
-* Want to contribute code? Check out our link:CONTRIBUTING.md[Contribution Guide] to get started.
+[cols="2,4", options="header"]
+|===
+|Document |Purpose
+
+|link:docs/getting-started.md[Getting Started Guide]
+|Get running in 5 minutes
+
+|link:INSTALL.adoc[⚙️ Installation Guide]
+|Platform-specific installation methods
+
+|link:docs/configuration.md[Configuration Reference]
+|Provider setup and configuration options
+
+|link:docs/usage.adoc[Usage Documentation]
+|Common workflows and advanced features
+
+|link:docs/ci-examples.md[CI/CD Examples]
+|Automation and pipeline integration
+
+|link:CONTRIBUTING.md[🤝 Contributing Guide]
+|Development setup and contribution guidelines
+|===
+
+[IMPORTANT]
+====
+**Git Provider Sync is in testing phase** - Current version vX.Y.Z follows semantic versioning. Test thoroughly before production use. Always use minimal-permission tokens and maintain repository backups as best practice.
+====
+
+== Get Involved
+
+Here's how you can help make Git Provider Sync better:
+
+* **Found a bug or have a great idea?** Open an issue in our https://github.com/itiquette/git-provider-sync/issues[Issue Tracker]
+* **Want to contribute code?** Check out our link:CONTRIBUTING.md[Contribution Guide] to get started
+* **Have questions?** Browse existing issues or start a discussion
 
 == For developers and architects
 
 If you're interested in developing, see the link:DEVELOPMENT.adoc[Development Guide].
 
-If you're interested in an architectural view, see the link:docs/sad.adoc[Software Architecture Description (SAD)].
-
-== What's next?
-
-Check out our https://github.com/itiquette/git-provider-sync/issues[Issues page].
-
-== A friendly reminder
-
-**Please Note**: Git Provider Sync is currently in Alpha. This means:
-
-* Things might change in breaking ways.
-* Feel free to share ideas on how we can make it better.
-* When using Git Provider Sync, it's a good idea to:
-  * Use tokens with limited write access (never give full permissions).
-  * Keep backups of important data, just in case.
-
-Git Provider Sync is slowly getting stable and reliable.
-But as with any tool, it's always good to be careful!
-
-== Documenting the project journey
-
-I'm writing a log of how this project is becoming useful. 
-Chapters are
-
-1. https://dev.to/janderssonse/from-friday-hack-to-release-reflections-on-creating-and-releasing-a-open-source-project-1ljg[From hack to release - reflections]
-2. Learning Go as a Java developer
-3. Open Source Practices 
-4. Open Source Security 
+If you're interested in an architectural view, see the link:docs/architecture.adoc[Software Architecture Documentation].
 
 == Legal Stuff
 

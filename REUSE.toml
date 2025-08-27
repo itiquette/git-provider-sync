@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+# SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 #
 # SPDX-License-Identifier: CC0-1.0
 
@@ -9,9 +9,17 @@ path = [
   ".github/pull_request_template.md",
   "go.sum",
   "docs/dco.txt",
+  "docs/gitprovidersync.1.md",
   "assets/*.png",
   "renovate.json",
   "CHANGELOG.md",
+  "TESTING_IMPROVEMENTS_FINAL.md",
+  "TESTING_RACE_CONDITION_FIXES.md",
+  "dist/*",
+  "bin/*",
+  "git-provider-sync",
+  "test-results/*",
+  "tools/go.sum",
 ]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "itiquette <https://github.com/itiquette/git-provider-sync>"
@@ -23,3 +31,12 @@ path = ["generated/**/*.go"]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "itiquette <https://github.com/itiquette/git-provider-sync>"
 SPDX-License-Identifier = "EUPL-1.2"
+
+[[annotations]]
+path = [
+  "generated/completions/*",
+  "generated/manpages/*",
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "itiquette <https://github.com/itiquette/git-provider-sync>"
+SPDX-License-Identifier = "CC0-1.0"

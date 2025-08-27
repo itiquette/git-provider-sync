@@ -128,6 +128,112 @@ func (_c *GitOperations_Clone_Call) RunAndReturn(run func(context.Context, ports
 	return _c
 }
 
+// CreateTmpDir provides a mock function with given fields: ctx, dir, prefix
+func (_m *GitOperations) CreateTmpDir(ctx context.Context, dir string, prefix string) (context.Context, error) {
+	ret := _m.Called(ctx, dir, prefix)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateTmpDir")
+	}
+
+	var r0 context.Context
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) (context.Context, error)); ok {
+		return rf(ctx, dir, prefix)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) context.Context); ok {
+		r0 = rf(ctx, dir, prefix)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(context.Context)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = rf(ctx, dir, prefix)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GitOperations_CreateTmpDir_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateTmpDir'
+type GitOperations_CreateTmpDir_Call struct {
+	*mock.Call
+}
+
+// CreateTmpDir is a helper method to define mock.On call
+//   - ctx context.Context
+//   - dir string
+//   - prefix string
+func (_e *GitOperations_Expecter) CreateTmpDir(ctx interface{}, dir interface{}, prefix interface{}) *GitOperations_CreateTmpDir_Call {
+	return &GitOperations_CreateTmpDir_Call{Call: _e.mock.On("CreateTmpDir", ctx, dir, prefix)}
+}
+
+func (_c *GitOperations_CreateTmpDir_Call) Run(run func(ctx context.Context, dir string, prefix string)) *GitOperations_CreateTmpDir_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string))
+	})
+	return _c
+}
+
+func (_c *GitOperations_CreateTmpDir_Call) Return(_a0 context.Context, _a1 error) *GitOperations_CreateTmpDir_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *GitOperations_CreateTmpDir_Call) RunAndReturn(run func(context.Context, string, string) (context.Context, error)) *GitOperations_CreateTmpDir_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// DeleteTmpDir provides a mock function with given fields: ctx
+func (_m *GitOperations) DeleteTmpDir(ctx context.Context) error {
+	ret := _m.Called(ctx)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteTmpDir")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context) error); ok {
+		r0 = rf(ctx)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// GitOperations_DeleteTmpDir_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteTmpDir'
+type GitOperations_DeleteTmpDir_Call struct {
+	*mock.Call
+}
+
+// DeleteTmpDir is a helper method to define mock.On call
+//   - ctx context.Context
+func (_e *GitOperations_Expecter) DeleteTmpDir(ctx interface{}) *GitOperations_DeleteTmpDir_Call {
+	return &GitOperations_DeleteTmpDir_Call{Call: _e.mock.On("DeleteTmpDir", ctx)}
+}
+
+func (_c *GitOperations_DeleteTmpDir_Call) Run(run func(ctx context.Context)) *GitOperations_DeleteTmpDir_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context))
+	})
+	return _c
+}
+
+func (_c *GitOperations_DeleteTmpDir_Call) Return(_a0 error) *GitOperations_DeleteTmpDir_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *GitOperations_DeleteTmpDir_Call) RunAndReturn(run func(context.Context) error) *GitOperations_DeleteTmpDir_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetName provides a mock function with no fields
 func (_m *GitOperations) GetName() string {
 	ret := _m.Called()
@@ -169,6 +275,62 @@ func (_c *GitOperations_GetName_Call) Return(_a0 string) *GitOperations_GetName_
 }
 
 func (_c *GitOperations_GetName_Call) RunAndReturn(run func() string) *GitOperations_GetName_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetTmpDirPath provides a mock function with given fields: ctx
+func (_m *GitOperations) GetTmpDirPath(ctx context.Context) (string, error) {
+	ret := _m.Called(ctx)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetTmpDirPath")
+	}
+
+	var r0 string
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context) (string, error)); ok {
+		return rf(ctx)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context) string); ok {
+		r0 = rf(ctx)
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context) error); ok {
+		r1 = rf(ctx)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GitOperations_GetTmpDirPath_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetTmpDirPath'
+type GitOperations_GetTmpDirPath_Call struct {
+	*mock.Call
+}
+
+// GetTmpDirPath is a helper method to define mock.On call
+//   - ctx context.Context
+func (_e *GitOperations_Expecter) GetTmpDirPath(ctx interface{}) *GitOperations_GetTmpDirPath_Call {
+	return &GitOperations_GetTmpDirPath_Call{Call: _e.mock.On("GetTmpDirPath", ctx)}
+}
+
+func (_c *GitOperations_GetTmpDirPath_Call) Run(run func(ctx context.Context)) *GitOperations_GetTmpDirPath_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context))
+	})
+	return _c
+}
+
+func (_c *GitOperations_GetTmpDirPath_Call) Return(_a0 string, _a1 error) *GitOperations_GetTmpDirPath_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *GitOperations_GetTmpDirPath_Call) RunAndReturn(run func(context.Context) (string, error)) *GitOperations_GetTmpDirPath_Call {
 	_c.Call.Return(run)
 	return _c
 }

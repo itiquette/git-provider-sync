@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
@@ -8,12 +8,13 @@ import (
 	"context"
 	"fmt"
 
+	"itiquette/git-provider-sync/internal/domain"
 	"itiquette/git-provider-sync/internal/domain/entities"
 	"itiquette/git-provider-sync/internal/domain/ports"
 )
 
 // BranchProtectionUseCase handles branch protection operations.
-// This ports the protection functionality from main branch to hexagonal architecture.
+// This ports the protection functionality.
 type BranchProtectionUseCase struct {
 	repositoryProvider ports.RepositoryProvider
 	logger             ports.Logger
@@ -43,9 +44,12 @@ type ProtectionRequest struct {
 type ProtectionOperation string
 
 const (
-	ProtectionOperationEnable  ProtectionOperation = "enable"
+	// ProtectionOperationEnable represents enable protection operation.
+	ProtectionOperationEnable ProtectionOperation = "enable"
+	// ProtectionOperationDisable represents disable protection operation.
 	ProtectionOperationDisable ProtectionOperation = "disable"
-	ProtectionOperationUpdate  ProtectionOperation = "update"
+	// ProtectionOperationUpdate represents update protection operation.
+	ProtectionOperationUpdate ProtectionOperation = "update"
 )
 
 // ProtectionResponse represents the result of protection operations.
@@ -59,7 +63,7 @@ type ProtectionResponse struct {
 }
 
 // ExecuteProtection executes branch protection operations.
-// This implements the core protection logic from main branch.
+// This implements the core protection logic.
 func (uc BranchProtectionUseCase) ExecuteProtection(
 	ctx context.Context,
 	request ProtectionRequest,
@@ -106,7 +110,7 @@ func (uc BranchProtectionUseCase) ExecuteProtection(
 		}
 
 	default:
-		response.Error = fmt.Errorf("unknown protection operation: %s", request.Operation)
+		response.Error = fmt.Errorf("%w: %s", domain.ErrUnknownProtectionOperation, request.Operation)
 	}
 
 	uc.logger.Info(ctx, "Branch protection operation completed", map[string]interface{}{
@@ -118,112 +122,6 @@ func (uc BranchProtectionUseCase) ExecuteProtection(
 	})
 
 	return response, response.Error
-}
-
-// enableProtection enables branch protection for a repository branch.
-// This ports the protection service Protect functionality from main branch.
-func (uc BranchProtectionUseCase) enableProtection(
-	ctx context.Context,
-	request ProtectionRequest,
-) error {
-	uc.logger.Debug(ctx, "Enabling branch protection", map[string]interface{}{
-		"repository": request.Repository.Name(),
-		"branch":     request.Branch,
-	})
-
-	// Check if provider supports branch protection
-	if !uc.repositoryProvider.SupportsFeature(ports.FeatureBranchProtection) {
-		return fmt.Errorf("provider %s does not support branch protection", request.ProviderConfig.ProviderType)
-	}
-
-	// Set branch protection using the repository provider
-	err := uc.repositoryProvider.SetBranchProtection(
-		ctx,
-		request.ProviderConfig,
-		request.Repository.Name(),
-		request.Branch,
-		request.Protection,
-	)
-	if err != nil {
-		return fmt.Errorf("failed to set branch protection: %w", err)
-	}
-
-	uc.logger.Info(ctx, "Branch protection enabled successfully", map[string]interface{}{
-		"repository": request.Repository.Name(),
-		"branch":     request.Branch,
-	})
-
-	return nil
-}
-
-// disableProtection disables branch protection for a repository branch.
-// This ports the protection service Unprotect functionality from main branch.
-func (uc BranchProtectionUseCase) disableProtection(
-	ctx context.Context,
-	request ProtectionRequest,
-) error {
-	uc.logger.Debug(ctx, "Disabling branch protection", map[string]interface{}{
-		"repository": request.Repository.Name(),
-		"branch":     request.Branch,
-	})
-
-	// Check if provider supports branch protection
-	if !uc.repositoryProvider.SupportsFeature(ports.FeatureBranchProtection) {
-		return fmt.Errorf("provider %s does not support branch protection", request.ProviderConfig.ProviderType)
-	}
-
-	// Remove branch protection using the repository provider
-	err := uc.repositoryProvider.RemoveBranchProtection(
-		ctx,
-		request.ProviderConfig,
-		request.Repository.Name(),
-		request.Branch,
-	)
-	if err != nil {
-		return fmt.Errorf("failed to remove branch protection: %w", err)
-	}
-
-	uc.logger.Info(ctx, "Branch protection disabled successfully", map[string]interface{}{
-		"repository": request.Repository.Name(),
-		"branch":     request.Branch,
-	})
-
-	return nil
-}
-
-// updateProtection updates branch protection settings for a repository branch.
-func (uc BranchProtectionUseCase) updateProtection(
-	ctx context.Context,
-	request ProtectionRequest,
-) error {
-	uc.logger.Debug(ctx, "Updating branch protection", map[string]interface{}{
-		"repository": request.Repository.Name(),
-		"branch":     request.Branch,
-	})
-
-	// Check if provider supports branch protection
-	if !uc.repositoryProvider.SupportsFeature(ports.FeatureBranchProtection) {
-		return fmt.Errorf("provider %s does not support branch protection", request.ProviderConfig.ProviderType)
-	}
-
-	// Update branch protection using the repository provider
-	err := uc.repositoryProvider.SetBranchProtection(
-		ctx,
-		request.ProviderConfig,
-		request.Repository.Name(),
-		request.Branch,
-		request.Protection,
-	)
-	if err != nil {
-		return fmt.Errorf("failed to update branch protection: %w", err)
-	}
-
-	uc.logger.Info(ctx, "Branch protection updated successfully", map[string]interface{}{
-		"repository": request.Repository.Name(),
-		"branch":     request.Branch,
-	})
-
-	return nil
 }
 
 // GetProtectionStatus retrieves the current protection status for a branch.
@@ -261,4 +159,110 @@ func (uc BranchProtectionUseCase) ListProtectedBranches(
 	}
 
 	return branches, nil
+}
+
+// enableProtection enables branch protection for a repository branch.
+// This ports the protection service Protect functionality.
+func (uc BranchProtectionUseCase) enableProtection(
+	ctx context.Context,
+	request ProtectionRequest,
+) error {
+	uc.logger.Debug(ctx, "Enabling branch protection", map[string]interface{}{
+		"repository": request.Repository.Name(),
+		"branch":     request.Branch,
+	})
+
+	// Check if provider supports branch protection
+	if !uc.repositoryProvider.SupportsFeature(ports.FeatureBranchProtection) {
+		return fmt.Errorf("%w: %s", domain.ErrProviderNoProtectionSupport, request.ProviderConfig.ProviderType)
+	}
+
+	// Set branch protection using the repository provider
+	err := uc.repositoryProvider.SetBranchProtection(
+		ctx,
+		request.ProviderConfig,
+		request.Repository.Name(),
+		request.Branch,
+		request.Protection,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to set branch protection: %w", err)
+	}
+
+	uc.logger.Info(ctx, "Branch protection enabled successfully", map[string]interface{}{
+		"repository": request.Repository.Name(),
+		"branch":     request.Branch,
+	})
+
+	return nil
+}
+
+// disableProtection disables branch protection for a repository branch.
+// This ports the protection service Unprotect functionality.
+func (uc BranchProtectionUseCase) disableProtection(
+	ctx context.Context,
+	request ProtectionRequest,
+) error {
+	uc.logger.Debug(ctx, "Disabling branch protection", map[string]interface{}{
+		"repository": request.Repository.Name(),
+		"branch":     request.Branch,
+	})
+
+	// Check if provider supports branch protection
+	if !uc.repositoryProvider.SupportsFeature(ports.FeatureBranchProtection) {
+		return fmt.Errorf("%w: %s", domain.ErrProviderNoProtectionSupport, request.ProviderConfig.ProviderType)
+	}
+
+	// Remove branch protection using the repository provider
+	err := uc.repositoryProvider.RemoveBranchProtection(
+		ctx,
+		request.ProviderConfig,
+		request.Repository.Name(),
+		request.Branch,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to remove branch protection: %w", err)
+	}
+
+	uc.logger.Info(ctx, "Branch protection disabled successfully", map[string]interface{}{
+		"repository": request.Repository.Name(),
+		"branch":     request.Branch,
+	})
+
+	return nil
+}
+
+// updateProtection updates branch protection settings for a repository branch.
+func (uc BranchProtectionUseCase) updateProtection(
+	ctx context.Context,
+	request ProtectionRequest,
+) error {
+	uc.logger.Debug(ctx, "Updating branch protection", map[string]interface{}{
+		"repository": request.Repository.Name(),
+		"branch":     request.Branch,
+	})
+
+	// Check if provider supports branch protection
+	if !uc.repositoryProvider.SupportsFeature(ports.FeatureBranchProtection) {
+		return fmt.Errorf("%w: %s", domain.ErrProviderNoProtectionSupport, request.ProviderConfig.ProviderType)
+	}
+
+	// Update branch protection using the repository provider
+	err := uc.repositoryProvider.SetBranchProtection(
+		ctx,
+		request.ProviderConfig,
+		request.Repository.Name(),
+		request.Branch,
+		request.Protection,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to update branch protection: %w", err)
+	}
+
+	uc.logger.Info(ctx, "Branch protection updated successfully", map[string]interface{}{
+		"repository": request.Repository.Name(),
+		"branch":     request.Branch,
+	})
+
+	return nil
 }

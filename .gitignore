@@ -1,9 +1,11 @@
-# SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+# SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 #
 # SPDX-License-Identifier: CC0-1.0
 
 # If you prefer the allow list template instead of the deny list, see community template:
 # https://github.com/github/gitignore/blob/main/community/Golang/Go.AllowList.gitignore
+
+.claudde
  
 # Binaries for programs and plugins
 *.exe
@@ -28,8 +30,9 @@ ReleasenotesTmp
 # Go workspace file
 go.work
 .vscode
-/dist
 ./.env
 /gitprovidersync.yaml
 # generated
 /gitprovidersync
+generated/manpages/
+generated/completions/

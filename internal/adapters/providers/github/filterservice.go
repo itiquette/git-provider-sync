@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
@@ -6,6 +6,7 @@ package github
 
 import (
 	"context"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -15,7 +16,8 @@ import (
 )
 
 // FilterService provides GitHub-specific repository filtering operations.
-// This restores the sophisticated filter service functionality from main branch.
+//
+//	sophisticated filter service functionality .
 type FilterService struct {
 	logger ports.Logger
 }
@@ -93,161 +95,27 @@ func (fs *FilterService) FilterRepositories(ctx context.Context, request FilterR
 	return filtered, nil
 }
 
-// shouldIncludeRepository determines if a repository should be included.
-func (fs *FilterService) shouldIncludeRepository(ctx context.Context, repo entities.Repository, request FilterRepositoriesRequest) bool {
-	// Check owner filter (skip for now as entities.Repository doesn't have Owner method)
-	// TODO: Add Owner method to Repository entity
-	_ = request.OwnerFilter // Suppress unused variable warning
-
-	// Check visibility filter
-	if request.VisibilityFilter != "" && request.VisibilityFilter != "all" {
-		if !strings.EqualFold(repo.Visibility(), request.VisibilityFilter) {
-			return false
-		}
-	}
-
-	// Check exclude patterns first
-	if len(request.ExcludePatterns) > 0 {
-		for _, pattern := range request.ExcludePatterns {
-			if fs.matchesPattern(repo.Name(), pattern) {
-				fs.logger.Debug(ctx, "Repository excluded by pattern", map[string]interface{}{
-					"repository": repo.Name(),
-					"pattern":    pattern,
-				})
-
-				return false
-			}
-		}
-	}
-
-	// Check include patterns
-	if len(request.IncludePatterns) > 0 {
-		included := false
-
-		for _, pattern := range request.IncludePatterns {
-			if fs.matchesPattern(repo.Name(), pattern) {
-				included = true
-
-				break
-			}
-		}
-
-		if !included {
-			return false
-		}
-	}
-
-	// Check activity filter
-	if request.ActiveFromLimit != "" {
-		if !fs.isActiveRepository(ctx, repo, request.ActiveFromLimit) {
-			return false
-		}
-	}
-
-	// Check language filter
-	if len(request.LanguageFilter) > 0 {
-		if !fs.matchesLanguageFilter(repo, request.LanguageFilter) {
-			return false
-		}
-	}
-
-	// Check size filter
-	if request.SizeFilter != nil {
-		if !fs.matchesSizeFilter(repo, request.SizeFilter) {
-			return false
-		}
-	}
-
-	// Check activity metrics filter
-	if request.ActivityFilter != nil {
-		if !fs.matchesActivityFilter(repo, request.ActivityFilter) {
-			return false
-		}
-	}
-
-	// Check security filter
-	if request.SecurityFilter != nil {
-		if !fs.matchesSecurityFilter(repo, request.SecurityFilter) {
-			return false
-		}
-	}
-
-	return true
-}
-
 // matchesPattern checks if a repository name matches a pattern.
-func (fs *FilterService) matchesPattern(name, pattern string) bool {
+func (fs *FilterService) matchesPattern(name, pattern string) bool { //nolint:funcorder // Helper method used throughout
 	// Convert to lowercase for case-insensitive matching
 	name = strings.ToLower(name)
 	pattern = strings.ToLower(pattern)
 
-	// Handle different pattern types
-	if pattern == "*" {
-		return true
-	}
-
-	if strings.Contains(pattern, "*") {
-		return fs.wildcardMatch(name, pattern)
-	}
-
+	// Handle special regex-like pattern (simple contains)
 	if strings.HasPrefix(pattern, "/") && strings.HasSuffix(pattern, "/") {
-		// Basic regex-like pattern (simplified)
 		regexPattern := strings.Trim(pattern, "/")
 
 		return strings.Contains(name, regexPattern)
 	}
 
-	// Check for prefix/suffix patterns
-	if strings.HasSuffix(pattern, "*") {
-		prefix := strings.TrimSuffix(pattern, "*")
+	// Use standard library filepath.Match for wildcard patterns
+	matched, _ := filepath.Match(pattern, name)
 
-		return strings.HasPrefix(name, prefix)
-	}
-
-	if strings.HasPrefix(pattern, "*") {
-		suffix := strings.TrimPrefix(pattern, "*")
-
-		return strings.HasSuffix(name, suffix)
-	}
-
-	// Exact match or substring match
-	return name == pattern || strings.Contains(name, pattern)
-}
-
-// wildcardMatch performs wildcard matching.
-func (fs *FilterService) wildcardMatch(name, pattern string) bool {
-	return fs.wildcardMatchRecursive(name, pattern)
-}
-
-// wildcardMatchRecursive performs recursive wildcard matching.
-func (fs *FilterService) wildcardMatchRecursive(name, pattern string) bool {
-	if pattern == "" {
-		return name == ""
-	}
-
-	if pattern[0] == '*' {
-		for i := 0; i <= len(name); i++ {
-			if fs.wildcardMatchRecursive(name[i:], pattern[1:]) {
-				return true
-			}
-		}
-
-		return false
-	}
-
-	if name == "" {
-		return false
-	}
-
-	if pattern[0] == '?' || pattern[0] == name[0] {
-		return fs.wildcardMatchRecursive(name[1:], pattern[1:])
-	}
-
-	return false
+	return matched
 }
 
 // isActiveRepository checks if repository meets activity requirements.
-func (fs *FilterService) isActiveRepository(ctx context.Context, repo entities.Repository, activeFromLimit string) bool {
+func (fs *FilterService) isActiveRepository(ctx context.Context, repo entities.Repository, activeFromLimit string) bool { //nolint:funcorder // Helper method
 	if activeFromLimit == "" {
 		return true
 	}
@@ -273,7 +141,7 @@ func (fs *FilterService) isActiveRepository(ctx context.Context, repo entities.R
 }
 
 // matchesLanguageFilter checks if repository matches language filter.
-func (fs *FilterService) matchesLanguageFilter(repo entities.Repository, languages []string) bool {
+func (fs *FilterService) matchesLanguageFilter(_ entities.Repository, _ []string) bool { //nolint:funcorder // Helper method
 	// This would require additional metadata about repository languages
 	// For now, we'll assume all repositories match if no specific language data is available
 	// In a real implementation, this would check the repository's primary language
@@ -281,7 +149,7 @@ func (fs *FilterService) matchesLanguageFilter(repo entities.Repository, languag
 }
 
 // matchesSizeFilter checks if repository matches size filter.
-func (fs *FilterService) matchesSizeFilter(repo entities.Repository, filter *SizeFilter) bool {
+func (fs *FilterService) matchesSizeFilter(_ entities.Repository, _ *SizeFilter) bool { //nolint:funcorder // Helper method
 	// This would require additional metadata about repository size
 	// For now, we'll assume all repositories match if no specific size data is available
 	// In a real implementation, this would check the repository's size in KB
@@ -289,7 +157,7 @@ func (fs *FilterService) matchesSizeFilter(repo entities.Repository, filter *Siz
 }
 
 // matchesActivityFilter checks if repository matches activity filter.
-func (fs *FilterService) matchesActivityFilter(repo entities.Repository, filter *ActivityFilter) bool {
+func (fs *FilterService) matchesActivityFilter(_ entities.Repository, _ *ActivityFilter) bool { //nolint:funcorder // Helper method
 	// This would require additional metadata about stars, forks, watchers, etc.
 	// For now, we'll assume all repositories match if no specific activity data is available
 	// In a real implementation, this would check the repository's activity metrics
@@ -297,7 +165,7 @@ func (fs *FilterService) matchesActivityFilter(repo entities.Repository, filter 
 }
 
 // matchesSecurityFilter checks if repository matches security filter.
-func (fs *FilterService) matchesSecurityFilter(repo entities.Repository, filter *SecurityFilter) bool {
+func (fs *FilterService) matchesSecurityFilter(_ entities.Repository, _ *SecurityFilter) bool { //nolint:funcorder // Helper method
 	// This would require additional metadata about security features
 	// For now, we'll assume all repositories match if no specific security data is available
 	// In a real implementation, this would check the repository's security settings
@@ -305,7 +173,7 @@ func (fs *FilterService) matchesSecurityFilter(repo entities.Repository, filter 
 }
 
 // FilterRepositoriesByTopics filters repositories by GitHub topics.
-func (fs *FilterService) FilterRepositoriesByTopics(ctx context.Context, repos []entities.Repository, requiredTopics, excludedTopics []string) []entities.Repository {
+func (fs *FilterService) FilterRepositoriesByTopics(_ context.Context, repos []entities.Repository, requiredTopics, excludedTopics []string) []entities.Repository {
 	if len(requiredTopics) == 0 && len(excludedTopics) == 0 {
 		return repos
 	}
@@ -318,7 +186,7 @@ func (fs *FilterService) FilterRepositoriesByTopics(ctx context.Context, repos [
 }
 
 // FilterRepositoriesByCollaborators filters repositories by collaborator access.
-func (fs *FilterService) FilterRepositoriesByCollaborators(ctx context.Context, repos []entities.Repository, requiredCollaborators []string) []entities.Repository {
+func (fs *FilterService) FilterRepositoriesByCollaborators(_ context.Context, repos []entities.Repository, requiredCollaborators []string) []entities.Repository {
 	if len(requiredCollaborators) == 0 {
 		return repos
 	}
@@ -354,4 +222,107 @@ func (fs *FilterService) GetFilterStatistics(original, filtered []entities.Repos
 	stats["private_count"] = privateCount
 
 	return stats
+}
+
+func (fs *FilterService) shouldIncludeRepository(ctx context.Context, repo entities.Repository, request FilterRepositoriesRequest) bool {
+	return fs.passesBasicFilters(repo, request) &&
+		fs.passesPatternFilters(ctx, repo, request) &&
+		fs.passesContentFilters(repo, request) &&
+		fs.passesAdvancedFilters(ctx, repo, request)
+}
+
+// passesBasicFilters checks basic filters like visibility.
+func (fs *FilterService) passesBasicFilters(repo entities.Repository, request FilterRepositoriesRequest) bool {
+	// Owner filter not implemented - entities.Repository doesn't expose owner
+	_ = request.OwnerFilter // Suppress unused variable warning
+
+	// Check visibility filter
+	if request.VisibilityFilter != "" && request.VisibilityFilter != "all" {
+		if !strings.EqualFold(repo.Visibility(), request.VisibilityFilter) {
+			return false
+		}
+	}
+
+	return true
+}
+
+// passesPatternFilters checks include and exclude patterns.
+func (fs *FilterService) passesPatternFilters(ctx context.Context, repo entities.Repository, request FilterRepositoriesRequest) bool {
+	// Check exclude patterns first
+	if len(request.ExcludePatterns) > 0 {
+		for _, pattern := range request.ExcludePatterns {
+			if fs.matchesPattern(repo.Name(), pattern) {
+				fs.logger.Debug(ctx, "Repository excluded by pattern", map[string]interface{}{
+					"repository": repo.Name(),
+					"pattern":    pattern,
+				})
+
+				return false
+			}
+		}
+	}
+
+	// Check include patterns
+	if len(request.IncludePatterns) > 0 {
+		included := false
+
+		for _, pattern := range request.IncludePatterns {
+			if fs.matchesPattern(repo.Name(), pattern) {
+				included = true
+
+				break
+			}
+		}
+
+		if !included {
+			return false
+		}
+	}
+
+	return true
+}
+
+// passesContentFilters checks content-based filters like language and size.
+func (fs *FilterService) passesContentFilters(repo entities.Repository, request FilterRepositoriesRequest) bool {
+	// Check language filter
+	if len(request.LanguageFilter) > 0 {
+		if !fs.matchesLanguageFilter(repo, request.LanguageFilter) {
+			return false
+		}
+	}
+
+	// Check size filter
+	if request.SizeFilter != nil {
+		if !fs.matchesSizeFilter(repo, request.SizeFilter) {
+			return false
+		}
+	}
+
+	return true
+}
+
+// passesAdvancedFilters checks advanced filters like activity and security.
+func (fs *FilterService) passesAdvancedFilters(ctx context.Context, repo entities.Repository, request FilterRepositoriesRequest) bool {
+	// Check activity filter
+	if request.ActiveFromLimit != "" {
+		if !fs.isActiveRepository(ctx, repo, request.ActiveFromLimit) {
+			return false
+		}
+	}
+
+	// Check activity metrics filter
+	if request.ActivityFilter != nil {
+		if !fs.matchesActivityFilter(repo, request.ActivityFilter) {
+			return false
+		}
+	}
+
+	// Check security filter
+	if request.SecurityFilter != nil {
+		if !fs.matchesSecurityFilter(repo, request.SecurityFilter) {
+			return false
+		}
+	}
+
+	return true
 }

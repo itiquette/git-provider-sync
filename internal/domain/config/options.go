@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
@@ -38,7 +38,7 @@ func WithEnvironment(name string, envOptions ...EnvironmentOption) AppConfigOpti
 }
 
 // WithGitHubEnvironment adds a GitHub environment with sensible defaults.
-func WithGitHubEnvironment(name, owner, token string, mirrorOptions ...MirrorOption) AppConfigOption {
+func WithGitHubEnvironment(name, owner, token string, _ ...MirrorOption) AppConfigOption {
 	return WithEnvironment(name,
 		WithSource(
 			WithSourceProvider("github"),
@@ -50,7 +50,7 @@ func WithGitHubEnvironment(name, owner, token string, mirrorOptions ...MirrorOpt
 }
 
 // WithGitLabEnvironment adds a GitLab environment with sensible defaults.
-func WithGitLabEnvironment(name, domain, owner, token string, mirrorOptions ...MirrorOption) AppConfigOption {
+func WithGitLabEnvironment(name, domain, owner, token string, _ ...MirrorOption) AppConfigOption {
 	return WithEnvironment(name,
 		WithSource(
 			WithSourceProvider("gitlab"),
@@ -62,7 +62,7 @@ func WithGitLabEnvironment(name, domain, owner, token string, mirrorOptions ...M
 }
 
 // WithGiteaEnvironment adds a Gitea environment with sensible defaults.
-func WithGiteaEnvironment(name, domain, owner, token string, mirrorOptions ...MirrorOption) AppConfigOption {
+func WithGiteaEnvironment(name, domain, owner, token string, _ ...MirrorOption) AppConfigOption {
 	return WithEnvironment(name,
 		WithSource(
 			WithSourceProvider("gitea"),

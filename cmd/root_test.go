@@ -1,42 +1,37 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
 package cmd
 
 import (
-	"bytes"
 	"context"
-	"io"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 )
 
-func TestExecuteRootCommandNoArgumentShowHelp(t *testing.T) {
+func TestRootCommand_NoArgs_ShowsHelp(t *testing.T) {
+	t.Parallel()
 	require := require.New(t)
 
 	ctx := context.Background()
-	cmd := newRootCommand(ctx, "tests")
+	cmd := NewRootCommandForTesting(ctx, "tests")
 
-	cmdOutput := bytes.NewBufferString("")
-	cmd.SetOut(cmdOutput)
+	// urfave/cli v3 doesn't have SetOut, test by checking command structure
+	require.Len(cmd.Commands, 4)
 
-	require.Len(cmd.Commands(), 3)
-
-	subCmdNames := make([]string, 0, 2)
-	for _, v := range cmd.Commands() {
-		subCmdNames = append(subCmdNames, v.Name())
+	subCmdNames := make([]string, 0, 4)
+	for _, v := range cmd.Commands {
+		subCmdNames = append(subCmdNames, v.Name)
 	}
 
-	require.Contains(subCmdNames, "print", "sync")
+	require.Contains(subCmdNames, "sync")
+	require.Contains(subCmdNames, "status")
+	require.Contains(subCmdNames, "print")
+	require.Contains(subCmdNames, "man")
 
-	_ = cmd.Execute()
-
-	out, err := io.ReadAll(cmdOutput)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	require.Contains(string(out), "A utility")
+	// Test that the command has expected properties
+	require.Equal("gitprovidersync", cmd.Name)
+	require.Contains(cmd.Description, "A utility")
 }

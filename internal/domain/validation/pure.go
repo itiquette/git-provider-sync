@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
@@ -13,8 +13,8 @@ import (
 	"itiquette/git-provider-sync/internal/domain/ports"
 )
 
-// ValidationResult represents the result of a validation operation.
-type ValidationResult struct {
+// Result represents the result of a validation operation.
+type Result struct {
 	Valid      bool
 	Field      string
 	Code       string
@@ -23,17 +23,17 @@ type ValidationResult struct {
 	Suggestion string
 }
 
-// ValidationResults represents multiple validation results.
-type ValidationResults struct {
+// Results represents multiple validation results.
+type Results struct {
 	Valid   bool
-	Results []ValidationResult
+	Results []Result
 }
 
 // Configuration Validation (Pure Functions)
 
 // ValidateAppConfiguration validates application configuration using pure functions.
-func ValidateAppConfiguration(config ports.AppConfiguration) ValidationResults {
-	var results []ValidationResult
+func ValidateAppConfiguration(config ports.AppConfiguration) Results {
+	var results []Result
 
 	// Validate global settings
 	globalResults := ValidateGlobalSettings(config.GlobalSettings)
@@ -48,19 +48,19 @@ func ValidateAppConfiguration(config ports.AppConfiguration) ValidationResults {
 		}
 	}
 
-	return ValidationResults{
+	return Results{
 		Valid:   len(results) == 0,
 		Results: results,
 	}
 }
 
 // ValidateGlobalSettings validates global settings.
-func ValidateGlobalSettings(settings ports.GlobalSettings) ValidationResults {
-	var results []ValidationResult
+func ValidateGlobalSettings(settings ports.GlobalSettings) Results {
+	var results []Result
 
 	// Validate log level
 	if !isValidLogLevel(string(settings.LogLevel)) {
-		results = append(results, ValidationResult{
+		results = append(results, Result{
 			Valid:      false,
 			Field:      "log_level",
 			Code:       "INVALID_LOG_LEVEL",
@@ -72,7 +72,7 @@ func ValidateGlobalSettings(settings ports.GlobalSettings) ValidationResults {
 
 	// Validate log format
 	if !isValidLogFormat(string(settings.LogFormat)) {
-		results = append(results, ValidationResult{
+		results = append(results, Result{
 			Valid:      false,
 			Field:      "log_format",
 			Code:       "INVALID_LOG_FORMAT",
@@ -84,7 +84,7 @@ func ValidateGlobalSettings(settings ports.GlobalSettings) ValidationResults {
 
 	// Validate cache size
 	if settings.MaxCacheSize < 0 {
-		results = append(results, ValidationResult{
+		results = append(results, Result{
 			Valid:   false,
 			Field:   "max_cache_size",
 			Code:    "NEGATIVE_CACHE_SIZE",
@@ -95,7 +95,7 @@ func ValidateGlobalSettings(settings ports.GlobalSettings) ValidationResults {
 
 	// Validate cache TTL
 	if settings.CacheTTL < 0 {
-		results = append(results, ValidationResult{
+		results = append(results, Result{
 			Valid:   false,
 			Field:   "cache_ttl",
 			Code:    "NEGATIVE_CACHE_TTL",
@@ -104,19 +104,19 @@ func ValidateGlobalSettings(settings ports.GlobalSettings) ValidationResults {
 		})
 	}
 
-	return ValidationResults{
+	return Results{
 		Valid:   len(results) == 0,
 		Results: results,
 	}
 }
 
 // ValidateEnvironment validates environment configuration.
-func ValidateEnvironment(env ports.EnvironmentConfiguration) ValidationResults {
-	results := make([]ValidationResult, 0)
+func ValidateEnvironment(env ports.EnvironmentConfiguration) Results {
+	results := make([]Result, 0)
 
 	// Validate environment name
 	if strings.TrimSpace(env.Name) == "" {
-		results = append(results, ValidationResult{
+		results = append(results, Result{
 			Valid:   false,
 			Field:   "name",
 			Code:    "EMPTY_ENVIRONMENT_NAME",
@@ -147,19 +147,19 @@ func ValidateEnvironment(env ports.EnvironmentConfiguration) ValidationResults {
 		results = append(results, result)
 	}
 
-	return ValidationResults{
+	return Results{
 		Valid:   len(results) == 0,
 		Results: results,
 	}
 }
 
 // ValidateSourceConfiguration validates source provider configuration.
-func ValidateSourceConfiguration(source ports.SourceConfiguration) ValidationResults {
-	results := make([]ValidationResult, 0)
+func ValidateSourceConfiguration(source ports.SourceConfiguration) Results {
+	results := make([]Result, 0)
 
 	// Validate provider type
 	if !isValidProviderType(source.ProviderType) {
-		results = append(results, ValidationResult{
+		results = append(results, Result{
 			Valid:      false,
 			Field:      "provider_type",
 			Code:       "INVALID_PROVIDER_TYPE",
@@ -171,7 +171,7 @@ func ValidateSourceConfiguration(source ports.SourceConfiguration) ValidationRes
 
 	// Validate domain
 	if source.Domain != "" && !isValidDomain(source.Domain) {
-		results = append(results, ValidationResult{
+		results = append(results, Result{
 			Valid:   false,
 			Field:   "domain",
 			Code:    "INVALID_DOMAIN",
@@ -182,7 +182,7 @@ func ValidateSourceConfiguration(source ports.SourceConfiguration) ValidationRes
 
 	// Validate owner
 	if !isValidOwner(source.Owner) {
-		results = append(results, ValidationResult{
+		results = append(results, Result{
 			Valid:   false,
 			Field:   "owner",
 			Code:    "INVALID_OWNER",
@@ -198,19 +198,21 @@ func ValidateSourceConfiguration(source ports.SourceConfiguration) ValidationRes
 		results = append(results, result)
 	}
 
-	return ValidationResults{
+	return Results{
 		Valid:   len(results) == 0,
 		Results: results,
 	}
 }
 
 // ValidateMirrorConfiguration validates mirror target configuration.
-func ValidateMirrorConfiguration(mirror ports.MirrorConfiguration) ValidationResults {
-	var results []ValidationResult
+//
+//nolint:cyclop // Complex validation logic with multiple mirror configuration checks
+func ValidateMirrorConfiguration(mirror ports.MirrorConfiguration) Results {
+	var results []Result
 
 	// Validate mirror name
 	if strings.TrimSpace(mirror.Name) == "" {
-		results = append(results, ValidationResult{
+		results = append(results, Result{
 			Valid:   false,
 			Field:   "name",
 			Code:    "EMPTY_MIRROR_NAME",
@@ -220,7 +222,7 @@ func ValidateMirrorConfiguration(mirror ports.MirrorConfiguration) ValidationRes
 
 	// Validate provider type
 	if !isValidProviderType(mirror.ProviderType) {
-		results = append(results, ValidationResult{
+		results = append(results, Result{
 			Valid:      false,
 			Field:      "provider_type",
 			Code:       "INVALID_PROVIDER_TYPE",
@@ -232,7 +234,7 @@ func ValidateMirrorConfiguration(mirror ports.MirrorConfiguration) ValidationRes
 
 	// Validate domain for remote providers
 	if isRemoteProvider(mirror.ProviderType) && mirror.Domain != "" && !isValidDomain(mirror.Domain) {
-		results = append(results, ValidationResult{
+		results = append(results, Result{
 			Valid:   false,
 			Field:   "domain",
 			Code:    "INVALID_DOMAIN",
@@ -243,7 +245,7 @@ func ValidateMirrorConfiguration(mirror ports.MirrorConfiguration) ValidationRes
 
 	// Validate owner for remote providers
 	if isRemoteProvider(mirror.ProviderType) && !isValidOwner(mirror.Owner) {
-		results = append(results, ValidationResult{
+		results = append(results, Result{
 			Valid:   false,
 			Field:   "owner",
 			Code:    "INVALID_OWNER",
@@ -254,7 +256,7 @@ func ValidateMirrorConfiguration(mirror ports.MirrorConfiguration) ValidationRes
 
 	// Validate path for local providers
 	if isLocalProvider(mirror.ProviderType) && strings.TrimSpace(mirror.Path) == "" {
-		results = append(results, ValidationResult{
+		results = append(results, Result{
 			Valid:   false,
 			Field:   "path",
 			Code:    "EMPTY_PATH",
@@ -271,19 +273,19 @@ func ValidateMirrorConfiguration(mirror ports.MirrorConfiguration) ValidationRes
 		}
 	}
 
-	return ValidationResults{
+	return Results{
 		Valid:   len(results) == 0,
 		Results: results,
 	}
 }
 
 // ValidateAuthentication validates authentication configuration.
-func ValidateAuthentication(auth ports.AuthenticationConfiguration) ValidationResults {
-	var results []ValidationResult
+func ValidateAuthentication(auth ports.AuthenticationConfiguration) Results {
+	var results []Result
 
 	// Validate auth type
 	if !isValidAuthType(string(auth.Type)) {
-		results = append(results, ValidationResult{
+		results = append(results, Result{
 			Valid:      false,
 			Field:      "type",
 			Code:       "INVALID_AUTH_TYPE",
@@ -295,7 +297,7 @@ func ValidateAuthentication(auth ports.AuthenticationConfiguration) ValidationRe
 
 	// Validate token auth
 	if auth.Type == ports.AuthenticationTypeToken && strings.TrimSpace(auth.Token) == "" {
-		results = append(results, ValidationResult{
+		results = append(results, Result{
 			Valid:   false,
 			Field:   "token",
 			Code:    "EMPTY_TOKEN",
@@ -306,7 +308,7 @@ func ValidateAuthentication(auth ports.AuthenticationConfiguration) ValidationRe
 	// Validate basic auth
 	if auth.Type == ports.AuthenticationTypeBasic {
 		if strings.TrimSpace(auth.Username) == "" {
-			results = append(results, ValidationResult{
+			results = append(results, Result{
 				Valid:   false,
 				Field:   "username",
 				Code:    "EMPTY_USERNAME",
@@ -315,7 +317,7 @@ func ValidateAuthentication(auth ports.AuthenticationConfiguration) ValidationRe
 		}
 
 		if strings.TrimSpace(auth.Password) == "" {
-			results = append(results, ValidationResult{
+			results = append(results, Result{
 				Valid:   false,
 				Field:   "password",
 				Code:    "EMPTY_PASSWORD",
@@ -327,7 +329,7 @@ func ValidateAuthentication(auth ports.AuthenticationConfiguration) ValidationRe
 	// Validate SSH auth
 	if auth.Type == ports.AuthenticationTypeSSH {
 		if strings.TrimSpace(auth.SSHKeyPath) == "" && strings.TrimSpace(auth.SSHKey) == "" {
-			results = append(results, ValidationResult{
+			results = append(results, Result{
 				Valid:   false,
 				Field:   "ssh_key",
 				Code:    "MISSING_SSH_KEY",
@@ -336,19 +338,19 @@ func ValidateAuthentication(auth ports.AuthenticationConfiguration) ValidationRe
 		}
 	}
 
-	return ValidationResults{
+	return Results{
 		Valid:   len(results) == 0,
 		Results: results,
 	}
 }
 
 // ValidateEnvironmentOptions validates environment options.
-func ValidateEnvironmentOptions(options ports.EnvironmentOptions) ValidationResults {
-	var results []ValidationResult
+func ValidateEnvironmentOptions(options ports.EnvironmentOptions) Results {
+	var results []Result
 
 	// Validate max concurrency (0 is treated as unset/default, which is acceptable)
 	if options.MaxConcurrency < 0 {
-		results = append(results, ValidationResult{
+		results = append(results, Result{
 			Valid:      false,
 			Field:      "max_concurrency",
 			Code:       "INVALID_CONCURRENCY",
@@ -360,7 +362,7 @@ func ValidateEnvironmentOptions(options ports.EnvironmentOptions) ValidationResu
 
 	// Validate timeout
 	if options.Timeout < 0 {
-		results = append(results, ValidationResult{
+		results = append(results, Result{
 			Valid:   false,
 			Field:   "timeout",
 			Code:    "NEGATIVE_TIMEOUT",
@@ -371,7 +373,7 @@ func ValidateEnvironmentOptions(options ports.EnvironmentOptions) ValidationResu
 
 	// Validate retry attempts
 	if options.RetryAttempts < 0 {
-		results = append(results, ValidationResult{
+		results = append(results, Result{
 			Valid:   false,
 			Field:   "retry_attempts",
 			Code:    "NEGATIVE_RETRY_ATTEMPTS",
@@ -382,7 +384,7 @@ func ValidateEnvironmentOptions(options ports.EnvironmentOptions) ValidationResu
 
 	// Validate retry delay
 	if options.RetryDelay < 0 {
-		results = append(results, ValidationResult{
+		results = append(results, Result{
 			Valid:   false,
 			Field:   "retry_delay",
 			Code:    "NEGATIVE_RETRY_DELAY",
@@ -391,7 +393,7 @@ func ValidateEnvironmentOptions(options ports.EnvironmentOptions) ValidationResu
 		})
 	}
 
-	return ValidationResults{
+	return Results{
 		Valid:   len(results) == 0,
 		Results: results,
 	}
@@ -400,11 +402,11 @@ func ValidateEnvironmentOptions(options ports.EnvironmentOptions) ValidationResu
 // Repository Validation (Pure Functions)
 
 // ValidateRepositoryName validates repository name for all providers.
-func ValidateRepositoryName(name, providerType string) ValidationResult {
+func ValidateRepositoryName(name, providerType string) Result {
 	name = strings.TrimSpace(name)
 
 	if name == "" {
-		return ValidationResult{
+		return Result{
 			Valid:   false,
 			Code:    "EMPTY_NAME",
 			Message: "Repository name cannot be empty",
@@ -426,9 +428,9 @@ func ValidateRepositoryName(name, providerType string) ValidationResult {
 // URL Validation (Pure Functions)
 
 // ValidateURL validates a URL format.
-func ValidateURL(rawURL string) ValidationResult {
+func ValidateURL(rawURL string) Result {
 	if strings.TrimSpace(rawURL) == "" {
-		return ValidationResult{
+		return Result{
 			Valid:   false,
 			Code:    "EMPTY_URL",
 			Message: "URL cannot be empty",
@@ -437,7 +439,7 @@ func ValidateURL(rawURL string) ValidationResult {
 
 	parsedURL, err := url.Parse(rawURL)
 	if err != nil {
-		return ValidationResult{
+		return Result{
 			Valid:   false,
 			Code:    "INVALID_URL_FORMAT",
 			Message: "Invalid URL format: " + err.Error(),
@@ -446,7 +448,7 @@ func ValidateURL(rawURL string) ValidationResult {
 	}
 
 	if parsedURL.Scheme == "" {
-		return ValidationResult{
+		return Result{
 			Valid:      false,
 			Code:       "MISSING_SCHEME",
 			Message:    "URL must include a scheme (http/https/git)",
@@ -456,7 +458,7 @@ func ValidateURL(rawURL string) ValidationResult {
 	}
 
 	if parsedURL.Host == "" {
-		return ValidationResult{
+		return Result{
 			Valid:   false,
 			Code:    "MISSING_HOST",
 			Message: "URL must include a host",
@@ -464,53 +466,43 @@ func ValidateURL(rawURL string) ValidationResult {
 		}
 	}
 
-	return ValidationResult{Valid: true}
+	return Result{Valid: true}
 }
 
 // Pure validation helper functions
 
-func isValidLogLevel(level string) bool {
-	validLevels := []string{"trace", "debug", "info", "warn", "error", "fatal"}
-	for _, valid := range validLevels {
-		if level == valid {
-			return true
-		}
+var (
+	validLogLevels = map[string]bool{ //nolint:gochecknoglobals // O(1) validation lookup table
+		"trace": true, "debug": true, "info": true,
+		"warn": true, "error": true, "fatal": true,
 	}
+	validLogFormats = map[string]bool{ //nolint:gochecknoglobals // O(1) validation lookup table
+		"json": true, "text": true, "console": true,
+	}
+	validProviderTypes = map[string]bool{ //nolint:gochecknoglobals // O(1) validation lookup table
+		"github": true, "gitlab": true, "gitea": true,
+		"directory": true, "archive": true,
+	}
+	validAuthTypes = map[string]bool{ //nolint:gochecknoglobals // O(1) validation lookup table
+		"none": true, "token": true, "basic": true,
+		"ssh": true, "oauth": true,
+	}
+)
 
-	return false
+func isValidLogLevel(level string) bool {
+	return validLogLevels[level]
 }
 
 func isValidLogFormat(format string) bool {
-	validFormats := []string{"json", "text", "console"}
-	for _, valid := range validFormats {
-		if format == valid {
-			return true
-		}
-	}
-
-	return false
+	return validLogFormats[format]
 }
 
 func isValidProviderType(providerType string) bool {
-	validTypes := []string{"github", "gitlab", "gitea", "directory", "archive"}
-	for _, valid := range validTypes {
-		if providerType == valid {
-			return true
-		}
-	}
-
-	return false
+	return validProviderTypes[providerType]
 }
 
 func isValidAuthType(authType string) bool {
-	validTypes := []string{"none", "token", "basic", "ssh", "oauth"}
-	for _, valid := range validTypes {
-		if authType == valid {
-			return true
-		}
-	}
-
-	return false
+	return validAuthTypes[authType]
 }
 
 func isValidDomain(domain string) bool {
@@ -560,9 +552,9 @@ func isLocalProvider(providerType string) bool {
 
 // Provider-specific repository name validation
 
-func validateGitHubRepositoryName(name string) ValidationResult {
+func validateGitHubRepositoryName(name string) Result {
 	if len(name) > 100 {
-		return ValidationResult{
+		return Result{
 			Valid:   false,
 			Code:    "NAME_TOO_LONG",
 			Message: "GitHub repository name cannot exceed 100 characters",
@@ -573,7 +565,7 @@ func validateGitHubRepositoryName(name string) ValidationResult {
 	// GitHub allows alphanumeric, hyphens, underscores, and dots
 	githubRegex := regexp.MustCompile(`^[a-zA-Z0-9._-]+$`)
 	if !githubRegex.MatchString(name) {
-		return ValidationResult{
+		return Result{
 			Valid:      false,
 			Code:       "INVALID_CHARACTERS",
 			Message:    "GitHub repository name contains invalid characters",
@@ -585,7 +577,7 @@ func validateGitHubRepositoryName(name string) ValidationResult {
 	// Cannot start or end with special characters
 	if strings.HasPrefix(name, ".") || strings.HasSuffix(name, ".") ||
 		strings.HasPrefix(name, "-") || strings.HasSuffix(name, "-") {
-		return ValidationResult{
+		return Result{
 			Valid:   false,
 			Code:    "INVALID_START_END",
 			Message: "GitHub repository name cannot start or end with dots or hyphens",
@@ -593,12 +585,12 @@ func validateGitHubRepositoryName(name string) ValidationResult {
 		}
 	}
 
-	return ValidationResult{Valid: true}
+	return Result{Valid: true}
 }
 
-func validateGitLabRepositoryName(name string) ValidationResult {
+func validateGitLabRepositoryName(name string) Result {
 	if len(name) > 100 {
-		return ValidationResult{
+		return Result{
 			Valid:   false,
 			Code:    "NAME_TOO_LONG",
 			Message: "GitLab repository name cannot exceed 100 characters",
@@ -609,7 +601,7 @@ func validateGitLabRepositoryName(name string) ValidationResult {
 	// GitLab has stricter rules
 	gitlabRegex := regexp.MustCompile(`^[a-zA-Z0-9_.-]+$`)
 	if !gitlabRegex.MatchString(name) {
-		return ValidationResult{
+		return Result{
 			Valid:      false,
 			Code:       "INVALID_CHARACTERS",
 			Message:    "GitLab repository name contains invalid characters",
@@ -618,12 +610,12 @@ func validateGitLabRepositoryName(name string) ValidationResult {
 		}
 	}
 
-	return ValidationResult{Valid: true}
+	return Result{Valid: true}
 }
 
-func validateGiteaRepositoryName(name string) ValidationResult {
+func validateGiteaRepositoryName(name string) Result {
 	if len(name) > 100 {
-		return ValidationResult{
+		return Result{
 			Valid:   false,
 			Code:    "NAME_TOO_LONG",
 			Message: "Gitea repository name cannot exceed 100 characters",
@@ -634,7 +626,7 @@ func validateGiteaRepositoryName(name string) ValidationResult {
 	// Gitea similar to GitHub
 	giteaRegex := regexp.MustCompile(`^[a-zA-Z0-9._-]+$`)
 	if !giteaRegex.MatchString(name) {
-		return ValidationResult{
+		return Result{
 			Valid:      false,
 			Code:       "INVALID_CHARACTERS",
 			Message:    "Gitea repository name contains invalid characters",
@@ -643,12 +635,12 @@ func validateGiteaRepositoryName(name string) ValidationResult {
 		}
 	}
 
-	return ValidationResult{Valid: true}
+	return Result{Valid: true}
 }
 
-func validateGenericRepositoryName(name string) ValidationResult {
+func validateGenericRepositoryName(name string) Result {
 	if len(name) > 100 {
-		return ValidationResult{
+		return Result{
 			Valid:   false,
 			Code:    "NAME_TOO_LONG",
 			Message: "Repository name cannot exceed 100 characters",
@@ -659,7 +651,7 @@ func validateGenericRepositoryName(name string) ValidationResult {
 	// Generic validation - alphanumeric and basic special characters
 	genericRegex := regexp.MustCompile(`^[a-zA-Z0-9._-]+$`)
 	if !genericRegex.MatchString(name) {
-		return ValidationResult{
+		return Result{
 			Valid:      false,
 			Code:       "INVALID_CHARACTERS",
 			Message:    "Repository name contains invalid characters",
@@ -668,5 +660,5 @@ func validateGenericRepositoryName(name string) ValidationResult {
 		}
 	}
 
-	return ValidationResult{Valid: true}
+	return Result{Valid: true}
 }

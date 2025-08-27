@@ -1,0 +1,21 @@
+# SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
+#
+# SPDX-License-Identifier: CC0-1.0
+
+[global]
+# Exclude generated manpage markdown files and changelog
+exclude = [
+    "docs/*.1.md",
+    "CHANGELOG.md",
+    "TESTING_IMPROVEMENTS_FINAL.md"
+]
+
+# Disable MD041 (First line in file should be a top level header)
+disable = ["MD041","MD030"]
+
+# Rule-specific configurations
+[MD013]
+line_length = 280
+code_blocks = false
+tables = false
+headings = false

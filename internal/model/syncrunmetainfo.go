@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
@@ -38,6 +38,21 @@ type SyncRunMetainfo struct {
 	Fail *map[string][]string
 }
 
+// NewSyncRunMetainfo creates a new SyncRunMetainfo instance.
+// It initializes a SyncRunMetainfo struct with the provided values
+// and an empty Fail map.
+func NewSyncRunMetainfo(ctxID int, source, target string, total int) *SyncRunMetainfo {
+	failMap := make(map[string][]string, 200)
+
+	return &SyncRunMetainfo{
+		CtxID:  ctxID,
+		Source: source,
+		Target: target,
+		Total:  total,
+		Fail:   &failMap,
+	}
+}
+
 // String provides a string representation of SyncRunMetainfo.
 // It formats all the fields of SyncRunMetainfo into a human-readable string,
 // including a detailed representation of any failures.
@@ -59,23 +74,7 @@ func (s SyncRunMetainfo) String() string {
 		s.CtxID, s.Source, s.Target, s.Total, failInfo)
 }
 
-// NewSyncRunMetainfo creates a new SyncRunMetainfo instance.
-// It initializes a SyncRunMetainfo struct with the provided values
-// and an empty Fail map.
-func NewSyncRunMetainfo(ctxID int, source, target string, total int) *SyncRunMetainfo {
-	failMap := make(map[string][]string, 200)
-
-	return &SyncRunMetainfo{
-		CtxID:  ctxID,
-		Source: source,
-		Target: target,
-		Total:  total,
-		Fail:   &failMap,
-	}
-}
-
 // AddFailure adds a failure entry to the SyncRunMetainfo.
-// This method is used to record any failures that occur during the synchronization process.
 func (s *SyncRunMetainfo) AddFailure(key, value string) {
 	if s.Fail == nil {
 		s.Fail = &map[string][]string{}

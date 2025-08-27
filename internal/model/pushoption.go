@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
@@ -26,38 +26,10 @@ type PushOption struct {
 	Target   string   // The URL of the target repository
 }
 
-func (po PushOption) String() string {
-	return fmt.Sprintf("PushOption{Target: %s, RefSpecs: %v, Prune: %t, Force: %t, AuthCfg: %s}",
-		po.Target,
-		po.RefSpecs,
-		po.Prune,
-		po.Force,
-		po.AuthCfg.String(),
-	)
-}
-
-func (po PushOption) DebugLog(ctx context.Context, logger *zerolog.Logger) *zerolog.Event {
-	return logger.Debug(). //nolint:zerologlint
-				Str("target", shared.RemoveBasicAuthFromURL(ctx, po.Target, true)).
-				Strs("refspecs", po.RefSpecs).
-				Bool("prune", po.Prune).
-				Bool("force", po.Force).
-				Str("auth_confg", po.AuthCfg.String())
-}
-
 // NewPushOption creates a new PushOption with appropriate RefSpecs.
-// It automatically sets up the correct reference specifications based on
-// whether a force push is requested.
-//
-// Parameters:
-//   - target: The URL of the target repository.
-//   - prune: Whether to prune remote branches.
-//   - force: Whether to force push.
-//
-// Returns:
-//   - A new PushOption struct configured with the provided options.
+// Automatically sets up correct reference specifications based on force push setting.
 func NewPushOption(target string, prune, force bool, authCfg model.AuthConfig) PushOption {
-	refSpecs := []string{"refs/heads/*:refs/heads/*", "refs/tags/*:refs/tags/*"} //TODO: add bug report
+	refSpecs := []string{"refs/heads/*:refs/heads/*", "refs/tags/*:refs/tags/*"} // Standard refspecs for push
 	if force {
 		for i, spec := range refSpecs {
 			if !strings.HasPrefix(spec, "^") {
@@ -73,4 +45,24 @@ func NewPushOption(target string, prune, force bool, authCfg model.AuthConfig) P
 		RefSpecs: refSpecs,
 		Target:   target,
 	}
+}
+
+func (po PushOption) String() string {
+	return fmt.Sprintf("PushOption{Target: %s, RefSpecs: %v, Prune: %t, Force: %t, AuthCfg: %s}",
+		po.Target,
+		po.RefSpecs,
+		po.Prune,
+		po.Force,
+		po.AuthCfg.String(),
+	)
+}
+
+// DebugLog logs the push option details for debugging purposes.
+func (po PushOption) DebugLog(_ context.Context, logger *zerolog.Logger) *zerolog.Event {
+	return logger.Debug(). //nolint:zerologlint
+				Str("target", shared.RemoveBasicAuthFromURL(po.Target, true)).
+				Strs("refspecs", po.RefSpecs).
+				Bool("prune", po.Prune).
+				Bool("force", po.Force).
+				Str("auth_confg", po.AuthCfg.String())
 }

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
@@ -13,8 +13,13 @@ import (
 	"itiquette/git-provider-sync/internal/domain/ports"
 )
 
+const (
+	visibilityPrivate = "private"
+)
+
 // ProjectOptionsBuilder provides sophisticated Gitea repository creation options.
-// This restores the advanced options builder functionality from main branch.
+//
+//	advanced options builder functionality .
 type ProjectOptionsBuilder struct {
 	opts   *gitea.CreateRepoOption
 	client *gitea.Client
@@ -35,12 +40,12 @@ func (b *ProjectOptionsBuilder) BasicOpts(visibility, name, description, default
 	b.opts.Name = name
 	b.opts.Description = description
 	b.opts.DefaultBranch = defaultBranch
-	b.opts.Private = visibility == "private"
+	b.opts.Private = visibility == visibilityPrivate
 }
 
 // WithVisibility sets the repository visibility.
 func (b *ProjectOptionsBuilder) WithVisibility(visibility string) {
-	b.opts.Private = visibility == "private"
+	b.opts.Private = visibility == visibilityPrivate
 }
 
 // WithInitialization configures repository initialization options.
@@ -100,7 +105,8 @@ func (b *ProjectOptionsBuilder) Reset() {
 }
 
 // ApplyDisabledSettings applies comprehensive feature disabling after repository creation.
-// This restores the sophisticated disable settings functionality from main branch.
+//
+//	sophisticated disable settings functionality .
 func (b *ProjectOptionsBuilder) ApplyDisabledSettings(ctx context.Context, owner, projectName string) error {
 	b.logger.Debug(ctx, "Applying disabled settings to Gitea repository", map[string]interface{}{
 		"owner": owner,
@@ -166,7 +172,7 @@ func (b *ProjectOptionsBuilder) ApplyEnabledSettings(ctx context.Context, owner,
 }
 
 // ConfigureCollaborationFeatures configures collaboration-related features.
-func (b *ProjectOptionsBuilder) ConfigureCollaborationFeatures(ctx context.Context, owner, projectName string, config CollaborationConfig) error {
+func (b *ProjectOptionsBuilder) ConfigureCollaborationFeatures(_ context.Context, owner, projectName string, config CollaborationConfig) error {
 	editOpts := gitea.EditRepoOption{
 		HasIssues:       gitea.OptionalBool(config.EnableIssues),
 		HasPullRequests: gitea.OptionalBool(config.EnablePullRequests),
@@ -187,7 +193,7 @@ func (b *ProjectOptionsBuilder) ConfigureCollaborationFeatures(ctx context.Conte
 }
 
 // ConfigureCIFeatures configures CI/CD-related features.
-func (b *ProjectOptionsBuilder) ConfigureCIFeatures(ctx context.Context, owner, projectName string, config CIConfig) error {
+func (b *ProjectOptionsBuilder) ConfigureCIFeatures(_ context.Context, owner, projectName string, config CIConfig) error {
 	editOpts := gitea.EditRepoOption{
 		HasActions:  gitea.OptionalBool(config.EnableActions),
 		HasReleases: gitea.OptionalBool(config.EnableReleases),
@@ -202,7 +208,7 @@ func (b *ProjectOptionsBuilder) ConfigureCIFeatures(ctx context.Context, owner, 
 }
 
 // ConfigureRepositorySettings configures general repository settings.
-func (b *ProjectOptionsBuilder) ConfigureRepositorySettings(ctx context.Context, owner, projectName string, config RepositoryConfig) error {
+func (b *ProjectOptionsBuilder) ConfigureRepositorySettings(_ context.Context, owner, projectName string, config RepositoryConfig) error {
 	editOpts := gitea.EditRepoOption{}
 
 	if config.Description != "" {

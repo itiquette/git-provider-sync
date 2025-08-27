@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
@@ -6,9 +6,10 @@ package ports
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
+
+	"itiquette/git-provider-sync/internal/domain"
 )
 
 // Configuration defines the interface for configuration management (secondary port).
@@ -22,10 +23,6 @@ type Configuration interface {
 	// Configuration validation
 	Validate(config AppConfiguration) ([]ConfigurationError, error)
 	ValidateEnvironment(env EnvironmentConfiguration) error
-
-	// Configuration watching
-	Watch(ctx context.Context, callback ConfigurationChangeCallback) error
-	StopWatching() error
 
 	// Configuration metadata
 	GetSources() []ConfigurationSource
@@ -170,10 +167,15 @@ type ConfigurationMetadata struct {
 type AuthenticationType string
 
 const (
-	AuthenticationTypeNone  AuthenticationType = "none"
+	// AuthenticationTypeNone represents no authentication.
+	AuthenticationTypeNone AuthenticationType = "none"
+	// AuthenticationTypeToken represents token-based authentication.
 	AuthenticationTypeToken AuthenticationType = "token"
+	// AuthenticationTypeBasic represents basic authentication.
 	AuthenticationTypeBasic AuthenticationType = "basic"
-	AuthenticationTypeSSH   AuthenticationType = "ssh"
+	// AuthenticationTypeSSH represents SSH key authentication.
+	AuthenticationTypeSSH AuthenticationType = "ssh"
+	// AuthenticationTypeOAuth represents OAuth authentication.
 	AuthenticationTypeOAuth AuthenticationType = "oauth"
 )
 
@@ -181,20 +183,29 @@ const (
 type BackoffStrategy string
 
 const (
-	BackoffStrategyLinear      BackoffStrategy = "linear"
+	// BackoffStrategyLinear represents linear backoff strategy.
+	BackoffStrategyLinear BackoffStrategy = "linear"
+	// BackoffStrategyExponential represents exponential backoff strategy.
 	BackoffStrategyExponential BackoffStrategy = "exponential"
-	BackoffStrategyFixed       BackoffStrategy = "fixed"
+	// BackoffStrategyFixed represents fixed backoff strategy.
+	BackoffStrategyFixed BackoffStrategy = "fixed"
 )
 
 // LogLevel represents logging levels.
 type LogLevel string
 
 const (
+	// LogLevelTrace represents trace log level.
 	LogLevelTrace LogLevel = "trace"
+	// LogLevelDebug represents debug log level.
 	LogLevelDebug LogLevel = "debug"
-	LogLevelInfo  LogLevel = "info"
-	LogLevelWarn  LogLevel = "warn"
+	// LogLevelInfo represents info log level.
+	LogLevelInfo LogLevel = "info"
+	// LogLevelWarn represents warn log level.
+	LogLevelWarn LogLevel = "warn"
+	// LogLevelError represents error log level.
 	LogLevelError LogLevel = "error"
+	// LogLevelFatal represents fatal log level.
 	LogLevelFatal LogLevel = "fatal"
 )
 
@@ -202,8 +213,11 @@ const (
 type LogFormat string
 
 const (
-	LogFormatJSON    LogFormat = "json"
-	LogFormatText    LogFormat = "text"
+	// LogFormatJSON represents JSON log format.
+	LogFormatJSON LogFormat = "json"
+	// LogFormatText represents text log format.
+	LogFormatText LogFormat = "text"
+	// LogFormatConsole represents console log format.
 	LogFormatConsole LogFormat = "console"
 )
 
@@ -220,24 +234,36 @@ type ConfigurationSource struct {
 type SourceType string
 
 const (
-	SourceTypeFile        SourceType = "file"
+	// SourceTypeFile represents file-based configuration source.
+	SourceTypeFile SourceType = "file"
+	// SourceTypeEnvironment represents environment variable configuration source.
 	SourceTypeEnvironment SourceType = "environment"
-	SourceTypeEtcd        SourceType = "etcd"
-	SourceTypeConsul      SourceType = "consul"
-	SourceTypeVault       SourceType = "vault"
-	SourceTypeHTTP        SourceType = "http"
-	SourceTypeDefaults    SourceType = "defaults"
+	// SourceTypeEtcd represents etcd configuration source.
+	SourceTypeEtcd SourceType = "etcd"
+	// SourceTypeConsul represents consul configuration source.
+	SourceTypeConsul SourceType = "consul"
+	// SourceTypeVault represents vault configuration source.
+	SourceTypeVault SourceType = "vault"
+	// SourceTypeHTTP represents HTTP configuration source.
+	SourceTypeHTTP SourceType = "http"
+	// SourceTypeDefaults represents default configuration source.
+	SourceTypeDefaults SourceType = "defaults"
 )
 
 // ConfigurationFormat represents the format of configuration data.
 type ConfigurationFormat string
 
 const (
+	// ConfigurationFormatYAML represents YAML configuration format.
 	ConfigurationFormatYAML ConfigurationFormat = "yaml"
+	// ConfigurationFormatJSON represents JSON configuration format.
 	ConfigurationFormatJSON ConfigurationFormat = "json"
+	// ConfigurationFormatTOML represents TOML configuration format.
 	ConfigurationFormatTOML ConfigurationFormat = "toml"
-	ConfigurationFormatINI  ConfigurationFormat = "ini"
-	ConfigurationFormatENV  ConfigurationFormat = "env"
+	// ConfigurationFormatINI represents INI configuration format.
+	ConfigurationFormatINI ConfigurationFormat = "ini"
+	// ConfigurationFormatENV represents environment variable configuration format.
+	ConfigurationFormatENV ConfigurationFormat = "env"
 )
 
 // Supporting types
@@ -255,13 +281,13 @@ type ConfigurationError struct {
 type ErrorSeverity string
 
 const (
-	ErrorSeverityError   ErrorSeverity = "error"
+	// ErrorSeverityError represents error severity level.
+	ErrorSeverityError ErrorSeverity = "error"
+	// ErrorSeverityWarning represents warning severity level.
 	ErrorSeverityWarning ErrorSeverity = "warning"
-	ErrorSeverityInfo    ErrorSeverity = "info"
+	// ErrorSeverityInfo represents info severity level.
+	ErrorSeverityInfo ErrorSeverity = "info"
 )
-
-// ConfigurationChangeCallback is called when configuration changes.
-type ConfigurationChangeCallback func(oldConfig, newConfig AppConfiguration)
 
 // ConfigurationValidator validates configuration values.
 type ConfigurationValidator interface {
@@ -360,10 +386,14 @@ type ConfigurationDrift struct {
 type DriftSeverity string
 
 const (
+	// DriftSeverityCritical represents critical drift severity.
 	DriftSeverityCritical DriftSeverity = "critical"
-	DriftSeverityMajor    DriftSeverity = "major"
-	DriftSeverityMinor    DriftSeverity = "minor"
-	DriftSeverityInfo     DriftSeverity = "info"
+	// DriftSeverityMajor represents major drift severity.
+	DriftSeverityMajor DriftSeverity = "major"
+	// DriftSeverityMinor represents minor drift severity.
+	DriftSeverityMinor DriftSeverity = "minor"
+	// DriftSeverityInfo represents info drift severity.
+	DriftSeverityInfo DriftSeverity = "info"
 )
 
 // Helper functions
@@ -403,7 +433,7 @@ func ValidateRequired(value interface{}, fieldName string) error {
 	if value == nil || value == "" {
 		return &ConfigurationError{
 			Field:    fieldName,
-			Err:      errors.New("field is required"),
+			Err:      domain.ErrFieldRequired,
 			Severity: ErrorSeverityError,
 		}
 	}
@@ -422,7 +452,7 @@ func ValidateEnum(value string, allowed []string, fieldName string) error {
 	return &ConfigurationError{
 		Field:    fieldName,
 		Value:    value,
-		Err:      fmt.Errorf("value not in allowed list: %v", allowed),
+		Err:      fmt.Errorf("%w: %v", domain.ErrValueNotInAllowedList, allowed),
 		Severity: ErrorSeverityError,
 	}
 }

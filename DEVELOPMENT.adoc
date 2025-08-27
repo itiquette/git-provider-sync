@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: CC0-1.0
 
@@ -31,60 +31,54 @@ This guide covers everything from prerequisites to development workflows and qua
 [cols="1,1", options="header"]
 |===
 |Dependency |Minimum Version
-|Go |1.24+
+|Go |1.25+
 |Podman |4.9.3+
 |Git |2.43+
-|Make (GNU) |4.3+
+|Just |1.36+
 |Ubuntu |24.04
 |===
 
-=== Additional Tools
+=== Development Tools
 
-[cols="1,2,1", options="header"]
-|===
-|Tool |Description |Installation
-|https://github.com/golangci/golangci-lint[golangci-lint] |Umbrella project for various Go linters |`go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest`
-|https://github.com/vektra/mockery[mockery] |Mock code generator for Go |`go install github.com/vektra/mockery/v2@latest`
-|https://goreleaser.com/[GoReleaser] |Build and release artifacts for Go |`go install github.com/goreleaser/goreleaser@latest`
-|https://github.com/anchore/syft[syft] |CLI tool for generating SBOM |`curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh \| sh -s -- -b /usr/local/bin`
-|https://github.com/bombsimon/wsl[wsl] |Formatter tool |`go install github.com/bombsimon/wsl/v3/cmd/wsl@master`
-|https://github.com/sigstore/cosign[cosign] |Signing artifacts and images |`go install github.com/sigstore/cosign/cmd/cosign@latest`
-|https://honnef.co/go/tools/cmd/staticcheck[staticcheck] |Static linting tool |`go install honnef.co/go/tools/cmd/staticcheck@latest`
-|https://golang.org/x/vuln/cmd/govulncheck[govulncheck] |Vulnerability tool |`go install golang.org/x/vuln/cmd/govulncheck@latest`
-|https://scorecard.dev/[OpenSSF Scorecard] |Security health for open-source projects |`go install github.com/ossf/scorecard/v4/cmd/scorecard@latest`
-|===
+Go development tools are managed via Go's toolchain. External binary tools (goreleaser, trivy, etc.) need to be installed separately via your package manager.
+
+Key tools include:
+- https://github.com/golangci/golangci-lint[golangci-lint] - Go linter aggregator
+- https://github.com/vektra/mockery[mockery] - Mock code generator for Go
+- https://goreleaser.com/[GoReleaser] - Build and release automation
+- https://github.com/anchore/syft[syft] - SBOM generation
+- https://github.com/gitleaks/gitleaks[gitleaks] - Secret scanner
+- Shell, YAML, and container linters
 
 === Installing Developer Tools
 
-You have two options for installing the additional developer tools:
+Install all development tools with a single command:
 
-.Option 1: Run the helper install script
 [source,console]
 ----
-./scripts/installdevprereq.sh
+just install
 ----
 
-.Option 2: Use the Make target
-[source,console]
-----
-make install/prereq
-----
+This will:
+1. Install Go-specific tools via `go install`
+2. Check for recommended external tools (which need to be installed separately)
 
 == Development Workflow
 
-=== Make Targets
+=== Just Recipes
 
-We use Make to automate various development tasks. To see all available targets:
+We use https://github.com/casey/just[Just] to automate various development tasks. To see all available recipes:
 
 [source,console]
 ----
-make help
+just --list
 ----
 
 [NOTE]
 ====
-* Make targets are hierarchical. For example, `make quality` runs all quality checks, while `make quality/license` only runs the license check.
-* For detailed information on each target, refer to the link:Makefile[Makefile].
+* Just recipes are organized by workflow type (linting, building, testing, security)
+* For detailed information on each recipe, refer to the link:justfile[justfile]
+* Use `just <recipe-name>` to run individual workflows
 ====
 
 === Running Tests
@@ -94,13 +88,13 @@ Our tests are written in Go's idiomatic table-driven style.
 .Run all tests
 [source,console]
 ----
-make test
+just test
 ----
 
 .Run tests with coverage
 [source,console]
 ----
-make test/cover
+just coverage
 ----
 
 == Code Quality Assurance
@@ -111,18 +105,24 @@ Before submitting a Pull Request, it's crucial to run the quality checks locally
 
 [source,console]
 ----
-make quality
+just default
 ----
 
-TIP: If a check fails, you can run individual checks (e.g., `make quality/lint`) to pinpoint and address specific issues.
+The default workflow runs: clean → tidy → lint → test
+
+TIP: If a check fails, you can run individual checks (e.g., `just lint-go`, `just lint-shell`) to pinpoint and address specific issues.
 
 === Quality Check Tools
 
 ==== Linting
-* https://github.com/oxsecurity/megalinter[MegaLinter]: A comprehensive suite of linting tools
-** Covers BASH, Markdown, YAML, GitHub Actions, and security scans
+Individual linters provide targeted, fast feedback:
 * https://github.com/golangci/golangci-lint[golangci-lint]: Go-specific linters
 ** Configuration: link:.golangci.yml[.golangci.yml]
+* https://github.com/koalaman/shellcheck[shellcheck]: Shell script linter
+* https://github.com/google/yamlfmt[yamlfmt]: YAML formatter and linter
+* https://github.com/rhysd/actionlint[actionlint]: GitHub Actions workflow linter
+* https://github.com/hadolint/hadolint[hadolint]: Dockerfile linter
+* https://github.com/gitleaks/gitleaks[gitleaks]: Secret detection
 
 ==== License Compliance
 * https://github.com/fsfe/reuse-tool[REUSE]: Ensures proper licensing and copyright notices
@@ -138,8 +138,21 @@ TIP: If a check fails, you can run individual checks (e.g., `make quality/lint`)
 
 If any checks fail, follow these steps:
 
-1. Run individual checks to isolate the issue (e.g., `make quality/lint`)
-2. Carefully review the error messages in your terminal output
-3. Consult the documentation for the specific tool that reported the error
-4. Address the issues and re-run the checks
-5. For CI pipeline failures, reproduce the issue locally, fix it, and update your Pull Request
+1. Run individual checks to isolate the issue (e.g., `just lint-go`, `just lint-shell`)
+2. Use auto-fix where available: `just lint-fix`
+3. Carefully review the error messages in your terminal output
+4. Consult the documentation for the specific tool that reported the error
+5. Address the issues and re-run the checks
+6. For CI pipeline failures, reproduce the issue locally, fix it, and update your Pull Request
+
+== Next Steps
+
+Once your development environment is set up:
+
+1. **Explore the codebase**: Start with link:docs/architecture.adoc[Software Architecture Documentation] to understand the project
+2. **Run tests**: Execute `just test` to ensure everything works
+3. **Make changes**: Follow our hexagonal architecture patterns
+4. **Test thoroughly**: Use `just verify` before submitting contributions
+5. **Submit contributions**: See link:CONTRIBUTING.md[Contributing Guidelines] for pull request process
+
+For questions or support, check existing link:https://github.com/itiquette/git-provider-sync/issues[GitHub Issues] or create a new one.

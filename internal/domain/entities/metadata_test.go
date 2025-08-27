@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
@@ -15,6 +15,8 @@ import (
 )
 
 func TestNewSyncRunMetadata(t *testing.T) {
+	t.Parallel()
+
 	metadata := entities.NewSyncRunMetadata("github", "gitlab", "prod-config", "production")
 
 	require.NotNil(t, metadata)
@@ -31,6 +33,8 @@ func TestNewSyncRunMetadata(t *testing.T) {
 }
 
 func TestSyncRunMetadata_AddSuccess(t *testing.T) {
+	t.Parallel()
+
 	metadata := entities.NewSyncRunMetadata("source", "target", "config", "env")
 
 	metadata.AddSuccess("clone", "repo-1")
@@ -50,6 +54,8 @@ func TestSyncRunMetadata_AddSuccess(t *testing.T) {
 }
 
 func TestSyncRunMetadata_AddFailure(t *testing.T) {
+	t.Parallel()
+
 	metadata := entities.NewSyncRunMetadata("source", "target", "config", "env")
 
 	metadata.AddFailure("clone", "repo-1")
@@ -70,6 +76,8 @@ func TestSyncRunMetadata_AddFailure(t *testing.T) {
 }
 
 func TestSyncRunMetadata_AddSkipped(t *testing.T) {
+	t.Parallel()
+
 	metadata := entities.NewSyncRunMetadata("source", "target", "config", "env")
 
 	metadata.AddSkipped("filter", "repo-1")
@@ -86,6 +94,8 @@ func TestSyncRunMetadata_AddSkipped(t *testing.T) {
 }
 
 func TestSyncRunMetadata_CalculateRates(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name                string
 		setupMetadata       func(*entities.SyncRunMetadata)
@@ -94,7 +104,7 @@ func TestSyncRunMetadata_CalculateRates(t *testing.T) {
 	}{
 		{
 			name: "no_processing_returns_zero_rates",
-			setupMetadata: func(m *entities.SyncRunMetadata) {
+			setupMetadata: func(_ *entities.SyncRunMetadata) {
 				// No operations
 			},
 			expectedSuccessRate: 0.0,
@@ -133,21 +143,25 @@ func TestSyncRunMetadata_CalculateRates(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
 			metadata := entities.NewSyncRunMetadata("source", "target", "config", "env")
-			tt.setupMetadata(metadata)
+			test.setupMetadata(metadata)
 
 			successRate := metadata.SuccessRate()
 			failureRate := metadata.FailureRate()
 
-			require.Equal(t, tt.expectedSuccessRate, successRate)
-			require.Equal(t, tt.expectedFailureRate, failureRate)
+			require.InDelta(t, test.expectedSuccessRate, successRate, 0.001)
+			require.InDelta(t, test.expectedFailureRate, failureRate, 0.001)
 		})
 	}
 }
 
 func TestSyncRunMetadata_FinishAndDuration(t *testing.T) {
+	t.Parallel()
+
 	metadata := entities.NewSyncRunMetadata("source", "target", "config", "env")
 	startTime := metadata.StartTime
 
@@ -169,6 +183,7 @@ func TestSyncRunMetadata_FinishAndDuration(t *testing.T) {
 
 	// Duration should be stable after finishing
 	time.Sleep(10 * time.Millisecond)
+
 	duration3 := metadata.Duration()
 	require.Equal(t, duration2, duration3)
 
@@ -177,6 +192,8 @@ func TestSyncRunMetadata_FinishAndDuration(t *testing.T) {
 }
 
 func TestSyncRunMetadata_SettersAndGetters(t *testing.T) {
+	t.Parallel()
+
 	metadata := entities.NewSyncRunMetadata("source", "target", "config", "env")
 
 	// Test SetTotalRepositories
@@ -188,7 +205,7 @@ func TestSyncRunMetadata_SettersAndGetters(t *testing.T) {
 	metadata.AddSuccess("clone", "repo-2")
 	metadata.AddFailure("clone", "repo-3")
 	// 3 processed out of 10 total = 30%
-	require.Equal(t, 30.0, metadata.GetProgressPercentage())
+	require.InEpsilon(t, 30.0, metadata.GetProgressPercentage(), 0.001)
 
 	// Test SetDryRun
 	metadata.SetDryRun(true)
@@ -209,6 +226,8 @@ func TestSyncRunMetadata_SettersAndGetters(t *testing.T) {
 }
 
 func TestSyncRunMetadata_GetSummary(t *testing.T) {
+	t.Parallel()
+
 	metadata := entities.NewSyncRunMetadata("github", "gitlab", "prod-config", "production")
 	metadata.SetTotalRepositories(5)
 	metadata.SetDryRun(false)
@@ -239,6 +258,8 @@ func TestSyncRunMetadata_GetSummary(t *testing.T) {
 }
 
 func TestSyncRunMetadata_ContainsFailure(t *testing.T) {
+	t.Parallel()
+
 	metadata := entities.NewSyncRunMetadata("source", "target", "config", "env")
 
 	metadata.AddFailure("clone", "repo-1")
@@ -253,6 +274,8 @@ func TestSyncRunMetadata_ContainsFailure(t *testing.T) {
 }
 
 func TestSyncRunMetadata_ContextIntegration(t *testing.T) {
+	t.Parallel()
+
 	metadata := entities.NewSyncRunMetadata("source", "target", "config", "env")
 	metadata.AddFailure("invalid", "repo-1")
 
@@ -282,6 +305,8 @@ func TestSyncRunMetadata_ContextIntegration(t *testing.T) {
 }
 
 func TestSyncRunMetadata_String(t *testing.T) {
+	t.Parallel()
+
 	metadata := entities.NewSyncRunMetadata("github", "gitlab", "prod-config", "production")
 	metadata.SetTotalRepositories(5)
 
@@ -306,6 +331,8 @@ func TestSyncRunMetadata_String(t *testing.T) {
 }
 
 func TestSyncRunMetadata_NoFailures(t *testing.T) {
+	t.Parallel()
+
 	metadata := entities.NewSyncRunMetadata("source", "target", "config", "env")
 
 	metadata.AddSuccess("clone", "repo-1")

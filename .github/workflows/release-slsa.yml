@@ -1,7 +1,6 @@
-# SPDX-FileCopyrightText: 2025 itiquette/git-provider-sync
+# SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 #
 # SPDX-License-Identifier: CC0-1.0
----
 name: SLSA
 on:
   workflow_call:
@@ -31,7 +30,6 @@ jobs:
       private-repository: true
       base64-subjects: "${{ inputs.hashes }}"
       upload-assets: true # upload to a new release
-
   image-provenance:
     if: ${{ inputs.image != '' && inputs.digest != '' }}
     permissions:
@@ -46,7 +44,6 @@ jobs:
       registry-username: ${{ github.actor }}
     secrets:
       registry-password: ${{ secrets.GITHUB_TOKEN }}
-
   verification-with-slsa-verifier:
     needs: [binary-provenance]
     runs-on: ubuntu-latest
@@ -56,7 +53,6 @@ jobs:
     steps:
       - name: Install the verifier
         uses: slsa-framework/slsa-verifier/actions/installer@6657aada084353c65e5dde35394b1a010289fab0 # v2.7.0
-
       - name: Download assets
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -64,7 +60,6 @@ jobs:
         run: |
           set -euo pipefail
           gh -R "$GITHUB_REPOSITORY" release download "${{ inputs.ref_name }}" -p '*.*'
-
       - name: Verify assets
         env:
           CHECKSUMS: ${{ inputs.hashes }}
@@ -81,7 +76,6 @@ jobs:
                                           --source-tag "${{ inputs.ref_name }}" \
                                           "$fn"
           done <<<"$checksums"
-
   verification-with-cosign:
     if: ${{ inputs.image != '' && inputs.digest != '' }}
     needs: [image-provenance]
@@ -96,10 +90,8 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Install Cosign
         uses: sigstore/cosign-installer@d7d6bc7722e3daa8354c50bcb52f4837da5e9b6a # v3.8.1
-
       - name: Verify image
         env:
           IMAGE: ${{ inputs.image }}

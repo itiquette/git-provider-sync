@@ -1,9 +1,7 @@
-# SPDX-FileCopyrightText: 2025 itiquette/git-provider-sync
+# SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 #
 # SPDX-License-Identifier: CC0-1.0
----
 name: GoReleaser
-
 on:
   workflow_call:
     outputs:
@@ -13,17 +11,14 @@ on:
         value: ${{ jobs.goreleaser.outputs.image }}
       digest:
         value: ${{ jobs.goreleaser.outputs.digest }}
-
 permissions:
   contents: read
-
 jobs:
   goreleaser:
     permissions:
       contents: write # needed to write releases
       id-token: write # needed for keyless signing
       packages: write # needed for ghcr access
-
     name: GoReleaser build and release
     outputs:
       hashes: ${{ steps.binary.outputs.hashes }}
@@ -31,39 +26,49 @@ jobs:
       digest: ${{ steps.image.outputs.digest }}
     runs-on: ubuntu-latest
     environment: GPSENV
-
     if: success() && startsWith(github.ref, 'refs/tags/')
     steps:
       - name: Harden GitHub runner
         uses: step-security/harden-runner@c6295a65d1254861815972266d5933fd6e532bdf # v2.11.1
         with:
           egress-policy: audit
-
       - name: Checkout repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
           ref: main
-
       - name: Setup Go
         uses: actions/setup-go@0aaccfd150d50ccaeb58ebd88d36e91967a5f35b # v5.4.0
         with:
           go-version: "stable"
           cache: true
-
       # - name: Configure Git for private modules
       #   env:
       #     GITHUB_API_TOKEN: ${{ secrets.GH_API_TOKEN }}
       #   run: git config --global url."https://x:${GITHUB_API_TOKEN}@github.com".insteadOf "https://github.com"
-
       - uses: sigstore/cosign-installer@d7d6bc7722e3daa8354c50bcb52f4837da5e9b6a # v3.8.1
       - uses: anchore/sbom-action/download-syft@f325610c9f50a54015d37c8d16cb3b0e2c8f4de0 # v0.18.0
+      - name: Import GPG key
+        run: |
+          if [[ -n "${{ secrets.GPG_PRIVATE_KEY }}" ]]; then
+            echo "Using production GPG key"
+            echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import
+            echo "GPG_FINGERPRINT=${{ secrets.GPG_FINGERPRINT }}" >> "$GITHUB_ENV"
+          else
+            echo "Using test GPG key for development"
+            # Note: You'll need to create test keys at internal/integrationtest/testdata/keys/
+            # For now, skip GPG signing in development
+            echo "GPG_FINGERPRINT=" >> "$GITHUB_ENV"
+          fi
+          # Verify key is available (quiet output)
+          if [[ -n "$GPG_FINGERPRINT" ]]; then
+            gpg --list-secret-keys --keyid-format SHORT | grep -E "(sec|uid)" || echo "No keys found"
+          fi
       - uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Generate Releasenotes
         uses: orhun/git-cliff-action@4a4a951bc43fafe41cd2348d181853f52356bee7 # v4
         with:
@@ -71,7 +76,6 @@ jobs:
         env:
           OUTPUT: ReleasenotesTmp
           GITHUB_REPO: ${{ github.repository }}
-
       - name: Run GoReleaser
         id: goreleaser
         uses: goreleaser/goreleaser-action@9c156ee8a17a598857849441385a2041ef570552 # v6.3.0
@@ -81,7 +85,7 @@ jobs:
           args: release --clean --release-notes=ReleasenotesTmp
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
+          GPG_FINGERPRINT: ${{ env.GPG_FINGERPRINT }}
       - name: Generate binary hashes
         id: binary
         env:
@@ -90,7 +94,6 @@ jobs:
           set -euo pipefail
           checksum_file=$(echo "$ARTIFACTS" | jq -r '.[] | select (.type=="Checksum") | .path')
           echo "hashes=$(base64 -w0 < "$checksum_file")" >> "$GITHUB_OUTPUT"
-
       - name: Image digest
         id: image
         env:
@@ -102,3 +105,14 @@ jobs:
           digest=$(echo "${image_and_digest}" | cut -d':' -f3,4 | uniq)
           echo "name=$image" >> "$GITHUB_OUTPUT"
           echo "digest=$digest" >> "$GITHUB_OUTPUT"
+      - name: Scan container images
+        uses: aquasec/trivy-action@5681af892cd0b9d445c41ef60808e4b11e9a3e9b # v0.28.0
+        with:
+          image-ref: "${{ steps.image.outputs.name }}@${{ steps.image.outputs.digest }}"
+          format: "sarif"
+          output: "trivy-results.sarif"
+      - name: Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@662472033e021d55d94146f66f6058822b0b39fd # v3.27.9
+        if: always()
+        with:
+          sarif_file: "trivy-results.sarif"

@@ -1,8 +1,8 @@
-// SPDX-FileCopyrightText: 2025 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: CC0-1.0
 
-= Git Provider Sync: Technical Documentation
+= Git Provider Sync: Usage Documentation
 :toc: 
 :toc-title: Table of Contents
 :revdate: {docdatetime}
@@ -18,9 +18,20 @@ ifdef::env-github[]
 :warning-caption: :warning:
 endif::[]
 
-== 1. Introduction
+== Usage Scenarios
 
-Git Provider Sync is a tool that enables repository synchronization across different Git Providers and storage. This document provides guidance on its configuration and usage.
+Common workflows:
+
+* **First-time setup**: link:getting-started.md[Getting Started Guide] 
+* **Backup repositories**: See <<_5_1_directory_target>>
+* **Mirror between providers**: See link:configuration.md[Configuration Reference]
+* **Automated CI/CD**: link:ci-examples.md[CI/CD Examples]
+
+== Introduction
+
+This document provides comprehensive usage guidance for advanced features and workflows of Git Provider Sync.
+
+Git Provider Sync enables repository synchronization across different Git providers and storage systems, supporting complex enterprise scenarios and automated workflows.
 
 === 1.1 Key Features
 
@@ -32,40 +43,11 @@ Git Provider Sync enables:
   - Archive storage
   - Directory storage
 
-== 2. Getting Started
+
+== 2. Command Line Interface
 
 
-=== 2.1 Installation
-
-1. Choose an installation method:
-   * Pre-packaged distributions
-   * Manual build
-   * Refer to link:../INSTALL.adoc[installation guide] for detailed instructions
-
-=== 2.2 Basic Setup
-
-1. Create configuration file
-   * Reference link:../examples/gitprovidersync.exampleconf.yaml[example of full configuration options]
-   * See <<_3_2_cli_usage_examples>> and <<_4_4_configuration_examples>> for a few practical examples
-   * Configure minimum one source and target provider
-
-2. Validate configuration:
-[source,console]
-----
-gitprovidersync print
-----
-+
-3. Initialize synchronization:
-
-[source,console]
-----
-gitprovidersync sync
-----
-
-== 3. Command Line Interface
-
-
-=== 3.1 Basic Usage
+=== 2.1 Basic Usage
 
 
 * Example: CLI Help Output 
@@ -96,7 +78,7 @@ man gitprovidersync
 ----
 
 
-=== 3.2 CLI Usage Examples
+=== 2.2 CLI Usage Examples
 
 ==== Configuration Display
 
@@ -112,287 +94,41 @@ gitprovidersync print --config-file /custom/path/config.yaml
 _Sync, using force push, fetch recent update (3 hours to now)_
 [source,console]
 ----
-gitprovidersync --force-push --from='-3h' --alphanumhyph-name --config-file /path/config.yaml
+gitprovidersync sync --force-push --since=3h --sanitize-names --config-file /path/config.yaml
 ----
 
-== 4. Configuration Specific
+== 3. Configuration
 
-=== 4.1 Configuration Sources
+For complete configuration reference including sources, file locations, environment variables, and examples, see link:configuration.md[Configuration Reference].
 
-Priority order (highest to lowest):
+=== Advanced: Using Git Binary Instead of Go Git Library  
 
-1. Environment variables
-2. .env file
-3. Configuration file
-4. XDG_CONFIG_HOME
+In certain cases you might want to use the host Git binary instead of the built-in Go Git library. For example, to customize the SSH client with GIT_SSH_COMMAND (Go Git doesn't currently support SSH client customization).
 
-=== 4.2 File Location Hierarchy
+```yaml
+use_git_binary: true
+```
 
-1. Default filename: `gitprovidersync.yaml`
-2. Search locations:
-   * Binary execution directory
-   * `$XDG_CONFIG_HOME/gitprovidersync`
-   * Custom location (via `--config-file`)
+NOTE: Only use this if you really need SSH command customization or other Git binary-specific features.
 
-=== 4.3 Environment Variables
+== 4. Provider-Specific
 
-* Prefix: `GPS_`
-* Format: Uppercase with underscores
-* Example: `GPS_GITPROVIDERSYNC_SOURCE_PROVIDER=envconfprovider`
+=== 4.1 Authentication Methods
 
-=== 4.4 Configuration Examples
+* Default: Use Token Access (recommended)
+* Alternative: SSH with sshagent for non-API access
 
-.Simple: A sync from a GitHub to an GitLab-instance, in the simplest way. All public repos. Default github.com and gitlab.com domains.
-[source,yaml]
-----
-gitprovidersync: 
-  environment:
-    mysimplesourceonfig: 
-        provider_type: github
-        owner: itiquette 
-
-        mirror:
-          agitlabtarget:
-            provider_type: gitlab
-            owner: <a-gitlab-user>
-            owner_type: user
-            auth:
-              token: <a-gitlab-token-with-create-and-write-access>
-
-----
-
-.Extended: A sync from a GitHub to a GitLab-instance, archive dir, and a dir. Because we can. NOTE DONT PUT SECRETS IN CONFIG FILES OTHER THAN FOR TESTING, use envs or alike
-[source,yaml]
-----
-gitprovidersync: 
-  environment: 
-    asourceconf: 
-      provider_type: github
-      domain: custom.github.domain
-      owner: itiquette 
-      auth:
-        token: <a-github-token-so-we-avoid-rate-limiting-etc>
-      repositories:
-        include: org-feature-test-repo # we only want one repo from this org
-
-      mirrors:
-        agitlabtarget:
-          provider_type: gitlab
-          domain: custom.gitlab.domain
-          owner: <a-gitlab-user>
-          auth:
-            token: <a-gitlab-token-with-create-and-write-access>
-        
-        tartargetexample: 
-          providertype: archive 
-          path: /tmp/myarcdir
-        
-        directoryexample: 
-          provider_type: directory
-          path: /tmp/mydir
-
-----
-
-.Git-Binary: A sync from gitlab to github. special case, uses gitbinary, ssh and custom ssh-client to push ssh through githubs tls endpoint. It also uses corkscrew on the host.
-[source,yaml]
-----
-gitprovidersync: 
-  environment: 
-    aconfigname: 
-      provider_type: gitlab
-      owner: hanklank
-      auth:
-        token: <a-gitlab-token>
-      repositories:
-        include: org-feature-test-repo # we only want one repo from this org
-      use_git_binary: true
-
-      mirrors:
-        agithubtarget:
-          provider_type: github
-          owner: <a-gitlab-user>
-          owner_type: user
-          auth:
-            token: <a-gitlab-token-with-create-and-write-access>
-            ssh_command: ssh -vvv -o ProxyCommand="corkscrew <proxyserver> <proxyserverport> %h %p" -o ConnectTimeout=10 -p 443  
-            rewrite_ssh_url_from: git@github.com:
-            rewrite_ssh_url_to: ssh://git@ssh.github.com:443/
-            type: ssh
-
-          #This SSH command uses corkscrew to tunnel SSH through an HTTP proxy. It's set to maximum verbosity (-vvv), uses a 10-second connection timeout, and connects to the SSH server on port 443. The ProxyCommand option specifies the proxy server and port, with %h and %p as placeholders for the SSH server host and port
-----
-
-=== 4.5 Advanced Configuration
-
-==== Using a host Git Binary instead of the underlying Go Git Library
-
-In certain cases you might like to use the underlying host Git Binary instead of the built in Go Git-library.
-For example, If you would like to customize the underlying SSH-client with GIT_SSH_COMMAND. 
-Go Git does not currently support SSH-client customisation.
-
-NOTE: Only use this if you really have to (for example, you might want to use the SSHCommand option).
-
-== 5. Provider-Specific
-
-=== 5.1 Authentication Methods
-
-* Default: Use Token Access
-* Alternative for non-API access: SSH with sshagent
-
-==== GitLab API
-
-GitLab API has the following Authentication methods:
-
-[cols="2,3,2,2,2", options="header", align="center"]
-|===
-|Auth Type |Use Case |Security Level |Expiration |Scope Control
-
-|BasicAuth
-|Development/Testing
-|Low
-|N/A
-|Full Access
-
-|JobToken https://docs.gitlab.com/ee/ci/jobs/ci_job_token.html[Docs]
-|CI/CD Pipelines
-|High
-|Job Duration
-|Job-specific
-
-|OAuthToken
-|Third-party Apps
-|High
-|Configurable
-|Granular
-
-|PrivateToken https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html[Personal Token] https://docs.gitlab.com/ee/user/group/settings/group_access_tokens.html#group-access-tokens[Group Token]
-|Automation/Scripts
-|High
-|Never
-|Granular
-|===
-
-Git Provider Sync currently supports Private Token/Group Token.
-
-==== GitHub API
-
-[cols="2,3,2,2,2", options="header", align="center"]
-|===
-|Auth Type |Use Case |Security Level |Expiration |Scope Control
-
-|Personal Access Token (Classic) https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token#creating-a-personal-access-token-classic[Docs]
-|General Automation/Scripts
-|High
-|Never (unless revoked)
-|Repository/Org level
-
-|Fine-grained PAT https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token#creating-a-fine-grained-personal-access-token[Docs]
-|Specific repository access
-|Very High
-|Required (max 1 year)
-|Repository specific
-
-|GITHUB_TOKEN https://docs.github.com/en/actions/security-guides/automatic-token-authentication[Docs]
-|GitHub Actions
-|High
-|Job Duration
-|Repository scoped
-
-
-|OAuth App Token
-|Third-party Apps
-|High
-|Configurable with refresh
-|User-authorized scopes
-|===
-
-Git Provider Sync currently supports Classic/Fine Grained and GITHUB_TOKEN.
-
-==== Gitea API
-
-[cols="2,3,2,2,2", options="header", align="center"]
-|===
-|Auth Type |Use Case |Security Level |Expiration |Scope Control
-|Basic Auth
-|Development/Testing
-|Low
-|N/A
-|Full Access
-|Access Token https://docs.gitea.com/development/api-usage#access-tokens[Docs]
-|General Automation/Scripts
-|High
-|Never (unless revoked)
-|Repository/Organization level
-|OAuth2 Token
-|Third-party Apps
-|High
-|Configurable
-|Granular scopes
-|Internal Token https://docs.gitea.com/administration/command-line#admin[Docs]
-|Admin operations
-|Very High
-|Never
-|Full system access
-|Action Token https://docs.gitea.com/usage/actions/overview#authentication[Docs]
-|Actions (CI/CD)
-|High
-|Job Duration
-|Repository scoped
-|===
-
-
-To generate an access token for a Gitea user with creation rights:
-
-[source,yaml]
-----
-curl -H "Content-Type: application/json" -d '{"name":"<tokenname>","scopes":["write:organization","write:repository","read:user","write:user"]}' -u user:password https://<giteahost>/api/v1/users/<username>/tokens
-----
+For token creation guides and detailed authentication options, see link:configuration.md[Configuration Reference].
 
 
 
-=== 5.2 Provider Rate Limits
+=== 4.2 Provider Rate Limits
 
-[cols="2,3,2,3", options="header", align="center"]
-|===
-|Platform |Unauthenticated |With Token |Notes
+Each Git provider has different API rate limits. Using tokens significantly increases your allowed requests. For detailed rate limit information, consult your provider's API documentation.
 
-|GitHub.com
-|60 requests/hour
-a|* Basic Token: 5,000/hour
-a|* 83x increase with token
+== 5. Target-Specific
 
-|GitLab.com
-|60 requests/hour
-a|* Free: 2,000/hour
-* Premium: 2,500/hour
-* Ultimate: 3,000/hour
-a|* Tier determines limit
-* CI tokens have separate limits
-
-|Gitea.com
-|10 requests/minute
-|20 requests/minute
-a|* 2x increase with token
-* Per-minute rather than per-hour
-|===
-
-[IMPORTANT]
-====
-* GitHub: Authentication method matters
-* GitLab: User tier matters
-* Gitea: Simple doubling with any authentication
-====
-
-[IMPORTANT]
-====
-* GitHub: Authentication method matters
-* GitLab: User tier matters
-* Gitea: Simple doubling with any authentication
-====
-
-== 6 Target-Specific
-
-=== 6.1 Directory Target
+=== 5.1 Directory Target
 
 * Contains working copy repositories from the source
 * Default: Check out all remote branches locally and keep original origin remote
@@ -408,7 +144,7 @@ Configuration example:
       path: <full/path/to/directory/where/repositories/go>
 ----
 
-=== 6.2 Compressed Archive (tar.gz) Target
+=== 5.2 Compressed Archive (tar.gz) Target
 
 * Contains tar.gz files of bare repositories
 * Adds a timestamp prefix to allow multiple re-runs
@@ -424,342 +160,13 @@ Configuration example:
       path: <full/path/to/directory/where/tar/archives/go>
 ----
 
-== 7. CI Deployment Examples
+== 6. CI Deployment
 
-A few examples of how you can run Git Provider Syns in various CI/CD environments.
+For complete CI/CD integration examples including GitLab CI, GitHub Actions, and Kubernetes CronJobs, see link:ci-examples.md[CI/CD Examples].
 
-=== 7.1 GitLab CI Example
+== 7. Troubleshooting and FAQ
 
-This GitLab CI configuration defines two jobs for repository synchronization:
-
-1. `scheduled-sync`: Runs automatically on schedule, using the GitLab CI schedule feature
-
-2. `manual_sync`: Triggered manually with confirmation prompt
-
-Both jobs use a container image specified and share a common script template that:
-
-- Prints the configuration
-- Executes a sync run with specified time limit and force push
-
-The configuration uses YAML anchors for DRY script configuration.
-
-The configuration example includes variables for:
-
-- Source provider settings (GitLab user/group, included repositories, time limit)
-- Mirror target configuration (provider type, domain, owner details)
-- Authentication token (expected as CI/CD secret)
-
-.A simple GitLab CI example 
-[source,yaml]
-----
-# This GitLab CI example shows two GitLab CI jobs.
-# A regular job, to run on schedule.
-# A manual job, to be run manually from the GitLab CI UI.
-
-variables:
-  IMAGE:
-    description: "Path to a container image"
-    value: "ghcr.io/itiquette/gitprovidersync:v0.0.20"
-
-  # Source provider configuration example
-
-  GPS_GITPROVIDERSYNC_ENV_EXAMPLECONF1_PROVIDER_TYPE:
-    description: "Source provider for the configuration (e.g., gitlab, github,gitea see docs)"
-    value: "gitlab"
-  GPS_GITPROVIDERSYNC_ENV_EXAMPLECONF1_OWNER:
-    description: "Username for the source provider"
-    value: "auser"
-  GPS_GITPROVIDERSYNC_ENV_EXAMPLECONF1_OWNER_TYPE:
-    description: "User type for the source provider (user,group)"
-    value: "auser"
-  GPS_GITPROVIDERSYNC_ENV_EXAMPLECONF1_REPOSITORIES_INCLUDE:
-    description: "Comma-separated list of repositories to include (of empty, all are fetched)"
-    value: "areponame,anotherreponame"
-  GPS_GITPROVIDERSYNC_ENV_EXAMPLECONF1_ACTIVE_FROM_LIMIT:
-    description: "How old changes to be considered, golang string time duration format."
-    value: "-30h"
-
-  # Mirror target configuration example
-  GPS_GITPROVIDERSYNC_ENV_EXAMPLECONF1_MIRRORS_EXAMPLETARGET1_PROVIDER_TYPE:
-    description: "Mirror target for the configuration (e.g., gitlab, github, directory, tar, directory etc)"
-    value: "gitlab"
-  GPS_GITPROVIDERSYNC_ENV_EXAMPLECONF1_MIRRORS_EXAMPLETARGET1_DOMAIN:
-    description: "Domain of the mirror target, if any (e.g., gitlab.com, yourgitlab.domainname)"
-    value: "gitlab.com"
-  GPS_GITPROVIDERSYNC_ENV_EXAMPLECONF1_MIRRORS_EXAMPLETARGET1_OWNER:
-    description: "Mirror target group or user"
-    value: "ausername"
-  GPS_GITPROVIDERSYNC_ENV_EXAMPLECONF1_MIRRORS_EXAMPLETARGET1_OWNER_TYPE:
-    description: "Mirror target group or user type (group,user)"
-    value: "user"
-  GPS_GITPROVIDERSYNC_ENV_EXAMPLECONF1_MIRRORS_EXAMPLETARGET1_AUTH_TOKEN: <asecrettoken>
-
-  # Also, you would need a masked token/secret with correct write acccess
-  # Never commit that, use it as a secret from you CI/CD env
-
-# A GitLab CI Template for the script part
-.git-provider-sync-script-template: &sync_script
-  image:
-    name: $IMAGE
-    entrypoint: [""]
-  variables:
-    GIT_STRATEGY: none # Disable Git fetching
-  script:
-    - gitprovidersync print
-    - gitprovidersync sync --active-from-limit $ACTIVE_FROM_LIMIT --force-push
-
-# Regular job that only runs on schedule.
-# To schedule the GitLab CI job to run at regular intervals,
-# you can use GitLab's CI/CD pipelines schedule feature.
-# This allows you to trigger pipelines at specific times using cron syntax.
-scheduled-sync:
-  <<: *sync_script
-  only:
-    - schedules
-
-# Manual job extending the Template above
-manual_sync:
-  when: manual
-  manual_confirmation: "Are you sure you want to start a git-provider-sync run?"
-  except:
-    - schedules
-  <<: *sync_script
-----
-
-=== 7.2 GitHub Action
-
-The GitHub Actions Example configuration defines two jobs for repository synchronization:
-
-1. `scheduled-sync`: Runs on cron schedule
-2. `manual_sync`: Triggered via workflow_dispatch with customizable inputs
-
-Configuration variables include:
-
-- Source settings (provider type, domain, owner details)
-- Mirror target settings (provider type, domain, owner) 
-- Auth tokens (stored as GitHub Secrets)
-- Allows dynamic input parameters via UI
-- Has concurrency control to cancel in-progress jobs
-
-.A GitHub Action example
-[source,yaml]
-----
-# This GitHub Action example shows two GitHub Action jobs.
-# A regular job, to run on a schedule.
-# A manual job, to be run manually from the GitHub Action UI.
-
-name: Git Provider Sync
-
-defaults:
-  run:
-    env:
-      PREFIX: GPS_GITPROVIDERSYNC_DEFAULTENV_EXAMPLE
-      TARGET1: GPS_GITPROVIDERSYNC_DEFAULTENV_EXAMPLE_MIRRORS_TARGET1
-
-on:
-  schedule:
-    - cron: "0 */2 * * *" # Adjust cron expression as needed for scheduling.
-        # This example would run every other hour.
-  workflow_dispatch: # Allows manual triggering from the GitHub Actions UI, and inputs: allows for GUI input dynamically 
-      # # https://github.com/orgs/community/discussions/26324
-      #  IMAGE:
-      #    description: "Path to container image"
-      #    required: true
-      #    default: "path/to/gitprovidersync/image:version"
-    inputs:
-        # source provider configuration
-        provider_type:
-          description: "Source provider type"
-          required: true
-          default: "gitlab"
-        domain:
-          description: "Source provider domain"
-          required: true
-          default: "gitlab.com"
-        owner:
-          description: "Source owner"
-          required: true
-          default: "auser"
-        owner_type:
-          description: "Source owner type (default: group (organisation))"
-          required: false
-          default: "group"
-        repositories_include:
-          description: "Repositories to include (if not given, fetch all)"
-          required: false
-          default: "areponame,anotherreponame"
-        active_from_limit:
-          description: "Change age limit"
-          required: true
-          default: "-30000h"
-        
-        # mirror target configuration 
-        mirror_provider_type:
-          description: "Mirror target type"
-          required: true
-          default: "gitlab"
-        mirror_domain:
-          description: "Mirror target domain"
-          required: true
-          default: "gitlab.com"
-        mirror_owner:
-          description: "Mirror target owner"
-          required: true
-          default: "ausername"
-        mirror_owner_type:
-          description: "Mirror target owner type"
-          required: false
-          default: "user"
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true # cancel ongoing jobs
-
-jobs:
-  scheduled-sync:
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    environment: test
-    container:
-      image: "path/to/gitprovidersync/image:version"
-    env:
-      ${{ env.PREFIX }}_PROVIDER_TYPE: github
-      ${{ env.PREFIX }}_DOMAIN: github.com
-      ${{ env.PREFIX }}_OWNER: auser
-      ${{ env.PREFIX }}_OWNER_TYPE: user
-      ${{ env.PREFIX }}_REPOSITORIES_INCLUDE: areponame,anotherreponame
-      ${{ env.PREFIX }}_ACTIVE_FROM_LIMIT: "-30000h"
-      ${{ env.TARGET1 }}_PROVIDER_TYPE: gitlab
-      ${{ env.TARGET1 }}_DOMAIN: gitlab.com
-      ${{ env.TARGET1 }}_OWNER: ausername
-      ${{ env.TARGET1 }}_OWNER_TYPE: user
-      ${{ env.TARGET1 }}_AUTH_TOKEN: ${{ secrets.EXAMPLETARGET1_TOKEN }}
-  # You would set secret tokens in GitHub Secrets 
-    
-    if: github.event_name == 'schedule'
-    steps:
-      - name: Print configuration
-        run: gitprovidersync print
-
-      - name: Sync configuration
-        run: gitprovidersync sync --active-from-limit ${{ env.PREFIX }}_${{ ACTIVE_FROM_LIMIT }} --force-push
-
-
-  manual_sync:
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
-    environment: test
-    container:
-      # image: ${{ env.IMAGE }} # https://github.com/orgs/community/discussions/26324
-      image: "ghcr.io/itiquette/gitprovidersync:v0.0.20"
-    env:
-      ${{ env.PREFIX }}_PROVIDER_TYPE: ${{ inputs.provider_type }}
-      ${{ env.PREFIX }}_DOMAIN: ${{ inputs.domain }}
-      ${{ env.PREFIX }}_OWNER: ${{ inputs.owner }}
-      ${{ env.PREFIX }}_OWNER_TYPE: ${{ inputs.owner_type }}
-      ${{ env.PREFIX }}_REPOSITORIES_INCLUDE: ${{ inputs.repositories_include }}
-      ${{ env.PREFIX }}_ACTIVE_FROM_LIMIT: ${{ inputs.active_from_limit }}
-      
-      ${{ env.TARGET1 }}_PROVIDER_TYPE: ${{ inputs.target_provider_type }}
-      ${{ env.TARGET1 }}_DOMAIN: ${{ inputs.target_domain }}
-      ${{ env.TARGET1 }}_OWNER: ${{ inputs.target_owner }}
-      ${{ env.TARGET1 }}_OWNER_TYPE: ${{ inputs.target_owner_type }}
-      ${{ env.TARGET1 }}_AUTH_TOKEN: ${{ secrets.EXAMPLETARGET1_TOKEN }}
-      ${{ env.PREFIX }}_ACTIVE_FROM_LIMIT: ${{ inputs.active_from_limit }}
-    
-    if: github.event_name == 'workflow_dispatch'
-    steps:
-      - name: Print configuration
-        run: gitprovidersync print
-
-      - name: Sync configuration
-        run: gitprovidersync sync --active-from-limit ${{ env.PREFIX }}_${{ ACTIVE_FROM_LIMIT }} --force-push
-        
-----
-
-=== 7.3 Tekton CI
-
-NOTE: Tekton doesn't have native support for scheduled triggers or manual dispatch. Use Tekton Triggers and CronJobs for similar functionality.
-
-The example Kubernetes CronJob defines a scheduled repository synchronization task:
-
-- Runs every 2 hours using Kubernetes cron scheduling
-- Uses concurrency control to prevent overlapping jobs
-- Employs a retry policy with one attempt and a timeout
-- Maintains minimal job history (1 successful, 1 failed)
-- Environment variables for source/mirror target settings
-- Token authentication via Kubernetes secrets
-
-The configuration uses Kubernetes native features for scheduling and secret management instead of CI-specific constructs.
-
-.A Scheduled Run Example using Kubernetes CronJob:
-[source,yaml]
-----
-apiVersion: batch/v1
-kind: CronJob
-metadata:
- name: git-provider-sync-cronjob
-spec:
- schedule: "0 */2 * * *"
- concurrencyPolicy: Forbid
- successfulJobsHistoryLimit: 1
- failedJobsHistoryLimit: 1
- jobTemplate:
-   spec:
-     backoffLimit: 1
-     activeDeadlineSeconds: 900
-     template:
-       spec:
-         containers:
-           - name: git-provider-sync
-             image: ghcr.io/itiquette/gitprovidersync:v0.0.20
-             env:
-               - name: PREFIX
-                 value: GPS_GITPROVIDERSYNC_DEFAULTENV_EXAMPLE
-               - name: TARGET1 
-                 value: GPS_GITPROVIDERSYNC_DEFAULTENV_EXAMPLE_MIRRORS_TARGET1
-               
-               - name: $(PREFIX)_PROVIDER_TYPE
-                 value: gitlab
-               - name: $(PREFIX)_DOMAIN 
-                 value: gitlab.com
-               - name: $(PREFIX)_OWNER
-                 value: auser
-               - name: $(PREFIX)_OWNER_TYPE
-                 value: user
-               - name: $(PREFIX)_REPOSITORIES_INCLUDE
-                 value: areponame,anotherreponame
-               
-               - name: $(TARGET1)_PROVIDER_TYPE
-                 value: gitlab
-               - name: $(TARGET1)_DOMAIN
-                 value: gitlab.com
-               - name: $(TARGET1)_OWNER
-                 value: ausername
-               - name: $(TARGET1)_OWNER_TYPE
-                 value: user
-               - name: $(TARGET1)_AUTH_TOKEN
-                 valueFrom:
-                   secretKeyRef:
-                     name: git-sync-secrets
-                     key: target-token
-               
-               - name: ACTIVE_FROM_LIMIT
-                 value: "-30000h"
-             
-             command: 
-               - "sh"
-               - "-c"
-               - |
-                 gitprovidersync print && \
-                 gitprovidersync sync --active-from-limit $ACTIVE_FROM_LIMIT --force-push
-         
-         restartPolicy: Never
-----
-
-== 8. Troubleshooting and FAQ
-
-=== 8.1 Common Questions
+=== 7.1 Common Questions
 
 Q: Is dual HTTP/SSH configuration required? 
 
@@ -798,371 +205,39 @@ Listed is how they will be synced.
 | Limited   | Private  | Private   
 |===
 
-[appendix]
-== Configuration properties table
- 
-|===
-|Property Path |Description |Required |Extra Notes |Default Value
-
-|gitprovidersync
-|Root configuration object containing all project configurations
-|Mandatory
-a|Must contain at least one environment configuration (e.g., production, staging).
-
-[literal]
-gitprovidersync:
-  production:
-    gitlab-main: ...
-    github-source: ...
-  staging:
-    staging-source: ...
-|N/A
-
-|gitprovidersync.<env>
-|Environment configuration group (e.g., production, staging)
-|Mandatory
-a|Must contain at least one source configuration.
-
-[literal]
-production:
-  gitlab-main: ...
-  github-source: ...
-|N/A
-
-|gitprovidersync.<env>.<source>.provider_type
-|Git provider type
-|Mandatory
-a|Must be one of: gitlab, github, gitea.
-
-[literal]
-provider_type: gitlab
-|N/A
-
-|gitprovidersync.<env>.<source>.domain
-|FQDN Domain name of the Git provider
-|Optional
-a|Must not include protocol scheme.
-
-[literal]
-domain: gitlab.com
-a|Providertype=DefaultDomain: gitlab=gitlab.com github=github.com gitea=gitea.com
-
-|gitprovidersync.<env>.<source>.owner
-|Repository owner username or group name
-|Mandatory
-a|Length: 1-255 characters. Can include path segments for groups.
-
-[literal]
-owner: username
-|N/A
-
-|gitprovidersync.<env>.<source>.owner_type
-|Repository owner type
-|Mandatory
-a|Must be either 'user' or 'group'
-
-[literal]
-owner_type: user
-|N/A
-
-|gitprovidersync.<env>.<source>.auth.token
-|Git provider API token
-|Optional
-a|Required for private repositories and higher API limits.
-
-[literal]
-auth:
-  token: ${GIT_TOKEN}
-|Empty
-
-|gitprovidersync.<env>.<source>.auth.http_scheme
-|Protocol scheme
-|Optional
-a|Must be http or https. HTTP not recommended for production.
-
-[literal]
-auth:
-  http_scheme: https
-|https
-
-|gitprovidersync.<env>.<source>.auth.proxy_url
-|Proxy URL
-|Optional
-a|Must be valid URL. Environment vars HTTP_PROXY etc. also supported.
-
-[literal]
-auth:
-  proxy_url: http://proxy.company.com:8080
-|Empty
-
-|gitprovidersync.<env>.<source>.auth.cert_dir_path
-|Directory path for custom certificates
-|Optional
-a|Must be absolute path and directory must exist.
-
-[literal]
-auth:
-  cert_dir_path: /etc/ssl/certs
-|Empty
-
-|gitprovidersync.<env>.<source>.auth.ssh_command
-|Custom SSH proxy command
-|Optional
-a|Must start with 'ssh'. Requires use_git_binary: true.
-
-[literal]
-auth:
-  ssh_command: ssh -F /custom/ssh/config
-|Empty
-
-|gitprovidersync.<env>.<source>.auth.ssh_url_rewrite_from
-|Original SSH URL pattern to rewrite
-|Optional
-a|Must be set if ssh_url_rewrite_to is set.
-
-[literal]
-auth:
-  ssh_url_rewrite_from: git@github.com:
-|Empty
-
-|gitprovidersync.<env>.<source>.auth.ssh_url_rewrite_to
-|Target SSH URL pattern
-|Optional
-a|Must be set if ssh_url_rewrite_from is set.
-
-[literal]
-auth:
-  ssh_url_rewrite_to: git@github-internal:
-|Empty
-
-|gitprovidersync.<env>.<source>.include_forks
-|Whether to include forked repositories
-|Optional
-a|Only valid for source provider.
-
-[literal]
-include_forks: false
-|false
-
-|gitprovidersync.<env>.<source>.use_git_binary
-|Use system git binary instead of go-git library
-|Optional
-a|Required for SSH proxy command. Git must be installed.
-
-[literal]
-use_git_binary: true
-|false
-
-|gitprovidersync.<env>.<source>.repositories.include
-|Repositories to include
-|Optional
-a|Cannot be empty if specified. Supports wildcards.
-
-[literal]
-repositories:
-  include: 
-    - repo1
-    - repo2
-    - project-*
-|All repos
-
-|gitprovidersync.<env>.<source>.repositories.exclude
-|Repositories to exclude
-|Optional
-a|Cannot be empty if specified. Applied after include filter.
-
-[literal]
-repositories:
-  exclude: 
-    - test-*
-    - temp-repo
-|None
-
-|gitprovidersync.<env>.<source>.active_from_limit
-|Age limit for repositories to sync
-|Optional
-a|Valid Go duration format.
-
-[literal]
-active_from_limit: 24h
-|Empty
-
-|gitprovidersync.<env>.<source>.mirrors
-|Mirror configurations
-|Mandatory
-a|Must contain at least one mirror configuration.
-
-[literal]
-mirrors:
-  gitlab-mirror:
-    provider_type: gitlab
-  archive-backup:
-    provider_type: archive
-|N/A
-
-|gitprovidersync.<env>.<source>.mirrors.<mirror>.provider_type
-|Mirror provider type
-|Mandatory
-a|Must be: gitlab, github, gitea, archive, or directory.
-
-[literal]
-provider_type: gitlab
-|N/A
-
-|gitprovidersync.<env>.<source>.mirrors.<mirror>.path
-|Directory path for archive/directory type mirrors
-|Mandatory for archive/directory types
-a|Must be absolute path.
-
-[literal]
-path: /path/to/archives
-|N/A
-
-|gitprovidersync.<env>.<source>.mirrors.<mirrors>.use_git_binary
-|Use system git binary instead of go-git library
-|Optional
-a|Required for SSH proxy command. Git must be installed.
-
-[literal]
-use_git_binary: true
-|false
-
-|gitprovidersync.<env>.<source>.mirrors.<mirror>.settings.force_push
-|Always use force push
-|Optional
-a|Only valid for Git provider mirrors.
-
-[literal]
-settings:
-  force_push: true
-|false
-
-|gitprovidersync.<env>.<source>.mirrors.<mirror>.settings.ignore_invalid_name
-|Don't abort on invalid repository names
-|Optional
-a|Only valid for Git provider mirrors.
-
-[literal]
-settings:
-  ignore_invalid_name: true
-|false
-
-|gitprovidersync.<env>.<source>.mirrors.<mirror>.settings.alphanumhyph-name
-|Clean repository names (alphanumeric only)
-|Optional
-a|Only valid for Git provider mirrors.
-
-[literal]
-settings:
-  alphanumhyph_name: true
-|false
-
-|gitprovidersync.<env>.<source>.mirrors.<mirror>.settings.description_prefix
-|Description prefix for mirrored repositories
-|Optional
-a|Max length: 1000 characters.
-
-[literal]
-settings:
-  description_prefix: "[Mirror] "
-|Empty
-
-|gitprovidersync.<env>.<source>.mirrors.<mirror>.settings.disabled
-|Disables as much project settings as possible
-|Optional
-a|Only valid for Git provider mirrors.
-
-[literal]
-settings:
-  disabled: true
-|true
-
-|gitprovidersync.<env>.<source>.mirrors.<mirror>.settings.visibility
-|Default visibility for target repo
-|Optional
-a|Only valid for Git provider mirrors.
-
-[literal]
-settings:
-  visibility: private
-|Use source setting
-|===
-
-[NOTE]
-====
-Key Dependencies:
-
-* SSH Authentication requires:
-** Running SSH agent
-** SSH_AUTH_SOCK environment variable
-** At least one loaded SSH key
-
-* HTTPS Authentication requires:
-** Valid token for private repositories
-** Valid certificate configuration for custom CAs
-
-* Path Requirements:
-** All paths must be absolute
-** Directories must exist and have appropriate permissions
-** Certificate directories must be readable
-** Archive/Directory target paths must be writable
-====
-
 
 [appendix]
 == Logging
 
-Git Provider Sync follows the Unix philosophy where logs are diagnostics (stderr) and not part of the program's actual output (stdout).
+Git Provider Sync follows Unix philosophy: logs go to stderr, output to stdout.
 
-=== Levels
+=== Log Levels
 
-* Use TRACE, DEBUG during development
-* INFO, WARN, ERROR in production
-* FATAL used occasionally for startup errors 
-* PANIC is used rarely and will abort the current run
+* **TRACE** - Detailed execution flow (development)
+* **DEBUG** - Variable values and debugging info (development)  
+* **INFO** - Normal operation status (production default)
+* **WARN** - Things to watch, not errors
+* **ERROR** - Actual problems that may abort operations
+* **FATAL** - Severe errors causing program exit
 
-TRACE helps you follow code execution path and program flow.
-// log.Trace().Msg("Entering method")
+=== CLI Options
 
-DEBUG helps you find bug values
-// log.Debug().Int("count", count).Msg("processing items")
+* `--verbosity=LEVEL` - Set log level (trace, debug, info, warn, error, fatal)
+* `--format=json` - JSON format output
+* `--quiet` - Only show errors
+* `--verbosity-with-caller` - Include source code locations
 
-INFO shows normal operation
-// log.Info().Msg("server started")
+=== Log Filtering Examples
 
-WARN shows things to watch but not errors
-// log.Warn().Msg("high memory usage")
+Filter logs while preserving program output:
+```
+gitprovidersync sync --verbosity=TRACE 2>&1 >/dev/null | grep 'TRC'
+```
 
-ERROR shows actual problems, and oftent they will abort the current run.
-// log.Error().Err(err).Msg("failed to connect to x")
-
-FATAL - severe error, will call os.Exit(1)
-// log.Fatal().Msg("failed to initialize essential service")  // exits program
-
-PANIC - severe error, will call panic()
-// log.Panic().Msg("unrecoverable error")  // panics program
-
-=== Tips
-
-* Log verbosity are given with the --verbosity option.
-
-  gitprovidersync sync --verbosity=TRACE
-
-* As logs are written to stderr, if you filter with grep, you might want to pipe stderr to stdout
-
-  --verbosity=TRACE 2>&1 >/dev/null | grep 'TRC'
-
-* For even more verbose information while developing, add caller output with option
- 
-  --verbosity-with-caller 
-
-* For output in json, choose output format
-
-  --output-format=json
-
-* For quiet output, only outputting errors, use option
-
-  --quiet
+Debug mode with full context:
+```
+gitprovidersync sync --verbosity=DEBUG --verbosity-with-caller
+```
 
 [appendix]
 == Advanced: Restoring a Working Copy from a Compressed Archived Bare Git Repository
@@ -1211,3 +286,4 @@ git remote set-url origin <the origin url shown above>
 ----
 
 NOTE: For HTTPS remote origins, consider using SSH format instead.
+

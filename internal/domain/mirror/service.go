@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
@@ -18,11 +18,11 @@ import (
 // Service provides pure functional mirror operations.
 type Service struct {
 	interpreter *EffectInterpreter
-	config      MirrorConfig
+	config      Config
 }
 
-// MirrorConfig contains configuration for mirror operations.
-type MirrorConfig struct {
+// Config contains configuration for mirror operations.
+type Config struct {
 	TempDirectory   string
 	DefaultTimeout  time.Duration
 	MaxRetries      int
@@ -38,12 +38,52 @@ func NewService(
 	gitOps ports.GitOperations,
 	repoProvider ports.RepositoryProvider,
 	logger ports.Logger,
-	config MirrorConfig,
+	config Config,
 ) *Service {
 	return &Service{
 		interpreter: NewEffectInterpreter(gitOps, repoProvider, logger),
 		config:      config,
 	}
+}
+
+// NewMirrorService creates a mirror service with default configuration.
+func NewMirrorService(
+	gitOps ports.GitOperations,
+	repoProvider ports.RepositoryProvider,
+	logger ports.Logger,
+) *Service {
+	config := Config{
+		TempDirectory:   "/tmp/git-provider-sync",
+		DefaultTimeout:  30 * time.Minute,
+		MaxRetries:      3,
+		RetryDelay:      time.Second,
+		EnableMetrics:   true,
+		EnableLogging:   true,
+		DryRunByDefault: false,
+		ForceByDefault:  false,
+	}
+
+	return NewService(gitOps, repoProvider, logger, config)
+}
+
+// NewDryRunMirrorService creates a mirror service configured for dry run mode.
+func NewDryRunMirrorService(
+	gitOps ports.GitOperations,
+	repoProvider ports.RepositoryProvider,
+	logger ports.Logger,
+) *Service {
+	config := Config{
+		TempDirectory:   "/tmp/git-provider-sync-dryrun",
+		DefaultTimeout:  30 * time.Minute,
+		MaxRetries:      1,
+		RetryDelay:      time.Second,
+		EnableMetrics:   true,
+		EnableLogging:   true,
+		DryRunByDefault: true,
+		ForceByDefault:  false,
+	}
+
+	return NewService(gitOps, repoProvider, logger, config)
 }
 
 // MirrorRepository performs a complete mirror operation using pure functions.
@@ -134,7 +174,7 @@ func (s *Service) MirrorRepositories(
 
 // ValidateRepositoryPair validates that a source and target can be mirrored.
 func (s *Service) ValidateRepositoryPair(
-	ctx context.Context,
+	_ context.Context,
 	source entities.Repository,
 	sourceAuth AuthSpec,
 	target entities.Repository,
@@ -199,7 +239,7 @@ func (s *Service) buildRepositorySpecWithAuth(repo entities.Repository, auth Aut
 		Branch:      repo.DefaultBranch(),
 		LocalPath:   localPath,
 		IsPrivate:   repo.IsPrivate(),
-		Topics:      []string{}, // TODO: Add topics to entity if needed
+		Topics:      []string{}, // Repository topics not implemented
 		Description: repo.Description(),
 		Visibility:  repo.Visibility(),
 		Auth:        auth,
@@ -351,46 +391,4 @@ type ValidationResults struct {
 	Results []ValidationResult
 	Source  RepositorySpec
 	Target  RepositorySpec
-}
-
-// Factory functions for common operation configurations
-
-// NewMirrorService creates a mirror service with default configuration.
-func NewMirrorService(
-	gitOps ports.GitOperations,
-	repoProvider ports.RepositoryProvider,
-	logger ports.Logger,
-) *Service {
-	config := MirrorConfig{
-		TempDirectory:   "/tmp/git-provider-sync",
-		DefaultTimeout:  30 * time.Minute,
-		MaxRetries:      3,
-		RetryDelay:      time.Second,
-		EnableMetrics:   true,
-		EnableLogging:   true,
-		DryRunByDefault: false,
-		ForceByDefault:  false,
-	}
-
-	return NewService(gitOps, repoProvider, logger, config)
-}
-
-// NewDryRunMirrorService creates a mirror service configured for dry run mode.
-func NewDryRunMirrorService(
-	gitOps ports.GitOperations,
-	repoProvider ports.RepositoryProvider,
-	logger ports.Logger,
-) *Service {
-	config := MirrorConfig{
-		TempDirectory:   "/tmp/git-provider-sync-dryrun",
-		DefaultTimeout:  30 * time.Minute,
-		MaxRetries:      1,
-		RetryDelay:      time.Second,
-		EnableMetrics:   true,
-		EnableLogging:   true,
-		DryRunByDefault: true,
-		ForceByDefault:  false,
-	}
-
-	return NewService(gitOps, repoProvider, logger, config)
 }

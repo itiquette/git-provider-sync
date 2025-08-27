@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
@@ -14,7 +14,8 @@ import (
 )
 
 // ProtectionService provides Gitea-specific repository protection operations.
-// This restores the sophisticated protection service functionality from main branch.
+//
+//	sophisticated protection service functionality .
 type ProtectionService struct {
 	client *gitea.Client
 	logger ports.Logger

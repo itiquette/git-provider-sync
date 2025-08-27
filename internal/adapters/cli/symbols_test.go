@@ -1,0 +1,125 @@
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
+//
+// SPDX-License-Identifier: EUPL-1.2
+
+package cli
+
+import (
+	"os"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+
+	"itiquette/git-provider-sync/internal/adapters/terminal"
+)
+
+func TestGetSymbols(t *testing.T) { //nolint:tparallel // Environment variable modification
+	t.Parallel()
+
+	tests := []struct {
+		name          string
+		colorMode     terminal.ColorMode
+		envSetup      func()
+		envTeardown   func()
+		expectUnicode bool
+	}{
+		{
+			name:          "auto mode returns ASCII when NO_COLOR is set",
+			colorMode:     terminal.ColorAuto,
+			envSetup:      func() { _ = os.Setenv("NO_COLOR", "1") },
+			envTeardown:   func() { _ = os.Unsetenv("NO_COLOR") },
+			expectUnicode: false,
+		},
+		{
+			name:          "never mode returns ASCII",
+			colorMode:     terminal.ColorNever,
+			envSetup:      func() {},
+			envTeardown:   func() {},
+			expectUnicode: false,
+		},
+		{
+			name:          "always mode with UTF-8 returns Unicode",
+			colorMode:     terminal.ColorAlways,
+			envSetup:      func() { _ = os.Setenv("LANG", "en_US.UTF-8") },
+			envTeardown:   func() { _ = os.Unsetenv("LANG") },
+			expectUnicode: true,
+		},
+	}
+
+	for _, testCase := range tests { //nolint:paralleltest // Environment variable modification
+		t.Run(testCase.name, func(t *testing.T) {
+			// Setup
+			testCase.envSetup()
+			defer testCase.envTeardown()
+
+			// Test
+			symbols := GetSymbols(testCase.colorMode)
+
+			// Assert
+			if testCase.expectUnicode {
+				assert.Equal(t, "✓", symbols.Check)
+				assert.Equal(t, "✗", symbols.Cross)
+				assert.Equal(t, "→", symbols.Arrow)
+			} else {
+				assert.Equal(t, "[OK]", symbols.Check)
+				assert.Equal(t, "[!!]", symbols.Cross)
+				assert.Equal(t, "->", symbols.Arrow)
+			}
+		})
+	}
+}
+
+func TestGetErrorSuggestion(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name           string
+		errMsg         string
+		wantSuggestion bool
+	}{
+		{
+			name:           "configuration error gets suggestion",
+			errMsg:         "failed to read configuration file",
+			wantSuggestion: true,
+		},
+		{
+			name:           "authentication error gets suggestion",
+			errMsg:         "401 unauthorized",
+			wantSuggestion: true,
+		},
+		{
+			name:           "network error gets suggestion",
+			errMsg:         "connection timeout",
+			wantSuggestion: true,
+		},
+		{
+			name:           "unknown error gets no suggestion",
+			errMsg:         "unknown error occurred",
+			wantSuggestion: false,
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			err := &testError{msg: testCase.errMsg}
+
+			suggestion := GetErrorSuggestion(err)
+
+			if testCase.wantSuggestion {
+				assert.NotEmpty(t, suggestion, "Expected suggestion for error: %s", testCase.errMsg)
+			} else {
+				assert.Empty(t, suggestion, "Expected no suggestion for error: %s", testCase.errMsg)
+			}
+		})
+	}
+}
+
+type testError struct {
+	msg string
+}
+
+func (e *testError) Error() string {
+	return e.msg
+}

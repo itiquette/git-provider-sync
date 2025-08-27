@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
@@ -11,11 +11,13 @@ import (
 	"path/filepath"
 	"time"
 
+	"itiquette/git-provider-sync/internal/domain"
 	"itiquette/git-provider-sync/internal/domain/ports"
 )
 
 // MirrorService provides directory-specific mirror operations.
-// This restores the sophisticated mirror service functionality from main branch.
+//
+//	sophisticated mirror service functionality .
 type MirrorService struct {
 	adapter *Adapter
 	logger  ports.Logger
@@ -89,7 +91,7 @@ func (ms *MirrorService) CreateMirror(ctx context.Context, request MirrorRequest
 	// Check if target exists and handle overwrite option
 	if ms.pathExists(request.TargetPath) {
 		if !request.Options.Overwrite {
-			return nil, fmt.Errorf("target path already exists: %s", request.TargetPath)
+			return nil, fmt.Errorf("%w: %s", domain.ErrTargetPathAlreadyExists, request.TargetPath)
 		}
 
 		ms.logger.Warn(ctx, "Target path exists, removing", map[string]interface{}{
@@ -189,7 +191,6 @@ func (ms *MirrorService) VerifyMirror(ctx context.Context, targetPath string) (*
 
 		return nil
 	})
-
 	if err != nil {
 		verification.IsValid = false
 		verification.Errors = append(verification.Errors, err.Error())
@@ -238,7 +239,7 @@ func (ms *MirrorService) DeleteMirror(ctx context.Context, targetPath string) er
 	})
 
 	if !ms.pathExists(targetPath) {
-		return fmt.Errorf("target path does not exist: %s", targetPath)
+		return fmt.Errorf("%w: %s", domain.ErrTargetPathDoesNotExist, targetPath)
 	}
 
 	if err := os.RemoveAll(targetPath); err != nil {
@@ -253,10 +254,10 @@ func (ms *MirrorService) DeleteMirror(ctx context.Context, targetPath string) er
 }
 
 // performMirror performs the actual mirroring operation.
-func (ms *MirrorService) performMirror(ctx context.Context, request MirrorRequest, result *MirrorResult) error {
+func (ms *MirrorService) performMirror(_ /* ctx */ context.Context, request MirrorRequest, result *MirrorResult) error {
 	sourcePath := request.SourceRepository.Path()
 
-	return filepath.Walk(sourcePath, func(path string, info os.FileInfo, err error) error {
+	if err := filepath.Walk(sourcePath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			result.Warnings = append(result.Warnings, fmt.Sprintf("Error accessing %s: %v", path, err))
 
@@ -266,7 +267,7 @@ func (ms *MirrorService) performMirror(ctx context.Context, request MirrorReques
 		// Get relative path
 		relPath, err := filepath.Rel(sourcePath, path)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to get relative path: %w", err)
 		}
 
 		// Skip if it matches exclude patterns
@@ -296,7 +297,11 @@ func (ms *MirrorService) performMirror(ctx context.Context, request MirrorReques
 		result.TotalSize += info.Size()
 
 		return nil
-	})
+	}); err != nil {
+		return fmt.Errorf("failed to walk source directory: %w", err)
+	}
+
+	return nil
 }
 
 // shouldExclude checks if a path should be excluded.
@@ -347,7 +352,7 @@ func (ms *MirrorService) copyFile(sourcePath, targetPath string) error {
 	// #nosec G304 - Source path comes from controlled directory mirroring
 	sourceFile, err := os.Open(sourcePath)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to open source file: %w", err)
 	}
 
 	defer func() {
@@ -359,13 +364,13 @@ func (ms *MirrorService) copyFile(sourcePath, targetPath string) error {
 
 	// Ensure target directory exists
 	if err := os.MkdirAll(filepath.Dir(targetPath), 0750); err != nil {
-		return err
+		return fmt.Errorf("failed to create target directory: %w", err)
 	}
 
 	// #nosec G304 - Target path is constructed from validated components
 	targetFile, err := os.Create(targetPath)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create target file: %w", err)
 	}
 
 	defer func() {
@@ -378,20 +383,24 @@ func (ms *MirrorService) copyFile(sourcePath, targetPath string) error {
 	// Copy file content
 	_, err = targetFile.ReadFrom(sourceFile)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to copy file content: %w", err)
 	}
 
 	// Copy file permissions
 	sourceInfo, err := sourceFile.Stat()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get source file info: %w", err)
 	}
 
-	return os.Chmod(targetPath, sourceInfo.Mode())
+	if err := os.Chmod(targetPath, sourceInfo.Mode()); err != nil {
+		return fmt.Errorf("failed to set file permissions: %w", err)
+	}
+
+	return nil
 }
 
 // createMetadataFile creates a metadata file for the mirror.
-func (ms *MirrorService) createMetadataFile(ctx context.Context, targetPath string, metadata MirrorMetadata) error {
+func (ms *MirrorService) createMetadataFile(_ /* ctx */ context.Context, targetPath string, metadata MirrorMetadata) error {
 	// This would create a JSON metadata file
 	// For now, we'll just create a simple text file
 	metadataPath := filepath.Join(targetPath, ".mirror-metadata.txt")
@@ -401,19 +410,23 @@ func (ms *MirrorService) createMetadataFile(ctx context.Context, targetPath stri
 		metadata.Source,
 		metadata.CreatedBy)
 
-	return os.WriteFile(metadataPath, []byte(content), 0600)
+	if err := os.WriteFile(metadataPath, []byte(content), 0600); err != nil {
+		return fmt.Errorf("failed to write metadata file: %w", err)
+	}
+
+	return nil
 }
 
 // createArchive creates an archive of the mirrored directory.
 func (ms *MirrorService) createArchive(ctx context.Context, targetPath string, options MirrorOptions) error {
 	// This would create an archive based on the specified format
-	// For now, we'll skip the implementation
+	// For now, we'll skip the implementation and return an error
 	ms.logger.Debug(ctx, "Archive creation requested but not implemented", map[string]interface{}{
 		"target_path": targetPath,
 		"format":      options.ArchiveFormat,
 	})
 
-	return nil
+	return fmt.Errorf("archive creation not implemented for format: %s", options.ArchiveFormat)
 }
 
 // pathExists checks if a path exists.

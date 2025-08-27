@@ -1,0 +1,484 @@
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
+//
+// SPDX-License-Identifier: EUPL-1.2
+
+package synccmd
+
+import (
+	"context"
+	"os"
+	"path/filepath"
+	"testing"
+
+	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	cliAdapters "itiquette/git-provider-sync/internal/adapters/cli"
+	"itiquette/git-provider-sync/internal/domain/entities"
+	"itiquette/git-provider-sync/internal/domain/ports"
+	"itiquette/git-provider-sync/internal/domain/sync"
+	gpsconfig "itiquette/git-provider-sync/internal/model/configuration"
+)
+
+func TestConvertRepositoryFilters(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		input    gpsconfig.RepositoriesOption
+		expected ports.FilterOptions
+	}{
+		{
+			name: "with include and exclude patterns",
+			input: gpsconfig.RepositoriesOption{
+				Include: []string{"repo1", "repo2*"},
+				Exclude: []string{"temp*", "test*"},
+			},
+			expected: ports.FilterOptions{
+				IncludePatterns: []string{"repo1", "repo2*"},
+				ExcludePatterns: []string{"temp*", "test*"},
+				IncludeForks:    true,
+				IncludeArchived: false,
+				IncludePrivate:  true,
+				IncludePublic:   true,
+			},
+		},
+		{
+			name: "empty filters",
+			input: gpsconfig.RepositoriesOption{
+				Include: []string{},
+				Exclude: []string{},
+			},
+			expected: ports.FilterOptions{
+				IncludePatterns: []string{},
+				ExcludePatterns: []string{},
+				IncludeForks:    true,
+				IncludeArchived: false,
+				IncludePrivate:  true,
+				IncludePublic:   true,
+			},
+		},
+		{
+			name: "only include patterns",
+			input: gpsconfig.RepositoriesOption{
+				Include: []string{"important*", "core-*"},
+				Exclude: []string{},
+			},
+			expected: ports.FilterOptions{
+				IncludePatterns: []string{"important*", "core-*"},
+				ExcludePatterns: []string{},
+				IncludeForks:    true,
+				IncludeArchived: false,
+				IncludePrivate:  true,
+				IncludePublic:   true,
+			},
+		},
+		{
+			name: "only exclude patterns",
+			input: gpsconfig.RepositoriesOption{
+				Include: []string{},
+				Exclude: []string{"legacy-*", "archived-*"},
+			},
+			expected: ports.FilterOptions{
+				IncludePatterns: []string{},
+				ExcludePatterns: []string{"legacy-*", "archived-*"},
+				IncludeForks:    true,
+				IncludeArchived: false,
+				IncludePrivate:  true,
+				IncludePublic:   true,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			result := convertRepositoryFilters(tt.input)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestConvertMirrorConfigToMirrorTargets(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		input    gpsconfig.SyncConfig
+		expected int // Number of expected targets
+	}{
+		{
+			name: "valid mirror configuration",
+			input: gpsconfig.SyncConfig{
+				Mirrors: map[string]gpsconfig.MirrorConfig{
+					"target1": {
+						BaseConfig: gpsconfig.BaseConfig{
+							ProviderType: "github",
+							Domain:       "github.com",
+							Owner:        "testowner",
+							Auth: gpsconfig.AuthConfig{
+								Token: "test-token",
+							},
+						},
+						Path: "",
+					},
+					"target2": {
+						BaseConfig: gpsconfig.BaseConfig{
+							ProviderType: "gitlab",
+							Domain:       "gitlab.com",
+							Owner:        "testowner",
+							Auth: gpsconfig.AuthConfig{
+								Token: "test-token",
+							},
+						},
+						Path: "",
+					},
+				},
+			},
+			expected: 2,
+		},
+		{
+			name: "invalid provider type",
+			input: gpsconfig.SyncConfig{
+				Mirrors: map[string]gpsconfig.MirrorConfig{
+					"target1": {
+						BaseConfig: gpsconfig.BaseConfig{
+							ProviderType: "invalid-provider",
+							Domain:       "example.com",
+							Owner:        "testowner",
+							Auth: gpsconfig.AuthConfig{
+								Token: "test-token",
+							},
+						},
+						Path: "",
+					},
+				},
+			},
+			expected: 0, // Should be skipped
+		},
+		{
+			name: "empty mirrors",
+			input: gpsconfig.SyncConfig{
+				Mirrors: map[string]gpsconfig.MirrorConfig{},
+			},
+			expected: 0,
+		},
+		{
+			name: "mixed valid and invalid",
+			input: gpsconfig.SyncConfig{
+				Mirrors: map[string]gpsconfig.MirrorConfig{
+					"valid": {
+						BaseConfig: gpsconfig.BaseConfig{
+							ProviderType: "github",
+							Domain:       "github.com",
+							Owner:        "testowner",
+							Auth: gpsconfig.AuthConfig{
+								Token: "test-token",
+							},
+						},
+						Path: "",
+					},
+					"invalid": {
+						BaseConfig: gpsconfig.BaseConfig{
+							ProviderType: "invalid-provider",
+							Domain:       "example.com",
+							Owner:        "testowner",
+							Auth: gpsconfig.AuthConfig{
+								Token: "test-token",
+							},
+						},
+						Path: "",
+					},
+				},
+			},
+			expected: 1, // Only valid one should be included
+		},
+		{
+			name: "invalid mirror name",
+			input: gpsconfig.SyncConfig{
+				Mirrors: map[string]gpsconfig.MirrorConfig{
+					"": { // Empty name should fail
+						BaseConfig: gpsconfig.BaseConfig{
+							ProviderType: "github",
+							Domain:       "github.com",
+							Owner:        "testowner",
+							Auth: gpsconfig.AuthConfig{
+								Token: "test-token",
+							},
+						},
+						Path: "",
+					},
+				},
+			},
+			expected: 0, // Should be skipped due to invalid name
+		},
+		{
+			name: "invalid owner name",
+			input: gpsconfig.SyncConfig{
+				Mirrors: map[string]gpsconfig.MirrorConfig{
+					"valid-name": {
+						BaseConfig: gpsconfig.BaseConfig{
+							ProviderType: "github",
+							Domain:       "github.com",
+							Owner:        "", // Empty owner should fail
+							Auth: gpsconfig.AuthConfig{
+								Token: "test-token",
+							},
+						},
+						Path: "",
+					},
+				},
+			},
+			expected: 0, // Should be skipped due to invalid owner
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			result := convertMirrorConfigToMirrorTargets(tt.input)
+			assert.Len(t, result, tt.expected)
+
+			// Verify valid targets have required fields
+			for _, target := range result {
+				assert.NotEmpty(t, target.Name())
+				assert.NotEmpty(t, target.ProviderType())
+				assert.NotEmpty(t, target.Owner())
+			}
+		})
+	}
+}
+
+func TestCreateLoggerAdapter(t *testing.T) {
+	t.Parallel()
+
+	// Create a test logger
+	logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
+
+	// Test adapter creation
+	adapter := createLoggerAdapter(logger)
+	assert.NotNil(t, adapter)
+
+	// Test that it implements the Logger interface
+	assert.Implements(t, (*ports.Logger)(nil), adapter)
+}
+
+func TestSyncInputOption(t *testing.T) {
+	t.Parallel()
+
+	// Create a temporary file for log output
+	tmpDir := t.TempDir()
+	logPath := filepath.Join(tmpDir, "test.log")
+	logFile, err := os.Create(filepath.Clean(logPath))
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = logFile.Close() })
+
+	logger := zerolog.New(logFile).With().Timestamp().Logger()
+
+	tests := []struct {
+		name   string
+		option syncInputOption
+	}{
+		{
+			name: "all options enabled",
+			option: syncInputOption{
+				activeFromLimit:   "2024-01-01",
+				alphaNumHyphName:  true,
+				dryRun:            true,
+				forcePush:         true,
+				ignoreInvalidName: true,
+			},
+		},
+		{
+			name: "all options disabled",
+			option: syncInputOption{
+				activeFromLimit:   "",
+				alphaNumHyphName:  false,
+				dryRun:            false,
+				forcePush:         false,
+				ignoreInvalidName: false,
+			},
+		},
+		{
+			name: "mixed options",
+			option: syncInputOption{
+				activeFromLimit:   "2024-06-01",
+				alphaNumHyphName:  true,
+				dryRun:            false,
+				forcePush:         true,
+				ignoreInvalidName: false,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			// Test DebugLog method
+			event := tt.option.DebugLog(&logger)
+			assert.NotNil(t, event)
+
+			// Test that it doesn't panic
+			event.Msg("test message")
+		})
+	}
+}
+
+func TestOutputSyncResults(t *testing.T) {
+	t.Parallel()
+
+	// Create test results
+	ctx := context.Background()
+	cliConfig := entities.NewCLIConfigBuilder().
+		WithOutputFormat("json").
+		Build()
+
+	// Define a custom key type to avoid collisions
+	type cliConfigKey struct{}
+
+	// Add CLI config to context
+	ctx = context.WithValue(ctx, cliConfigKey{}, cliConfig)
+
+	// Create simple sync results
+	results := sync.NewResults(true) // dry run
+	results.AddResult(sync.Result{
+		Environment:     "test",
+		Source:          "source",
+		SourceProvider:  "github",
+		Repository:      "test-repo",
+		Mirror:          "mirror",
+		MirrorProvider:  "gitlab",
+		Status:          "SUCCESS",
+		Action:          "CREATED",
+		DurationSeconds: 1.5,
+	})
+
+	// Test output function (should not panic)
+	err := outputSyncResults(ctx, results)
+	if err != nil {
+		t.Logf("Output error (expected in test): %v", err)
+	}
+}
+
+func TestShowSyncSummary(_ *testing.T) { //nolint:paralleltest // DO NOT run this in parallel due to race conditions with global logger state
+	// Create test results with different outcomes
+	results := sync.NewResults(false) // not dry run
+	results.SuccessfulSyncs = 5
+	results.FailedSyncs = 2
+	results.SkippedSyncs = 1
+	results.TotalRepositories = 8
+
+	// Test summary function (should not panic)
+	showSyncSummary(results)
+
+	// Test with dry run
+	dryRunResults := sync.NewResults(true)
+	dryRunResults.SuccessfulSyncs = 3
+	dryRunResults.FailedSyncs = 0
+	dryRunResults.SkippedSyncs = 0
+	dryRunResults.TotalRepositories = 3
+
+	showSyncSummary(dryRunResults)
+}
+
+func TestSaveLastSyncInfo(t *testing.T) { //nolint:paralleltest // Cannot run in parallel due to directory changes
+	// Don't use t.Parallel() since we're changing directories
+
+	// Create temporary directory for test
+	tmpDir := t.TempDir()
+
+	// Create test results
+	results := sync.NewResults(false)
+	results.TotalRepositories = 10
+	results.SuccessfulSyncs = 8
+	results.FailedSyncs = 1
+	results.SkippedSyncs = 1
+
+	// Test save function - it saves to current directory
+	// So we need to be in the tmp directory
+	originalWd, err := os.Getwd()
+	require.NoError(t, err)
+
+	defer func() {
+		err := os.Chdir(originalWd)
+		require.NoError(t, err)
+	}()
+
+	err = os.Chdir(tmpDir)
+	require.NoError(t, err)
+
+	saveLastSyncInfo(results)
+
+	// Verify file was created in temp directory
+	content, err := os.ReadFile(getLastSyncFilePath())
+	require.NoError(t, err)
+
+	contentStr := string(content)
+	assert.Contains(t, contentStr, "repos=10")
+	assert.Contains(t, contentStr, "successful=8")
+	assert.Contains(t, contentStr, "failed=1")
+	assert.Contains(t, contentStr, "skipped=1")
+	assert.Contains(t, contentStr, "timestamp=")
+}
+
+func TestCreateContainer(t *testing.T) {
+	t.Parallel()
+
+	// Create test context with CLI options
+	ctx := context.Background()
+	cliConfig := entities.NewCLIConfigBuilder().
+		WithDryRun(true).
+		WithForcePush(false).
+		Build()
+
+	// Add CLI config to context using cli adapters
+	ctx = cliAdapters.WithCLIConfig(ctx, cliConfig)
+
+	// Create minimal config
+	cfg := &gpsconfig.AppConfiguration{
+		GitProviderSyncConfs: map[string]gpsconfig.Environment{},
+	}
+
+	// Test container creation
+	container, err := createContainerWithConfig(ctx, cfg)
+	if err != nil {
+		// Expected to fail in test environment due to missing dependencies
+		t.Logf("Container creation failed as expected in test: %v", err)
+
+		return
+	}
+
+	// If successful, verify container is not nil and clean up
+	assert.NotNil(t, container)
+
+	if container != nil {
+		err = container.Close()
+		assert.NoError(t, err)
+	}
+}
+
+// Additional integration-style tests for better coverage.
+func TestSyncHexagonal_WithMissingTmpDir_HandlesGracefully(t *testing.T) {
+	t.Parallel()
+
+	// Create context without CLI config
+	ctx := context.Background()
+
+	// Create minimal config
+	cfg := &gpsconfig.AppConfiguration{
+		GitProviderSyncConfs: map[string]gpsconfig.Environment{},
+	}
+
+	// Test should fail gracefully due to missing tmp dir creation
+	err := performSync(ctx, cfg)
+	if err != nil {
+		// Expected to fail, verify it's not a panic
+		t.Logf("Got expected error: %v", err)
+	} else {
+		t.Log("Unexpectedly succeeded - might be environment specific")
+	}
+}

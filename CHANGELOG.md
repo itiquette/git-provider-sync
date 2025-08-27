@@ -20,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- V0.1.1
+- Release version 0.1.1
 - Update cgr.dev/chainguard
 - Update github actions minor and patch updates
 - Disable gitleaks until fixed in ml
@@ -44,7 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- V0.1.0
+- Release version 0.1.0
 - Restructure badges
 - Automerge container updates
 - Update github actions minor and patch updates
@@ -74,7 +74,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- V0.0.21
+- Release version 0.0.21
 - Pin google/clusterfuzzlite action to 884713a
 - Improve security score
 - Improve badge status
@@ -95,7 +95,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- V0.0.20
+- Release version 0.0.20
 - Improve protect interface
 - Improver provider interface
 - Improve pullopt

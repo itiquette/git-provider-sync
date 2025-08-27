@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
@@ -45,23 +45,18 @@ type ProjectInfo struct {
 	ASCIIName bool
 }
 
+// SetASCIIName sets the ASCII name flag for the project.
 func (rm *ProjectInfo) SetASCIIName(name bool) {
 	rm.ASCIIName = name
 }
 
+// SetCleanName sets the clean name for the project.
 func (rm *ProjectInfo) SetCleanName(name string) {
 	rm.CleanName = name
 }
 
 // Name returns the repository name, optionally cleaned up based on CLI options.
-// If the ASCIIName option is set in the context, it removes non-alphanumeric
-// characters from the original name.
-//
-// Parameters:
-//   - ctx: A context.Context that may contain CLI options.
-//
-// Returns:
-//   - A string representing the (possibly cleaned) repository name.
+// If ASCIIName is enabled, returns the cleaned name, otherwise returns the original name.
 func (rm ProjectInfo) Name(_ context.Context) string {
 	if rm.ASCIIName {
 		return rm.CleanName
@@ -71,15 +66,6 @@ func (rm ProjectInfo) Name(_ context.Context) string {
 }
 
 // DebugLog creates a debug log event with repository metadata.
-// This method is useful for debugging and tracing repository operations.
-//
-// Parameters:
-//   - logger: A pointer to a zerolog.Logger to log the debug information.
-//
-// Returns:
-//   - A pointer to a zerolog.Event containing the repository metadata.
-//
-// Note: This method uses the Time() method to safely handle the LastActivityAt field.
 func (rm ProjectInfo) DebugLog(logger *zerolog.Logger) *zerolog.Event {
 	return logger.Debug(). //nolint:zerologlint
 				Str("defaultBranch", rm.DefaultBranch).
@@ -90,11 +76,6 @@ func (rm ProjectInfo) DebugLog(logger *zerolog.Logger) *zerolog.Event {
 }
 
 // Time returns the LastActivityAt time or the zero time if it's nil.
-// This method provides a safe way to access the LastActivityAt field,
-// ensuring that a valid time.Time is always returned.
-//
-// Returns:
-//   - A time.Time representing the last activity time, or a zero time if not set.
 func (rm ProjectInfo) Time() time.Time {
 	if rm.LastActivityAt == nil {
 		return time.Time{}

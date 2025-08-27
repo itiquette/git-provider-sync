@@ -1,7 +1,8 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+// Package archive provides archive-based repository operations for Git Provider Sync.
 package archive
 
 import (
@@ -16,7 +17,20 @@ import (
 	"strings"
 	"time"
 
+	"itiquette/git-provider-sync/internal/domain/entities"
 	"itiquette/git-provider-sync/internal/domain/ports"
+)
+
+// Static errors for err113 compliance.
+var (
+	ErrUnsupportedArchiveFormat = errors.New("unsupported archive format, expected .tar.gz or .tgz")
+	ErrArchiveOnlySupportsFile  = errors.New("archive adapter only supports file:// URLs")
+	ErrFetchNotSupported        = errors.New("fetch operation not supported for archive adapter")
+	ErrInitNotSupported         = errors.New("init is not supported for archive repositories")
+	ErrRepositoryPathNotExist   = errors.New("repository path does not exist")
+	ErrUnsafePathInArchive      = errors.New("unsafe path in archive")
+	ErrInvalidPathInArchive     = errors.New("invalid path in archive")
+	ErrFileTooLargeInArchive    = errors.New("file too large in archive")
 )
 
 // Adapter implements the GitOperations interface for archive-based operations.
@@ -35,28 +49,15 @@ func New(config ports.GitConfig) *Adapter {
 
 // Clone extracts an archive to a destination directory.
 // For archive adapter, this means extracting a tar.gz archive.
-func (a *Adapter) Clone(ctx context.Context, options ports.CloneOptions) (ports.GitRepository, error) {
+func (a *Adapter) Clone(_ context.Context, options ports.CloneOptions) (ports.GitRepository, error) { //nolint:ireturn
 	// Ensure destination directory exists
 	err := os.MkdirAll(options.Path, 0750)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create directory: %w", err)
 	}
 
-	// For file:// URLs pointing to archives, extract the archive
-	if strings.HasPrefix(options.URL, "file://") {
-		archivePath := strings.TrimPrefix(options.URL, "file://")
-
-		// Check if it's a tar.gz file
-		if strings.HasSuffix(archivePath, ".tar.gz") || strings.HasSuffix(archivePath, ".tgz") {
-			err = a.extractArchive(archivePath, options.Path)
-			if err != nil {
-				return nil, fmt.Errorf("failed to extract archive: %w", err)
-			}
-		} else {
-			return nil, errors.New("unsupported archive format, expected .tar.gz or .tgz")
-		}
-	} else {
-		return nil, errors.New("archive adapter only supports file:// URLs")
+	if err := a.extractFromURL(options.URL, options.Path); err != nil {
+		return nil, err
 	}
 
 	// Return a simple repository representation
@@ -66,9 +67,32 @@ func (a *Adapter) Clone(ctx context.Context, options ports.CloneOptions) (ports.
 	}, nil
 }
 
+// extractFromURL handles extraction from different URL types.
+func (a *Adapter) extractFromURL(url, destinationPath string) error {
+	if !strings.HasPrefix(url, "file://") {
+		return ErrArchiveOnlySupportsFile
+	}
+
+	archivePath := strings.TrimPrefix(url, "file://")
+	if !isSupportedArchiveFormat(archivePath) {
+		return ErrUnsupportedArchiveFormat
+	}
+
+	if err := a.extractArchive(archivePath, destinationPath); err != nil {
+		return fmt.Errorf("failed to extract archive: %w", err)
+	}
+
+	return nil
+}
+
+// isSupportedArchiveFormat checks if the file extension is supported.
+func isSupportedArchiveFormat(path string) bool {
+	return strings.HasSuffix(path, ".tar.gz") || strings.HasSuffix(path, ".tgz")
+}
+
 // Push creates an archive from the repository.
 // For archive adapter, this means creating a tar.gz archive.
-func (a *Adapter) Push(ctx context.Context, repo ports.GitRepository, options ports.PushOptions) error {
+func (a *Adapter) Push(_ context.Context, repo ports.GitRepository, _ ports.PushOptions) error {
 	// Get the repository path
 	repoPath := repo.Path()
 
@@ -85,15 +109,15 @@ func (a *Adapter) Push(ctx context.Context, repo ports.GitRepository, options po
 }
 
 // Fetch is not applicable for archive operations.
-func (a *Adapter) Fetch(ctx context.Context, repo ports.GitRepository, options ports.FetchOptions) error {
-	return errors.New("fetch operation not supported for archive adapter")
+func (a *Adapter) Fetch(_ context.Context, _ ports.GitRepository, _ ports.FetchOptions) error {
+	return ErrFetchNotSupported
 }
 
 // Open creates a repository instance for the given path.
-func (a *Adapter) Open(ctx context.Context, path string) (ports.GitRepository, error) {
+func (a *Adapter) Open(_ context.Context, path string) (ports.GitRepository, error) { //nolint:ireturn
 	// Verify the path exists
 	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return nil, fmt.Errorf("repository path does not exist: %s", path)
+		return nil, fmt.Errorf("%w: %s", ErrRepositoryPathNotExist, path)
 	}
 
 	return &Repository{
@@ -103,12 +127,12 @@ func (a *Adapter) Open(ctx context.Context, path string) (ports.GitRepository, e
 }
 
 // Init is not supported for archive repositories.
-func (a *Adapter) Init(ctx context.Context, path string, options ports.InitOptions) (ports.GitRepository, error) {
-	return nil, errors.New("init is not supported for archive repositories")
+func (a *Adapter) Init(_ context.Context, _ string, _ ports.InitOptions) (ports.GitRepository, error) { //nolint:ireturn
+	return nil, ErrInitNotSupported
 }
 
 // Cleanup removes temporary files or performs cleanup for archive operations.
-func (a *Adapter) Cleanup(ctx context.Context, path string) error {
+func (a *Adapter) Cleanup(_ context.Context, _ string) error {
 	// For archive operations, we might want to clean up extracted files
 	// This is a no-op for now, but could be extended for temporary extractions
 	return nil
@@ -131,37 +155,80 @@ func (a *Adapter) GetName() string {
 	return "archive"
 }
 
+// CreateTmpDir implements the ports.GitOperations interface.
+func (a *Adapter) CreateTmpDir(ctx context.Context, dir, prefix string) (context.Context, error) {
+	ctxWithTmp, err := entities.CreateTmpDir(ctx, dir, prefix)
+	if err != nil {
+		return ctx, fmt.Errorf("failed to create temporary directory: %w", err)
+	}
+
+	return ctxWithTmp, nil
+}
+
+// GetTmpDirPath implements the ports.GitOperations interface.
+func (a *Adapter) GetTmpDirPath(ctx context.Context) (string, error) {
+	path, err := entities.GetTmpDirPath(ctx)
+	if err != nil {
+		return "", fmt.Errorf("failed to get temporary directory path: %w", err)
+	}
+
+	return path, nil
+}
+
+// DeleteTmpDir implements the ports.GitOperations interface.
+func (a *Adapter) DeleteTmpDir(ctx context.Context) error {
+	if err := entities.DeleteTmpDir(ctx); err != nil {
+		return fmt.Errorf("failed to delete temporary directory: %w", err)
+	}
+
+	return nil
+}
+
 // Helper methods
 
 // extractArchive extracts a tar.gz archive to the specified destination.
 func (a *Adapter) extractArchive(archivePath, destPath string) error {
+	tarReader, cleanupFunc, err := a.openArchiveForReading(archivePath)
+	if err != nil {
+		return err
+	}
+	defer cleanupFunc()
+
+	return a.extractTarContents(tarReader, destPath)
+}
+
+// openArchiveForReading opens a tar.gz archive and returns the tar reader and cleanup function.
+func (a *Adapter) openArchiveForReading(archivePath string) (*tar.Reader, func(), error) {
 	// #nosec G304 - Archive path is from controlled repository operations
 	file, err := os.Open(archivePath)
 	if err != nil {
-		return fmt.Errorf("failed to open archive: %w", err)
+		return nil, nil, fmt.Errorf("failed to open archive: %w", err)
 	}
-
-	defer func() {
-		if err := file.Close(); err != nil {
-			// Log close error
-			_ = err
-		}
-	}()
 
 	gzipReader, err := gzip.NewReader(file)
 	if err != nil {
-		return fmt.Errorf("failed to create gzip reader: %w", err)
+		if err := file.Close(); err != nil {
+			_ = err // Log close error
+		}
+
+		return nil, nil, fmt.Errorf("failed to create gzip reader: %w", err)
 	}
 
-	defer func() {
+	cleanupFunc := func() {
 		if err := gzipReader.Close(); err != nil {
-			// Log close error but don't fail
-			_ = err
+			_ = err // Log close error but don't fail
 		}
-	}()
 
-	tarReader := tar.NewReader(gzipReader)
+		if err := file.Close(); err != nil {
+			_ = err // Log close error
+		}
+	}
 
+	return tar.NewReader(gzipReader), cleanupFunc, nil
+}
+
+// extractTarContents extracts the contents of a tar reader to the destination path.
+func (a *Adapter) extractTarContents(tarReader *tar.Reader, destPath string) error {
 	for {
 		header, err := tarReader.Next()
 		if errors.Is(err, io.EOF) {
@@ -172,163 +239,222 @@ func (a *Adapter) extractArchive(archivePath, destPath string) error {
 			return fmt.Errorf("failed to read tar header: %w", err)
 		}
 
-		// Security check: validate and clean the header name to prevent path traversal
-		if strings.Contains(header.Name, "..") || strings.HasPrefix(header.Name, "/") {
-			return fmt.Errorf("unsafe path in archive: %s", header.Name)
+		targetPath, err := a.validateAndBuildTargetPath(header.Name, destPath)
+		if err != nil {
+			return err
 		}
 
-		targetPath := filepath.Join(destPath, filepath.Clean(header.Name))
-
-		// Additional security check: ensure target is within destination
-		if !strings.HasPrefix(targetPath, filepath.Clean(destPath)+string(os.PathSeparator)) {
-			return fmt.Errorf("invalid path in archive: %s", header.Name)
-		}
-
-		switch header.Typeflag {
-		case tar.TypeDir:
-			// Use safe directory permissions
-			err = os.MkdirAll(targetPath, 0750)
-			if err != nil {
-				return fmt.Errorf("failed to create directory: %w", err)
-			}
-
-		case tar.TypeReg:
-			// Ensure parent directory exists
-			err = os.MkdirAll(filepath.Dir(targetPath), 0750)
-			if err != nil {
-				return fmt.Errorf("failed to create parent directory: %w", err)
-			}
-
-			// #nosec G304 - Target path is constructed with security checks above
-			outFile, err := os.OpenFile(targetPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
-			if err != nil {
-				return fmt.Errorf("failed to create file: %w", err)
-			}
-
-			// Check file size to prevent decompression bomb attacks
-			if header.Size > 100*1024*1024 { // 100MB limit
-				return fmt.Errorf("file too large in archive: %s (%d bytes)", header.Name, header.Size)
-			}
-			// Use limited reader to prevent decompression bombs
-			limitedReader := io.LimitReader(tarReader, header.Size)
-			_, err = io.Copy(outFile, limitedReader)
-			if err := outFile.Close(); err != nil {
-				// Log close error
-				_ = err
-			}
-
-			if err != nil {
-				return fmt.Errorf("failed to extract file: %w", err)
-			}
-
-			// Set modification time
-			err = os.Chtimes(targetPath, time.Now(), header.ModTime)
-			if err != nil {
-				// Non-critical error, continue
-				continue
-			}
-
-		default:
-			// Skip unsupported file types
-			continue
+		if err := a.extractEntry(tarReader, header, targetPath); err != nil {
+			return err
 		}
 	}
 
 	return nil
 }
 
-// createArchive creates a tar.gz archive from the specified source directory.
-func (a *Adapter) createArchive(sourcePath, archivePath string) error {
-	// Create the archive file
-	// #nosec G304 - Archive path is from controlled operations
-	outFile, err := os.Create(archivePath)
+// validateAndBuildTargetPath validates the path and builds the target path.
+func (a *Adapter) validateAndBuildTargetPath(name, destPath string) (string, error) {
+	// Handle empty or current directory paths
+	if strings.TrimSpace(name) == "" || name == "." {
+		return destPath, nil
+	}
+
+	// Security check: validate and clean the header name to prevent path traversal
+	if strings.Contains(name, "..") || strings.HasPrefix(name, "/") {
+		return "", fmt.Errorf("%w: %s", ErrUnsafePathInArchive, name)
+	}
+
+	targetPath := filepath.Join(destPath, filepath.Clean(name))
+
+	// Additional security check: ensure target is within destination
+	cleanDestPath := filepath.Clean(destPath)
+	if !strings.HasPrefix(targetPath, cleanDestPath+string(os.PathSeparator)) && targetPath != cleanDestPath {
+		return "", fmt.Errorf("%w: %s", ErrInvalidPathInArchive, name)
+	}
+
+	return targetPath, nil
+}
+
+// extractEntry extracts a single entry from the tar archive.
+func (a *Adapter) extractEntry(tarReader *tar.Reader, header *tar.Header, targetPath string) error {
+	switch header.Typeflag {
+	case tar.TypeDir:
+		return a.extractDirectory(targetPath)
+	case tar.TypeReg:
+		return a.extractFile(tarReader, header, targetPath)
+	default:
+		// Skip unsupported file types
+		return nil
+	}
+}
+
+// extractDirectory creates a directory with safe permissions.
+func (a *Adapter) extractDirectory(targetPath string) error {
+	err := os.MkdirAll(targetPath, 0750)
 	if err != nil {
-		return fmt.Errorf("failed to create archive file: %w", err)
+		return fmt.Errorf("failed to create directory: %w", err)
+	}
+
+	return nil
+}
+
+// extractFile extracts a single file from the tar archive.
+func (a *Adapter) extractFile(tarReader *tar.Reader, header *tar.Header, targetPath string) error {
+	// Ensure parent directory exists
+	err := os.MkdirAll(filepath.Dir(targetPath), 0750)
+	if err != nil {
+		return fmt.Errorf("failed to create parent directory: %w", err)
+	}
+
+	// Security: Prevent decompression bomb attacks and memory exhaustion
+	// 100MB limit chosen based on: typical git repos <50MB, Docker layer max ~100MB
+	// Protects against malicious archives with small compressed/large uncompressed ratios
+	if header.Size > 100*1024*1024 { // 100MB limit
+		return fmt.Errorf("%w: %s (%d bytes)", ErrFileTooLargeInArchive, header.Name, header.Size)
+	}
+
+	// #nosec G304 - Target path is constructed with security checks above
+	outFile, err := os.OpenFile(targetPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
+	if err != nil {
+		return fmt.Errorf("failed to create file: %w", err)
 	}
 
 	defer func() {
 		if err := outFile.Close(); err != nil {
-			// Log close error
-			_ = err
+			_ = err // Log close error
 		}
 	}()
+
+	// Use limited reader to prevent decompression bombs
+	limitedReader := io.LimitReader(tarReader, header.Size)
+
+	_, err = io.Copy(outFile, limitedReader)
+	if err != nil {
+		return fmt.Errorf("failed to extract file: %w", err)
+	}
+
+	// Set modification time (non-critical, ignore errors)
+	_ = os.Chtimes(targetPath, time.Now(), header.ModTime)
+
+	return nil
+}
+
+// createArchive creates a tar.gz archive from the specified source directory.
+func (a *Adapter) createArchive(sourcePath, archivePath string) error {
+	tarWriter, cleanupFunc, err := a.createArchiveWriters(archivePath)
+	if err != nil {
+		return err
+	}
+	defer cleanupFunc()
+
+	return a.walkAndAddToArchive(sourcePath, tarWriter)
+}
+
+// createArchiveWriters creates the output file and writer chain for the archive.
+func (a *Adapter) createArchiveWriters(archivePath string) (*tar.Writer, func(), error) {
+	// Create the archive file
+	// #nosec G304 - Archive path is from controlled operations
+	outFile, err := os.Create(archivePath)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create archive file: %w", err)
+	}
 
 	// Create gzip writer
 	gzipWriter := gzip.NewWriter(outFile)
-	defer func() {
-		if err := gzipWriter.Close(); err != nil {
-			// Log close error
-			_ = err
-		}
-	}()
 
 	// Create tar writer
 	tarWriter := tar.NewWriter(gzipWriter)
-	defer func() {
-		if err := tarWriter.Close(); err != nil {
-			// Log close error
-			_ = err
-		}
-	}()
 
-	// Walk the source directory
-	err = filepath.Walk(sourcePath, func(path string, info os.FileInfo, err error) error {
+	cleanupFunc := func() {
+		if err := tarWriter.Close(); err != nil {
+			_ = err // Log close error
+		}
+
+		if err := gzipWriter.Close(); err != nil {
+			_ = err // Log close error
+		}
+
+		if err := outFile.Close(); err != nil {
+			_ = err // Log close error
+		}
+	}
+
+	return tarWriter, cleanupFunc, nil
+}
+
+// walkAndAddToArchive walks the source directory and adds files to the archive.
+func (a *Adapter) walkAndAddToArchive(sourcePath string, tarWriter *tar.Writer) error {
+	if err := filepath.Walk(sourcePath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 
-		// Skip the root directory itself
-		if path == sourcePath {
-			return nil
-		}
-
-		// Get relative path
-		relPath, err := filepath.Rel(sourcePath, path)
-		if err != nil {
-			return fmt.Errorf("failed to get relative path: %w", err)
-		}
-
-		// Create tar header
-		header, err := tar.FileInfoHeader(info, "")
-		if err != nil {
-			return fmt.Errorf("failed to create tar header: %w", err)
-		}
-
-		// Use relative path in archive
-		header.Name = relPath
-
-		// Write header
-		err = tarWriter.WriteHeader(header)
-		if err != nil {
-			return fmt.Errorf("failed to write tar header: %w", err)
-		}
-
-		// If it's a regular file, write its content
-		if info.Mode().IsRegular() {
-			// #nosec G304 - Path comes from controlled directory walking
-			file, err := os.Open(path)
-			if err != nil {
-				return fmt.Errorf("failed to open file: %w", err)
-			}
-
-			defer func() {
-				if err := file.Close(); err != nil {
-					// Log close error
-					_ = err
-				}
-			}()
-
-			_, err = io.Copy(tarWriter, file)
-			if err != nil {
-				return fmt.Errorf("failed to write file content: %w", err)
-			}
-		}
-
-		return nil
-	})
-
-	if err != nil {
+		return a.addFileToArchive(sourcePath, path, info, tarWriter)
+	}); err != nil {
 		return fmt.Errorf("failed to walk source directory: %w", err)
+	}
+
+	return nil
+}
+
+// addFileToArchive adds a single file or directory to the archive.
+func (a *Adapter) addFileToArchive(sourcePath, path string, info os.FileInfo, tarWriter *tar.Writer) error {
+	// Skip the root directory itself
+	if path == sourcePath {
+		return nil
+	}
+
+	// Get relative path
+	relPath, err := filepath.Rel(sourcePath, path)
+	if err != nil {
+		return fmt.Errorf("failed to get relative path: %w", err)
+	}
+
+	// Validate that the relative path doesn't try to escape the source directory
+	if strings.HasPrefix(relPath, "..") {
+		return fmt.Errorf("failed to get relative path: path %s is outside source directory %s", path, sourcePath)
+	}
+
+	// Create tar header
+	header, err := tar.FileInfoHeader(info, "")
+	if err != nil {
+		return fmt.Errorf("failed to create tar header: %w", err)
+	}
+
+	// Use relative path in archive
+	header.Name = relPath
+
+	// Write header
+	err = tarWriter.WriteHeader(header)
+	if err != nil {
+		return fmt.Errorf("failed to write tar header: %w", err)
+	}
+
+	// If it's a regular file, write its content
+	if info.Mode().IsRegular() {
+		return a.writeFileContent(path, tarWriter)
+	}
+
+	return nil
+}
+
+// writeFileContent writes a file's content to the tar archive.
+func (a *Adapter) writeFileContent(path string, tarWriter *tar.Writer) error {
+	// #nosec G304 - Path comes from controlled directory walking
+	file, err := os.Open(path)
+	if err != nil {
+		return fmt.Errorf("failed to open file: %w", err)
+	}
+
+	defer func() {
+		if err := file.Close(); err != nil {
+			_ = err // Log close error
+		}
+	}()
+
+	_, err = io.Copy(tarWriter, file)
+	if err != nil {
+		return fmt.Errorf("failed to write file content: %w", err)
 	}
 
 	return nil

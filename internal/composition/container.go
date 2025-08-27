@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
@@ -7,12 +7,17 @@ package composition
 import (
 	"context"
 	"fmt"
+	"os"
+	"time"
+
+	"github.com/rs/zerolog"
 
 	"itiquette/git-provider-sync/internal/adapters/config"
+	"itiquette/git-provider-sync/internal/adapters/logging"
+	"itiquette/git-provider-sync/internal/adapters/repository/archive"
 	"itiquette/git-provider-sync/internal/adapters/transport"
 	"itiquette/git-provider-sync/internal/domain/ports"
 	"itiquette/git-provider-sync/internal/domain/sync"
-	"itiquette/git-provider-sync/internal/log"
 )
 
 // Container holds all application dependencies wired together.
@@ -44,6 +49,7 @@ func NewContainer(ctx context.Context, containerConfig ContainerConfig) (*Contai
 	configAdapter := config.New()
 
 	configSource := ports.NewConfigurationSource(ports.SourceTypeFile, containerConfig.ConfigPath)
+	configSource.Required = true
 
 	appConfig, err := configAdapter.Load(ctx, configSource)
 	if err != nil {
@@ -52,13 +58,19 @@ func NewContainer(ctx context.Context, containerConfig ContainerConfig) (*Contai
 
 	// 2. Create HTTP factory with configuration
 	httpConfig := getHTTPConfig(appConfig, containerConfig)
-	httpFactory := transport.NewHTTPFactory(httpConfig)
 
-	// 3. Create logger
-	logger := log.NewSimpleLoggerWithLevel(appConfig.GlobalSettings.LogLevel)
+	httpFactory, err := transport.NewHTTPFactory(httpConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create HTTP factory: %w", err)
+	}
+
+	// 3. Create logger using proper hexagonal adapter
+	zerologLevel := convertLogLevel(appConfig.GlobalSettings.LogLevel)
+	zerologInstance := zerolog.New(os.Stderr).Level(zerologLevel).With().Timestamp().Logger()
+	logger := logging.NewZerologAdapter(&zerologInstance)
 
 	// 4. Create provider factory
-	providerFactory := NewProviderFactoryWithTransport(httpFactory, logger)
+	providerFactory := NewProviderFactory(httpFactory, logger)
 
 	// 5. Create git factory
 	gitConfig := getGitConfig(appConfig, containerConfig)
@@ -81,7 +93,7 @@ func (c *Container) Configuration() ports.AppConfiguration {
 }
 
 // ConfigAdapter returns the configuration adapter.
-func (c *Container) ConfigAdapter() ports.Configuration {
+func (c *Container) ConfigAdapter() ports.Configuration { //nolint:ireturn // Getter returning interface
 	return c.configAdapter
 }
 
@@ -104,8 +116,11 @@ func (c *Container) HTTPFactory() *transport.HTTPFactory {
 func (c *Container) CreateSyncUseCase(
 	repositoryProvider ports.RepositoryProvider,
 	gitOperations ports.GitOperations,
-) sync.SyncRepositoriesUseCase {
-	return sync.NewSyncRepositoriesUseCase(c.configAdapter, repositoryProvider, gitOperations, c.logger)
+) sync.RepositoriesUseCase {
+	// Create archive operations with reasonable defaults
+	archiveOps := archive.NewOperations(c.logger, os.TempDir(), "/tmp/archives")
+
+	return sync.NewRepositoriesUseCase(c.configAdapter, repositoryProvider, gitOperations, archiveOps, c.logger)
 }
 
 // CreateValidateUseCase creates a validate use case with proper dependency injection.
@@ -121,25 +136,17 @@ func (c *Container) CreateFilterUseCase() sync.FilterRepositoriesUseCase {
 }
 
 // CreateProvider creates a provider for the given configuration.
-func (c *Container) CreateProvider(ctx context.Context, providerConfig ports.ProviderConfig) (ports.RepositoryProvider, error) {
+func (c *Container) CreateProvider(ctx context.Context, providerConfig ports.ProviderConfig) (ports.RepositoryProvider, error) { //nolint:ireturn // Factory method returning interface
 	return c.providerFactory.CreateProviderFromConfig(ctx, providerConfig)
 }
 
 // CreateGitOperations creates git operations for the given configuration.
-func (c *Container) CreateGitOperations(config ports.GitConfig) (ports.GitOperations, error) {
+func (c *Container) CreateGitOperations(config ports.GitConfig) (ports.GitOperations, error) { //nolint:ireturn // Factory method returning interface
 	return c.gitFactory.CreateOperations(config)
 }
 
 // Close performs cleanup of container resources.
 func (c *Container) Close() error {
-	// Stop configuration watching if active
-	if c.configAdapter != nil {
-		err := c.configAdapter.StopWatching()
-		if err != nil {
-			return fmt.Errorf("failed to stop configuration watching: %w", err)
-		}
-	}
-
 	return nil
 }
 
@@ -153,7 +160,7 @@ func getHTTPConfig(appConfig ports.AppConfiguration, containerConfig ContainerCo
 	if appConfig.GlobalSettings.LogLevel != "" {
 		// Configure timeout based on log level (debug = longer timeout)
 		if appConfig.GlobalSettings.LogLevel == ports.LogLevelDebug {
-			httpConfig.Timeout = httpConfig.Timeout * 2
+			httpConfig.Timeout *= 2
 		}
 	}
 
@@ -165,6 +172,17 @@ func getHTTPConfig(appConfig ports.AppConfiguration, containerConfig ContainerCo
 
 // getGitConfig extracts git configuration from app configuration.
 func getGitConfig(appConfig ports.AppConfiguration, containerConfig ContainerConfig) ports.GitConfig {
+	// Get git timeout from first environment's configuration if available
+	gitTimeout := 5 * time.Minute // Default 5 minutes
+
+	for _, env := range appConfig.Environments {
+		if env.Options.Timeout > 0 {
+			gitTimeout = env.Options.Timeout
+
+			break
+		}
+	}
+
 	return ports.GitConfig{
 		PreferredImplementation: "go-git", // Default to go-git
 		UserName:                "git-provider-sync",
@@ -172,6 +190,27 @@ func getGitConfig(appConfig ports.AppConfiguration, containerConfig ContainerCon
 		MaxConcurrent:           containerConfig.MaxConcurrency,
 		VerifySSL:               !containerConfig.SkipTLSVerify,
 		Debug:                   appConfig.GlobalSettings.LogLevel == ports.LogLevelDebug,
+		Timeout:                 gitTimeout,
+	}
+}
+
+// convertLogLevel converts domain LogLevel to zerolog.Level.
+func convertLogLevel(level ports.LogLevel) zerolog.Level {
+	switch level {
+	case ports.LogLevelTrace:
+		return zerolog.TraceLevel
+	case ports.LogLevelDebug:
+		return zerolog.DebugLevel
+	case ports.LogLevelInfo:
+		return zerolog.InfoLevel
+	case ports.LogLevelWarn:
+		return zerolog.WarnLevel
+	case ports.LogLevelError:
+		return zerolog.ErrorLevel
+	case ports.LogLevelFatal:
+		return zerolog.FatalLevel
+	default:
+		return zerolog.InfoLevel
 	}
 }
 

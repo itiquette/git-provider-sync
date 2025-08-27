@@ -1,6 +1,8 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
+
+// Package model provides configuration model types.
 package model
 
 import (
@@ -8,6 +10,7 @@ import (
 	"strings"
 )
 
+// SyncRunOption represents synchronization run configuration options.
 type SyncRunOption struct {
 	ForcePush         bool   `koanf:"forcepush"`
 	IgnoreInvalidName bool   `koanf:"ignoreinvalidname"`
@@ -17,6 +20,7 @@ type SyncRunOption struct {
 
 func (p SyncRunOption) String() string {
 	var parts []string
+
 	parts = append(parts, "SyncRunOption{")
 	parts = append(parts, "ForcePush: "+strconv.FormatBool(p.ForcePush))
 	parts = append(parts, "IgnoreInvalidName: "+strconv.FormatBool(p.IgnoreInvalidName))

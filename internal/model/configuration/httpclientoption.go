@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
@@ -8,6 +8,7 @@ import (
 	"fmt"
 )
 
+// HTTPClientOption represents HTTP client configuration options.
 type HTTPClientOption struct {
 	Scheme      string `koanf:"scheme"`
 	ProxyURL    string `koanf:"proxyurl"`

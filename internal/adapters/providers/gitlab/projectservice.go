@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
@@ -6,18 +6,19 @@ package gitlab
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 
 	"gitlab.com/gitlab-org/api/client-go"
 
+	"itiquette/git-provider-sync/internal/domain"
 	"itiquette/git-provider-sync/internal/domain/entities"
 	"itiquette/git-provider-sync/internal/domain/ports"
 )
 
 // ProjectService provides GitLab-specific project operations.
-// This restores the sophisticated project service functionality from main branch.
+//
+//	sophisticated project service functionality .
 type ProjectService struct {
 	client *gitlab.Client
 	logger ports.Logger
@@ -110,8 +111,8 @@ func (ps *ProjectService) GetProjectInfo(ctx context.Context, owner, name string
 	})
 
 	projectPath := owner + "/" + name
-	project, _, err := ps.client.Projects.GetProject(projectPath, nil)
 
+	project, _, err := ps.client.Projects.GetProject(projectPath, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get GitLab project %s: %w", projectPath, err)
 	}
@@ -164,39 +165,19 @@ func (ps *ProjectService) UpdateProject(ctx context.Context, owner, name string,
 
 // ValidateProjectName validates a GitLab project name.
 func (ps *ProjectService) ValidateProjectName(name string) error {
-	if name == "" {
-		return errors.New("project name cannot be empty")
+	if err := ps.validateBasicRequirements(name); err != nil {
+		return err
 	}
 
-	if len(name) > 100 {
-		return errors.New("project name too long (max 100 characters)")
+	if err := ps.validateNamingRules(name); err != nil {
+		return err
 	}
 
-	// GitLab project naming rules
-	if strings.HasPrefix(name, ".") || strings.HasSuffix(name, ".") {
-		return errors.New("project name cannot start or end with a period")
+	if err := ps.validateCharacters(name); err != nil {
+		return err
 	}
 
-	if strings.HasPrefix(name, "-") || strings.HasSuffix(name, "-") {
-		return errors.New("project name cannot start or end with a hyphen")
-	}
-
-	// Check for invalid characters
-	for _, char := range name {
-		if !isValidGitLabProjectChar(char) {
-			return fmt.Errorf("project name contains invalid character: %c", char)
-		}
-	}
-
-	// Reserved names
-	reservedNames := []string{".", "..", ".git", ".well-known", "admin", "api", "root", "help"}
-	for _, reserved := range reservedNames {
-		if strings.EqualFold(name, reserved) {
-			return fmt.Errorf("project name '%s' is reserved", name)
-		}
-	}
-
-	return nil
+	return ps.validateReservedNames(name)
 }
 
 // TransformProjectName transforms a project name according to GitLab conventions.
@@ -223,7 +204,7 @@ func (ps *ProjectService) TransformProjectName(name string, options ports.NameTr
 	}
 
 	if options.Suffix != "" {
-		result = result + options.Suffix
+		result += options.Suffix
 	}
 
 	// Make alphanumeric only if requested
@@ -245,16 +226,73 @@ func (ps *ProjectService) TransformProjectName(name string, options ports.NameTr
 	return result
 }
 
+// validateBasicRequirements checks basic naming requirements.
+func (ps *ProjectService) validateBasicRequirements(name string) error {
+	if name == "" {
+		return domain.ErrProjectNameEmpty
+	}
+
+	if len(name) > 100 {
+		return domain.ErrProjectNameTooLong
+	}
+
+	return nil
+}
+
+// validateNamingRules checks GitLab naming rules.
+func (ps *ProjectService) validateNamingRules(name string) error {
+	// GitLab project naming rules
+	if strings.HasPrefix(name, ".") || strings.HasSuffix(name, ".") {
+		return domain.ErrProjectNamePeriodBounds
+	}
+
+	if strings.HasPrefix(name, "-") || strings.HasSuffix(name, "-") {
+		return domain.ErrProjectNameHyphenBounds
+	}
+
+	return nil
+}
+
+// validateCharacters checks for invalid characters.
+func (ps *ProjectService) validateCharacters(name string) error {
+	// Check for invalid characters
+	for _, char := range name {
+		if !isValidGitLabProjectChar(char) {
+			return fmt.Errorf("%w: %c", domain.ErrProjectNameInvalidChar, char)
+		}
+	}
+
+	return nil
+}
+
+// validateReservedNames checks against reserved names.
+func (ps *ProjectService) validateReservedNames(name string) error {
+	// Reserved names
+	reservedNames := []string{".", "..", ".git", ".well-known", "admin", "api", "root", "help"}
+	for _, reserved := range reservedNames {
+		if strings.EqualFold(name, reserved) {
+			return fmt.Errorf("%w: '%s'", domain.ErrProjectNameReserved, name)
+		}
+	}
+
+	return nil
+}
+
 // buildProjectOptions builds GitLab project options from request.
 func (ps *ProjectService) buildProjectOptions(request CreateProjectRequest) *gitlab.CreateProjectOptions {
+	opts := ps.buildBasicProjectOptions(request)
+	ps.setProjectNamespace(opts, request)
+	ps.setProjectFeatures(opts, request)
+	ps.setProjectSettings(opts, request)
+
+	return opts
+}
+
+// buildBasicProjectOptions builds the basic project options.
+func (ps *ProjectService) buildBasicProjectOptions(request CreateProjectRequest) *gitlab.CreateProjectOptions {
 	opts := &gitlab.CreateProjectOptions{
 		Name:        &request.Name,
 		Description: &request.Description,
-	}
-
-	// Handle namespace (organization/group)
-	if request.IsOrganization {
-		opts.NamespaceID = ps.getNamespaceID(request.Owner)
 	}
 
 	// Set visibility
@@ -274,55 +312,28 @@ func (ps *ProjectService) buildProjectOptions(request CreateProjectRequest) *git
 		opts.ImportURL = &request.ImportURL
 	}
 
-	// Feature settings
-	if request.IssuesEnabled != nil {
-		if *request.IssuesEnabled {
-			opts.IssuesAccessLevel = gitlab.Ptr(gitlab.EnabledAccessControl)
-		} else {
-			opts.IssuesAccessLevel = gitlab.Ptr(gitlab.DisabledAccessControl)
-		}
-	}
+	return opts
+}
 
-	if request.WikiEnabled != nil {
-		if *request.WikiEnabled {
-			opts.WikiAccessLevel = gitlab.Ptr(gitlab.EnabledAccessControl)
-		} else {
-			opts.WikiAccessLevel = gitlab.Ptr(gitlab.DisabledAccessControl)
-		}
+// setProjectNamespace sets the namespace for organization projects.
+func (ps *ProjectService) setProjectNamespace(opts *gitlab.CreateProjectOptions, request CreateProjectRequest) {
+	if request.IsOrganization {
+		opts.NamespaceID = ps.getNamespaceID(request.Owner)
 	}
+}
 
-	if request.SnippetsEnabled != nil {
-		if *request.SnippetsEnabled {
-			opts.SnippetsAccessLevel = gitlab.Ptr(gitlab.EnabledAccessControl)
-		} else {
-			opts.SnippetsAccessLevel = gitlab.Ptr(gitlab.DisabledAccessControl)
-		}
-	}
+// setProjectFeatures sets feature access levels for the project.
+func (ps *ProjectService) setProjectFeatures(opts *gitlab.CreateProjectOptions, request CreateProjectRequest) {
+	ps.setIssuesAccess(opts, request.IssuesEnabled)
+	ps.setWikiAccess(opts, request.WikiEnabled)
+	ps.setSnippetsAccess(opts, request.SnippetsEnabled)
+	ps.setMergeRequestsAccess(opts, request.MergeRequestsEnabled)
+	ps.setBuildsAccess(opts, request.JobsEnabled)
+	ps.setContainerRegistryAccess(opts, request.ContainerRegistryEnabled)
+}
 
-	if request.MergeRequestsEnabled != nil {
-		if *request.MergeRequestsEnabled {
-			opts.MergeRequestsAccessLevel = gitlab.Ptr(gitlab.EnabledAccessControl)
-		} else {
-			opts.MergeRequestsAccessLevel = gitlab.Ptr(gitlab.DisabledAccessControl)
-		}
-	}
-
-	if request.JobsEnabled != nil {
-		if *request.JobsEnabled {
-			opts.BuildsAccessLevel = gitlab.Ptr(gitlab.EnabledAccessControl)
-		} else {
-			opts.BuildsAccessLevel = gitlab.Ptr(gitlab.DisabledAccessControl)
-		}
-	}
-
-	if request.ContainerRegistryEnabled != nil {
-		if *request.ContainerRegistryEnabled {
-			opts.ContainerRegistryAccessLevel = gitlab.Ptr(gitlab.EnabledAccessControl)
-		} else {
-			opts.ContainerRegistryAccessLevel = gitlab.Ptr(gitlab.DisabledAccessControl)
-		}
-	}
-
+// setProjectSettings sets additional project settings.
+func (ps *ProjectService) setProjectSettings(opts *gitlab.CreateProjectOptions, request CreateProjectRequest) {
 	if request.SharedRunnersEnabled != nil {
 		opts.SharedRunnersEnabled = request.SharedRunnersEnabled
 	}
@@ -331,18 +342,79 @@ func (ps *ProjectService) buildProjectOptions(request CreateProjectRequest) *git
 		opts.PackagesEnabled = request.PackagesEnabled
 	}
 
-	// ForksEnabled not available in this client version
-	_ = request.ForksEnabled
-
 	if request.RequestAccessEnabled != nil {
 		opts.RequestAccessEnabled = request.RequestAccessEnabled
 	}
 
-	// Pages access level
-	// PagesAccessLevel not available in this client version
+	// Features not available in this client version
+	_ = request.ForksEnabled
 	_ = request.PagesAccessLevel
+}
 
-	return opts
+// setIssuesAccess sets the issues access level.
+func (ps *ProjectService) setIssuesAccess(opts *gitlab.CreateProjectOptions, enabled *bool) {
+	if enabled != nil {
+		if *enabled {
+			opts.IssuesAccessLevel = gitlab.Ptr(gitlab.EnabledAccessControl)
+		} else {
+			opts.IssuesAccessLevel = gitlab.Ptr(gitlab.DisabledAccessControl)
+		}
+	}
+}
+
+// setWikiAccess sets the wiki access level.
+func (ps *ProjectService) setWikiAccess(opts *gitlab.CreateProjectOptions, enabled *bool) {
+	if enabled != nil {
+		if *enabled {
+			opts.WikiAccessLevel = gitlab.Ptr(gitlab.EnabledAccessControl)
+		} else {
+			opts.WikiAccessLevel = gitlab.Ptr(gitlab.DisabledAccessControl)
+		}
+	}
+}
+
+// setSnippetsAccess sets the snippets access level.
+func (ps *ProjectService) setSnippetsAccess(opts *gitlab.CreateProjectOptions, enabled *bool) {
+	if enabled != nil {
+		if *enabled {
+			opts.SnippetsAccessLevel = gitlab.Ptr(gitlab.EnabledAccessControl)
+		} else {
+			opts.SnippetsAccessLevel = gitlab.Ptr(gitlab.DisabledAccessControl)
+		}
+	}
+}
+
+// setMergeRequestsAccess sets the merge requests access level.
+func (ps *ProjectService) setMergeRequestsAccess(opts *gitlab.CreateProjectOptions, enabled *bool) {
+	if enabled != nil {
+		if *enabled {
+			opts.MergeRequestsAccessLevel = gitlab.Ptr(gitlab.EnabledAccessControl)
+		} else {
+			opts.MergeRequestsAccessLevel = gitlab.Ptr(gitlab.DisabledAccessControl)
+		}
+	}
+}
+
+// setBuildsAccess sets the builds/jobs access level.
+func (ps *ProjectService) setBuildsAccess(opts *gitlab.CreateProjectOptions, enabled *bool) {
+	if enabled != nil {
+		if *enabled {
+			opts.BuildsAccessLevel = gitlab.Ptr(gitlab.EnabledAccessControl)
+		} else {
+			opts.BuildsAccessLevel = gitlab.Ptr(gitlab.DisabledAccessControl)
+		}
+	}
+}
+
+// setContainerRegistryAccess sets the container registry access level.
+func (ps *ProjectService) setContainerRegistryAccess(opts *gitlab.CreateProjectOptions, enabled *bool) {
+	if enabled != nil {
+		if *enabled {
+			opts.ContainerRegistryAccessLevel = gitlab.Ptr(gitlab.EnabledAccessControl)
+		} else {
+			opts.ContainerRegistryAccessLevel = gitlab.Ptr(gitlab.DisabledAccessControl)
+		}
+	}
 }
 
 // applyDisabledSettings disables features on a GitLab project.
@@ -382,22 +454,22 @@ func (ps *ProjectService) convertToRepository(project *gitlab.Project) (*entitie
 
 	builder, err = builder.WithName(project.Name)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to set repository name: %w", err)
 	}
 
 	builder, err = builder.WithHTTPSURL(project.HTTPURLToRepo)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to set HTTPS URL: %w", err)
 	}
 
 	builder, err = builder.WithSSHURL(project.SSHURLToRepo)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to set SSH URL: %w", err)
 	}
 
 	builder, err = builder.WithDefaultBranch(project.DefaultBranch)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to set default branch: %w", err)
 	}
 
 	builder = builder.WithDescription(project.Description)
@@ -417,14 +489,14 @@ func (ps *ProjectService) convertToRepository(project *gitlab.Project) (*entitie
 
 	builtRepo, err := builder.Build()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to build repository: %w", err)
 	}
 
 	return &builtRepo, nil
 }
 
 // getNamespaceID resolves namespace ID from owner name.
-func (ps *ProjectService) getNamespaceID(owner string) *int {
+func (ps *ProjectService) getNamespaceID(_ string) *int {
 	// This would require an API call to resolve the namespace
 	// For now, we'll return nil and let GitLab handle the default
 	return nil
@@ -437,7 +509,7 @@ func (ps *ProjectService) convertToGitLabVisibility(visibility string) gitlab.Vi
 		return gitlab.PrivateVisibility
 	case "internal":
 		return gitlab.InternalVisibility
-	case "public":
+	case visibilityPublic:
 		return gitlab.PublicVisibility
 	default:
 		return gitlab.PublicVisibility
@@ -456,32 +528,6 @@ func (ps *ProjectService) convertFromGitLabVisibility(visibility gitlab.Visibili
 	default:
 		return "public"
 	}
-}
-
-// Note: Access level constants not available in this client version.
-// func (ps *ProjectService) convertToGitLabAccessLevel(level string) string {
-// 	switch strings.ToLower(level) {
-// 	case "disabled":
-// 		return "disabled"
-// 	case "private":
-// 		return "private"
-// 	case "enabled":
-// 		return "enabled"
-// 	case "public":
-// 		return "public"
-// 	default:
-// 		return "private"
-// 	}
-// }
-
-// isValidGitLabProjectChar checks if a character is valid in GitLab project names.
-func isValidGitLabProjectChar(char rune) bool {
-	return (char >= 'a' && char <= 'z') ||
-		(char >= 'A' && char <= 'Z') ||
-		(char >= '0' && char <= '9') ||
-		char == '-' ||
-		char == '_' ||
-		char == '.'
 }
 
 // makeAlphaNumeric converts a string to alphanumeric only (plus hyphens).
@@ -519,3 +565,29 @@ func (ps *ProjectService) sanitizeProjectName(name string) string {
 
 	return name
 }
+
+// isValidGitLabProjectChar checks if a character is valid in GitLab project names.
+func isValidGitLabProjectChar(char rune) bool {
+	return (char >= 'a' && char <= 'z') ||
+		(char >= 'A' && char <= 'Z') ||
+		(char >= '0' && char <= '9') ||
+		char == '-' ||
+		char == '_' ||
+		char == '.'
+}
+
+// Note: Access level constants not available in this client version.
+// func (ps *ProjectService) convertToGitLabAccessLevel(level string) string {
+// 	switch strings.ToLower(level) {
+// 	case "disabled":
+// 		return "disabled"
+// 	case "private":
+// 		return "private"
+// 	case "enabled":
+// 		return "enabled"
+// 	case "public":
+// 		return "public"
+// 	default:
+// 		return "private"
+// 	}
+// }

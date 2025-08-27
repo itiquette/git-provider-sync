@@ -1,0 +1,279 @@
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
+//
+// SPDX-License-Identifier: EUPL-1.2
+
+package filesystem
+
+import (
+	"context"
+	"fmt"
+	"os"
+	"path/filepath"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"itiquette/git-provider-sync/internal/domain/entities"
+)
+
+// TestTmpDirFunctional tests temp directory operations with real filesystem.
+func TestTmpDirFunctional(t *testing.T) {
+	t.Parallel()
+
+	tmpDir := t.TempDir()
+
+	tests := []struct {
+		name     string
+		testFunc func(t *testing.T, baseDir string)
+	}{
+		{
+			name:     "create_and_cleanup_nested_directories",
+			testFunc: testCreateAndCleanupNestedDirectories,
+		},
+		{
+			name:     "concurrent_directory_operations",
+			testFunc: testConcurrentDirectoryOperations,
+		},
+		{
+			name:     "directory_permissions",
+			testFunc: testDirectoryPermissions,
+		},
+		{
+			name:     "symlink_handling",
+			testFunc: testSymlinkHandling,
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			// Create isolated temp directory for each test
+			testDir := filepath.Join(tmpDir, testCase.name)
+			require.NoError(t, os.MkdirAll(testDir, 0750))
+
+			testCase.testFunc(t, testDir)
+		})
+	}
+}
+
+func testCreateAndCleanupNestedDirectories(t *testing.T, baseDir string) {
+	t.Helper()
+
+	ctx := context.Background()
+
+	// Create nested structure
+	subDirs := []string{"level1", "level1/level2", "level1/level2/level3"}
+	createdDirs := make([]string, 0, len(subDirs))
+
+	for _, subDir := range subDirs {
+		fullPath := filepath.Join(baseDir, subDir)
+		err := os.MkdirAll(fullPath, 0750)
+		require.NoError(t, err)
+
+		// Verify directory exists
+		assert.DirExists(t, fullPath)
+		createdDirs = append(createdDirs, fullPath)
+	}
+
+	// Create some files in the directories
+	testFile := filepath.Join(createdDirs[2], "test.txt")
+	require.NoError(t, os.WriteFile(testFile, []byte("test content"), 0600))
+	assert.FileExists(t, testFile)
+
+	// Test with tmpdir context functions
+	ctx = entities.WithTmpDir(ctx, baseDir)
+	tmpPath, err := entities.GetTmpDirPath(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, baseDir, tmpPath)
+
+	// Test subdirectory
+	subPath, err := entities.GetSubTmpDir(ctx, "level1/level2")
+	require.NoError(t, err)
+	assert.Equal(t, filepath.Join(baseDir, "level1/level2"), subPath)
+
+	// Cleanup
+	for i := len(createdDirs) - 1; i >= 0; i-- {
+		err := os.RemoveAll(createdDirs[i])
+		require.NoError(t, err)
+
+		// Verify directory is removed
+		assert.NoDirExists(t, createdDirs[i])
+	}
+}
+
+func testConcurrentDirectoryOperations(t *testing.T, baseDir string) {
+	t.Helper()
+	// Run multiple goroutines creating and deleting directories
+	numGoroutines := 5
+	done := make(chan bool, numGoroutines)
+
+	for routineID := range numGoroutines {
+		go func(id int) {
+			defer func() { done <- true }()
+
+			ctx := context.Background()
+			dirPath := filepath.Join(baseDir, "concurrent", "goroutine",
+				fmt.Sprintf("worker-%d", id))
+
+			// Create directory
+			err := os.MkdirAll(dirPath, 0750)
+			assert.NoError(t, err)
+
+			// Use context-based tmpdir
+			ctx, err = entities.CreateTmpDir(ctx, dirPath, "test")
+			assert.NoError(t, err)
+
+			// Write a file
+			testFile := filepath.Join(dirPath, "test.txt")
+			err = os.WriteFile(testFile, []byte("concurrent test"), 0600)
+			assert.NoError(t, err)
+
+			// Read the file back
+			content, err := os.ReadFile(testFile) //nolint:gosec // Test file with controlled path
+			assert.NoError(t, err)
+			assert.Equal(t, "concurrent test", string(content))
+
+			// Cleanup
+			err = entities.DeleteTmpDir(ctx)
+			assert.NoError(t, err)
+		}(routineID)
+	}
+
+	// Wait for all goroutines to complete
+	for range numGoroutines {
+		<-done
+	}
+}
+
+func testDirectoryPermissions(t *testing.T, baseDir string) {
+	t.Helper()
+
+	ctx := context.Background()
+
+	// Create directory using CreateTmpDir
+	ctx, err := entities.CreateTmpDir(ctx, baseDir, "permissions-test")
+	require.NoError(t, err)
+
+	tmpPath, err := entities.GetTmpDirPath(ctx)
+	require.NoError(t, err)
+
+	// Check default permissions
+	info, err := os.Stat(tmpPath)
+	require.NoError(t, err)
+	assert.True(t, info.IsDir())
+
+	// On Unix systems, check that we can read and write
+	testFile := filepath.Join(tmpPath, "perm-test.txt")
+	err = os.WriteFile(testFile, []byte("permission test"), 0600)
+	require.NoError(t, err)
+
+	content, err := os.ReadFile(testFile) //nolint:gosec // Test file with controlled path
+	require.NoError(t, err)
+	assert.Equal(t, "permission test", string(content))
+
+	// Cleanup
+	err = entities.DeleteTmpDir(ctx)
+	assert.NoError(t, err)
+}
+
+func testSymlinkHandling(t *testing.T, baseDir string) {
+	t.Helper()
+
+	ctx := context.Background()
+
+	// Create target directory
+	targetDir := filepath.Join(baseDir, "symlink-target")
+	require.NoError(t, os.MkdirAll(targetDir, 0750))
+
+	// Create a file in target
+	targetFile := filepath.Join(targetDir, "target.txt")
+	require.NoError(t, os.WriteFile(targetFile, []byte("target content"), 0600))
+
+	// Create symlink
+	symlinkPath := filepath.Join(baseDir, "symlink")
+
+	err := os.Symlink(targetDir, symlinkPath)
+	if err != nil {
+		// Skip if symlinks not supported on this system
+		t.Skip("Symlinks not supported on this system")
+	}
+
+	// Verify symlink points to target
+	linkTarget, err := os.Readlink(symlinkPath)
+	require.NoError(t, err)
+	assert.Equal(t, targetDir, linkTarget)
+
+	// Test accessing file through symlink
+	symlinkFile := filepath.Join(symlinkPath, "target.txt")
+	content, err := os.ReadFile(symlinkFile) //nolint:gosec // Test file with controlled path
+	require.NoError(t, err)
+	assert.Equal(t, "target content", string(content))
+
+	// Test context-based tmpdir with symlink
+	ctx = entities.WithTmpDir(ctx, symlinkPath)
+	tmpPath, err := entities.GetTmpDirPath(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, symlinkPath, tmpPath)
+
+	// Cleanup symlink
+	require.NoError(t, os.Remove(symlinkPath))
+
+	// Cleanup target
+	require.NoError(t, os.RemoveAll(targetDir))
+}
+
+// TestTmpDirIntegration tests integration with other components.
+func TestTmpDir_CreateAndCleanup_WorksWithFileSystem(t *testing.T) {
+	t.Parallel()
+
+	tmpDir := t.TempDir()
+	ctx := context.Background()
+
+	// Test workflow: create temp space, use it, clean up
+	// Create workspace
+	ctx, err := entities.CreateTmpDir(ctx, tmpDir, "workspace")
+	require.NoError(t, err)
+
+	workspacePath, err := entities.GetTmpDirPath(ctx)
+	require.NoError(t, err)
+
+	// Simulate git operations - create a mock git repo structure
+	gitDir := filepath.Join(workspacePath, ".git")
+	require.NoError(t, os.MkdirAll(gitDir, 0750))
+
+	// Create typical git files
+	gitFiles := map[string]string{
+		".git/config": "[core]\n\tbare = false",
+		".git/HEAD":   "ref: refs/heads/main",
+		"README.md":   "# Test Repository",
+		"src/main.go": "package main\n\nfunc main() {}",
+		"go.mod":      "module test\n\ngo 1.21",
+	}
+
+	for filePath, content := range gitFiles {
+		fullPath := filepath.Join(workspacePath, filePath)
+		require.NoError(t, os.MkdirAll(filepath.Dir(fullPath), 0750))
+		require.NoError(t, os.WriteFile(fullPath, []byte(content), 0600))
+	}
+
+	// Verify all files were created
+	for filePath := range gitFiles {
+		fullPath := filepath.Join(workspacePath, filePath)
+		assert.FileExists(t, fullPath)
+	}
+
+	// Test subdirectory operations
+	subPath, err := entities.GetSubTmpDir(ctx, "subdir")
+	require.NoError(t, err)
+
+	subFile := filepath.Join(subPath, "subfile.txt")
+	require.NoError(t, os.WriteFile(subFile, []byte("sub content"), 0600))
+	assert.FileExists(t, subFile)
+
+	// Cleanup everything
+	require.NoError(t, entities.DeleteTmpDir(ctx))
+
+	// Verify cleanup
+	assert.NoDirExists(t, workspacePath)
+}

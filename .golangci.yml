@@ -1,28 +1,119 @@
-# SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+# SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 #
 # SPDX-License-Identifier: CC0-1.0
-
-# Configuration version for golangci-lint
 version: 2
-
+run:
+  timeout: 5m
 output:
-  formats:
-    colored-line-number:
-      path: stderr
+  format: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true
+  path-prefix: ""
 issues:
+  uniq-by-line: true
   exclude-dirs:
     - generated
+  exclude-rules:
+    - path: "_test\\.go"
+      linters:
+        - dupl
 linters:
   # Disable all linters.
   # Default: false
   disable-all: true
-  # Enable basic linters only for now
+  # Enable specific linter
+  # https://golangci-lint.run/usage/linters/#enabled-by-default
   enable:
+    - asasalint
+    - asciicheck
+    - bidichk
+    - bodyclose
+    - containedctx
+    - contextcheck
+    - copyloopvar
+    - cyclop
+    - decorder
+    - dogsled
+    - dupl
+    # - dupword
+    - durationcheck
     - errcheck
-    - govet
-    - ineffassign
-    - staticcheck
-    - unused
+    - errchkjson
+    - errname
+    - errorlint
+    - exhaustive
+    #    - exhaustruct
+    - forcetypeassert
+    # - funlen
+    - ginkgolinter
+    - gocheckcompilerdirectives
+    - gochecknoglobals
+    - gochecknoinits
+    - gochecksumtype
+    - gocognit
+    - goconst
+    - gocritic
+    - gocyclo
+    - godot
+    - godox
+    - goheader
+    - gomoddirectives
+    - gomodguard
+    - goprintffuncname
     - gosec
+    - govet
+    - grouper
+    - importas
+    - inamedparam
+    - ineffassign
+    - interfacebloat
+    - intrange
+    # - ireturn  # Disabled: causes issues with legitimate interface returns in factory methods
+    - loggercheck
+    - maintidx
+    - makezero
+    - mirror
     - misspell
+    - musttag
+    - nakedret
+    - nestif
+    - nilerr
+    - nilnil
+    - nlreturn
+    - noctx
+    - nolintlint
+    - nonamedreturns
+    - nosprintfhostport
+    - paralleltest
+    - perfsprint
+    - prealloc
+    - predeclared
+    - promlinter
+    - protogetter
+    - reassign
+    - revive
+    - rowserrcheck
+    - sloglint
+    - sqlclosecheck
+    - staticcheck
+    - tagalign
+    # - tagliatelle  # Disabled: JSON/YAML tag naming conventions are project-specific
+    - testableexamples
+    - testifylint
+    - thelper
+    - tparallel
+    - unconvert
+    - unparam
+    - unused
+    - usestdlibvars
+    - varnamelen
+    - wastedassign
     - whitespace
+    - wrapcheck
+    - zerologlint
+  settings:
+    go-vet:
+      enable:
+        - shadow
+  varnamelen:
+    min-name-length: 2

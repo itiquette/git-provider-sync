@@ -1,12 +1,12 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+// Package gitlab provides GitLab provider adapter for Git Provider Sync.
 package gitlab
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 	"regexp"
@@ -15,6 +15,7 @@ import (
 
 	"gitlab.com/gitlab-org/api/client-go"
 
+	"itiquette/git-provider-sync/internal/domain"
 	"itiquette/git-provider-sync/internal/domain/constants"
 	"itiquette/git-provider-sync/internal/domain/entities"
 	"itiquette/git-provider-sync/internal/domain/ports"
@@ -28,10 +29,11 @@ type Adapter struct {
 
 // Config contains GitLab adapter configuration.
 type Config struct {
-	Token      string
-	HTTPClient *http.Client
-	BaseURL    string
-	UserAgent  string
+	Token          string
+	HTTPClient     *http.Client
+	BaseURL        string
+	UserAgent      string
+	CustomRetryMax *int // Optional: override retry settings for testing
 }
 
 // New creates a new GitLab adapter.
@@ -54,7 +56,7 @@ func New(token, domain string) (*Adapter, error) {
 }
 
 // NewWithConfig creates a new GitLab adapter with advanced configuration.
-func NewWithConfig(ctx context.Context, config Config) (*Adapter, error) {
+func NewWithConfig(_ context.Context, config Config) (*Adapter, error) {
 	var options []gitlab.ClientOptionFunc
 
 	if config.BaseURL != "" {
@@ -63,6 +65,11 @@ func NewWithConfig(ctx context.Context, config Config) (*Adapter, error) {
 
 	if config.HTTPClient != nil {
 		options = append(options, gitlab.WithHTTPClient(config.HTTPClient))
+	}
+
+	// Allow overriding retry settings for testing
+	if config.CustomRetryMax != nil {
+		options = append(options, gitlab.WithCustomRetryMax(*config.CustomRetryMax))
 	}
 
 	client, err := gitlab.NewClient(config.Token, options...)
@@ -89,7 +96,7 @@ func NewWithConfig(ctx context.Context, config Config) (*Adapter, error) {
 }
 
 // ListRepositories lists all repositories for a user/group.
-func (a *Adapter) ListRepositories(ctx context.Context, config ports.ProviderConfig) ([]entities.Repository, error) {
+func (a *Adapter) ListRepositories(ctx context.Context, _ ports.ProviderConfig) ([]entities.Repository, error) {
 	opts := &gitlab.ListProjectsOptions{
 		Owned:       gitlab.Ptr(true),
 		Membership:  gitlab.Ptr(true),
@@ -241,23 +248,26 @@ func (a *Adapter) DeleteRepository(ctx context.Context, config ports.ProviderCon
 // ValidateRepositoryName validates a repository name for GitLab.
 func (a *Adapter) ValidateRepositoryName(name string) error {
 	if name == "" {
-		return errors.New("repository name cannot be empty")
+		return domain.ErrRepositoryNameEmpty
 	}
 
 	if len(name) > 255 {
-		return errors.New("repository name too long (max 255 characters)")
+		return domain.ErrRepositoryNameTooLongGitLab
 	}
 
-	// GitLab naming rules
+	// GitLab naming rules - allows alphanumeric, dots, underscores, and hyphens
+	// More permissive than GitHub/Gitea to accommodate existing GitLab projects
 	validName := regexp.MustCompile(`^[a-zA-Z0-9._-]+$`)
 	if !validName.MatchString(name) {
-		return errors.New("repository name contains invalid characters")
+		return domain.ErrRepositoryNameInvalidChars
 	}
 
 	return nil
 }
 
-// TransformRepositoryName transforms a name according to options.
+// TransformRepositoryName transforms a repository name according to transformation rules.
+// The options parameter supports prefix/suffix addition, case conversion,
+// character replacement, and length constraints for GitLab provider compatibility.
 func (a *Adapter) TransformRepositoryName(name string, options ports.NameTransformOptions) string {
 	result := name
 
@@ -278,7 +288,7 @@ func (a *Adapter) TransformRepositoryName(name string, options ports.NameTransfo
 	}
 
 	if options.Suffix != "" {
-		result = result + options.Suffix
+		result += options.Suffix
 	}
 
 	if options.AlphaNumericOnly {
@@ -306,7 +316,7 @@ func (a *Adapter) GetBranchProtection(ctx context.Context, config ports.Provider
 }
 
 // SetBranchProtection sets branch protection settings.
-func (a *Adapter) SetBranchProtection(ctx context.Context, config ports.ProviderConfig, repoName, branch string, protection ports.BranchProtection) error {
+func (a *Adapter) SetBranchProtection(ctx context.Context, config ports.ProviderConfig, repoName, _ string, protection ports.BranchProtection) error {
 	projectPath := config.Owner + "/" + repoName
 	opts := a.convertToGitLabProtection(protection)
 
@@ -393,93 +403,8 @@ func (a *Adapter) SupportsFeature(feature ports.ProviderFeature) bool {
 	return false
 }
 
-// Helper methods
-
-func (a *Adapter) convertToRepository(project *gitlab.Project) (entities.Repository, error) {
-	if project == nil {
-		return entities.Repository{}, errors.New("project is nil")
-	}
-
-	builder := entities.NewRepositoryBuilder()
-
-	builder, err := builder.WithName(project.Name)
-	if err != nil {
-		return entities.Repository{}, fmt.Errorf("failed to set repository field: %w", err)
-	}
-
-	builder, err = builder.WithHTTPSURL(project.HTTPURLToRepo)
-	if err != nil {
-		return entities.Repository{}, fmt.Errorf("failed to set repository field: %w", err)
-	}
-
-	builder, err = builder.WithSSHURL(project.SSHURLToRepo)
-	if err != nil {
-		return entities.Repository{}, fmt.Errorf("failed to set repository field: %w", err)
-	}
-
-	builder, err = builder.WithDefaultBranch(project.DefaultBranch)
-	if err != nil {
-		return entities.Repository{}, fmt.Errorf("failed to set repository field: %w", err)
-	}
-
-	builder = builder.WithDescription(project.Description)
-
-	// Convert visibility
-	visibility := constants.VisibilityPublic
-
-	switch project.Visibility {
-	case gitlab.PrivateVisibility:
-		visibility = constants.VisibilityPrivate
-	case gitlab.InternalVisibility:
-		visibility = constants.VisibilityInternal
-	case gitlab.PublicVisibility:
-		visibility = constants.VisibilityPublic
-	}
-
-	builder = builder.WithVisibility(visibility)
-
-	if project.LastActivityAt != nil {
-		builder = builder.WithLastActivityAt(*project.LastActivityAt)
-	}
-
-	builder = builder.WithProjectID(strconv.Itoa(project.ID))
-	builder = builder.WithProviderType("gitlab")
-	builder = builder.WithPrivate(project.Visibility == gitlab.PrivateVisibility)
-	builder = builder.WithFork(project.ForkedFromProject != nil)
-	builder = builder.WithArchived(project.Archived)
-
-	builtRepo, err := builder.Build()
-	if err != nil {
-		return entities.Repository{}, fmt.Errorf("failed to build repository from GitLab data: %w", err)
-	}
-
-	return builtRepo, nil
-}
-
-// matchesFilter removed - filtering logic moved to domain.FilterRepositoriesUseCase
-
-func (a *Adapter) convertBranchProtection(_ *gitlab.ProtectedBranch) ports.BranchProtection {
-	result := ports.BranchProtection{
-		Protected: true,
-	}
-
-	// GitLab has different protection model than GitHub
-	// Map the available fields
-
-	return result
-}
-
-func (a *Adapter) convertToGitLabProtection(_ ports.BranchProtection) *gitlab.ProtectRepositoryBranchesOptions {
-	return &gitlab.ProtectRepositoryBranchesOptions{
-		Name:             gitlab.Ptr("*"),
-		PushAccessLevel:  gitlab.Ptr(gitlab.MaintainerPermissions),
-		MergeAccessLevel: gitlab.Ptr(gitlab.DeveloperPermissions),
-	}
-}
-
 // CreateRepositoryForPush creates a repository specifically for push operations.
-// This restores the main branch provider.Push functionality for GitLab.
-func (a *Adapter) CreateRepositoryForPush(ctx context.Context, request ports.CreateRepositoryRequest) (string, error) {
+func (a *Adapter) CreateRepositoryForPush(_ context.Context, request ports.CreateRepositoryRequest) (string, error) {
 	visibility := gitlab.PublicVisibility
 	if request.Private {
 		visibility = gitlab.PrivateVisibility
@@ -504,8 +429,7 @@ func (a *Adapter) CreateRepositoryForPush(ctx context.Context, request ports.Cre
 }
 
 // ProjectExists checks if a project exists and returns its ID.
-// This restores the main branch provider.ProjectExists functionality for GitLab.
-func (a *Adapter) ProjectExists(ctx context.Context, owner, repo string) (bool, string, error) {
+func (a *Adapter) ProjectExists(_ context.Context, owner, repo string) (bool, string, error) {
 	projectPath := fmt.Sprintf("%s/%s", owner, repo)
 
 	project, resp, err := a.client.Projects.GetProject(projectPath, &gitlab.GetProjectOptions{})
@@ -513,6 +437,7 @@ func (a *Adapter) ProjectExists(ctx context.Context, owner, repo string) (bool, 
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
 			return false, "", nil
 		}
+
 		return false, "", fmt.Errorf("failed to check project existence: %w", err)
 	}
 
@@ -520,8 +445,7 @@ func (a *Adapter) ProjectExists(ctx context.Context, owner, repo string) (bool, 
 }
 
 // Protect enables branch protection for GitLab.
-// This restores the main branch provider.Protect functionality.
-func (a *Adapter) Protect(ctx context.Context, owner string, defaultBranch string, projectIDstr string) error {
+func (a *Adapter) Protect(_ context.Context, _ string, defaultBranch string, projectIDstr string) error {
 	projectID, err := strconv.Atoi(projectIDstr)
 	if err != nil {
 		return fmt.Errorf("invalid project ID: %w", err)
@@ -542,8 +466,7 @@ func (a *Adapter) Protect(ctx context.Context, owner string, defaultBranch strin
 }
 
 // Unprotect disables branch protection for GitLab.
-// This restores the main branch provider.Unprotect functionality.
-func (a *Adapter) Unprotect(ctx context.Context, defaultBranch string, projectIDStr string) error {
+func (a *Adapter) Unprotect(_ context.Context, defaultBranch string, projectIDStr string) error {
 	projectID, err := strconv.Atoi(projectIDStr)
 	if err != nil {
 		return fmt.Errorf("invalid project ID: %w", err)
@@ -558,8 +481,7 @@ func (a *Adapter) Unprotect(ctx context.Context, defaultBranch string, projectID
 }
 
 // SetDefaultBranch sets the default branch for a GitLab repository.
-// This restores the main branch provider.SetDefaultBranch functionality.
-func (a *Adapter) SetDefaultBranch(ctx context.Context, owner, name, branch string) error {
+func (a *Adapter) SetDefaultBranch(_ context.Context, owner, name, branch string) error {
 	projectPath := fmt.Sprintf("%s/%s", owner, name)
 
 	options := &gitlab.EditProjectOptions{
@@ -575,7 +497,106 @@ func (a *Adapter) SetDefaultBranch(ctx context.Context, owner, name, branch stri
 }
 
 // IsValidProjectName validates a project name for GitLab.
-// This restores the main branch provider.IsValidProjectName functionality.
-func (a *Adapter) IsValidProjectName(ctx context.Context, name string) bool {
+func (a *Adapter) IsValidProjectName(_ context.Context, name string) bool {
 	return a.ValidateRepositoryName(name) == nil
+}
+
+func (a *Adapter) convertToRepository(project *gitlab.Project) (entities.Repository, error) {
+	if project == nil {
+		return entities.Repository{}, domain.ErrProjectNil
+	}
+
+	builder := entities.NewRepositoryBuilder()
+
+	if err := a.setProjectStringFields(project, &builder); err != nil {
+		return entities.Repository{}, err
+	}
+
+	a.setProjectMetadata(project, &builder)
+	a.setProjectFlags(project, &builder)
+
+	builtRepo, err := builder.Build()
+	if err != nil {
+		return entities.Repository{}, fmt.Errorf("failed to build repository from GitLab data: %w", err)
+	}
+
+	return builtRepo, nil
+}
+
+func (a *Adapter) setProjectStringFields(project *gitlab.Project, builder *entities.RepositoryBuilder) error {
+	var err error
+
+	*builder, err = builder.WithName(project.Name)
+	if err != nil {
+		return fmt.Errorf("failed to set repository name: %w", err)
+	}
+
+	*builder, err = builder.WithHTTPSURL(project.HTTPURLToRepo)
+	if err != nil {
+		return fmt.Errorf("failed to set repository HTTPS URL: %w", err)
+	}
+
+	*builder, err = builder.WithSSHURL(project.SSHURLToRepo)
+	if err != nil {
+		return fmt.Errorf("failed to set repository SSH URL: %w", err)
+	}
+
+	*builder, err = builder.WithDefaultBranch(project.DefaultBranch)
+	if err != nil {
+		return fmt.Errorf("failed to set repository default branch: %w", err)
+	}
+
+	return nil
+}
+
+func (a *Adapter) setProjectMetadata(project *gitlab.Project, builder *entities.RepositoryBuilder) {
+	*builder = builder.WithDescription(project.Description)
+
+	visibility := a.convertVisibility(project.Visibility)
+	*builder = builder.WithVisibility(visibility)
+
+	if project.LastActivityAt != nil {
+		*builder = builder.WithLastActivityAt(*project.LastActivityAt)
+	}
+
+	*builder = builder.WithProjectID(strconv.Itoa(project.ID))
+	*builder = builder.WithProviderType("gitlab")
+}
+
+func (a *Adapter) setProjectFlags(project *gitlab.Project, builder *entities.RepositoryBuilder) {
+	*builder = builder.WithPrivate(project.Visibility == gitlab.PrivateVisibility)
+	*builder = builder.WithFork(project.ForkedFromProject != nil)
+	*builder = builder.WithArchived(project.Archived)
+}
+
+func (a *Adapter) convertVisibility(visibility gitlab.VisibilityValue) string {
+	switch visibility {
+	case gitlab.PrivateVisibility:
+		return constants.VisibilityPrivate
+	case gitlab.InternalVisibility:
+		return constants.VisibilityInternal
+	case gitlab.PublicVisibility:
+		return constants.VisibilityPublic
+	default:
+		return constants.VisibilityPublic
+	}
+}
+
+func (a *Adapter) convertBranchProtection(_ *gitlab.ProtectedBranch) ports.BranchProtection {
+	result := ports.BranchProtection{
+		Protected: true,
+	}
+
+	// GitLab has different protection model than GitHub
+	// Map the available fields
+
+	return result
+}
+
+func (a *Adapter) convertToGitLabProtection(_ ports.BranchProtection) *gitlab.ProtectRepositoryBranchesOptions {
+	return &gitlab.ProtectRepositoryBranchesOptions{
+		Name:             gitlab.Ptr("*"),
+		PushAccessLevel:  gitlab.Ptr(gitlab.MaintainerPermissions),
+		MergeAccessLevel: gitlab.Ptr(gitlab.DeveloperPermissions),
+	}
 }

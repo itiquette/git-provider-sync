@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
@@ -14,6 +14,8 @@ import (
 )
 
 func TestRepositoryBuilder_WithName(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name        string
 		repoName    string
@@ -51,13 +53,15 @@ func TestRepositoryBuilder_WithName(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
 			builder := entities.NewRepositoryBuilder()
 
-			newBuilder, err := builder.WithName(tt.repoName)
+			newBuilder, err := builder.WithName(test.repoName)
 
-			if tt.expectError {
+			if test.expectError {
 				require.Error(t, err)
 			} else {
 				require.NoError(t, err)
@@ -69,13 +73,15 @@ func TestRepositoryBuilder_WithName(t *testing.T) {
 				repo, buildErr := builderWithURL.Build()
 
 				require.NoError(t, buildErr)
-				require.Equal(t, tt.repoName, repo.Name())
+				require.Equal(t, test.repoName, repo.Name())
 			}
 		})
 	}
 }
 
 func TestRepositoryBuilder_Build(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name        string
 		setupRepo   func() entities.RepositoryBuilder
@@ -88,6 +94,7 @@ func TestRepositoryBuilder_Build(t *testing.T) {
 				builder := entities.NewRepositoryBuilder()
 				builder, _ = builder.WithName("test-repo")
 				builder, _ = builder.WithHTTPSURL("https://github.com/owner/repo.git")
+
 				return builder
 			},
 			expectError: false,
@@ -98,6 +105,7 @@ func TestRepositoryBuilder_Build(t *testing.T) {
 				builder := entities.NewRepositoryBuilder()
 				builder, _ = builder.WithName("test-repo")
 				builder, _ = builder.WithSSHURL("git@github.com:owner/repo.git")
+
 				return builder
 			},
 			expectError: false,
@@ -107,6 +115,7 @@ func TestRepositoryBuilder_Build(t *testing.T) {
 			setupRepo: func() entities.RepositoryBuilder {
 				builder := entities.NewRepositoryBuilder()
 				builder, _ = builder.WithHTTPSURL("https://github.com/owner/repo.git")
+
 				return builder
 			},
 			expectError: true,
@@ -117,6 +126,7 @@ func TestRepositoryBuilder_Build(t *testing.T) {
 			setupRepo: func() entities.RepositoryBuilder {
 				builder := entities.NewRepositoryBuilder()
 				builder, _ = builder.WithName("test-repo")
+
 				return builder
 			},
 			expectError: true,
@@ -124,16 +134,19 @@ func TestRepositoryBuilder_Build(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			builder := tt.setupRepo()
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			builder := test.setupRepo()
 
 			repo, err := builder.Build()
 
-			if tt.expectError {
+			if test.expectError {
 				require.Error(t, err)
-				if tt.errorMsg != "" {
-					require.Contains(t, err.Error(), tt.errorMsg)
+
+				if test.errorMsg != "" {
+					require.Contains(t, err.Error(), test.errorMsg)
 				}
 			} else {
 				require.NoError(t, err)
@@ -143,7 +156,9 @@ func TestRepositoryBuilder_Build(t *testing.T) {
 	}
 }
 
-func TestRepository_Behavior(t *testing.T) {
+func TestRepository_GetterMethods_ReturnCorrectValues(t *testing.T) {
+	t.Parallel()
+
 	// Create test repository
 	builder := entities.NewRepositoryBuilder()
 	builder, _ = builder.WithName("test-repo")
@@ -158,27 +173,37 @@ func TestRepository_Behavior(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("preferred_clone_url_returns_https", func(t *testing.T) {
+		t.Parallel()
+
 		url := repo.PreferredCloneURL()
 		require.Equal(t, "https://github.com/owner/repo.git", url)
 	})
 
 	t.Run("is_active_within_six_months", func(t *testing.T) {
+		t.Parallel()
+
 		isActive := repo.IsActive()
 		require.True(t, isActive)
 	})
 
 	t.Run("should_include_in_sync_respects_flags", func(t *testing.T) {
+		t.Parallel()
+
 		// Should include private repos when includeForks=false, includeArchived=false
 		shouldInclude := repo.ShouldIncludeInSync(false, false)
 		require.True(t, shouldInclude)
 	})
 
 	t.Run("validate_for_github_provider", func(t *testing.T) {
+		t.Parallel()
+
 		err := repo.ValidateForProvider("github")
 		require.NoError(t, err)
 	})
 
 	t.Run("with_updated_description", func(t *testing.T) {
+		t.Parallel()
+
 		updated := repo.WithUpdatedDescription("New description")
 		require.Equal(t, "New description", updated.Description())
 		// Original should be unchanged
@@ -187,6 +212,8 @@ func TestRepository_Behavior(t *testing.T) {
 }
 
 func TestRepository_IsActive(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name           string
 		lastActivity   *time.Time
@@ -214,26 +241,30 @@ func TestRepository_IsActive(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
 			builder := entities.NewRepositoryBuilder()
 			builder, _ = builder.WithName("test-repo")
 			builder, _ = builder.WithHTTPSURL("https://github.com/owner/repo.git")
 
-			if tt.lastActivity != nil {
-				builder = builder.WithLastActivityAt(*tt.lastActivity)
+			if test.lastActivity != nil {
+				builder = builder.WithLastActivityAt(*test.lastActivity)
 			}
 
 			repo, err := builder.Build()
 			require.NoError(t, err)
 
 			isActive := repo.IsActive()
-			require.Equal(t, tt.expectedActive, isActive)
+			require.Equal(t, test.expectedActive, isActive)
 		})
 	}
 }
 
 func TestRepository_ShouldIncludeInSync(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name            string
 		isFork          bool
@@ -300,23 +331,27 @@ func TestRepository_ShouldIncludeInSync(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
 			builder := entities.NewRepositoryBuilder()
 			builder, _ = builder.WithName("test-repo")
 			builder, _ = builder.WithHTTPSURL("https://github.com/owner/repo.git")
-			builder = builder.WithFlags(false, tt.isFork, tt.isArchived)
+			builder = builder.WithFlags(false, test.isFork, test.isArchived)
 
 			repo, err := builder.Build()
 			require.NoError(t, err)
 
-			shouldInclude := repo.ShouldIncludeInSync(tt.includeForks, tt.includeArchived)
-			require.Equal(t, tt.expected, shouldInclude)
+			shouldInclude := repo.ShouldIncludeInSync(test.includeForks, test.includeArchived)
+			require.Equal(t, test.expected, shouldInclude)
 		})
 	}
 }
 
 func TestValidateRepositoryName(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name        string
 		repoName    string
@@ -354,11 +389,13 @@ func TestValidateRepositoryName(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := entities.ValidateRepositoryName(tt.repoName)
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
 
-			if tt.expectError {
+			err := entities.ValidateRepositoryName(test.repoName)
+
+			if test.expectError {
 				require.Error(t, err)
 			} else {
 				require.NoError(t, err)
@@ -368,6 +405,8 @@ func TestValidateRepositoryName(t *testing.T) {
 }
 
 func TestCleanRepositoryName(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name     string
 		input    string
@@ -405,15 +444,17 @@ func TestCleanRepositoryName(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			cleaned := entities.CleanRepositoryName(tt.input)
-			require.Equal(t, tt.expected, cleaned)
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			cleaned := entities.CleanRepositoryName(test.input)
+			require.Equal(t, test.expected, cleaned)
 		})
 	}
 }
 
-// Helper function
+// Helper function.
 func timePtr(t time.Time) *time.Time {
 	return &t
 }

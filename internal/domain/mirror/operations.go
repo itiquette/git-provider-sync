@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
@@ -26,10 +26,14 @@ type Operation struct {
 type OperationType string
 
 const (
+	// OperationTypeCloneAndMirror represents clone and mirror operation.
 	OperationTypeCloneAndMirror OperationType = "clone_and_mirror"
-	OperationTypeSync           OperationType = "sync"
-	OperationTypeValidate       OperationType = "validate"
-	OperationTypeCleanup        OperationType = "cleanup"
+	// OperationTypeSync represents sync operation.
+	OperationTypeSync OperationType = "sync"
+	// OperationTypeValidate represents validate operation.
+	OperationTypeValidate OperationType = "validate"
+	// OperationTypeCleanup represents cleanup operation.
+	OperationTypeCleanup OperationType = "cleanup"
 )
 
 // RepositorySpec describes a repository in a pure, immutable way.
@@ -85,9 +89,12 @@ type RetryPolicy struct {
 type BackoffStrategy string
 
 const (
-	BackoffStrategyLinear      BackoffStrategy = "linear"
+	// BackoffStrategyLinear represents linear backoff.
+	BackoffStrategyLinear BackoffStrategy = "linear"
+	// BackoffStrategyExponential represents exponential backoff.
 	BackoffStrategyExponential BackoffStrategy = "exponential"
-	BackoffStrategyFixed       BackoffStrategy = "fixed"
+	// BackoffStrategyFixed represents fixed backoff.
+	BackoffStrategyFixed BackoffStrategy = "fixed"
 )
 
 // OperationMetadata contains metadata about the operation.
@@ -103,9 +110,12 @@ type OperationMetadata struct {
 type Priority string
 
 const (
-	PriorityLow    Priority = "low"
+	// PriorityLow represents low priority.
+	PriorityLow Priority = "low"
+	// PriorityNormal represents normal priority.
 	PriorityNormal Priority = "normal"
-	PriorityHigh   Priority = "high"
+	// PriorityHigh represents high priority.
+	PriorityHigh Priority = "high"
 )
 
 // Effect represents a side effect that needs to be performed.
@@ -120,18 +130,30 @@ type Effect struct {
 type EffectType string
 
 const (
-	EffectTypeCloneRepository      EffectType = "clone_repository"
-	EffectTypeCreateRepository     EffectType = "create_repository"
-	EffectTypePushToRepository     EffectType = "push_to_repository"
-	EffectTypeUpdateDescription    EffectType = "update_description"
-	EffectTypeUpdateVisibility     EffectType = "update_visibility"
-	EffectTypeUpdateTopics         EffectType = "update_topics"
-	EffectTypeUpdateDefaultBranch  EffectType = "update_default_branch"
+	// EffectTypeCloneRepository represents clone repository effect.
+	EffectTypeCloneRepository EffectType = "clone_repository"
+	// EffectTypeCreateRepository represents create repository effect.
+	EffectTypeCreateRepository EffectType = "create_repository"
+	// EffectTypePushToRepository represents push to repository effect.
+	EffectTypePushToRepository EffectType = "push_to_repository"
+	// EffectTypeUpdateDescription represents update description effect.
+	EffectTypeUpdateDescription EffectType = "update_description"
+	// EffectTypeUpdateVisibility represents update visibility effect.
+	EffectTypeUpdateVisibility EffectType = "update_visibility"
+	// EffectTypeUpdateTopics represents update topics effect.
+	EffectTypeUpdateTopics EffectType = "update_topics"
+	// EffectTypeUpdateDefaultBranch represents update default branch effect.
+	EffectTypeUpdateDefaultBranch EffectType = "update_default_branch"
+	// EffectTypeSyncBranchProtection represents sync branch protection effect.
 	EffectTypeSyncBranchProtection EffectType = "sync_branch_protection"
-	EffectTypeCreateDirectories    EffectType = "create_directories"
-	EffectTypeCleanupTempFiles     EffectType = "cleanup_temp_files"
-	EffectTypeLogOperation         EffectType = "log_operation"
-	EffectTypeRecordMetrics        EffectType = "record_metrics"
+	// EffectTypeCreateDirectories represents create directories effect.
+	EffectTypeCreateDirectories EffectType = "create_directories"
+	// EffectTypeCleanupTempFiles represents cleanup temp files effect.
+	EffectTypeCleanupTempFiles EffectType = "cleanup_temp_files"
+	// EffectTypeLogOperation represents log operation effect.
+	EffectTypeLogOperation EffectType = "log_operation"
+	// EffectTypeRecordMetrics represents record metrics effect.
+	EffectTypeRecordMetrics EffectType = "record_metrics"
 )
 
 // ValidationRule represents a validation rule for mirror operations.

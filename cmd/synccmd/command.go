@@ -1,104 +1,148 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-// command.go - Command setup, entry points (restored from main, hexagonal adapters)
+// Package synccmd provides sync command implementation with hexagonal architecture.
 package synccmd
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"os"
+	"strings"
+	"testing"
+
+	"github.com/urfave/cli/v3"
 
 	baseOpt "itiquette/git-provider-sync/cmd/baseoption"
-	"itiquette/git-provider-sync/internal/adapters/cli"
+	cliAdapters "itiquette/git-provider-sync/internal/adapters/cli"
+	"itiquette/git-provider-sync/internal/adapters/terminal"
 	"itiquette/git-provider-sync/internal/configuration"
 	"itiquette/git-provider-sync/internal/domain/entities"
 	"itiquette/git-provider-sync/internal/log"
-
-	"github.com/spf13/cobra"
 )
 
-func NewSyncCommand() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "sync",
-		Short: "Mirror repositories from a source Git provider to targets",
-		Long: `The 'sync' command mirrors your repositories from a source Git provider to one or more targets.
+// NewSyncCommand creates the sync command that orchestrates repository mirroring operations.
+func NewSyncCommand() *cli.Command {
+	cmd := &cli.Command{
+		Name:  "sync",
+		Usage: "Mirror repositories from a source Git provider to targets",
+		Description: `The 'sync' command mirrors your repositories from a source Git provider to one or more targets.
 It allows for various options to control the synchronization process.`,
-		Run: runSync,
+		Action: runSync,
+		Flags: []cli.Flag{
+			&cli.BoolFlag{
+				Name:     "dry-run",
+				Aliases:  []string{"n"},
+				Usage:    "Show what would be synced without making changes",
+				Category: "Operations",
+			},
+			&cli.BoolFlag{
+				Name:     "force-push",
+				Aliases:  []string{"f"},
+				Usage:    "Force push to target repositories",
+				Category: "Operations",
+			},
+			&cli.StringFlag{
+				Name:     "since",
+				Aliases:  []string{"s"},
+				Usage:    "Only sync repositories active since this date/time",
+				Category: "Filtering",
+			},
+			&cli.BoolFlag{
+				Name:     "sanitize-names",
+				Usage:    "Clean repository names to alphanumeric + hyphens only",
+				Category: "Processing",
+			},
+			&cli.BoolFlag{
+				Name:     "skip-invalid",
+				Usage:    "Ignore repositories with invalid names",
+				Category: "Processing",
+			},
+		},
 	}
-
-	addSyncInputOptions(cmd)
 
 	return cmd
 }
 
-// runSync executes sync using simple functional approach from main branch.
-func runSync(cmd *cobra.Command, _ []string) {
-	ctx := cmd.Root().Context()
+// runSync executes sync using simple functional approach .
+func runSync(ctx context.Context, cmd *cli.Command) error {
 	cliConfig, err := baseOpt.ExtractRootInputOptions(cmd)
-
 	if err != nil {
-		// TODO: Implement proper error handling via CLI adapter
-		return
+		log.Logger(ctx).Error().Err(err).Msg("Failed to extract CLI options")
+
+		if !testing.Testing() {
+			os.Exit(2) // Configuration error
+		}
+
+		return fmt.Errorf("failed to extract CLI options: %w", err)
 	}
 
-	ctx = cli.WithCLIConfig(ctx, cliConfig)
+	// Extract sync-specific flags and merge with CLI config
+	updatedConfig := mergeSyncOptionsWithCLIConfig(cliConfig, cmd)
 
-	flags, err := getSyncInputOptions(ctx, cmd)
-	if err != nil {
-		// TODO: Implement proper error handling via CLI adapter
-		return
-	}
-
+	ctx = cliAdapters.WithCLIConfig(ctx, updatedConfig)
 	ctx = initLogger(ctx, cmd)
-	ctx = addInputOptionsToContext(ctx, flags)
 
 	// Use original proven configuration loader
 	config, err := configuration.DefaultConfigLoader{}.LoadConfiguration(ctx)
 	if err != nil {
-		// TODO: Implement proper error handling via CLI adapter
-		return
+		log.Logger(ctx).Error().Err(err).Msg("Failed to load configuration")
+
+		if !testing.Testing() {
+			os.Exit(2) // Configuration error
+		}
+
+		return fmt.Errorf("failed to load configuration: %w", err)
+	}
+
+	// Check for dangerous operations requiring confirmation
+	if !confirmDangerousOperations(ctx, cmd) {
+		log.Logger(ctx).Info().Msg("Operation cancelled by user")
+
+		if !testing.Testing() {
+			os.Exit(1) // User cancelled
+		}
+
+		return errors.New("operation cancelled by user")
 	}
 
 	// Execute sync using proper hexagonal architecture
-	err = syncHexagonal(ctx, config)
+	err = performSync(ctx, config)
 	if err != nil {
-		// TODO: Implement proper error handling via CLI adapter
-		return
+		log.Logger(ctx).Error().Err(err).Msg("Sync operation failed")
+
+		if !testing.Testing() {
+			os.Exit(1) // Operation failure
+		}
+
+		return err
 	}
+
+	return nil
 }
 
-// addInputOptionsToContext adds sync input options to context (restored from main).
-func addInputOptionsToContext(ctx context.Context, flags *syncInputOption) context.Context {
-	logger := log.Logger(ctx)
-	logger.Trace().Msg("Entering addInputOptionsToContext")
-	flags.DebugLog(logger).Msg("addInputOptionsToContext")
-
-	// Get existing CLI config or create default
-	cliConfig, ok := cli.CLIConfigFromContext(ctx)
-	if !ok {
-		cliConfig = entities.NewCLIConfigBuilder().Build()
-	}
-
-	// Build new config with updated values
-	updatedConfig := entities.NewCLIConfigBuilder().
-		WithAlphaNumHyphName(flags.alphaNumHyphName).
-		WithActiveFromLimit(flags.activeFromLimit).
-		WithDryRun(flags.dryRun).
-		WithForcePush(flags.forcePush).
-		WithIgnoreInvalidName(flags.ignoreInvalidName).
+// mergeSyncOptionsWithCLIConfig merges sync-specific flags with existing CLI config.
+func mergeSyncOptionsWithCLIConfig(cliConfig entities.CLIConfig, cmd *cli.Command) entities.CLIConfig {
+	// Extract sync flags directly from command and merge with existing CLI config
+	return entities.NewCLIConfigBuilder().
+		WithAlphaNumHyphName(cmd.Bool("sanitize-names")).
+		WithActiveFromLimit(cmd.String("since")).
+		WithDryRun(cmd.Bool("dry-run")).
+		WithForcePush(cmd.Bool("force-push")).
+		WithIgnoreInvalidName(cmd.Bool("skip-invalid")).
 		WithOutputFormat(cliConfig.OutputFormat()).
 		WithVerbosityWithCaller(cliConfig.VerbosityWithCaller()).
 		WithQuiet(cliConfig.Quiet()).
 		WithConfigFilePath(cliConfig.ConfigFilePath()).
 		WithConfigFileOnly(cliConfig.ConfigFileOnly()).
 		Build()
-
-	return cli.WithCLIConfig(ctx, updatedConfig)
 }
 
-// initLogger initializes logging with CLI options (restored from main).
-func initLogger(ctx context.Context, cmd *cobra.Command) context.Context {
-	cliConfig, ok := cli.CLIConfigFromContext(ctx)
+// initLogger initializes logging with CLI options .
+func initLogger(ctx context.Context, cmd *cli.Command) context.Context {
+	cliConfig, ok := cliAdapters.ConfigFromContext(ctx)
 	if !ok {
 		cliConfig = entities.NewCLIConfigBuilder().Build()
 	}
@@ -106,8 +150,82 @@ func initLogger(ctx context.Context, cmd *cobra.Command) context.Context {
 	withCaller := cliConfig.VerbosityWithCaller()
 	outputFormat := cliConfig.OutputFormat()
 
-	ctx = log.InitLogger(ctx, cmd, withCaller, outputFormat)
+	// Extract log level using the new helper
+	logLevel := extractLogLevel(cmd)
+	quiet := logLevel == "quiet"
+
+	ctx = log.InitLogger(ctx, logLevel, quiet, withCaller, outputFormat)
 	log.Logger(ctx).Trace().Msg("Logger initialized")
 
 	return ctx
+}
+
+// extractLogLevel determines the effective log level from various flags.
+// Duplicated here to avoid circular dependency with baseoption.
+func extractLogLevel(cmd *cli.Command) string {
+	// Handle nil command
+	if cmd == nil {
+		return "brief"
+	}
+
+	// Explicit log-level takes highest precedence
+	if level := cmd.String("log-level"); level != "" {
+		return level
+	}
+
+	// Then check shortcuts (most specific first)
+	if cmd.Bool("quiet") {
+		return "quiet"
+	}
+
+	if cmd.Bool("debug") {
+		return "debug"
+	}
+
+	if cmd.Bool("verbose") {
+		return "verbose"
+	}
+
+	return "brief" // default
+}
+
+// confirmDangerousOperations checks if dangerous operations need confirmation.
+// Returns true if operation should proceed, false if cancelled.
+// Follows idiomatic patterns: explicit, simple, no magic.
+func confirmDangerousOperations(ctx context.Context, cmd *cli.Command) bool {
+	// Skip confirmation if in dry-run mode (always safe)
+	if cmd.Bool("dry-run") {
+		return true
+	}
+
+	// Skip confirmation if --yes flag is set
+	if cmd.Bool("yes") {
+		return true
+	}
+
+	// Build list of dangerous operations
+	var operations []string
+	if cmd.Bool("force-push") {
+		operations = append(operations, "force push (may overwrite remote history)")
+	}
+
+	// No dangerous operations, proceed
+	if len(operations) == 0 {
+		return true
+	}
+
+	// Check if we're in non-interactive mode
+	if !terminal.IsInput() || !terminal.IsError() {
+		// In non-interactive mode, require explicit --yes for dangerous operations
+		log.Logger(ctx).Error().
+			Str("operations", strings.Join(operations, ", ")).
+			Msg("Dangerous operations require --yes flag in non-interactive mode")
+
+		return false
+	}
+
+	// Interactive mode - prompt user
+	operation := "This will perform: " + strings.Join(operations, ", ")
+
+	return terminal.ConfirmOperation(operation)
 }

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
@@ -12,13 +12,16 @@ import (
 
 	"github.com/google/go-github/v71/github"
 
+	"itiquette/git-provider-sync/internal/domain"
 	"itiquette/git-provider-sync/internal/domain/constants"
 	"itiquette/git-provider-sync/internal/domain/entities"
 	"itiquette/git-provider-sync/internal/domain/ports"
+	"itiquette/git-provider-sync/internal/domain/validation"
 )
 
 // ProjectService provides GitHub-specific project operations with all advanced features.
-// This restores the sophisticated project service functionality from main branch completely.
+//
+//	sophisticated project service functionality  completely.
 type ProjectService struct {
 	client            *github.Client
 	logger            ports.Logger
@@ -132,12 +135,16 @@ func (ps *ProjectService) UpdateProject(ctx context.Context, owner, name string,
 	return nil
 }
 
-// ValidateProjectName validates a GitHub repository name using sophisticated validation.
+// ValidateProjectName validates a GitHub repository name using domain validation.
 func (ps *ProjectService) ValidateProjectName(name string) error {
-	if !IsValidGitHubRepositoryName(name) {
-		cleanName, _, issues := ValidateAndCleanName(name)
+	result := validation.ValidateRepositoryName(name, "github")
+	if !result.Valid {
+		suggestion := ""
+		if result.Suggestion != "" {
+			suggestion = fmt.Sprintf(" (suggestion: %s)", result.Suggestion)
+		}
 
-		return fmt.Errorf("invalid repository name '%s': %v (suggested: '%s')", name, issues, cleanName)
+		return fmt.Errorf("%w '%s': %s%s", domain.ErrRepositoryNameInvalid, name, result.Message, suggestion)
 	}
 
 	return nil
@@ -145,7 +152,9 @@ func (ps *ProjectService) ValidateProjectName(name string) error {
 
 // IsValidProjectName checks if a project name is valid.
 func (ps *ProjectService) IsValidProjectName(name string) bool {
-	return IsValidGitHubRepositoryName(name)
+	result := validation.ValidateRepositoryName(name, "github")
+
+	return result.Valid
 }
 
 // CreateProjectWithAdvancedOptions creates a project using the sophisticated options builder.
@@ -257,7 +266,7 @@ func (ps *ProjectService) TransformProjectName(name string, options ports.NameTr
 	}
 
 	if options.Suffix != "" {
-		result = result + options.Suffix
+		result += options.Suffix
 	}
 
 	// Make alphanumeric only if requested
@@ -277,6 +286,112 @@ func (ps *ProjectService) TransformProjectName(name string, options ports.NameTr
 	}
 
 	return result
+}
+
+// GetProjectInfos retrieves repository metadata with sophisticated filtering and pagination.
+func (ps *ProjectService) GetProjectInfos(ctx context.Context, owner string, isOrganization bool, includeForks bool) ([]*entities.Repository, error) {
+	ps.logger.Debug(ctx, "Fetching GitHub project infos", map[string]interface{}{
+		"owner":          owner,
+		"isOrganization": isOrganization,
+		"includeForks":   includeForks,
+	})
+
+	allRepos, err := ps.fetchAllRepositories(ctx, owner, isOrganization, includeForks)
+	if err != nil {
+		return nil, err
+	}
+
+	ps.logger.Debug(ctx, "Total fetched repositories", map[string]interface{}{
+		"totalRepositories": len(allRepos),
+	})
+
+	repositories := ps.convertAndFilterRepositories(ctx, allRepos, includeForks)
+
+	ps.logger.Info(ctx, "Successfully fetched GitHub project infos", map[string]interface{}{
+		"owner":             owner,
+		"totalRepositories": len(allRepos),
+		"filteredCount":     len(repositories),
+		"includeForks":      includeForks,
+	})
+
+	return repositories, nil
+}
+
+// GetProjectInfo retrieves detailed metadata for a single repository.
+func (ps *ProjectService) GetProjectInfo(ctx context.Context, owner, name string) (*entities.Repository, error) {
+	ps.logger.Debug(ctx, "Fetching GitHub project info", map[string]interface{}{
+		"owner": owner,
+		"name":  name,
+	})
+
+	gitHubProject, _, err := ps.client.Repositories.Get(ctx, owner, name)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get projectInfo. name: %s, err: %w", name, err)
+	}
+
+	entity, err := ps.convertGitHubRepoToEntity(gitHubProject)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert repository to entity: %w", err)
+	}
+
+	ps.logger.Debug(ctx, "Successfully fetched GitHub project info", map[string]interface{}{
+		"owner":      owner,
+		"name":       name,
+		"visibility": entity.Visibility(),
+	})
+
+	return entity, nil
+}
+
+// RepositoryExists checks if a repository exists and returns metadata.
+func (ps *ProjectService) RepositoryExists(ctx context.Context, owner, repo string) (bool, string, error) {
+	ps.logger.Debug(ctx, "Checking GitHub repository existence", map[string]interface{}{
+		"owner": owner,
+		"repo":  repo,
+	})
+
+	project, resp, err := ps.client.Repositories.Get(ctx, owner, repo)
+	if err != nil {
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
+			return false, "", nil // Repository doesn't exist
+		}
+
+		return false, "", fmt.Errorf("failed to get GitHub repository: %w", err)
+	}
+
+	projectID := getValueOrEmpty(project.FullName)
+
+	ps.logger.Debug(ctx, "GitHub repository exists", map[string]interface{}{
+		"owner":     owner,
+		"repo":      repo,
+		"projectID": projectID,
+	})
+
+	return true, projectID, nil
+}
+
+// SetDefaultBranch sets the default branch for a repository.
+func (ps *ProjectService) SetDefaultBranch(ctx context.Context, owner string, projectName string, branch string) error {
+	ps.logger.Debug(ctx, "Setting GitHub default branch", map[string]interface{}{
+		"owner":       owner,
+		"projectName": projectName,
+		"branch":      branch,
+	})
+
+	_, _, err := ps.client.Repositories.Edit(ctx, owner, projectName, &github.Repository{
+		DefaultBranch: github.Ptr(branch),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to set default branch. err: %w", err)
+	}
+
+	ps.logger.Info(ctx, "GitHub default branch set successfully", map[string]interface{}{
+		"owner":       owner,
+		"projectName": projectName,
+		"branch":      branch,
+	})
+
+	return nil
 }
 
 // buildRepositoryOptions builds GitHub repository options from request.
@@ -318,72 +433,12 @@ func (ps *ProjectService) buildRepositoryOptions(request CreateProjectRequest) *
 func (ps *ProjectService) convertToRepository(repo *github.Repository) (*entities.Repository, error) {
 	builder := entities.NewRepositoryBuilder()
 
-	if repo.Name != nil {
-		var err error
-
-		builder, err = builder.WithName(*repo.Name)
-		if err != nil {
-			return nil, fmt.Errorf("failed to set repository name: %w", err)
-		}
+	if err := ps.setRepositoryStringFields(repo, &builder); err != nil {
+		return nil, err
 	}
 
-	if repo.CloneURL != nil {
-		var err error
-
-		builder, err = builder.WithHTTPSURL(*repo.CloneURL)
-		if err != nil {
-			return nil, fmt.Errorf("failed to set HTTPS URL: %w", err)
-		}
-	}
-
-	if repo.SSHURL != nil {
-		var err error
-
-		builder, err = builder.WithSSHURL(*repo.SSHURL)
-		if err != nil {
-			return nil, fmt.Errorf("failed to set SSH URL: %w", err)
-		}
-	}
-
-	if repo.DefaultBranch != nil {
-		var err error
-
-		builder, err = builder.WithDefaultBranch(*repo.DefaultBranch)
-		if err != nil {
-			return nil, fmt.Errorf("failed to set default branch: %w", err)
-		}
-	}
-
-	if repo.Description != nil {
-		builder = builder.WithDescription(*repo.Description)
-	}
-
-	visibility := "public"
-	if repo.Private != nil && *repo.Private {
-		visibility = "private"
-	}
-
-	builder = builder.WithVisibility(visibility)
-
-	if repo.UpdatedAt != nil {
-		builder = builder.WithLastActivityAt(repo.UpdatedAt.Time)
-	}
-
-	// Owner information is provided through the ProviderConfig
-
-	builder = builder.WithProviderType("github")
-
-	if repo.Private != nil {
-		builder = builder.WithPrivate(*repo.Private)
-	}
-
-	if repo.Fork != nil {
-		builder = builder.WithFork(*repo.Fork)
-	}
-
-	if repo.Archived != nil {
-		builder = builder.WithArchived(*repo.Archived)
-	}
+	ps.setRepositoryMetadata(repo, &builder)
+	ps.setRepositoryFlags(repo, &builder)
 
 	builtRepo, err := builder.Build()
 	if err != nil {
@@ -391,6 +446,46 @@ func (ps *ProjectService) convertToRepository(repo *github.Repository) (*entitie
 	}
 
 	return &builtRepo, nil
+}
+
+// setRepositoryStringFields uses the common helper to set string fields.
+func (ps *ProjectService) setRepositoryStringFields(repo *github.Repository, builder *entities.RepositoryBuilder) error {
+	return setRepositoryStringFields(repo, builder)
+}
+
+// setRepositoryMetadata sets repository metadata fields.
+func (ps *ProjectService) setRepositoryMetadata(repo *github.Repository, builder *entities.RepositoryBuilder) {
+	if repo.Description != nil {
+		*builder = builder.WithDescription(*repo.Description)
+	}
+
+	visibility := "public"
+	if repo.Private != nil && *repo.Private {
+		visibility = "private"
+	}
+
+	*builder = builder.WithVisibility(visibility)
+
+	if repo.UpdatedAt != nil {
+		*builder = builder.WithLastActivityAt(repo.UpdatedAt.Time)
+	}
+
+	*builder = builder.WithProviderType("github")
+}
+
+// setRepositoryFlags sets boolean flag fields for the repository.
+func (ps *ProjectService) setRepositoryFlags(repo *github.Repository, builder *entities.RepositoryBuilder) {
+	if repo.Private != nil {
+		*builder = builder.WithPrivate(*repo.Private)
+	}
+
+	if repo.Fork != nil {
+		*builder = builder.WithFork(*repo.Fork)
+	}
+
+	if repo.Archived != nil {
+		*builder = builder.WithArchived(*repo.Archived)
+	}
 }
 
 // makeAlphaNumeric converts a string to alphanumeric only (plus hyphens).
@@ -429,78 +524,83 @@ func (ps *ProjectService) sanitizeProjectName(name string) string {
 	return name
 }
 
-// GetProjectInfos retrieves repository metadata with sophisticated filtering and pagination
-// This restores the main branch getProjectInfos functionality completely
-func (ps *ProjectService) GetProjectInfos(ctx context.Context, owner string, isOrganization bool, includeForks bool) ([]*entities.Repository, error) {
-	ps.logger.Debug(ctx, "Fetching GitHub project infos", map[string]interface{}{
-		"owner":          owner,
-		"isOrganization": isOrganization,
-		"includeForks":   includeForks,
-	})
-
-	var allRepos []*github.Repository
-
+// fetchAllRepositories fetches all repositories for the given owner.
+func (ps *ProjectService) fetchAllRepositories(ctx context.Context, owner string, isOrganization bool, includeForks bool) ([]*github.Repository, error) {
 	listType := "sources"
 	if includeForks {
 		listType = "all"
 	}
 
 	if isOrganization {
-		// List organization repositories with sophisticated pagination (restored from main branch)
-		opt := &github.RepositoryListByOrgOptions{
-			Type:        listType,
-			Sort:        "full_name",
-			ListOptions: github.ListOptions{PerPage: 100}, // GitHub's max is 100
-		}
-
-		for {
-			repos, resp, err := ps.client.Repositories.ListByOrg(ctx, owner, opt)
-			if err != nil {
-				return nil, fmt.Errorf("failed to list org repositories. page: %d, err: %w", opt.Page, err)
-			}
-
-			allRepos = append(allRepos, repos...)
-
-			if resp.NextPage == 0 {
-				break
-			}
-
-			opt.Page = resp.NextPage
-		}
-	} else {
-		// List user repositories with sophisticated pagination (restored from main branch)
-		opt := &github.RepositoryListByAuthenticatedUserOptions{
-			Visibility:  "all",
-			Affiliation: "owner",
-			Sort:        "full_name",
-			ListOptions: github.ListOptions{PerPage: 100}, // GitHub's max is 100
-		}
-
-		for {
-			repos, resp, err := ps.client.Repositories.ListByAuthenticatedUser(ctx, opt)
-			if err != nil {
-				return nil, fmt.Errorf("failed to list user repositories. page: %d, err: %w", opt.Page, err)
-			}
-
-			allRepos = append(allRepos, repos...)
-
-			if resp.NextPage == 0 {
-				break
-			}
-
-			opt.Page = resp.NextPage
-		}
+		return ps.fetchOrganizationRepositories(ctx, owner, listType)
 	}
 
-	ps.logger.Debug(ctx, "Total fetched repositories", map[string]interface{}{
-		"totalRepositories": len(allRepos),
-	})
+	return ps.fetchUserRepositories(ctx, listType)
+}
 
-	// Convert to domain entities with sophisticated filtering (restored from main branch)
-	var repositories []*entities.Repository
+// fetchOrganizationRepositories fetches repositories for an organization.
+func (ps *ProjectService) fetchOrganizationRepositories(ctx context.Context, owner, listType string) ([]*github.Repository, error) {
+	var allRepos []*github.Repository
+
+	opt := &github.RepositoryListByOrgOptions{
+		Type:        listType,
+		Sort:        "full_name",
+		ListOptions: github.ListOptions{PerPage: 100}, // GitHub's max is 100
+	}
+
+	for {
+		repos, resp, err := ps.client.Repositories.ListByOrg(ctx, owner, opt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list org repositories. page: %d, err: %w", opt.Page, err)
+		}
+
+		allRepos = append(allRepos, repos...)
+
+		if resp.NextPage == 0 {
+			break
+		}
+
+		opt.Page = resp.NextPage
+	}
+
+	return allRepos, nil
+}
+
+// fetchUserRepositories fetches repositories for a user.
+func (ps *ProjectService) fetchUserRepositories(ctx context.Context, _ /* listType */ string) ([]*github.Repository, error) {
+	var allRepos []*github.Repository
+
+	opt := &github.RepositoryListByAuthenticatedUserOptions{
+		Visibility:  "all",
+		Affiliation: "owner",
+		Sort:        "full_name",
+		ListOptions: github.ListOptions{PerPage: 100}, // GitHub's max is 100
+	}
+
+	for {
+		repos, resp, err := ps.client.Repositories.ListByAuthenticatedUser(ctx, opt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list user repositories. page: %d, err: %w", opt.Page, err)
+		}
+
+		allRepos = append(allRepos, repos...)
+
+		if resp.NextPage == 0 {
+			break
+		}
+
+		opt.Page = resp.NextPage
+	}
+
+	return allRepos, nil
+}
+
+// convertAndFilterRepositories converts GitHub repositories to domain entities and applies filtering.
+func (ps *ProjectService) convertAndFilterRepositories(ctx context.Context, allRepos []*github.Repository, includeForks bool) []*entities.Repository {
+	repositories := make([]*entities.Repository, 0, len(allRepos))
 
 	for _, repo := range allRepos {
-		// Apply fork filtering (restored from main branch)
+		// Apply fork filtering
 		if !includeForks && repo.Fork != nil && *repo.Fork {
 			continue
 		}
@@ -518,168 +618,20 @@ func (ps *ProjectService) GetProjectInfos(ctx context.Context, owner string, isO
 		repositories = append(repositories, entity)
 	}
 
-	ps.logger.Info(ctx, "Successfully fetched GitHub project infos", map[string]interface{}{
-		"owner":             owner,
-		"totalRepositories": len(allRepos),
-		"filteredCount":     len(repositories),
-		"includeForks":      includeForks,
-	})
-
-	return repositories, nil
+	return repositories
 }
 
-// GetProjectInfo retrieves detailed metadata for a single repository
-// This restores the main branch newProjectInfo functionality completely
-func (ps *ProjectService) GetProjectInfo(ctx context.Context, owner, name string) (*entities.Repository, error) {
-	ps.logger.Debug(ctx, "Fetching GitHub project info", map[string]interface{}{
-		"owner": owner,
-		"name":  name,
-	})
+// convertGitHubRepoToEntity converts GitHub repository to domain entity with all metadata.
 
-	gitHubProject, _, err := ps.client.Repositories.Get(ctx, owner, name)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get projectInfo. name: %s, err: %w", name, err)
-	}
-
-	entity, err := ps.convertGitHubRepoToEntity(gitHubProject)
-	if err != nil {
-		return nil, fmt.Errorf("failed to convert repository to entity: %w", err)
-	}
-
-	ps.logger.Debug(ctx, "Successfully fetched GitHub project info", map[string]interface{}{
-		"owner":      owner,
-		"name":       name,
-		"visibility": entity.Visibility(),
-	})
-
-	return entity, nil
-}
-
-// RepositoryExists checks if a repository exists and returns metadata
-// This restores the main branch Exists functionality completely
-func (ps *ProjectService) RepositoryExists(ctx context.Context, owner, repo string) (bool, string, error) {
-	ps.logger.Debug(ctx, "Checking GitHub repository existence", map[string]interface{}{
-		"owner": owner,
-		"repo":  repo,
-	})
-
-	project, resp, err := ps.client.Repositories.Get(ctx, owner, repo)
-	if err != nil {
-		if resp != nil && resp.StatusCode == http.StatusNotFound {
-			return false, "", nil // Repository doesn't exist
-		}
-
-		return false, "", err
-	}
-
-	projectID := getValueOrEmpty(project.FullName)
-
-	ps.logger.Debug(ctx, "GitHub repository exists", map[string]interface{}{
-		"owner":     owner,
-		"repo":      repo,
-		"projectID": projectID,
-	})
-
-	return true, projectID, nil
-}
-
-// SetDefaultBranch sets the default branch for a repository
-// This restores the main branch setDefaultBranch functionality completely
-func (ps *ProjectService) SetDefaultBranch(ctx context.Context, owner string, projectName string, branch string) error {
-	ps.logger.Debug(ctx, "Setting GitHub default branch", map[string]interface{}{
-		"owner":       owner,
-		"projectName": projectName,
-		"branch":      branch,
-	})
-
-	_, _, err := ps.client.Repositories.Edit(ctx, owner, projectName, &github.Repository{
-		DefaultBranch: github.Ptr(branch),
-	})
-	if err != nil {
-		return fmt.Errorf("failed to set default branch. err: %w", err)
-	}
-
-	ps.logger.Info(ctx, "GitHub default branch set successfully", map[string]interface{}{
-		"owner":       owner,
-		"projectName": projectName,
-		"branch":      branch,
-	})
-
-	return nil
-}
-
-// convertGitHubRepoToEntity converts GitHub repository to domain entity with all metadata
-// This restores the main branch repository conversion functionality completely
 func (ps *ProjectService) convertGitHubRepoToEntity(repo *github.Repository) (*entities.Repository, error) {
 	builder := entities.NewRepositoryBuilder()
 
-	// Set basic properties (restored from main branch)
-	if repo.Name != nil {
-		var err error
-
-		builder, err = builder.WithName(*repo.Name)
-		if err != nil {
-			return nil, fmt.Errorf("failed to set repository name: %w", err)
-		}
+	if err := ps.setEntityStringFields(repo, &builder); err != nil {
+		return nil, err
 	}
 
-	if repo.CloneURL != nil {
-		var err error
-
-		builder, err = builder.WithHTTPSURL(*repo.CloneURL)
-		if err != nil {
-			return nil, fmt.Errorf("failed to set HTTPS URL: %w", err)
-		}
-	}
-
-	if repo.SSHURL != nil {
-		var err error
-
-		builder, err = builder.WithSSHURL(*repo.SSHURL)
-		if err != nil {
-			return nil, fmt.Errorf("failed to set SSH URL: %w", err)
-		}
-	}
-
-	if repo.Description != nil {
-		builder = builder.WithDescription(*repo.Description)
-	}
-
-	if repo.Private != nil {
-		visibility := constants.VisibilityPublic
-		if *repo.Private {
-			visibility = constants.VisibilityPrivate
-		}
-
-		builder = builder.WithVisibility(visibility)
-	}
-
-	if repo.DefaultBranch != nil {
-		var err error
-
-		builder, err = builder.WithDefaultBranch(*repo.DefaultBranch)
-		if err != nil {
-			return nil, fmt.Errorf("failed to set default branch: %w", err)
-		}
-	}
-
-	if repo.UpdatedAt != nil {
-		builder = builder.WithLastActivityAt(repo.UpdatedAt.Time)
-	}
-
-	if repo.FullName != nil {
-		builder = builder.WithProjectID(*repo.FullName)
-	}
-
-	if repo.Fork != nil {
-		builder = builder.WithFork(*repo.Fork)
-	}
-
-	if repo.Archived != nil {
-		builder = builder.WithArchived(*repo.Archived)
-	}
-
-	// Note: Size field not available in current repository entity
+	ps.setEntityMetadata(repo, &builder)
+	ps.setEntityFlags(repo, &builder)
 
 	// Build the entity
 	entity, err := builder.Build()
@@ -690,8 +642,84 @@ func (ps *ProjectService) convertGitHubRepoToEntity(repo *github.Repository) (*e
 	return &entity, nil
 }
 
+// setEntityStringFields sets all string-based entity fields that can return errors.
+func (ps *ProjectService) setEntityStringFields(repo *github.Repository, builder *entities.RepositoryBuilder) error {
+	if repo.Name != nil {
+		var err error
+
+		*builder, err = builder.WithName(*repo.Name)
+		if err != nil {
+			return fmt.Errorf("failed to set repository name: %w", err)
+		}
+	}
+
+	if repo.CloneURL != nil {
+		var err error
+
+		*builder, err = builder.WithHTTPSURL(*repo.CloneURL)
+		if err != nil {
+			return fmt.Errorf("failed to set HTTPS URL: %w", err)
+		}
+	}
+
+	if repo.SSHURL != nil {
+		var err error
+
+		*builder, err = builder.WithSSHURL(*repo.SSHURL)
+		if err != nil {
+			return fmt.Errorf("failed to set SSH URL: %w", err)
+		}
+	}
+
+	if repo.DefaultBranch != nil {
+		var err error
+
+		*builder, err = builder.WithDefaultBranch(*repo.DefaultBranch)
+		if err != nil {
+			return fmt.Errorf("failed to set default branch: %w", err)
+		}
+	}
+
+	return nil
+}
+
+// setEntityMetadata sets entity metadata fields.
+func (ps *ProjectService) setEntityMetadata(repo *github.Repository, builder *entities.RepositoryBuilder) {
+	if repo.Description != nil {
+		*builder = builder.WithDescription(*repo.Description)
+	}
+
+	if repo.Private != nil {
+		visibility := constants.VisibilityPublic
+		if *repo.Private {
+			visibility = constants.VisibilityPrivate
+		}
+
+		*builder = builder.WithVisibility(visibility)
+	}
+
+	if repo.UpdatedAt != nil {
+		*builder = builder.WithLastActivityAt(repo.UpdatedAt.Time)
+	}
+
+	if repo.FullName != nil {
+		*builder = builder.WithProjectID(*repo.FullName)
+	}
+}
+
+// setEntityFlags sets boolean flag fields for the entity.
+func (ps *ProjectService) setEntityFlags(repo *github.Repository, builder *entities.RepositoryBuilder) {
+	if repo.Fork != nil {
+		*builder = builder.WithFork(*repo.Fork)
+	}
+
+	if repo.Archived != nil {
+		*builder = builder.WithArchived(*repo.Archived)
+	}
+}
+
 // getValueOrEmpty is a helper function that returns the value of a string pointer if it's not nil,
-// or "N/A" otherwise. This restores the main branch helper functionality.
+// or "N/A" otherwise.  main branch helper functionality.
 func getValueOrEmpty(s *string) string {
 	if s != nil {
 		return *s

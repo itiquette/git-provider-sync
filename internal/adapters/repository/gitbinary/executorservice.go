@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
@@ -6,47 +6,65 @@ package gitbinary
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"os/exec"
 	"strings"
 	"time"
 
+	"itiquette/git-provider-sync/internal/domain"
 	"itiquette/git-provider-sync/internal/domain/ports"
 )
 
 // ExecutorService defines the interface for executing git commands.
-// This restores the critical git binary execution functionality from main branch.
+//
+//	critical git binary execution functionality .
 type ExecutorService interface {
 	RunGitCommand(ctx context.Context, env []string, workingDir string, args ...string) error
 	RunGitCommandWithOutput(ctx context.Context, workingDir string, args ...string) ([]byte, error)
 }
 
 // executorService implements ExecutorService for git binary operations.
-// This restores the sophisticated git command execution from main branch.
+//
+//	sophisticated git command execution .
 type executorService struct {
 	gitBinaryPath string
 	logger        ports.Logger
+	gitTimeout    time.Duration
 }
 
 // NewExecutorService creates a new git executor service.
-func NewExecutorService(binaryPath string) ExecutorService {
+func NewExecutorService(binaryPath string) ExecutorService { //nolint:ireturn
 	return &executorService{
 		gitBinaryPath: binaryPath,
+		gitTimeout:    5 * time.Minute, // Default 5 minutes
 	}
 }
 
 // NewExecutorServiceWithLogger creates a new git executor service with logger.
-func NewExecutorServiceWithLogger(binaryPath string, logger ports.Logger) ExecutorService {
+func NewExecutorServiceWithLogger(binaryPath string, logger ports.Logger) ExecutorService { //nolint:ireturn
 	return &executorService{
 		gitBinaryPath: binaryPath,
 		logger:        logger,
+		gitTimeout:    5 * time.Minute, // Default 5 minutes
+	}
+}
+
+// NewExecutorServiceWithTimeout creates a new git executor service with configurable timeout.
+func NewExecutorServiceWithTimeout(binaryPath string, logger ports.Logger, timeout time.Duration) ExecutorService { //nolint:ireturn
+	if timeout == 0 {
+		timeout = 5 * time.Minute
+	}
+
+	return &executorService{
+		gitBinaryPath: binaryPath,
+		logger:        logger,
+		gitTimeout:    timeout,
 	}
 }
 
 // RunGitCommand executes a git command with environment setup and working directory.
-// This restores the main branch git command execution functionality.
+
 func (e *executorService) RunGitCommand(ctx context.Context, env []string, workingDir string, args ...string) error {
 	if e.logger != nil {
 		e.logger.Trace(ctx, "Entering RunGitCommand", map[string]interface{}{
@@ -55,7 +73,7 @@ func (e *executorService) RunGitCommand(ctx context.Context, env []string, worki
 		})
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, 3*time.Minute)
+	ctx, cancel := context.WithTimeout(ctx, e.gitTimeout)
 	defer cancel()
 
 	// #nosec G204 - Git binary path is validated at startup
@@ -64,7 +82,7 @@ func (e *executorService) RunGitCommand(ctx context.Context, env []string, worki
 	cmd.Env = append(os.Environ(), env...)
 
 	if len(workingDir) == 0 {
-		return errors.New("failed to run git command, workingDir was empty")
+		return domain.ErrWorkingDirEmpty
 	}
 
 	cmd.Dir = workingDir
@@ -84,9 +102,9 @@ func (e *executorService) RunGitCommand(ctx context.Context, env []string, worki
 }
 
 // RunGitCommandWithOutput executes a git command and returns its output.
-// This restores the main branch git command with output functionality.
+
 func (e *executorService) RunGitCommandWithOutput(ctx context.Context, workingDir string, args ...string) ([]byte, error) {
-	ctx, cancel := context.WithTimeout(ctx, 3*time.Minute)
+	ctx, cancel := context.WithTimeout(ctx, e.gitTimeout)
 	defer cancel()
 
 	// #nosec G204 - Git binary path is validated at startup
@@ -96,5 +114,10 @@ func (e *executorService) RunGitCommandWithOutput(ctx context.Context, workingDi
 		cmd.Dir = workingDir
 	}
 
-	return cmd.Output()
+	output, err := cmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute git command: %w", err)
+	}
+
+	return output, nil
 }

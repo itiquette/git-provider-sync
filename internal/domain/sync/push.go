@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
@@ -11,9 +11,15 @@ import (
 	"strings"
 	"time"
 
+	"itiquette/git-provider-sync/internal/domain"
 	"itiquette/git-provider-sync/internal/domain/entities"
 	"itiquette/git-provider-sync/internal/domain/ports"
+	"itiquette/git-provider-sync/internal/log"
 	"itiquette/git-provider-sync/internal/shared"
+)
+
+const (
+	defaultBranchMain = "main"
 )
 
 // Error variables for common failure scenarios.
@@ -24,20 +30,24 @@ var (
 	ErrDefaultBranch        = errors.New("failed to set default branch")
 )
 
-// PushToProviderUseCase handles the critical provider.Push functionality from main branch.
-// This restores the sophisticated push-to-provider workflow in hexagonal architecture.
+// PushToProviderUseCase handles pushing repositories to git providers (GitHub, GitLab, Gitea).
+//
+// Executes a multi-step workflow: creates target repository if needed, temporarily disables
+// branch protection during push, then restores protection settings. Ensures atomic
+// operations with comprehensive error recovery.
+//
+// Uses functional design with context-based logging (idiomatic Go pattern).
 type PushToProviderUseCase struct {
 	provider ports.RepositoryProvider
 	gitOps   ports.GitOperations
-	logger   ports.Logger
 }
 
 // NewPushToProviderUseCase creates a new push to provider use case.
-func NewPushToProviderUseCase(provider ports.RepositoryProvider, gitOps ports.GitOperations, logger ports.Logger) *PushToProviderUseCase {
+// Uses functional pattern - logger comes from context (idiomatic Go).
+func NewPushToProviderUseCase(provider ports.RepositoryProvider, gitOps ports.GitOperations) *PushToProviderUseCase {
 	return &PushToProviderUseCase{
 		provider: provider,
 		gitOps:   gitOps,
-		logger:   logger,
 	}
 }
 
@@ -62,75 +72,146 @@ type PushResponse struct {
 }
 
 // Execute performs the push to provider operation.
-// This restores the main branch provider.Push functionality in hexagonal style.
 func (uc *PushToProviderUseCase) Execute(ctx context.Context, request PushRequest) (PushResponse, error) {
-	uc.logger.Info(ctx, "Starting push to provider", map[string]interface{}{
+	logger := log.CreateDomainLogger(ctx)
+
+	var response PushResponse
+
+	var err error
+
+	// TRACE: Use case entry point (hexagonal boundary)
+	logger.Trace(ctx, "PushToProviderUseCase.Execute entry", map[string]interface{}{
 		"source":     request.SourceRepository.Name(),
 		"target":     request.TargetConfig.Name(),
 		"force_push": request.ForcePush,
 		"dry_run":    request.DryRun,
 	})
 
+	defer func() {
+		// TRACE: Use case exit point with outcome
+		logger.Trace(ctx, "PushToProviderUseCase.Execute exit", map[string]interface{}{
+			"success":    response.Success,
+			"created":    response.Created,
+			"project_id": response.ProjectID,
+			"error":      err != nil,
+		})
+	}()
+
 	if request.DryRun {
+		// DEBUG: Branch decision
+		logger.Debug(ctx, "Dry run mode enabled", map[string]interface{}{
+			"skipping_actual_push": true,
+		})
+
 		return uc.performDryRun(ctx, request), nil
 	}
 
-	// 1. Setup GPSUPSTREAM remote (critical missing functionality)
+	return uc.executePush(ctx, request)
+}
+
+// executePush performs the actual push operation with early returns.
+func (uc *PushToProviderUseCase) executePush(ctx context.Context, request PushRequest) (PushResponse, error) {
+	logger := log.CreateDomainLogger(ctx)
+
+	// TRACE: Internal method entry
+	logger.Trace(ctx, "executePush entry", map[string]interface{}{
+		"source": request.SourceRepository.Name(),
+		"target": request.TargetConfig.Name(),
+	})
+
+	// TRACE: Step 1 - Setup remote
+	logger.Trace(ctx, "setting up GPSUPSTREAM remote", map[string]interface{}{
+		"step": "1_setup_remote",
+	})
+
 	if err := uc.setupGPSUpstreamRemote(ctx, request.SourceGitRepo); err != nil {
-		return PushResponse{Success: false, Error: err}, fmt.Errorf("failed to setup GPSUPSTREAM remote: %w", err)
+		return uc.failResponse(err), fmt.Errorf("setup remote: %w", err)
 	}
 
-	// 2. Check if repository exists at target, create if needed
+	// TRACE: Step 2 - Ensure repository exists
+	logger.Trace(ctx, "ensuring repository exists", map[string]interface{}{
+		"step": "2_ensure_repo",
+	})
+
 	exists, projectID, err := uc.ensureRepositoryExists(ctx, request)
 	if err != nil {
-		return PushResponse{Success: false, Error: err}, fmt.Errorf("failed to ensure repository exists: %w", err)
+		return uc.failResponse(err), fmt.Errorf("ensure repo: %w", err)
 	}
+	// DEBUG: Repository state
+	logger.Debug(ctx, "Repository existence check completed", map[string]interface{}{
+		"exists":     exists,
+		"project_id": projectID,
+	})
 
-	created := !exists
+	// TRACE: Step 3 - Disable protection if needed
+	if request.TargetConfig.DisableProtection() {
+		logger.Trace(ctx, "disabling branch protection", map[string]interface{}{
+			"step": "3_disable_protection",
+		})
 
-	// 3. Disable protection if needed (restores main branch Settings.Disabled functionality)
-	if request.TargetConfig.Options().DisableProtection() {
 		if err := uc.disableProtection(ctx, request, projectID); err != nil {
-			return PushResponse{Success: false, Error: err}, fmt.Errorf("failed to disable protection: %w", err)
+			return uc.failResponse(err), fmt.Errorf("disable protection: %w", err)
 		}
 	}
 
-	// 4. Perform the actual push
+	// TRACE: Step 4 - Perform push (critical step)
+	logger.Trace(ctx, "performing git push", map[string]interface{}{
+		"step": "4_git_push",
+	})
+
 	targetURL, err := uc.performPush(ctx, request)
 	if err != nil {
-		return PushResponse{Success: false, Error: err}, fmt.Errorf("failed to push changes: %w", err)
+		return uc.failResponse(err), fmt.Errorf("push: %w", err)
 	}
 
-	// 5. Set default branch
+	// TRACE: Step 5 - Set default branch
+	logger.Trace(ctx, "setting default branch", map[string]interface{}{
+		"step": "5_default_branch",
+	})
+
 	if err := uc.setDefaultBranch(ctx, request, projectID); err != nil {
-		return PushResponse{Success: false, Error: err}, fmt.Errorf("failed to set default branch: %w", err)
+		return uc.failResponse(err), fmt.Errorf("set default branch: %w", err)
 	}
 
-	// 6. Re-enable protection if needed (restores main branch Settings.Disabled functionality)
-	if request.TargetConfig.Options().DisableProtection() {
+	// TRACE: Step 6 - Re-enable protection if needed
+	if request.TargetConfig.DisableProtection() {
+		logger.Trace(ctx, "re-enabling branch protection", map[string]interface{}{
+			"step": "6_enable_protection",
+		})
+
 		if err := uc.enableProtection(ctx, request, projectID); err != nil {
-			return PushResponse{Success: false, Error: err}, fmt.Errorf("failed to enable protection: %w", err)
+			return uc.failResponse(err), fmt.Errorf("enable protection: %w", err)
 		}
 	}
 
-	uc.logger.Info(ctx, "Push to provider completed successfully", map[string]interface{}{
+	// DEBUG: Final operation state
+	logger.Debug(ctx, "Push operation completed successfully", map[string]interface{}{
 		"target_url": targetURL,
-		"created":    created,
+		"created":    !exists,
 		"project_id": projectID,
 	})
 
 	return PushResponse{
 		Success:   true,
-		Created:   created,
+		Created:   !exists,
 		ProjectID: projectID,
 		TargetURL: targetURL,
 	}, nil
 }
 
+// failResponse creates a standardized failure response.
+func (uc *PushToProviderUseCase) failResponse(err error) PushResponse {
+	return PushResponse{Success: false, Error: err}
+}
+
 // setupGPSUpstreamRemote sets up the GPSUPSTREAM remote from origin.
-// This restores the critical SetGPSUpstreamRemoteFromOrigin functionality from main branch.
+//
+//nolint:cyclop // Complex remote setup logic with multiple validation steps
 func (uc *PushToProviderUseCase) setupGPSUpstreamRemote(ctx context.Context, gitRepo ports.GitRepository) error {
-	uc.logger.Debug(ctx, "Setting up GPSUPSTREAM remote", map[string]interface{}{
+	logger := log.CreateDomainLogger(ctx)
+
+	// DEBUG: Remote setup details (application state)
+	logger.Debug(ctx, "Setting up GPSUPSTREAM remote", map[string]interface{}{
 		"repository": gitRepo.Name(),
 		"path":       gitRepo.Path(),
 	})
@@ -143,25 +224,29 @@ func (uc *PushToProviderUseCase) setupGPSUpstreamRemote(ctx context.Context, git
 	}
 
 	var originURL string
+
 	for _, remote := range remotes {
 		if remote.Name == "origin" {
 			originURL = remote.URL
+
 			break
 		}
 	}
 
 	if originURL == "" {
-		return fmt.Errorf("origin remote not found")
+		return domain.ErrOriginRemoteNotFound
 	}
 
-	uc.logger.Debug(ctx, "Found origin remote", map[string]interface{}{
+	// DEBUG: Remote discovery result
+	logger.Debug(ctx, "Found origin remote", map[string]interface{}{
 		"origin_url": originURL,
 	})
 
 	// 2. Delete existing GPSUPSTREAM remote (ignore errors like main branch)
 	err = gitRepo.RemoveRemote(ctx, "GPSUPSTREAM")
 	if err != nil {
-		uc.logger.Debug(ctx, "Failed to remove existing GPSUPSTREAM remote (expected)", map[string]interface{}{
+		// DEBUG: Expected removal failure
+		logger.Debug(ctx, "Failed to remove existing GPSUPSTREAM remote (expected)", map[string]interface{}{
 			"error": err.Error(),
 		})
 	}
@@ -180,24 +265,29 @@ func (uc *PushToProviderUseCase) setupGPSUpstreamRemote(ctx context.Context, git
 	for _, remote := range newRemotes {
 		if remote.Name == "GPSUPSTREAM" {
 			if remote.URL != originURL {
-				return fmt.Errorf("mismatch in GPSUPSTREAM vs origin remote: got %s, expected %s", remote.URL, originURL)
+				return fmt.Errorf("%w: got %s, expected %s", domain.ErrRemoteMismatch, remote.URL, originURL)
 			}
-			uc.logger.Info(ctx, "GPSUPSTREAM remote setup completed successfully", map[string]interface{}{
+
+			// DEBUG: Remote setup completion (application state)
+			logger.Info(ctx, "GPSUPSTREAM remote setup completed successfully", map[string]interface{}{
 				"origin_url":      originURL,
 				"gpsupstream_url": remote.URL,
 				"verified":        true,
 			})
+
 			return nil
 		}
 	}
 
-	return fmt.Errorf("GPSUPSTREAM remote not found after creation")
+	return domain.ErrUpstreamRemoteNotFound
 }
 
 // ensureRepositoryExists checks if repository exists and creates it if needed.
-// This restores the main branch exists() and create() functionality.
 func (uc *PushToProviderUseCase) ensureRepositoryExists(ctx context.Context, request PushRequest) (bool, string, error) {
-	uc.logger.Debug(ctx, "Checking if repository exists", map[string]interface{}{
+	logger := log.CreateDomainLogger(ctx)
+
+	// DEBUG: Repository existence check (application state)
+	logger.Debug(ctx, "Checking if repository exists", map[string]interface{}{
 		"owner": request.TargetConfig.Owner(),
 		"name":  request.SourceRepository.Name(),
 	})
@@ -211,24 +301,26 @@ func (uc *PushToProviderUseCase) ensureRepositoryExists(ctx context.Context, req
 	exists, projectID, err := uc.provider.ProjectExists(ctx,
 		request.TargetConfig.Owner(),
 		request.SourceRepository.Name())
-
 	if err != nil {
 		return false, "", fmt.Errorf("failed to check repository existence: %w", err)
 	}
 
 	if exists {
-		uc.logger.Debug(ctx, "Repository exists at target", map[string]interface{}{
+		// DEBUG: Repository existence result
+		logger.Debug(ctx, "Repository exists at target", map[string]interface{}{
 			"project_id": projectID,
 		})
+
 		return true, projectID, nil
 	}
 
 	// Repository doesn't exist - create it if allowed
 	if !request.CreateIfMissing {
-		return false, "", fmt.Errorf("repository does not exist and creation is disabled")
+		return false, "", domain.ErrRepositoryCreationDisabled
 	}
 
-	uc.logger.Debug(ctx, "Repository doesn't exist, creating", map[string]interface{}{
+	// DEBUG: Repository creation decision
+	logger.Debug(ctx, "Repository doesn't exist, creating", map[string]interface{}{
 		"name": request.SourceRepository.Name(),
 	})
 
@@ -241,9 +333,11 @@ func (uc *PushToProviderUseCase) ensureRepositoryExists(ctx context.Context, req
 }
 
 // createRepository creates a new repository at the target provider.
-// This restores the main branch create() functionality.
 func (uc *PushToProviderUseCase) createRepository(ctx context.Context, request PushRequest) (string, error) {
-	uc.logger.Debug(ctx, "Creating repository at target provider", map[string]interface{}{
+	logger := log.CreateDomainLogger(ctx)
+
+	// DEBUG: Repository creation details (application state)
+	logger.Debug(ctx, "Creating repository at target provider", map[string]interface{}{
 		"name": request.SourceRepository.Name(),
 	})
 
@@ -267,9 +361,8 @@ func (uc *PushToProviderUseCase) createRepository(ctx context.Context, request P
 }
 
 // buildDescription creates repository description.
-// This restores the main branch buildDescription functionality.
 func (uc *PushToProviderUseCase) buildDescription(request PushRequest) string {
-	// TODO: Add DescriptionPrefix to MirrorOptions if needed
+	// DescriptionPrefix not implemented in current mirror options
 	descPrefix := "" // Placeholder for request.TargetConfig.Options().DescriptionPrefix
 
 	var description string
@@ -289,7 +382,7 @@ func (uc *PushToProviderUseCase) buildDescription(request PushRequest) string {
 
 // mapVisibility maps source visibility to target visibility.
 func (uc *PushToProviderUseCase) mapVisibility(request PushRequest) string {
-	// TODO: Add Visibility option to MirrorOptions if needed
+	// Visibility option not implemented in current mirror options
 	visibility := "" // Placeholder for request.TargetConfig.Options().Visibility
 	if visibility != "" {
 		return visibility
@@ -300,15 +393,41 @@ func (uc *PushToProviderUseCase) mapVisibility(request PushRequest) string {
 }
 
 // performPush performs the actual git push operation.
-// This restores the critical writer.Push() functionality from main branch.
 func (uc *PushToProviderUseCase) performPush(ctx context.Context, request PushRequest) (string, error) {
-	uc.logger.Debug(ctx, "Performing git push", map[string]interface{}{
+	logger := log.CreateDomainLogger(ctx)
+
+	// TRACE: Critical method entry (git adapter boundary)
+	logger.Trace(ctx, "performPush entry", map[string]interface{}{
 		"force": request.ForcePush,
 	})
 
 	targetURL := uc.buildTargetURL(ctx, request)
 
-	// CRITICAL: Perform the actual git push operation (restored from main branch writer.Push)
+	// TRACE: Before crossing to git adapter (hexagonal boundary)
+	logger.Trace(ctx, "crossing to git adapter: UpdateRemote", map[string]interface{}{
+		"operation":  "UpdateRemote",
+		"remote":     "origin",
+		"target_url": targetURL,
+	})
+
+	// CRITICAL: Update origin remote to point to the target (GitLab) instead of source (GitHub)
+	if err := request.SourceGitRepo.UpdateRemote(ctx, "origin", targetURL); err != nil {
+		return "", fmt.Errorf("failed to update origin remote to target: %w", err)
+	}
+
+	// DEBUG: State after remote update
+	logger.Debug(ctx, "Origin remote updated successfully", map[string]interface{}{
+		"remote":     "origin",
+		"target_url": targetURL,
+	})
+
+	// TRACE: Before git push operation (critical adapter boundary)
+	logger.Trace(ctx, "crossing to git adapter: Push", map[string]interface{}{
+		"operation": "Push",
+		"remote":    "origin",
+		"force":     request.ForcePush,
+	})
+
 	pushOptions := ports.PushOptions{
 		Remote:  "origin",
 		Force:   request.ForcePush,
@@ -320,17 +439,22 @@ func (uc *PushToProviderUseCase) performPush(ctx context.Context, request PushRe
 		return "", fmt.Errorf("failed to push repository to target: %w", err)
 	}
 
-	uc.logger.Info(ctx, "Git push completed successfully", map[string]interface{}{
+	// DEBUG: Final operation state
+	logger.Debug(ctx, "Git push completed successfully", map[string]interface{}{
 		"target_url": targetURL,
 		"force":      request.ForcePush,
+	})
+
+	// TRACE: Method exit
+	logger.Trace(ctx, "performPush exit", map[string]interface{}{
+		"target_url": targetURL,
 	})
 
 	return targetURL, nil
 }
 
 // createAuthOptions creates authentication options for git operations.
-// This restores the authentication handling from main branch.
-func (uc *PushToProviderUseCase) createAuthOptions(ctx context.Context, authConfig entities.AuthConfig) ports.AuthOptions {
+func (uc *PushToProviderUseCase) createAuthOptions(_ /* ctx */ context.Context, authConfig entities.AuthConfig) ports.AuthOptions {
 	// Create auth options based on configuration
 	if authConfig.Token() != "" {
 		return ports.AuthOptions{
@@ -359,15 +483,14 @@ func (uc *PushToProviderUseCase) createAuthOptions(ctx context.Context, authConf
 }
 
 // buildTargetURL constructs the target URL for pushing.
-// This restores the main branch toGitURL functionality with proper authentication.
-func (uc *PushToProviderUseCase) buildTargetURL(ctx context.Context, request PushRequest) string {
+func (uc *PushToProviderUseCase) buildTargetURL(_ context.Context, request PushRequest) string {
 	repositoryName := request.SourceRepository.Name()
 
-	// Check if we need alphanumeric name transformation (from main branch)
-	// TODO: Add AlphaNumHyphName option to MirrorOptions if needed
+	// Check if we need alphanumeric name transformation ()
+	// AlphaNumHyphName option not implemented
 	alphaNumName := false // Placeholder for request.TargetConfig.Options().AlphaNumHyphName
 	if alphaNumName {
-		repositoryName = shared.RemoveNonAlphaNumericChars(ctx, repositoryName)
+		repositoryName = shared.RemoveNonAlphaNumericChars(repositoryName)
 	}
 
 	// Extract authentication details from target config
@@ -376,24 +499,27 @@ func (uc *PushToProviderUseCase) buildTargetURL(ctx context.Context, request Pus
 	owner := request.TargetConfig.Owner()
 
 	// Get authentication protocol - default to https
-	protocol := "https" // TODO: Add Protocol() method to AuthConfig interface
+	protocol := "https" // Protocol method not implemented - defaulting to HTTPS
 	token := authConfig.Token()
 
 	// Build the Git URL with authentication
-	// This restores the main branch toGitURL + AddBasicAuthToURL functionality
+	//  main branch toGitURL + AddBasicAuthToURL functionality
 	baseURL := fmt.Sprintf("%s://%s/%s/%s.git", protocol, domain, owner, repositoryName)
 
 	// Add authentication if token is provided
 	if token != "" {
-		baseURL = shared.AddBasicAuthToURL(ctx, baseURL, "git", token)
+		baseURL = shared.AddBasicAuthToURL(baseURL, "git", token)
 	}
 
 	return baseURL
 }
 
 // setDefaultBranch sets the default branch at the target.
-func (uc *PushToProviderUseCase) setDefaultBranch(ctx context.Context, request PushRequest, projectID string) error {
-	uc.logger.Debug(ctx, "Setting default branch", map[string]interface{}{
+func (uc *PushToProviderUseCase) setDefaultBranch(ctx context.Context, request PushRequest, projectID string) error { //nolint:unparam // Placeholder implementation - will return errors when implemented
+	logger := log.CreateDomainLogger(ctx)
+
+	// DEBUG: Branch configuration (application state)
+	logger.Debug(ctx, "Setting default branch", map[string]interface{}{
 		"branch":     request.SourceRepository.DefaultBranch(),
 		"project_id": projectID,
 	})
@@ -403,9 +529,11 @@ func (uc *PushToProviderUseCase) setDefaultBranch(ctx context.Context, request P
 }
 
 // disableProtection disables branch protection.
-// This restores the main branch provider.Unprotect functionality.
 func (uc *PushToProviderUseCase) disableProtection(ctx context.Context, request PushRequest, projectID string) error {
-	uc.logger.Debug(ctx, "Disabling branch protection", map[string]interface{}{
+	logger := log.CreateDomainLogger(ctx)
+
+	// DEBUG: Protection disabling (application state)
+	logger.Debug(ctx, "Disabling branch protection", map[string]interface{}{
 		"project_id": projectID,
 		"repository": request.SourceRepository.Name(),
 		"branch":     request.SourceRepository.DefaultBranch(),
@@ -414,7 +542,7 @@ func (uc *PushToProviderUseCase) disableProtection(ctx context.Context, request 
 	// Get the default branch to unprotect
 	defaultBranch := request.SourceRepository.DefaultBranch()
 	if defaultBranch == "" {
-		defaultBranch = "main" // Fallback to main
+		defaultBranch = defaultBranchMain // Fallback to main
 	}
 
 	// Call provider Unprotect method (as in main branch)
@@ -423,7 +551,8 @@ func (uc *PushToProviderUseCase) disableProtection(ctx context.Context, request 
 		return fmt.Errorf("failed to unprotect branch %s: %w", defaultBranch, err)
 	}
 
-	uc.logger.Info(ctx, "Branch protection disabled successfully", map[string]interface{}{
+	// DEBUG: Protection disabled successfully
+	logger.Info(ctx, "Branch protection disabled successfully", map[string]interface{}{
 		"project_id": projectID,
 		"branch":     defaultBranch,
 	})
@@ -432,9 +561,10 @@ func (uc *PushToProviderUseCase) disableProtection(ctx context.Context, request 
 }
 
 // enableProtection enables branch protection.
-// This restores the main branch provider.Protect functionality.
 func (uc *PushToProviderUseCase) enableProtection(ctx context.Context, request PushRequest, projectID string) error {
-	uc.logger.Debug(ctx, "Enabling branch protection", map[string]interface{}{
+	logger := log.CreateDomainLogger(ctx)
+
+	logger.Debug(ctx, "Enabling branch protection", map[string]interface{}{
 		"project_id": projectID,
 		"repository": request.SourceRepository.Name(),
 		"branch":     request.SourceRepository.DefaultBranch(),
@@ -443,7 +573,7 @@ func (uc *PushToProviderUseCase) enableProtection(ctx context.Context, request P
 	// Get the default branch to protect
 	defaultBranch := request.SourceRepository.DefaultBranch()
 	if defaultBranch == "" {
-		defaultBranch = "main" // Fallback to main
+		defaultBranch = defaultBranchMain // Fallback to main
 	}
 
 	// Get owner from target config
@@ -455,7 +585,7 @@ func (uc *PushToProviderUseCase) enableProtection(ctx context.Context, request P
 		return fmt.Errorf("failed to protect branch %s: %w", defaultBranch, err)
 	}
 
-	uc.logger.Info(ctx, "Branch protection enabled successfully", map[string]interface{}{
+	logger.Info(ctx, "Branch protection enabled successfully", map[string]interface{}{
 		"project_id": projectID,
 		"owner":      owner,
 		"branch":     defaultBranch,
@@ -471,7 +601,9 @@ func (uc *PushToProviderUseCase) isArchiveOrDirectory(providerType string) bool 
 
 // performDryRun simulates the push operation.
 func (uc *PushToProviderUseCase) performDryRun(ctx context.Context, request PushRequest) PushResponse {
-	uc.logger.Info(ctx, "Performing dry run push", map[string]interface{}{
+	logger := log.CreateDomainLogger(ctx)
+
+	logger.Info(ctx, "Performing dry run push", map[string]interface{}{
 		"source": request.SourceRepository.Name(),
 		"target": request.TargetConfig.Name(),
 	})

@@ -1,14 +1,14 @@
-// SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
+// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 //
 // SPDX-License-Identifier: EUPL-1.2
 
 // Package configuration provides functionality for managing, validating,
 // and interacting with configurations. It offers:
 //
-//   - Loading and parsing of application configurations from various sources
-//   - Validation of configuration settings to ensure system integrity
+//   - Loading and parsing of YAML configuration files with environment variable substitution
+//   - Validation of configuration settings with detailed error reporting
 //   - Utilities for printing and displaying configuration information
 //   - Handling of environment-specific and default configurations
-//   - Dynamic configuration updates and hot-reloading capabilities
+//   - Configuration file watching and hot-reload capabilities
 //   - Interfaces for accessing configuration data in a type-safe manner
 package configuration

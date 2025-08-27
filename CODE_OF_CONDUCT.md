@@ -1,7 +1,8 @@
 <!--
-SPDX-FileCopyrightText: 2024 itiquette/git-provider-sync
- 
+SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
+
 SPDX-License-Identifier: CC0-1.0
+
 -->
 
 # Simple Contributor Code of Conduct
@@ -35,7 +36,7 @@ Unacceptable behaviors include:
 
 ## Enforcement
 
-Instances of unacceptable behavior may be reported to the project team at \[EMAIL_ADDRESS\].
+Instances of unacceptable behavior may be reported to the project team at <janderssonse@proton.me>.
 All complaints will be reviewed and investigated promptly.
 The project team reserves the right to remove, edit, or reject comments, commits, code, or other contributions that do not align with this Code of Conduct, and to take appropriate corrective action.
 
