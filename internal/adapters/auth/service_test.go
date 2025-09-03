@@ -7,6 +7,7 @@ package auth
 import (
 	"context"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -17,16 +18,6 @@ import (
 
 	"itiquette/git-provider-sync/internal/domain/ports"
 )
-
-// Test Service constructor
-
-func TestNewService(t *testing.T) {
-	t.Parallel()
-
-	service := NewService()
-
-	require.NotNil(t, service)
-}
 
 // Test GetAuthMethod - core security function
 
@@ -280,7 +271,7 @@ func TestAuthenticationAdapter_ValidateAuthConfig_Valid(t *testing.T) {
 			authConfig: ports.AuthenticationConfiguration{
 				Type:       ports.AuthenticationTypeSSH,
 				Protocol:   protocolSSH,
-				SSHKeyPath: "/home/user/.ssh/id_rsa",
+				SSHKeyPath: filepath.Join(t.TempDir(), ".ssh", "id_rsa"),
 			},
 		},
 		{
@@ -306,7 +297,7 @@ func TestAuthenticationAdapter_ValidateAuthConfig_Valid(t *testing.T) {
 			t.Parallel()
 
 			err := adapter.ValidateAuthConfig(test.authConfig)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 		})
 	}
 }
@@ -325,7 +316,7 @@ func TestAuthenticationAdapter_ValidateAuthConfig_MissingCredentials(t *testing.
 	err := adapter.ValidateAuthConfig(authConfig)
 
 	require.Error(t, err)
-	assert.ErrorIs(t, err, ErrAuthConfigRequiresCredentials)
+	require.ErrorIs(t, err, ErrAuthConfigRequiresCredentials)
 }
 
 func TestAuthenticationAdapter_ValidateAuthConfig_SSH_MissingKey(t *testing.T) {
@@ -343,7 +334,7 @@ func TestAuthenticationAdapter_ValidateAuthConfig_SSH_MissingKey(t *testing.T) {
 
 	require.Error(t, err)
 	// Will fail the general credentials check first
-	assert.ErrorIs(t, err, ErrAuthConfigRequiresCredentials)
+	require.ErrorIs(t, err, ErrAuthConfigRequiresCredentials)
 }
 
 func TestAuthenticationAdapter_ValidateAuthConfig_HTTPS_MissingToken(t *testing.T) {
@@ -374,7 +365,7 @@ func TestAuthenticationAdapter_ValidateAuthConfig_HTTPS_MissingToken(t *testing.
 
 			require.Error(t, err)
 			// Will fail the general credentials check first
-			assert.ErrorIs(t, err, ErrAuthConfigRequiresCredentials)
+			require.ErrorIs(t, err, ErrAuthConfigRequiresCredentials)
 		})
 	}
 }
@@ -395,7 +386,7 @@ func TestAuthAdapter_ValidateSSHAuth_MissingKey_ReturnsError(t *testing.T) {
 
 	require.Error(t, err)
 	// Should fail protocol-specific validation since we have general credentials
-	assert.ErrorIs(t, err, ErrSSHRequiresKey)
+	require.ErrorIs(t, err, ErrSSHRequiresKey)
 }
 
 func TestAuthAdapter_ValidateHTTPSAuth_MissingToken_ReturnsError(t *testing.T) {
@@ -427,7 +418,7 @@ func TestAuthAdapter_ValidateHTTPSAuth_MissingToken_ReturnsError(t *testing.T) {
 
 			require.Error(t, err)
 			// Should fail protocol-specific validation since we have general credentials
-			assert.ErrorIs(t, err, ErrHTTPSRequiresToken)
+			require.ErrorIs(t, err, ErrHTTPSRequiresToken)
 		})
 	}
 }
@@ -479,7 +470,7 @@ func TestAuthenticationAdapter_ValidateAuthConfig_CaseInsensitive(t *testing.T) 
 			}
 
 			err := adapter.ValidateAuthConfig(authConfig)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 		})
 	}
 }
@@ -680,12 +671,12 @@ func TestAuthenticationAdapter_SSHWorkflow(t *testing.T) {
 		{
 			name:       "GitLab SSH with key path",
 			url:        "git@gitlab.com:owner/repo.git",
-			sshKeyPath: "/home/user/.ssh/id_ed25519",
+			sshKeyPath: filepath.Join(t.TempDir(), ".ssh", "id_ed25519"),
 		},
 		{
 			name:       "GitHub SSH with key path",
 			url:        "git@github.com:owner/repo.git",
-			sshKeyPath: "/home/user/.ssh/id_rsa",
+			sshKeyPath: filepath.Join(t.TempDir(), ".ssh", "id_rsa"),
 		},
 		{
 			name:   "Custom SSH with inline key",
@@ -798,7 +789,7 @@ func TestAuthenticationAdapter_ValidateAuthConfigWithProvider_ValidTokens(t *tes
 			}
 
 			err := adapter.ValidateAuthConfigWithProvider(authConfig, test.providerType)
-			assert.NoError(t, err, "Valid %s token should pass validation", test.providerType)
+			require.NoError(t, err, "Valid %s token should pass validation", test.providerType)
 		})
 	}
 }
@@ -852,7 +843,7 @@ func TestAuthenticationAdapter_ValidateAuthConfigWithProvider_UnknownProvider(t 
 	}
 
 	err := adapter.ValidateAuthConfigWithProvider(authConfig, "unknown-provider")
-	assert.NoError(t, err, "Unknown providers should accept any non-empty token")
+	require.NoError(t, err, "Unknown providers should accept any non-empty token")
 }
 
 func TestAuthenticationAdapter_ValidateAuthConfigWithProvider_SSHSkipsTokenValidation(t *testing.T) {
@@ -869,7 +860,7 @@ func TestAuthenticationAdapter_ValidateAuthConfigWithProvider_SSHSkipsTokenValid
 	}
 
 	err := adapter.ValidateAuthConfigWithProvider(authConfig, "github")
-	assert.NoError(t, err, "SSH protocol should skip token format validation")
+	require.NoError(t, err, "SSH protocol should skip token format validation")
 }
 
 func TestAuthenticationAdapter_ValidateAuthConfigWithProvider_EmptyToken(t *testing.T) {
@@ -886,7 +877,7 @@ func TestAuthenticationAdapter_ValidateAuthConfigWithProvider_EmptyToken(t *test
 
 	err := adapter.ValidateAuthConfigWithProvider(authConfig, "github")
 	require.Error(t, err)
-	assert.ErrorIs(t, err, ErrAuthConfigRequiresCredentials)
+	require.ErrorIs(t, err, ErrAuthConfigRequiresCredentials)
 }
 
 // Test basic token validation
@@ -925,7 +916,7 @@ func TestAuthenticationAdapter_validateTokenBasic(t *testing.T) {
 
 	// Test empty token (should be allowed - handled elsewhere)
 	err := adapter.validateTokenBasic("")
-	assert.NoError(t, err, "Empty token should be allowed in basic validation")
+	require.NoError(t, err, "Empty token should be allowed in basic validation")
 }
 
 // Test error constants exist and are properly defined

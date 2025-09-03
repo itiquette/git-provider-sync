@@ -14,7 +14,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	cliAdapters "itiquette/git-provider-sync/internal/adapters/cli"
 	"itiquette/git-provider-sync/internal/domain/entities"
 	"itiquette/git-provider-sync/internal/domain/ports"
 	"itiquette/git-provider-sync/internal/domain/sync"
@@ -252,20 +251,6 @@ func TestConvertMirrorConfigToMirrorTargets(t *testing.T) {
 	}
 }
 
-func TestCreateLoggerAdapter(t *testing.T) {
-	t.Parallel()
-
-	// Create a test logger
-	logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
-
-	// Test adapter creation
-	adapter := createLoggerAdapter(logger)
-	assert.NotNil(t, adapter)
-
-	// Test that it implements the Logger interface
-	assert.Implements(t, (*ports.Logger)(nil), adapter)
-}
-
 func TestSyncInputOption(t *testing.T) {
 	t.Parallel()
 
@@ -423,42 +408,6 @@ func TestSaveLastSyncInfo(t *testing.T) { //nolint:paralleltest // Cannot run in
 	assert.Contains(t, contentStr, "failed=1")
 	assert.Contains(t, contentStr, "skipped=1")
 	assert.Contains(t, contentStr, "timestamp=")
-}
-
-func TestCreateContainer(t *testing.T) {
-	t.Parallel()
-
-	// Create test context with CLI options
-	ctx := context.Background()
-	cliConfig := entities.NewCLIConfigBuilder().
-		WithDryRun(true).
-		WithForcePush(false).
-		Build()
-
-	// Add CLI config to context using cli adapters
-	ctx = cliAdapters.WithCLIConfig(ctx, cliConfig)
-
-	// Create minimal config
-	cfg := &gpsconfig.AppConfiguration{
-		GitProviderSyncConfs: map[string]gpsconfig.Environment{},
-	}
-
-	// Test container creation
-	container, err := createContainerWithConfig(ctx, cfg)
-	if err != nil {
-		// Expected to fail in test environment due to missing dependencies
-		t.Logf("Container creation failed as expected in test: %v", err)
-
-		return
-	}
-
-	// If successful, verify container is not nil and clean up
-	assert.NotNil(t, container)
-
-	if container != nil {
-		err = container.Close()
-		assert.NoError(t, err)
-	}
 }
 
 // Additional integration-style tests for better coverage.

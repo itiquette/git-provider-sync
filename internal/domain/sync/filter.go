@@ -17,8 +17,7 @@ import (
 	"itiquette/git-provider-sync/internal/domain/ports"
 )
 
-// FilterRepositoriesUseCase handles advanced repository filtering.
-// This ports the filtering functionality.
+// FilterRepositoriesUseCase handles repository filtering.
 type FilterRepositoriesUseCase struct {
 	logger ports.Logger
 }
@@ -63,12 +62,11 @@ type FilterResponse struct {
 }
 
 // Execute performs repository filtering based on various criteria.
-// This implements the filtering logic.
 func (uc FilterRepositoriesUseCase) Execute(
 	ctx context.Context,
 	request FilterRequest,
 ) (FilterResponse, error) {
-	uc.logger.Info(ctx, "Starting repository filtering", map[string]interface{}{
+	uc.logger.Info(ctx, "Starting repository filtering", map[string]any{
 		"total_repositories": len(request.Repositories),
 		"has_activity_limit": request.ActiveFromLimit != "",
 		"include_count":      len(request.IncludedRepositories),
@@ -84,7 +82,7 @@ func (uc FilterRepositoriesUseCase) Execute(
 	repositoriesAfterActivity, skippedActivity := uc.filterByActivity(ctx, request.Repositories, request.ActiveFromLimit)
 	response.SkippedByActivity = skippedActivity
 
-	uc.logger.Debug(ctx, "Activity filtering completed", map[string]interface{}{
+	uc.logger.Debug(ctx, "Activity filtering completed", map[string]any{
 		"before":  len(request.Repositories),
 		"after":   len(repositoriesAfterActivity),
 		"skipped": skippedActivity,
@@ -100,14 +98,14 @@ func (uc FilterRepositoriesUseCase) Execute(
 	response.SkippedByInclusion = skippedInclusion
 	response.SkippedByExclusion = skippedExclusion
 
-	uc.logger.Debug(ctx, "Include/exclude filtering completed", map[string]interface{}{
+	uc.logger.Debug(ctx, "Include/exclude filtering completed", map[string]any{
 		"before":            len(repositoriesAfterActivity),
 		"after":             len(repositoriesAfterInclusion),
 		"skipped_inclusion": skippedInclusion,
 		"skipped_exclusion": skippedExclusion,
 	})
 
-	// Step 3: Apply pattern-based filtering (enhanced from basic pattern matching)
+	// Step 3: Apply pattern-based filtering
 	repositoriesAfterPatterns, skippedPatterns := uc.filterByPatterns(
 		ctx,
 		repositoriesAfterInclusion,
@@ -115,7 +113,7 @@ func (uc FilterRepositoriesUseCase) Execute(
 	)
 	response.SkippedByPatterns = skippedPatterns
 
-	uc.logger.Debug(ctx, "Pattern filtering completed", map[string]interface{}{
+	uc.logger.Debug(ctx, "Pattern filtering completed", map[string]any{
 		"before":  len(repositoriesAfterInclusion),
 		"after":   len(repositoriesAfterPatterns),
 		"skipped": skippedPatterns,
@@ -127,7 +125,7 @@ func (uc FilterRepositoriesUseCase) Execute(
 	response.FilteredRepositories = finalRepositories
 	response.FilteredCount = len(finalRepositories)
 
-	uc.logger.Info(ctx, "Repository filtering completed", map[string]interface{}{
+	uc.logger.Info(ctx, "Repository filtering completed", map[string]any{
 		"original_count":       response.OriginalCount,
 		"filtered_count":       response.FilteredCount,
 		"skipped_by_activity":  response.SkippedByActivity,
@@ -141,7 +139,6 @@ func (uc FilterRepositoriesUseCase) Execute(
 }
 
 // filterByActivity filters repositories based on activity time limits.
-// This ports the IsInInterval functionality.
 func (uc FilterRepositoriesUseCase) filterByActivity(
 	ctx context.Context,
 	repositories []entities.Repository,
@@ -154,7 +151,7 @@ func (uc FilterRepositoriesUseCase) filterByActivity(
 	// Parse the duration string
 	parsedDuration, err := time.ParseDuration(activeFromLimit)
 	if err != nil {
-		uc.logger.Error(ctx, "Failed to parse activity limit duration", map[string]interface{}{
+		uc.logger.Error(ctx, "Failed to parse activity limit duration", map[string]any{
 			"duration": activeFromLimit,
 			"error":    err.Error(),
 		})
@@ -178,7 +175,7 @@ func (uc FilterRepositoriesUseCase) filterByActivity(
 		} else {
 			skipped++
 
-			uc.logger.Debug(ctx, "Skipping repository due to activity limit", map[string]interface{}{
+			uc.logger.Debug(ctx, "Skipping repository due to activity limit", map[string]any{
 				"repository":    repo.Name(),
 				"last_activity": lastActivity.Format(time.RFC3339),
 				"threshold":     threshold.Format(time.RFC3339),
@@ -190,7 +187,6 @@ func (uc FilterRepositoriesUseCase) filterByActivity(
 }
 
 // filterByIncludeExclude filters repositories based on inclusion and exclusion lists.
-// This ports the FilterIncludedExcluded functionality.
 func (uc FilterRepositoriesUseCase) filterByIncludeExclude(
 	ctx context.Context,
 	repositories []entities.Repository,
@@ -216,13 +212,13 @@ func (uc FilterRepositoriesUseCase) filterByIncludeExclude(
 			if len(included) > 0 && !slices.Contains(included, repoName) {
 				skippedInclusion++
 
-				uc.logger.Debug(ctx, "Skipping repository not in inclusion list", map[string]interface{}{
+				uc.logger.Debug(ctx, "Skipping repository not in inclusion list", map[string]any{
 					"repository": repoName,
 				})
 			} else if len(excluded) > 0 && slices.Contains(excluded, repoName) {
 				skippedExclusion++
 
-				uc.logger.Debug(ctx, "Skipping repository in exclusion list", map[string]interface{}{
+				uc.logger.Debug(ctx, "Skipping repository in exclusion list", map[string]any{
 					"repository": repoName,
 				})
 			}
@@ -272,7 +268,7 @@ func (uc FilterRepositoriesUseCase) filterByPatterns(
 		} else {
 			skipped++
 
-			uc.logger.Debug(ctx, "Skipping repository due to pattern mismatch", map[string]interface{}{
+			uc.logger.Debug(ctx, "Skipping repository due to pattern mismatch", map[string]any{
 				"repository":       repoName,
 				"include_patterns": filterOptions.IncludePatterns,
 				"exclude_patterns": filterOptions.ExcludePatterns,
@@ -367,7 +363,6 @@ func (uc FilterRepositoriesUseCase) matchPattern(name, pattern string) bool {
 }
 
 // filterByAttributes filters repositories based on various attributes.
-// This provides additional filtering beyond the main branch implementation.
 func (uc FilterRepositoriesUseCase) filterByAttributes(
 	ctx context.Context,
 	repositories []entities.Repository,
@@ -379,7 +374,7 @@ func (uc FilterRepositoriesUseCase) filterByAttributes(
 		if uc.shouldIncludeByAttributes(repo, filterOptions) {
 			filtered = append(filtered, repo)
 		} else {
-			uc.logger.Debug(ctx, "Skipping repository due to attribute filters", map[string]interface{}{
+			uc.logger.Debug(ctx, "Skipping repository due to attribute filters", map[string]any{
 				"repository":       repo.Name(),
 				"is_fork":          repo.IsFork(),
 				"is_archived":      repo.IsArchived(),

@@ -6,6 +6,20 @@ package sync
 
 import "time"
 
+// Status constants for sync results.
+const (
+	StatusSuccess = "SUCCESS"
+	StatusFailed  = "FAILED"
+	StatusSkipped = "SKIPPED"
+)
+
+// Action constants for sync results.
+const (
+	ActionCreated  = "CREATED"
+	ActionUpdated  = "UPDATED"
+	ActionNoChange = "NO_CHANGE"
+)
+
 // Result represents the result of a single repository sync operation.
 type Result struct {
 	Environment     string    `json:"environment"`
@@ -47,21 +61,21 @@ func NewResults(dryRun bool) *Results {
 }
 
 // Complete finalizes the sync results with end time and duration.
-func (sr *Results) Complete() {
-	sr.EndTime = time.Now()
-	sr.DurationSeconds = sr.EndTime.Sub(sr.StartTime).Seconds()
+func (r *Results) Complete() {
+	r.EndTime = time.Now()
+	r.DurationSeconds = r.EndTime.Sub(r.StartTime).Seconds()
 }
 
 // AddResult adds a sync result and updates counters.
-func (sr *Results) AddResult(result Result) {
-	sr.Results = append(sr.Results, result)
+func (r *Results) AddResult(result Result) {
+	r.Results = append(r.Results, result)
 
 	switch result.Status {
-	case "SUCCESS":
-		sr.SuccessfulSyncs++
-	case "FAILED":
-		sr.FailedSyncs++
-	case "SKIPPED":
-		sr.SkippedSyncs++
+	case StatusSuccess:
+		r.SuccessfulSyncs++
+	case StatusFailed:
+		r.FailedSyncs++
+	case StatusSkipped:
+		r.SkippedSyncs++
 	}
 }

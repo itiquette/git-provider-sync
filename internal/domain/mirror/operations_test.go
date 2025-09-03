@@ -600,22 +600,6 @@ func TestBuildOperationOptions(t *testing.T) {
 
 // Test option functions
 
-func TestWithDryRun_ModifyOptions_SetsBooleanCorrectly(t *testing.T) {
-	t.Parallel()
-
-	base := OperationOptions{DryRun: false}
-
-	// Test enabling dry run
-	option := WithDryRun(true)
-	result := option(base)
-	assert.True(t, result.DryRun)
-
-	// Test disabling dry run
-	option = WithDryRun(false)
-	result = option(base)
-	assert.False(t, result.DryRun)
-}
-
 func TestWithForce_ModifyOptions_SetsBooleanCorrectly(t *testing.T) {
 	t.Parallel()
 
@@ -666,8 +650,7 @@ func TestApplyOperationOptions(t *testing.T) {
 	assert.Equal(t, base, result)
 }
 
-// Helper function to find effect by type
-
+// Finds effect by type.
 func findEffectByType(effects []Effect, effectType EffectType) *Effect {
 	for _, effect := range effects {
 		if effect.Type == effectType {

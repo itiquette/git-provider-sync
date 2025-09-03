@@ -22,9 +22,7 @@ import (
 	"itiquette/git-provider-sync/internal/domain/ports"
 )
 
-// MirrorService provides sophisticated go-git based repository mirroring operations.
-//
-//	advanced mirror service functionality .
+// MirrorService provides go-git based repository mirroring operations.
 type MirrorService struct {
 	logger         ports.Logger
 	tempDir        string
@@ -80,9 +78,9 @@ func (ms *MirrorService) SetProgressWriter(writer io.Writer) {
 	ms.progressWriter = writer
 }
 
-// Mirror performs a sophisticated repository mirror operation.
+// Mirror performs a repository mirror operation.
 func (ms *MirrorService) Mirror(ctx context.Context, request MirrorRequest) (*MirrorResult, error) {
-	ms.logger.Info(ctx, "Starting go-git repository mirror", map[string]interface{}{
+	ms.logger.Info(ctx, "Starting go-git repository mirror", map[string]any{
 		"source":      request.SourceRepository.HTTPSURL(),
 		"target":      request.TargetRepository.HTTPSURL(),
 		"mirror_type": request.MirrorType,
@@ -141,7 +139,7 @@ func (ms *MirrorService) Mirror(ctx context.Context, request MirrorRequest) (*Mi
 	}
 
 	result.Success = true
-	ms.logger.Info(ctx, "Repository mirror completed successfully", map[string]interface{}{
+	ms.logger.Info(ctx, "Repository mirror completed successfully", map[string]any{
 		"source_commits":  result.SourceCommits,
 		"target_commits":  result.TargetCommits,
 		"branches_synced": len(result.BranchesSynced),
@@ -153,7 +151,7 @@ func (ms *MirrorService) Mirror(ctx context.Context, request MirrorRequest) (*Mi
 
 // performDryRun simulates a mirror operation without making changes.
 func (ms *MirrorService) performDryRun(ctx context.Context, request MirrorRequest, result *MirrorResult) *MirrorResult {
-	ms.logger.Info(ctx, "Performing dry run analysis", map[string]interface{}{
+	ms.logger.Info(ctx, "Performing dry run analysis", map[string]any{
 		"source": request.SourceRepository.HTTPSURL(),
 		"target": request.TargetRepository.HTTPSURL(),
 	})
@@ -166,7 +164,7 @@ func (ms *MirrorService) performDryRun(ctx context.Context, request MirrorReques
 	result.SourceCommits = 150
 	result.TargetCommits = 0
 
-	ms.logger.Info(ctx, "Dry run completed", map[string]interface{}{
+	ms.logger.Info(ctx, "Dry run completed", map[string]any{
 		"would_sync_branches": len(result.BranchesSynced),
 		"would_sync_tags":     len(result.TagsSynced),
 		"estimated_commits":   result.SourceCommits,
@@ -183,7 +181,7 @@ func (ms *MirrorService) createWorkingDirectory(ctx context.Context) (string, er
 		return "", fmt.Errorf("failed to create working directory: %w", err)
 	}
 
-	ms.logger.Debug(ctx, "Created working directory", map[string]interface{}{
+	ms.logger.Debug(ctx, "Created working directory", map[string]any{
 		"path": workDir,
 	})
 
@@ -193,12 +191,12 @@ func (ms *MirrorService) createWorkingDirectory(ctx context.Context) (string, er
 // cleanupWorkingDirectory removes the temporary working directory.
 func (ms *MirrorService) cleanupWorkingDirectory(ctx context.Context, workDir string) {
 	if err := os.RemoveAll(workDir); err != nil {
-		ms.logger.Warn(ctx, "Failed to cleanup working directory", map[string]interface{}{
+		ms.logger.Warn(ctx, "Failed to cleanup working directory", map[string]any{
 			"path":  workDir,
 			"error": err.Error(),
 		})
 	} else {
-		ms.logger.Debug(ctx, "Cleaned up working directory", map[string]interface{}{
+		ms.logger.Debug(ctx, "Cleaned up working directory", map[string]any{
 			"path": workDir,
 		})
 	}
@@ -206,7 +204,7 @@ func (ms *MirrorService) cleanupWorkingDirectory(ctx context.Context, workDir st
 
 // cloneSourceRepository clones the source repository to the working directory.
 func (ms *MirrorService) cloneSourceRepository(ctx context.Context, request MirrorRequest, workDir string) (*git.Repository, error) {
-	ms.logger.Debug(ctx, "Cloning source repository", map[string]interface{}{
+	ms.logger.Debug(ctx, "Cloning source repository", map[string]any{
 		"source":   request.SourceRepository.HTTPSURL(),
 		"work_dir": workDir,
 		"shallow":  request.ShallowDepth > 0,
@@ -261,7 +259,7 @@ func (ms *MirrorService) analyzeSourceRepository(ctx context.Context, repo *git.
 
 	result.SourceCommits = commitCount
 
-	ms.logger.Debug(ctx, "Source repository analysis completed", map[string]interface{}{
+	ms.logger.Debug(ctx, "Source repository analysis completed", map[string]any{
 		"commits": commitCount,
 	})
 
@@ -270,7 +268,7 @@ func (ms *MirrorService) analyzeSourceRepository(ctx context.Context, repo *git.
 
 // filterReferences filters branches and tags based on the request criteria.
 func (ms *MirrorService) filterReferences(ctx context.Context, repo *git.Repository, request MirrorRequest) (map[string]plumbing.ReferenceName, error) {
-	ms.logger.Debug(ctx, "Filtering references", map[string]interface{}{
+	ms.logger.Debug(ctx, "Filtering references", map[string]any{
 		"include_branches": request.IncludeBranches,
 		"exclude_branches": request.ExcludeBranches,
 		"include_tags":     request.IncludeTags,
@@ -310,7 +308,7 @@ func (ms *MirrorService) filterReferences(ctx context.Context, repo *git.Reposit
 		return nil, fmt.Errorf("failed to iterate references: %w", err)
 	}
 
-	ms.logger.Debug(ctx, "Reference filtering completed", map[string]interface{}{
+	ms.logger.Debug(ctx, "Reference filtering completed", map[string]any{
 		"filtered_count": len(filteredRefs),
 	})
 
@@ -367,25 +365,36 @@ func (ms *MirrorService) shouldIncludeTag(tagName string, includePatterns, exclu
 
 // matchesPattern checks if a name matches a pattern (supports wildcards).
 func (ms *MirrorService) matchesPattern(name, pattern string) bool {
-	// Simple pattern matching with wildcard support
-	if pattern == "*" {
-		return true
-	}
+	// For branch/tag patterns, handle special case where * should match path separators
+	// e.g., "feature/*" should match "feature/ABC-123/description"
+	if strings.Contains(pattern, "*") && strings.Contains(name, "/") {
+		// Check if pattern is a prefix pattern like "feature/*"
+		if strings.HasSuffix(pattern, "/*") {
+			prefix := strings.TrimSuffix(pattern, "/*")
 
-	if strings.Contains(pattern, "*") {
-		// Basic wildcard matching
-		parts := strings.Split(pattern, "*")
-		if len(parts) == 2 {
-			return strings.HasPrefix(name, parts[0]) && strings.HasSuffix(name, parts[1])
+			return strings.HasPrefix(name, prefix+"/")
+		}
+		// Check if pattern is a suffix pattern like "*/release"
+		if strings.HasPrefix(pattern, "*/") {
+			suffix := strings.TrimPrefix(pattern, "*/")
+
+			return strings.HasSuffix(name, "/"+suffix)
 		}
 	}
 
-	return name == pattern
+	// Use standard library glob matching for other cases
+	matched, err := filepath.Match(pattern, name)
+	if err != nil {
+		// Invalid pattern, treat as literal string comparison
+		return name == pattern
+	}
+
+	return matched
 }
 
 // pushToTarget pushes the filtered references to the target repository.
 func (ms *MirrorService) pushToTarget(ctx context.Context, repo *git.Repository, request MirrorRequest, refs map[string]plumbing.ReferenceName, result *MirrorResult) error {
-	ms.logger.Debug(ctx, "Pushing to target repository", map[string]interface{}{
+	ms.logger.Debug(ctx, "Pushing to target repository", map[string]any{
 		"target":    request.TargetRepository.HTTPSURL(),
 		"ref_count": len(refs),
 		"force":     request.Force,

@@ -6,7 +6,10 @@ package gitlab
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net/http"
+	"strings"
 
 	"gitlab.com/gitlab-org/api/client-go"
 
@@ -14,8 +17,6 @@ import (
 )
 
 // ProtectionService provides GitLab-specific repository protection operations.
-//
-//	sophisticated protection service functionality .
 type ProtectionService struct {
 	client *gitlab.Client
 	logger ports.Logger
@@ -79,9 +80,9 @@ type PushRules struct {
 	MaxFileSize                int
 }
 
-// ProtectRepository applies comprehensive protection to a GitLab repository.
+// ProtectRepository applies protection to a GitLab repository.
 func (ps *ProtectionService) ProtectRepository(ctx context.Context, request ProtectRepositoryRequest) error {
-	ps.logger.Debug(ctx, "Protecting GitLab repository", map[string]interface{}{
+	ps.logger.Debug(ctx, "Protecting GitLab repository", map[string]any{
 		"owner":                    request.Owner,
 		"repository":               request.RepositoryName,
 		"enable_branch_protection": request.EnableBranchProtection,
@@ -110,7 +111,7 @@ func (ps *ProtectionService) ProtectRepository(ctx context.Context, request Prot
 		}
 	}
 
-	ps.logger.Info(ctx, "Repository protection applied successfully", map[string]interface{}{
+	ps.logger.Info(ctx, "Repository protection applied successfully", map[string]any{
 		"owner":      request.Owner,
 		"repository": request.RepositoryName,
 		"project_id": project.ID,
@@ -121,7 +122,7 @@ func (ps *ProtectionService) ProtectRepository(ctx context.Context, request Prot
 
 // UnprotectRepository removes protection from a GitLab repository.
 func (ps *ProtectionService) UnprotectRepository(ctx context.Context, owner, repositoryName string) error {
-	ps.logger.Debug(ctx, "Unprotecting GitLab repository", map[string]interface{}{
+	ps.logger.Debug(ctx, "Unprotecting GitLab repository", map[string]any{
 		"owner":      owner,
 		"repository": repositoryName,
 	})
@@ -137,7 +138,7 @@ func (ps *ProtectionService) UnprotectRepository(ctx context.Context, owner, rep
 	// List and remove all branch protections
 	protectedBranches, _, err := ps.client.ProtectedBranches.ListProtectedBranches(project.ID, nil)
 	if err != nil {
-		ps.logger.Warn(ctx, "Failed to list protected branches", map[string]interface{}{
+		ps.logger.Warn(ctx, "Failed to list protected branches", map[string]any{
 			"owner":      owner,
 			"repository": repositoryName,
 			"project_id": project.ID,
@@ -150,7 +151,7 @@ func (ps *ProtectionService) UnprotectRepository(ctx context.Context, owner, rep
 	for _, branch := range protectedBranches {
 		_, err := ps.client.ProtectedBranches.UnprotectRepositoryBranches(project.ID, branch.Name)
 		if err != nil {
-			ps.logger.Warn(ctx, "Failed to unprotect branch", map[string]interface{}{
+			ps.logger.Warn(ctx, "Failed to unprotect branch", map[string]any{
 				"owner":      owner,
 				"repository": repositoryName,
 				"project_id": project.ID,
@@ -162,7 +163,7 @@ func (ps *ProtectionService) UnprotectRepository(ctx context.Context, owner, rep
 
 	// Remove push rules
 	if err := ps.removePushRules(ctx, project.ID); err != nil {
-		ps.logger.Warn(ctx, "Failed to remove push rules", map[string]interface{}{
+		ps.logger.Warn(ctx, "Failed to remove push rules", map[string]any{
 			"owner":      owner,
 			"repository": repositoryName,
 			"project_id": project.ID,
@@ -170,7 +171,7 @@ func (ps *ProtectionService) UnprotectRepository(ctx context.Context, owner, rep
 		})
 	}
 
-	ps.logger.Info(ctx, "Repository protection removed", map[string]interface{}{
+	ps.logger.Info(ctx, "Repository protection removed", map[string]any{
 		"owner":      owner,
 		"repository": repositoryName,
 		"project_id": project.ID,
@@ -197,7 +198,7 @@ func (ps *ProtectionService) enableBranchProtection(ctx context.Context, project
 
 // enablePushRules enables push rules for the project.
 func (ps *ProtectionService) enablePushRules(ctx context.Context, projectID int, rules *PushRules) error {
-	ps.logger.Debug(ctx, "Enabling push rules", map[string]interface{}{
+	ps.logger.Debug(ctx, "Enabling push rules", map[string]any{
 		"project_id": projectID,
 	})
 
@@ -268,7 +269,7 @@ func (ps *ProtectionService) getDefaultBranchProtectionRules() []BranchProtectio
 
 // applyBranchProtectionRule applies a single branch protection rule.
 func (ps *ProtectionService) applyBranchProtectionRule(ctx context.Context, projectID int, rule BranchProtectionRule) error {
-	ps.logger.Debug(ctx, "Applying branch protection rule", map[string]interface{}{
+	ps.logger.Debug(ctx, "Applying branch protection rule", map[string]any{
 		"project_id": projectID,
 		"branch":     rule.BranchName,
 	})
@@ -276,7 +277,7 @@ func (ps *ProtectionService) applyBranchProtectionRule(ctx context.Context, proj
 	// First, try to unprotect if already protected
 	_, unprotectErr := ps.client.ProtectedBranches.UnprotectRepositoryBranches(projectID, rule.BranchName)
 	if unprotectErr != nil {
-		ps.logger.Debug(ctx, "Branch was not previously protected", map[string]interface{}{
+		ps.logger.Debug(ctx, "Branch was not previously protected", map[string]any{
 			"project_id":  projectID,
 			"branch_name": rule.BranchName,
 		})
@@ -309,7 +310,7 @@ func (ps *ProtectionService) applyBranchProtectionRule(ctx context.Context, proj
 		return fmt.Errorf("failed to protect branch: %w", err)
 	}
 
-	ps.logger.Debug(ctx, "Branch protection applied", map[string]interface{}{
+	ps.logger.Debug(ctx, "Branch protection applied", map[string]any{
 		"project_id": projectID,
 		"branch":     rule.BranchName,
 	})
@@ -339,5 +340,12 @@ func isNotFoundError(err error) bool {
 		return false
 	}
 
-	return fmt.Sprintf("%v", err) == "404 Not Found"
+	// Check for GitLab API error response
+	var gitlabErr *gitlab.ErrorResponse
+	if errors.As(err, &gitlabErr) && gitlabErr.Response != nil {
+		return gitlabErr.Response.StatusCode == http.StatusNotFound
+	}
+
+	// Fallback to string check for other error types
+	return strings.Contains(err.Error(), "404")
 }

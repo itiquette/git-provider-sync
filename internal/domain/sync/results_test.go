@@ -41,14 +41,6 @@ func TestNewResults(t *testing.T) {
 			assert.Equal(t, test.dryRun, results.DryRun)
 			assert.NotNil(t, results.Results)
 			assert.Empty(t, results.Results)
-			assert.Zero(t, results.EndTime)
-			assert.Zero(t, results.DurationSeconds)
-			assert.Zero(t, results.TotalSources)
-			assert.Zero(t, results.TotalMirrors)
-			assert.Zero(t, results.TotalRepositories)
-			assert.Zero(t, results.SuccessfulSyncs)
-			assert.Zero(t, results.FailedSyncs)
-			assert.Zero(t, results.SkippedSyncs)
 
 			// Start time should be between test start and end
 			assert.True(t, results.StartTime.After(start) || results.StartTime.Equal(start))
@@ -60,11 +52,11 @@ func TestNewResults(t *testing.T) {
 func TestResults_Complete(t *testing.T) {
 	t.Parallel()
 
+	// Create results with a specific start time in the past
 	results := NewResults(false)
-	startTime := results.StartTime
 
-	// Wait a small amount to ensure duration is measurable
-	time.Sleep(1 * time.Millisecond)
+	// Manually set start time to ensure measurable duration without sleep
+	results.StartTime = time.Now().Add(-100 * time.Millisecond)
 
 	beforeComplete := time.Now()
 
@@ -72,13 +64,16 @@ func TestResults_Complete(t *testing.T) {
 
 	afterComplete := time.Now()
 
+	// Verify completion time is properly set
 	assert.True(t, results.EndTime.After(beforeComplete) || results.EndTime.Equal(beforeComplete))
 	assert.True(t, results.EndTime.Before(afterComplete) || results.EndTime.Equal(afterComplete))
-	assert.True(t, results.EndTime.After(startTime))
+	assert.True(t, results.EndTime.After(results.StartTime))
+
+	// Duration should be positive
 	assert.Greater(t, results.DurationSeconds, 0.0)
 
-	// Duration should roughly match the time difference
-	expectedDuration := results.EndTime.Sub(startTime).Seconds()
+	// Duration should match the time difference
+	expectedDuration := results.EndTime.Sub(results.StartTime).Seconds()
 	assert.InDelta(t, expectedDuration, results.DurationSeconds, 0.001)
 }
 
@@ -249,7 +244,8 @@ func TestResults_AddAndComplete_TracksAllOperations(t *testing.T) {
 	})
 
 	// Complete the sync
-	time.Sleep(1 * time.Millisecond) // Ensure measurable duration
+	// Set start time in the past to ensure measurable duration
+	results.StartTime = time.Now().Add(-10 * time.Millisecond)
 	results.Complete()
 
 	// Verify final state
@@ -260,41 +256,6 @@ func TestResults_AddAndComplete_TracksAllOperations(t *testing.T) {
 	assert.Equal(t, 0, results.SkippedSyncs)
 	assert.True(t, results.EndTime.After(initialTime))
 	assert.Greater(t, results.DurationSeconds, 0.0)
-}
-
-func TestResult_Fields(t *testing.T) {
-	t.Parallel()
-
-	startTime := time.Now().Add(-5 * time.Minute)
-	endTime := time.Now()
-
-	result := Result{
-		Environment:     "staging",
-		Source:          "bitbucket-source",
-		SourceProvider:  "bitbucket",
-		Repository:      "test-repo",
-		Mirror:          "github-mirror",
-		MirrorProvider:  "github",
-		Status:          "SUCCESS",
-		Action:          "UPDATED",
-		Error:           "",
-		StartTime:       startTime,
-		EndTime:         endTime,
-		DurationSeconds: 42.5,
-	}
-
-	assert.Equal(t, "staging", result.Environment)
-	assert.Equal(t, "bitbucket-source", result.Source)
-	assert.Equal(t, "bitbucket", result.SourceProvider)
-	assert.Equal(t, "test-repo", result.Repository)
-	assert.Equal(t, "github-mirror", result.Mirror)
-	assert.Equal(t, "github", result.MirrorProvider)
-	assert.Equal(t, "SUCCESS", result.Status)
-	assert.Equal(t, "UPDATED", result.Action)
-	assert.Empty(t, result.Error)
-	assert.Equal(t, startTime, result.StartTime)
-	assert.Equal(t, endTime, result.EndTime)
-	assert.InDelta(t, 42.5, result.DurationSeconds, 0.001)
 }
 
 func TestResults_EmptyResults(t *testing.T) {

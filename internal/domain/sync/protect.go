@@ -14,7 +14,6 @@ import (
 )
 
 // BranchProtectionUseCase handles branch protection operations.
-// This ports the protection functionality.
 type BranchProtectionUseCase struct {
 	repositoryProvider ports.RepositoryProvider
 	logger             ports.Logger
@@ -63,12 +62,11 @@ type ProtectionResponse struct {
 }
 
 // ExecuteProtection executes branch protection operations.
-// This implements the core protection logic.
 func (uc BranchProtectionUseCase) ExecuteProtection(
 	ctx context.Context,
 	request ProtectionRequest,
 ) (ProtectionResponse, error) {
-	uc.logger.Info(ctx, "Executing branch protection operation", map[string]interface{}{
+	uc.logger.Info(ctx, "Executing branch protection operation", map[string]any{
 		"repository": request.Repository.Name(),
 		"branch":     request.Branch,
 		"operation":  string(request.Operation),
@@ -113,7 +111,7 @@ func (uc BranchProtectionUseCase) ExecuteProtection(
 		response.Error = fmt.Errorf("%w: %s", domain.ErrUnknownProtectionOperation, request.Operation)
 	}
 
-	uc.logger.Info(ctx, "Branch protection operation completed", map[string]interface{}{
+	uc.logger.Info(ctx, "Branch protection operation completed", map[string]any{
 		"repository": request.Repository.Name(),
 		"branch":     request.Branch,
 		"operation":  string(request.Operation),
@@ -130,7 +128,7 @@ func (uc BranchProtectionUseCase) GetProtectionStatus(
 	providerConfig ports.ProviderConfig,
 	repoName, branch string,
 ) (ports.BranchProtection, error) {
-	uc.logger.Debug(ctx, "Getting branch protection status", map[string]interface{}{
+	uc.logger.Debug(ctx, "Getting branch protection status", map[string]any{
 		"repository": repoName,
 		"branch":     branch,
 	})
@@ -149,7 +147,7 @@ func (uc BranchProtectionUseCase) ListProtectedBranches(
 	providerConfig ports.ProviderConfig,
 	repoName string,
 ) ([]string, error) {
-	uc.logger.Debug(ctx, "Listing protected branches", map[string]interface{}{
+	uc.logger.Debug(ctx, "Listing protected branches", map[string]any{
 		"repository": repoName,
 	})
 
@@ -162,12 +160,11 @@ func (uc BranchProtectionUseCase) ListProtectedBranches(
 }
 
 // enableProtection enables branch protection for a repository branch.
-// This ports the protection service Protect functionality.
 func (uc BranchProtectionUseCase) enableProtection(
 	ctx context.Context,
 	request ProtectionRequest,
 ) error {
-	uc.logger.Debug(ctx, "Enabling branch protection", map[string]interface{}{
+	uc.logger.Debug(ctx, "Enabling branch protection", map[string]any{
 		"repository": request.Repository.Name(),
 		"branch":     request.Branch,
 	})
@@ -189,7 +186,7 @@ func (uc BranchProtectionUseCase) enableProtection(
 		return fmt.Errorf("failed to set branch protection: %w", err)
 	}
 
-	uc.logger.Info(ctx, "Branch protection enabled successfully", map[string]interface{}{
+	uc.logger.Info(ctx, "Branch protection enabled successfully", map[string]any{
 		"repository": request.Repository.Name(),
 		"branch":     request.Branch,
 	})
@@ -203,7 +200,7 @@ func (uc BranchProtectionUseCase) disableProtection(
 	ctx context.Context,
 	request ProtectionRequest,
 ) error {
-	uc.logger.Debug(ctx, "Disabling branch protection", map[string]interface{}{
+	uc.logger.Debug(ctx, "Disabling branch protection", map[string]any{
 		"repository": request.Repository.Name(),
 		"branch":     request.Branch,
 	})
@@ -224,7 +221,7 @@ func (uc BranchProtectionUseCase) disableProtection(
 		return fmt.Errorf("failed to remove branch protection: %w", err)
 	}
 
-	uc.logger.Info(ctx, "Branch protection disabled successfully", map[string]interface{}{
+	uc.logger.Info(ctx, "Branch protection disabled successfully", map[string]any{
 		"repository": request.Repository.Name(),
 		"branch":     request.Branch,
 	})
@@ -237,7 +234,7 @@ func (uc BranchProtectionUseCase) updateProtection(
 	ctx context.Context,
 	request ProtectionRequest,
 ) error {
-	uc.logger.Debug(ctx, "Updating branch protection", map[string]interface{}{
+	uc.logger.Debug(ctx, "Updating branch protection", map[string]any{
 		"repository": request.Repository.Name(),
 		"branch":     request.Branch,
 	})
@@ -259,7 +256,7 @@ func (uc BranchProtectionUseCase) updateProtection(
 		return fmt.Errorf("failed to update branch protection: %w", err)
 	}
 
-	uc.logger.Info(ctx, "Branch protection updated successfully", map[string]interface{}{
+	uc.logger.Info(ctx, "Branch protection updated successfully", map[string]any{
 		"repository": request.Repository.Name(),
 		"branch":     request.Branch,
 	})

@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/fs"
 	"net"
 	"net/url"
 	"os"
@@ -315,7 +316,7 @@ func validatePathExists(path string) error {
 		return fmt.Errorf("%w: path must be absolute: %s", ErrInvalidPath, path)
 	}
 
-	if _, err := os.Stat(path); os.IsNotExist(err) {
+	if _, err := os.Stat(path); errors.Is(err, fs.ErrNotExist) {
 		return fmt.Errorf("%w: path does not exist: %s", ErrInvalidPath, path)
 	}
 

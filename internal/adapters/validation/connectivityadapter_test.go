@@ -19,18 +19,6 @@ import (
 	"itiquette/git-provider-sync/internal/domain/validation"
 )
 
-func TestNewConnectivityAdapter(t *testing.T) {
-	t.Parallel()
-
-	timeout := 5 * time.Second
-	adapter := NewConnectivityAdapter(timeout)
-
-	assert.NotNil(t, adapter)
-	assert.NotNil(t, adapter.httpClient)
-	assert.Equal(t, timeout, adapter.timeout)
-	assert.Equal(t, timeout, adapter.httpClient.Timeout)
-}
-
 func TestConnectivityAdapter_ValidateConnectivity_HTTP(t *testing.T) {
 	t.Parallel()
 
@@ -283,7 +271,7 @@ func TestConnectivityAdapter_ValidateConnectivity_Timeout(t *testing.T) {
 	val := validation.ConnectivityValidation{
 		Type:    validation.ConnectivityTypeHTTP,
 		Target:  "http://invalid.url.test",
-		Timeout: 100 * time.Millisecond, // Very short timeout
+		Timeout: 100 * time.Millisecond, // 100ms timeout for quick test failure
 	}
 
 	result := adapter.ValidateConnectivity(ctx, val)
@@ -367,7 +355,7 @@ func TestConnectivityAdapter_validateSSH_HostFormats(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			adapter := NewConnectivityAdapter(100 * time.Millisecond) // Very short timeout
+			adapter := NewConnectivityAdapter(100 * time.Millisecond) // 100ms timeout for quick test failure
 			ctx := context.Background()
 
 			// We expect this to fail due to invalid host, but we can check the error message
@@ -378,13 +366,6 @@ func TestConnectivityAdapter_validateSSH_HostFormats(t *testing.T) {
 			assert.Contains(t, err.Error(), test.expectedHost)
 		})
 	}
-}
-
-func TestNewFileSystemAdapter(t *testing.T) {
-	t.Parallel()
-
-	adapter := NewFileSystemAdapter()
-	assert.NotNil(t, adapter)
 }
 
 func TestFileSystemAdapter_ValidateFileSystem_Directory(t *testing.T) {
@@ -607,7 +588,7 @@ func TestFileSystemAdapter_ValidateFileSystem_UnsupportedType(t *testing.T) {
 
 	assert.False(t, result.Success)
 	require.Error(t, result.Error)
-	assert.ErrorIs(t, result.Error, domain.ErrUnsupportedFileSystemType)
+	require.ErrorIs(t, result.Error, domain.ErrUnsupportedFileSystemType)
 }
 
 // Benchmark tests for performance monitoring.

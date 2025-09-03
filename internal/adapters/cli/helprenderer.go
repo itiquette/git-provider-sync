@@ -47,7 +47,6 @@ func NewHelpRendererWithFormatter(formatter ports.HelpFormatter) *HelpRenderer {
 }
 
 // RenderRootHelp converts a urfave/cli root command to formatted help text.
-// This is a pure function that extracts information and delegates to domain services.
 func (r *HelpRenderer) RenderRootHelp(cmd *cli.Command) string {
 	content := r.extractRootHelpContent(cmd)
 
@@ -113,8 +112,7 @@ func (r *HelpRenderer) extractUsage(cmd *cli.Command) string {
 	return cmd.Name + " [command]"
 }
 
-// extractRootExamples provides quick start examples for the root command.
-// Pure function returning consistent quick start workflow.
+// extractRootExamples returns quick start examples for the root command.
 func (r *HelpRenderer) extractRootExamples() []ports.HelpExample {
 	return []ports.HelpExample{
 		{Description: "verify configuration", Command: "gitprovidersync print"},
@@ -251,8 +249,7 @@ func (r *HelpRenderer) extractSubcommandFlags(cmd *cli.Command) []ports.HelpFlag
 	return flags
 }
 
-// extractSupportInfo provides support and documentation links.
-// Pure function returning consistent support information.
+// extractSupportInfo returns support and documentation links.
 func (r *HelpRenderer) extractSupportInfo() ports.HelpSupport {
 	return ports.HelpSupport{
 		Documentation: "https://github.com/itiquette/git-provider-sync/blob/main/README.adoc",
@@ -261,8 +258,7 @@ func (r *HelpRenderer) extractSupportInfo() ports.HelpSupport {
 	}
 }
 
-// extractDocumentationLink provides subcommand-specific documentation.
-// Pure function that returns appropriate documentation links.
+// extractDocumentationLink returns subcommand-specific documentation links.
 func (r *HelpRenderer) extractDocumentationLink(cmd *cli.Command) ports.HelpSupport {
 	baseURL := "https://github.com/itiquette/git-provider-sync/blob/main/docs/usage.adoc"
 

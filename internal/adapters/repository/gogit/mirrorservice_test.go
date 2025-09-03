@@ -20,13 +20,13 @@ import (
 // testGoGitLogger is a simple no-op logger for testing MirrorService.
 type testGoGitLogger struct{}
 
-func (l testGoGitLogger) Trace(_ context.Context, _ string, _ map[string]interface{}) {}
-func (l testGoGitLogger) Debug(_ context.Context, _ string, _ map[string]interface{}) {}
-func (l testGoGitLogger) Info(_ context.Context, _ string, _ map[string]interface{})  {}
-func (l testGoGitLogger) Warn(_ context.Context, _ string, _ map[string]interface{})  {}
-func (l testGoGitLogger) Error(_ context.Context, _ string, _ map[string]interface{}) {}
-func (l testGoGitLogger) Fatal(_ context.Context, _ string, _ map[string]interface{}) {}
-func (l testGoGitLogger) IsLevelEnabled(_ ports.LogLevel) bool                        { return true }
+func (l testGoGitLogger) Trace(_ context.Context, _ string, _ map[string]any) {}
+func (l testGoGitLogger) Debug(_ context.Context, _ string, _ map[string]any) {}
+func (l testGoGitLogger) Info(_ context.Context, _ string, _ map[string]any)  {}
+func (l testGoGitLogger) Warn(_ context.Context, _ string, _ map[string]any)  {}
+func (l testGoGitLogger) Error(_ context.Context, _ string, _ map[string]any) {}
+func (l testGoGitLogger) Fatal(_ context.Context, _ string, _ map[string]any) {}
+func (l testGoGitLogger) IsLevelEnabled(_ ports.LogLevel) bool                { return true }
 
 func TestNewMirrorService(t *testing.T) {
 	t.Parallel()
@@ -351,16 +351,16 @@ func TestMirrorService_matchesPattern(t *testing.T) {
 			expected: false,
 		},
 		{
-			name:     "multiple wildcards - not supported",
+			name:     "multiple wildcards - now supported",
 			input:    "test",
 			pattern:  "*test*",
-			expected: false, // Implementation only supports single wildcard split
+			expected: true, // filepath.Match properly supports multiple wildcards
 		},
 		{
-			name:     "double wildcard - not supported",
+			name:     "double wildcard - now supported",
 			input:    "anything",
 			pattern:  "**",
-			expected: false, // Implementation only supports single wildcard split
+			expected: true, // filepath.Match properly supports ** pattern
 		},
 		{
 			name:     "case sensitive match",
@@ -498,12 +498,12 @@ func TestMirrorService_EdgeCases(t *testing.T) {
 	t.Run("matchesPattern with complex wildcard patterns", func(t *testing.T) {
 		t.Parallel()
 
-		// Test pattern with multiple asterisks (only first two parts are used)
+		// Test pattern with multiple asterisks (filepath.Match handles these properly now)
 		result := service.matchesPattern("prefix-middle-suffix", "prefix-*-suffix")
 		assert.True(t, result, "Should match prefix and suffix pattern")
 
-		// Test pattern that splits into more than 2 parts (only uses first split)
+		// Test pattern that splits into more than 2 parts (filepath.Match handles these properly now)
 		result2 := service.matchesPattern("a-b-c-d", "a-*-c-*")
-		assert.False(t, result2, "Complex patterns with multiple wildcards are not supported")
+		assert.True(t, result2, "Complex patterns with multiple wildcards are now supported via filepath.Match")
 	})
 }

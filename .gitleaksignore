@@ -1,0 +1,12 @@
+# SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
+#
+# SPDX-License-Identifier: CC0-1.0
+
+# Test files with mock/example tokens for testing sanitization
+db571efb2d7e1f9daa8162aa6fdbe1c22297c3b6:internal/domain/sync/validate_helper_test.go:generic-api-key:428
+db571efb2d7e1f9daa8162aa6fdbe1c22297c3b6:internal/domain/sync/validate_helper_test.go:private-key:442
+db571efb2d7e1f9daa8162aa6fdbe1c22297c3b6:internal/shared/sanitize_test.go:generic-api-key:227
+db571efb2d7e1f9daa8162aa6fdbe1c22297c3b6:internal/adapters/auth/service_test.go:github-pat:782
+db571efb2d7e1f9daa8162aa6fdbe1c22297c3b6:internal/adapters/auth/service_test.go:github-pat:900
+db571efb2d7e1f9daa8162aa6fdbe1c22297c3b6:internal/adapters/auth/service_test.go:gitlab-pat:783
+db571efb2d7e1f9daa8162aa6fdbe1c22297c3b6:internal/adapters/auth/service_test.go:gitlab-pat:901

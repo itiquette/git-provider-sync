@@ -12,9 +12,7 @@ const (
 	visibilityPublic = "public"
 )
 
-// ProjectOptionsBuilder provides sophisticated GitLab repository creation options.
-//
-//	advanced options builder functionality .
+// ProjectOptionsBuilder provides GitLab repository creation options.
 type ProjectOptionsBuilder struct {
 	opts *gitlab.CreateProjectOptions
 }
@@ -40,7 +38,7 @@ func (b *ProjectOptionsBuilder) WithBasicOpts(visibility, name, description, def
 
 // WithDisabledFeatures disables all GitLab features for a minimalist repository.
 //
-//	sophisticated feature disabling .
+//	feature disabling .
 func (b *ProjectOptionsBuilder) WithDisabledFeatures() {
 	b.configureAllFeatures(false)
 }
@@ -85,7 +83,7 @@ func (b *ProjectOptionsBuilder) WithDeploymentFeatures(enabled bool) {
 	b.opts.InfrastructureAccessLevel = b.accessLevel(enabled)
 }
 
-// WithExperimentalFeatures configures experimental and advanced features.
+// WithExperimentalFeatures configures experimental features.
 func (b *ProjectOptionsBuilder) WithExperimentalFeatures(enabled bool) {
 	b.opts.FeatureFlagsAccessLevel = b.accessLevel(enabled)
 	b.opts.ModelExperimentsAccessLevel = b.accessLevel(enabled)

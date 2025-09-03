@@ -63,7 +63,7 @@ func New(token, domain string) (*Adapter, error) {
 	}, nil
 }
 
-// NewWithConfig creates a new Gitea adapter with advanced configuration.
+// NewWithConfig creates a new Gitea adapter with configuration.
 func NewWithConfig(_ context.Context, config Config) (*Adapter, error) {
 	var options []gitea.ClientOption
 

@@ -13,6 +13,7 @@ import (
 	"github.com/rs/zerolog"
 
 	"itiquette/git-provider-sync/internal/adapters/config"
+	"itiquette/git-provider-sync/internal/adapters/filesystem"
 	"itiquette/git-provider-sync/internal/adapters/logging"
 	"itiquette/git-provider-sync/internal/adapters/repository/archive"
 	"itiquette/git-provider-sync/internal/adapters/transport"
@@ -29,6 +30,7 @@ type Container struct {
 	providerFactory *ProviderFactory
 	gitFactory      *GitFactory
 	httpFactory     *transport.HTTPFactory
+	fileSystem      ports.FileSystem
 	logger          ports.Logger
 }
 
@@ -76,6 +78,9 @@ func NewContainer(ctx context.Context, containerConfig ContainerConfig) (*Contai
 	gitConfig := getGitConfig(appConfig, containerConfig)
 	gitFactory := NewGitFactory(gitConfig)
 
+	// 6. Create file system adapter
+	fileSystem := filesystem.NewOSFileSystem()
+
 	// Container with factories only - use cases created on demand
 	return &Container{
 		config:          appConfig,
@@ -83,6 +88,7 @@ func NewContainer(ctx context.Context, containerConfig ContainerConfig) (*Contai
 		providerFactory: providerFactory,
 		gitFactory:      gitFactory,
 		httpFactory:     httpFactory,
+		fileSystem:      fileSystem,
 		logger:          logger,
 	}, nil
 }
@@ -112,7 +118,12 @@ func (c *Container) HTTPFactory() *transport.HTTPFactory {
 	return c.httpFactory
 }
 
-// CreateSyncUseCase creates a sync use case with proper dependency injection.
+// FileSystem returns the file system adapter.
+func (c *Container) FileSystem() ports.FileSystem { //nolint:ireturn // Getter returning interface
+	return c.fileSystem
+}
+
+// CreateSyncUseCase creates a sync use case with dependency injection.
 func (c *Container) CreateSyncUseCase(
 	repositoryProvider ports.RepositoryProvider,
 	gitOperations ports.GitOperations,
@@ -120,10 +131,10 @@ func (c *Container) CreateSyncUseCase(
 	// Create archive operations with reasonable defaults
 	archiveOps := archive.NewOperations(c.logger, os.TempDir(), "/tmp/archives")
 
-	return sync.NewRepositoriesUseCase(c.configAdapter, repositoryProvider, gitOperations, archiveOps, c.logger)
+	return sync.NewRepositoriesUseCase(c.configAdapter, repositoryProvider, gitOperations, archiveOps, c.fileSystem, c.logger)
 }
 
-// CreateValidateUseCase creates a validate use case with proper dependency injection.
+// CreateValidateUseCase creates a validation use case with dependency injection.
 func (c *Container) CreateValidateUseCase(
 	repositoryProvider ports.RepositoryProvider,
 ) sync.ValidateSyncUseCase {
@@ -135,12 +146,12 @@ func (c *Container) CreateFilterUseCase() sync.FilterRepositoriesUseCase {
 	return sync.FilterRepositoriesUseCase{}
 }
 
-// CreateProvider creates a provider for the given configuration.
+// CreateProvider creates a repository provider from configuration.
 func (c *Container) CreateProvider(ctx context.Context, providerConfig ports.ProviderConfig) (ports.RepositoryProvider, error) { //nolint:ireturn // Factory method returning interface
 	return c.providerFactory.CreateProviderFromConfig(ctx, providerConfig)
 }
 
-// CreateGitOperations creates git operations for the given configuration.
+// CreateGitOperations creates git operations from configuration.
 func (c *Container) CreateGitOperations(config ports.GitConfig) (ports.GitOperations, error) { //nolint:ireturn // Factory method returning interface
 	return c.gitFactory.CreateOperations(config)
 }
@@ -214,7 +225,7 @@ func convertLogLevel(level ports.LogLevel) zerolog.Level {
 	}
 }
 
-// ContainerBuilder provides a fluent interface for building containers.
+// ContainerBuilder builds Container instances.
 type ContainerBuilder struct {
 	config ContainerConfig
 }

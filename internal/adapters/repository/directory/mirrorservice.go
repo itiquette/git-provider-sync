@@ -7,6 +7,7 @@ package directory
 import (
 	"context"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"time"
@@ -16,8 +17,6 @@ import (
 )
 
 // MirrorService provides directory-specific mirror operations.
-//
-//	sophisticated mirror service functionality .
 type MirrorService struct {
 	adapter *Adapter
 	logger  ports.Logger
@@ -77,7 +76,7 @@ type MirrorResult struct {
 func (ms *MirrorService) CreateMirror(ctx context.Context, request MirrorRequest) (*MirrorResult, error) {
 	startTime := time.Now()
 
-	ms.logger.Info(ctx, "Creating directory mirror", map[string]interface{}{
+	ms.logger.Info(ctx, "Creating directory mirror", map[string]any{
 		"source_path": request.SourceRepository.Path(),
 		"target_path": request.TargetPath,
 		"overwrite":   request.Options.Overwrite,
@@ -94,7 +93,7 @@ func (ms *MirrorService) CreateMirror(ctx context.Context, request MirrorRequest
 			return nil, fmt.Errorf("%w: %s", domain.ErrTargetPathAlreadyExists, request.TargetPath)
 		}
 
-		ms.logger.Warn(ctx, "Target path exists, removing", map[string]interface{}{
+		ms.logger.Warn(ctx, "Target path exists, removing", map[string]any{
 			"target_path": request.TargetPath,
 		})
 
@@ -131,7 +130,7 @@ func (ms *MirrorService) CreateMirror(ctx context.Context, request MirrorRequest
 	result.Success = true
 	result.Duration = time.Since(startTime)
 
-	ms.logger.Info(ctx, "Directory mirror created successfully", map[string]interface{}{
+	ms.logger.Info(ctx, "Directory mirror created successfully", map[string]any{
 		"target_path": request.TargetPath,
 		"files_count": result.FilesCount,
 		"total_size":  result.TotalSize,
@@ -143,7 +142,7 @@ func (ms *MirrorService) CreateMirror(ctx context.Context, request MirrorRequest
 
 // UpdateMirror updates an existing directory mirror.
 func (ms *MirrorService) UpdateMirror(ctx context.Context, request MirrorRequest) (*MirrorResult, error) {
-	ms.logger.Info(ctx, "Updating directory mirror", map[string]interface{}{
+	ms.logger.Info(ctx, "Updating directory mirror", map[string]any{
 		"source_path": request.SourceRepository.Path(),
 		"target_path": request.TargetPath,
 	})
@@ -159,7 +158,7 @@ func (ms *MirrorService) UpdateMirror(ctx context.Context, request MirrorRequest
 
 // VerifyMirror verifies the integrity of a directory mirror.
 func (ms *MirrorService) VerifyMirror(ctx context.Context, targetPath string) (*MirrorVerification, error) {
-	ms.logger.Debug(ctx, "Verifying directory mirror", map[string]interface{}{
+	ms.logger.Debug(ctx, "Verifying directory mirror", map[string]any{
 		"target_path": targetPath,
 	})
 
@@ -177,14 +176,21 @@ func (ms *MirrorService) VerifyMirror(ctx context.Context, targetPath string) (*
 	}
 
 	// Count files and calculate size
-	err := filepath.Walk(targetPath, func(path string, info os.FileInfo, err error) error {
+	err := filepath.WalkDir(targetPath, func(path string, dirEntry fs.DirEntry, err error) error {
 		if err != nil {
 			verification.Warnings = append(verification.Warnings, fmt.Sprintf("Error accessing %s: %v", path, err))
 
 			return nil
 		}
 
-		if !info.IsDir() {
+		if !dirEntry.IsDir() {
+			info, err := dirEntry.Info()
+			if err != nil {
+				verification.Warnings = append(verification.Warnings, fmt.Sprintf("Error getting info for %s: %v", path, err))
+
+				return nil
+			}
+
 			verification.FileCount++
 			verification.TotalSize += info.Size()
 		}
@@ -208,7 +214,7 @@ func (ms *MirrorService) VerifyMirror(ctx context.Context, targetPath string) (*
 	verification.EndTime = time.Now()
 	verification.Duration = verification.EndTime.Sub(verification.StartTime)
 
-	ms.logger.Info(ctx, "Directory mirror verification completed", map[string]interface{}{
+	ms.logger.Info(ctx, "Directory mirror verification completed", map[string]any{
 		"target_path": targetPath,
 		"is_valid":    verification.IsValid,
 		"file_count":  verification.FileCount,
@@ -234,7 +240,7 @@ type MirrorVerification struct {
 
 // DeleteMirror deletes a directory mirror.
 func (ms *MirrorService) DeleteMirror(ctx context.Context, targetPath string) error {
-	ms.logger.Info(ctx, "Deleting directory mirror", map[string]interface{}{
+	ms.logger.Info(ctx, "Deleting directory mirror", map[string]any{
 		"target_path": targetPath,
 	})
 
@@ -246,7 +252,7 @@ func (ms *MirrorService) DeleteMirror(ctx context.Context, targetPath string) er
 		return fmt.Errorf("failed to delete mirror: %w", err)
 	}
 
-	ms.logger.Info(ctx, "Directory mirror deleted successfully", map[string]interface{}{
+	ms.logger.Info(ctx, "Directory mirror deleted successfully", map[string]any{
 		"target_path": targetPath,
 	})
 
@@ -257,7 +263,7 @@ func (ms *MirrorService) DeleteMirror(ctx context.Context, targetPath string) er
 func (ms *MirrorService) performMirror(_ /* ctx */ context.Context, request MirrorRequest, result *MirrorResult) error {
 	sourcePath := request.SourceRepository.Path()
 
-	if err := filepath.Walk(sourcePath, func(path string, info os.FileInfo, err error) error {
+	if err := filepath.WalkDir(sourcePath, func(path string, dirEntry fs.DirEntry, err error) error {
 		if err != nil {
 			result.Warnings = append(result.Warnings, fmt.Sprintf("Error accessing %s: %v", path, err))
 
@@ -282,7 +288,12 @@ func (ms *MirrorService) performMirror(_ /* ctx */ context.Context, request Mirr
 
 		targetPath := filepath.Join(request.TargetPath, relPath)
 
-		if info.IsDir() {
+		if dirEntry.IsDir() {
+			info, err := dirEntry.Info()
+			if err != nil {
+				return fmt.Errorf("failed to get dir info: %w", err)
+			}
+
 			return os.MkdirAll(targetPath, info.Mode())
 		}
 
@@ -293,8 +304,11 @@ func (ms *MirrorService) performMirror(_ /* ctx */ context.Context, request Mirr
 			return nil
 		}
 
-		result.FilesCount++
-		result.TotalSize += info.Size()
+		info, err := dirEntry.Info()
+		if err == nil {
+			result.FilesCount++
+			result.TotalSize += info.Size()
+		}
 
 		return nil
 	}); err != nil {
@@ -421,7 +435,7 @@ func (ms *MirrorService) createMetadataFile(_ /* ctx */ context.Context, targetP
 func (ms *MirrorService) createArchive(ctx context.Context, targetPath string, options MirrorOptions) error {
 	// This would create an archive based on the specified format
 	// For now, we'll skip the implementation and return an error
-	ms.logger.Debug(ctx, "Archive creation requested but not implemented", map[string]interface{}{
+	ms.logger.Debug(ctx, "Archive creation requested but not implemented", map[string]any{
 		"target_path": targetPath,
 		"format":      options.ArchiveFormat,
 	})

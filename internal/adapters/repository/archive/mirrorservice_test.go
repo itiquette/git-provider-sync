@@ -7,6 +7,7 @@ package archive
 import (
 	"bytes"
 	"context"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -28,30 +29,30 @@ type mockLogger struct {
 type logEntry struct {
 	level   string
 	message string
-	fields  map[string]interface{}
+	fields  map[string]any
 }
 
-func (ml *mockLogger) Trace(_ context.Context, msg string, fields map[string]interface{}) {
+func (ml *mockLogger) Trace(_ context.Context, msg string, fields map[string]any) {
 	ml.logs = append(ml.logs, logEntry{level: "TRACE", message: msg, fields: fields})
 }
 
-func (ml *mockLogger) Debug(_ context.Context, msg string, fields map[string]interface{}) {
+func (ml *mockLogger) Debug(_ context.Context, msg string, fields map[string]any) {
 	ml.logs = append(ml.logs, logEntry{level: "DEBUG", message: msg, fields: fields})
 }
 
-func (ml *mockLogger) Info(_ context.Context, msg string, fields map[string]interface{}) {
+func (ml *mockLogger) Info(_ context.Context, msg string, fields map[string]any) {
 	ml.logs = append(ml.logs, logEntry{level: "INFO", message: msg, fields: fields})
 }
 
-func (ml *mockLogger) Warn(_ context.Context, msg string, fields map[string]interface{}) {
+func (ml *mockLogger) Warn(_ context.Context, msg string, fields map[string]any) {
 	ml.logs = append(ml.logs, logEntry{level: "WARN", message: msg, fields: fields})
 }
 
-func (ml *mockLogger) Error(_ context.Context, msg string, fields map[string]interface{}) {
+func (ml *mockLogger) Error(_ context.Context, msg string, fields map[string]any) {
 	ml.logs = append(ml.logs, logEntry{level: "ERROR", message: msg, fields: fields})
 }
 
-func (ml *mockLogger) Fatal(_ context.Context, msg string, fields map[string]interface{}) {
+func (ml *mockLogger) Fatal(_ context.Context, msg string, fields map[string]any) {
 	ml.logs = append(ml.logs, logEntry{level: "FATAL", message: msg, fields: fields})
 }
 
@@ -675,7 +676,7 @@ func TestMirrorService_cleanupWorkingDirectory(t *testing.T) {
 
 	// Verify directory was removed
 	_, err = os.Stat(workDir)
-	assert.True(t, os.IsNotExist(err))
+	require.ErrorIs(t, err, fs.ErrNotExist)
 
 	// Verify logging
 	assert.True(t, logger.hasLogMessage("DEBUG", "Cleaned up working directory"))
@@ -885,7 +886,7 @@ func TestMirrorServiceValidation(t *testing.T) {
 					assert.Contains(t, err.Error(), test.errorContains)
 				}
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			}
 		})
 	}

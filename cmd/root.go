@@ -20,7 +20,7 @@ import (
 	"itiquette/git-provider-sync/internal/log"
 )
 
-// NewRootCommand creates and returns the root command for the Git Provider Sync CLI.
+// NewRootCommand returns the root CLI command.
 // Exported for testing purposes.
 func NewRootCommand(_ context.Context, versionString string) *cli.Command {
 	return newRootCommandWithOptions(versionString, true)
@@ -85,7 +85,7 @@ Allows syncing to multiple mirror destinations.`,
 				Category: "Output Control",
 			},
 
-			// Advanced flags (occasionally used)
+			// Additional flags
 			&cli.StringFlag{
 				Name:     "log-level",
 				Aliases:  []string{"l"},
@@ -151,7 +151,7 @@ Allows syncing to multiple mirror destinations.`,
 func RunApplication(version, commitSHA, buildDate string) {
 	ctx := context.Background()
 
-	// Set up signal handling for graceful shutdown (idiomatic Go)
+	// Set up signal handling for graceful shutdown
 	ctx = SetupSignalContext(ctx)
 
 	zerologLogger := log.Logger(ctx)
@@ -182,8 +182,6 @@ func showDebugLogPath(ctx context.Context) {
 }
 
 // SetupSignalContext creates a context that will be cancelled on interrupt signals.
-// This enables graceful shutdown when users press Ctrl-C.
-// Following idiomatic Go patterns - simple, clear, no overengineering.
 func SetupSignalContext(ctx context.Context) context.Context {
 	// Create a context that will be cancelled on SIGINT (Ctrl-C) or SIGTERM
 	ctx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)

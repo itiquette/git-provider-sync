@@ -26,7 +26,7 @@ type Remote struct {
 
 // OperationServiceInterface defines git operations like fetch and branch management.
 //
-//	sophisticated git operations .
+//	git operations .
 //
 // Note: interfacebloat is suppressed - this interface needs to maintain backward compatibility.
 type OperationServiceInterface interface { //nolint:interfacebloat // Required for backward compatibility
@@ -52,9 +52,7 @@ type OperationServiceInterface interface { //nolint:interfacebloat // Required f
 	GetStatus(ctx context.Context, repoPath string) (ports.StatusResult, error)
 }
 
-// operationService implements sophisticated git operations.
-//
-//	critical git operation functionality .
+// operationService implements git operations.
 type operationService struct {
 	executor ExecutorService
 	logger   ports.Logger
@@ -75,15 +73,13 @@ func NewOperationServiceImplWithLogger(executor ExecutorService, logger ports.Lo
 	}
 }
 
-// Fetch performs comprehensive fetch operations: fetch --all --prune and pull --all.
-//
-//	critical fetch functionality .
+// Fetch performs fetch operations: fetch --all --prune and pull --all.
 func (b *operationService) Fetch(ctx context.Context, targetPath string) error {
 	if b.logger != nil {
-		b.logger.Trace(ctx, "Entering Fetch", map[string]interface{}{
+		b.logger.Trace(ctx, "Entering Fetch", map[string]any{
 			"targetPath": targetPath,
 		})
-		b.logger.Debug(ctx, "Fetch", map[string]interface{}{
+		b.logger.Debug(ctx, "Fetch", map[string]any{
 			"targetPath": targetPath,
 		})
 	}
@@ -105,14 +101,12 @@ func (b *operationService) Fetch(ctx context.Context, targetPath string) error {
 }
 
 // CreateTrackingBranches creates local tracking branches for all remote branches.
-//
-//	critical branch tracking functionality .
 func (b *operationService) CreateTrackingBranches(ctx context.Context, targetPath string) error {
 	if b.logger != nil {
-		b.logger.Trace(ctx, "Entering CreateTrackingBranches", map[string]interface{}{
+		b.logger.Trace(ctx, "Entering CreateTrackingBranches", map[string]any{
 			"targetPath": targetPath,
 		})
-		b.logger.Debug(ctx, "CreateTrackingBranches", map[string]interface{}{
+		b.logger.Debug(ctx, "CreateTrackingBranches", map[string]any{
 			"targetPath": targetPath,
 		})
 	}
@@ -127,13 +121,13 @@ func (b *operationService) CreateTrackingBranches(ctx context.Context, targetPat
 
 // ProcessTrackingBranches processes git branch -r output to create tracking branches.
 //
-//	sophisticated branch processing .
+//	branch processing .
 func (b *operationService) ProcessTrackingBranches(ctx context.Context, targetPath string, output []byte) error {
 	if b.logger != nil {
-		b.logger.Trace(ctx, "Entering ProcessTrackingBranches", map[string]interface{}{
+		b.logger.Trace(ctx, "Entering ProcessTrackingBranches", map[string]any{
 			"targetPath": targetPath,
 		})
-		b.logger.Debug(ctx, "ProcessTrackingBranches", map[string]interface{}{
+		b.logger.Debug(ctx, "ProcessTrackingBranches", map[string]any{
 			"targetPath": targetPath,
 		})
 	}
@@ -164,7 +158,7 @@ func (b *operationService) ProcessTrackingBranches(ctx context.Context, targetPa
 	return nil
 }
 
-// GetBranches returns all branches in the repository.
+// GetBranches lists local and remote branches.
 func (b *operationService) GetBranches(ctx context.Context, repoPath string) ([]string, error) {
 	output, err := b.executor.RunGitCommandWithOutput(ctx, repoPath, "branch", "-a")
 	if err != nil {
@@ -187,7 +181,7 @@ func (b *operationService) GetBranches(ctx context.Context, repoPath string) ([]
 	return result, nil
 }
 
-// GetCurrentBranch returns the current branch name.
+// GetCurrentBranch identifies the currently checked-out branch.
 func (b *operationService) GetCurrentBranch(ctx context.Context, repoPath string) (string, error) {
 	output, err := b.executor.RunGitCommandWithOutput(ctx, repoPath, "branch", "--show-current")
 	if err != nil {
@@ -197,7 +191,6 @@ func (b *operationService) GetCurrentBranch(ctx context.Context, repoPath string
 	return strings.TrimSpace(string(output)), nil
 }
 
-// CreateBranch creates a new branch.
 func (b *operationService) CreateBranch(ctx context.Context, repoPath, branchName string) error {
 	if err := b.executor.RunGitCommand(ctx, nil, repoPath, "branch", branchName); err != nil {
 		return fmt.Errorf("failed to create branch: %w", err)
@@ -224,7 +217,7 @@ func (b *operationService) DeleteBranch(ctx context.Context, repoPath, branchNam
 	return nil
 }
 
-// GetRemotes returns all remotes in the repository.
+// GetRemotes lists configured remote repositories with their URLs.
 func (b *operationService) GetRemotes(ctx context.Context, repoPath string) ([]Remote, error) {
 	output, err := b.executor.RunGitCommandWithOutput(ctx, repoPath, "remote", "-v")
 	if err != nil {
@@ -276,7 +269,6 @@ func (b *operationService) RemoveRemote(ctx context.Context, repoPath, name stri
 	return nil
 }
 
-// GetTags returns all tags in the repository.
 func (b *operationService) GetTags(ctx context.Context, repoPath string) ([]string, error) {
 	output, err := b.executor.RunGitCommandWithOutput(ctx, repoPath, "tag", "-l")
 	if err != nil {
@@ -297,7 +289,7 @@ func (b *operationService) GetTags(ctx context.Context, repoPath string) ([]stri
 	return result, nil
 }
 
-// GetStatus returns the status of the repository.
+// GetStatus shows working tree status including untracked and modified files.
 func (b *operationService) GetStatus(ctx context.Context, repoPath string) (ports.StatusResult, error) {
 	output, err := b.executor.RunGitCommandWithOutput(ctx, repoPath, "status", "--porcelain")
 	if err != nil {
@@ -386,13 +378,13 @@ func (b *operationService) handleTrackingBranchResult(ctx context.Context, err e
 	if err != nil {
 		// Don't fail if branch already exists - this is expected
 		if !strings.Contains(err.Error(), "already exists") && b.logger != nil {
-			b.logger.Debug(ctx, "Could not create tracking branch", map[string]interface{}{
+			b.logger.Debug(ctx, "Could not create tracking branch", map[string]any{
 				"branch": branch,
 				"error":  err.Error(),
 			})
 		}
 	} else if b.logger != nil {
-		b.logger.Debug(ctx, "Created tracking branch", map[string]interface{}{
+		b.logger.Debug(ctx, "Created tracking branch", map[string]any{
 			"branch": branch,
 		})
 	}

@@ -26,13 +26,13 @@ const (
 // testCompleteLogger is a simple no-op logger for testing CompleteAdapter.
 type testCompleteLogger struct{}
 
-func (l testCompleteLogger) Trace(_ context.Context, _ string, _ map[string]interface{}) {}
-func (l testCompleteLogger) Debug(_ context.Context, _ string, _ map[string]interface{}) {}
-func (l testCompleteLogger) Info(_ context.Context, _ string, _ map[string]interface{})  {}
-func (l testCompleteLogger) Warn(_ context.Context, _ string, _ map[string]interface{})  {}
-func (l testCompleteLogger) Error(_ context.Context, _ string, _ map[string]interface{}) {}
-func (l testCompleteLogger) Fatal(_ context.Context, _ string, _ map[string]interface{}) {}
-func (l testCompleteLogger) IsLevelEnabled(_ ports.LogLevel) bool                        { return true }
+func (l testCompleteLogger) Trace(_ context.Context, _ string, _ map[string]any) {}
+func (l testCompleteLogger) Debug(_ context.Context, _ string, _ map[string]any) {}
+func (l testCompleteLogger) Info(_ context.Context, _ string, _ map[string]any)  {}
+func (l testCompleteLogger) Warn(_ context.Context, _ string, _ map[string]any)  {}
+func (l testCompleteLogger) Error(_ context.Context, _ string, _ map[string]any) {}
+func (l testCompleteLogger) Fatal(_ context.Context, _ string, _ map[string]any) {}
+func (l testCompleteLogger) IsLevelEnabled(_ ports.LogLevel) bool                { return true }
 
 func TestNewCompleteAdapter(t *testing.T) {
 	t.Parallel()

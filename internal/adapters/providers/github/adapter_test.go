@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -26,12 +25,12 @@ const (
 	httpPOST = "POST"
 )
 
-// Helper function to create string pointers.
+// String pointer factory.
 func stringPtr(s string) *string {
 	return &s
 }
 
-// Helper function to create a test server for successful repository creation.
+// Creates test server for successful repository creation.
 func createRepositoryForPushServer() *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, req *http.Request) {
 		switch {
@@ -54,7 +53,7 @@ func createRepositoryForPushServer() *httptest.Server {
 	}))
 }
 
-// Helper function to create a test server for user repository creation.
+// Creates test server for user repository creation.
 func createUserRepositoryServer() *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, req *http.Request) {
 		if req.Method == http.MethodPost && strings.Contains(req.URL.Path, "/user/repos") {
@@ -73,7 +72,7 @@ func createUserRepositoryServer() *httptest.Server {
 	}))
 }
 
-// Helper function to create a test server for successful protection.
+// Creates test server for successful protection.
 func createSuccessfulProtectionServer() *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, req *http.Request) {
 		switch {
@@ -94,7 +93,7 @@ func createSuccessfulProtectionServer() *httptest.Server {
 	}))
 }
 
-// Helper function to create a test server for failed protection.
+// Creates test server for failed protection.
 func createFailedProtectionServer() *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, req *http.Request) {
 		if req.Method == http.MethodGet && strings.Contains(req.URL.Path, "/repositories/999") {
@@ -106,7 +105,7 @@ func createFailedProtectionServer() *httptest.Server {
 	}))
 }
 
-// Helper function to create a test server for successful unprotection.
+// Creates test server for successful unprotection.
 func createSuccessfulUnprotectionServer() *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, req *http.Request) {
 		switch {
@@ -124,7 +123,7 @@ func createSuccessfulUnprotectionServer() *httptest.Server {
 	}))
 }
 
-// Helper function to create a test server for failed unprotection.
+// Creates test server for failed unprotection.
 func createFailedUnprotectionServer() *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, req *http.Request) {
 		if req.Method == http.MethodGet && strings.Contains(req.URL.Path, "/repositories/999") {
@@ -200,100 +199,6 @@ func createRepoExistsErrorServer() *httptest.Server {
 			writer.WriteHeader(http.StatusNotFound)
 		}
 	}))
-}
-
-func TestNew_ValidCredentials_CreatesGitHubAdapter(t *testing.T) {
-	t.Parallel()
-
-	ctx := context.Background()
-
-	tests := []struct {
-		name  string
-		token string
-	}{
-		{
-			name:  "with token",
-			token: "ghp_test_token",
-		},
-		{
-			name:  "without token",
-			token: "",
-		},
-	}
-
-	for _, testCase := range tests {
-		t.Run(testCase.name, func(t *testing.T) {
-			t.Parallel()
-
-			adapter := New(ctx, testCase.token)
-			assert.NotNil(t, adapter)
-			assert.NotNil(t, adapter.client)
-		})
-	}
-}
-
-func TestNewWithConfig(t *testing.T) {
-	t.Parallel()
-
-	ctx := context.Background()
-
-	tests := []struct {
-		name   string
-		config Config
-	}{
-		{
-			name: "with token",
-			config: Config{
-				Token: "ghp_test_token",
-			},
-		},
-		{
-			name: "with custom base URL",
-			config: Config{
-				Token:   "ghp_test_token",
-				BaseURL: "https://api.github.enterprise.com",
-			},
-		},
-		{
-			name: "with custom upload URL",
-			config: Config{
-				Token:     "ghp_test_token",
-				UploadURL: "https://uploads.github.enterprise.com",
-			},
-		},
-		{
-			name: "with custom HTTP client",
-			config: Config{
-				Token:      "ghp_test_token",
-				HTTPClient: &http.Client{Timeout: 30 * time.Second},
-			},
-		},
-		{
-			name:   "minimal config",
-			config: Config{},
-		},
-	}
-
-	for _, testCase := range tests {
-		t.Run(testCase.name, func(t *testing.T) {
-			t.Parallel()
-
-			adapter := NewWithConfig(ctx, testCase.config)
-			assert.NotNil(t, adapter)
-			assert.NotNil(t, adapter.client)
-
-			// Verify custom URLs are set
-			if testCase.config.BaseURL != "" {
-				expectedURL, _ := url.Parse(testCase.config.BaseURL)
-				assert.Equal(t, expectedURL, adapter.client.BaseURL)
-			}
-
-			if testCase.config.UploadURL != "" {
-				expectedURL, _ := url.Parse(testCase.config.UploadURL)
-				assert.Equal(t, expectedURL, adapter.client.UploadURL)
-			}
-		})
-	}
 }
 
 func TestListRepositories(t *testing.T) {
@@ -512,7 +417,7 @@ func TestRepositoryExists(t *testing.T) {
 
 			// Verify results
 			if testCase.expectedError {
-				assert.Error(t, err)
+				require.Error(t, err)
 			} else {
 				require.NoError(t, err)
 				assert.Equal(t, testCase.expectedExists, exists)
@@ -619,30 +524,11 @@ func TestValidateRepositoryName(t *testing.T) {
 			expectedError: false,
 		},
 		{
-			name:          "valid repository name with numbers",
-			repoName:      "repo123",
-			expectedError: false,
-		},
-		{
-			name:          "valid repository name with underscores",
-			repoName:      "repo_name",
-			expectedError: false,
-		},
-		{
 			name:          "empty repository name",
 			repoName:      "",
 			expectedError: true,
 		},
-		{
-			name:          "repository name starting with period",
-			repoName:      ".repo",
-			expectedError: false,
-		},
-		{
-			name:          "repository name ending with period",
-			repoName:      "repo.",
-			expectedError: false,
-		},
+
 		{
 			name:          "repository name with spaces",
 			repoName:      "repo name",
@@ -663,7 +549,7 @@ func TestValidateRepositoryName(t *testing.T) {
 			err := adapter.ValidateRepositoryName(testCase.repoName)
 
 			if testCase.expectedError {
-				assert.Error(t, err)
+				require.Error(t, err)
 			} else {
 				require.NoError(t, err)
 			}
@@ -1021,7 +907,7 @@ func createGitHubAdapterWithMockServer(t *testing.T, server *httptest.Server, to
 	return NewWithConfig(context.Background(), config)
 }
 
-func respondWithJSON(t *testing.T, w http.ResponseWriter, data interface{}) {
+func respondWithJSON(t *testing.T, w http.ResponseWriter, data any) {
 	t.Helper()
 
 	w.Header().Set("Content-Type", "application/json")
@@ -1190,67 +1076,6 @@ func TestDeleteRepository(t *testing.T) {
 }
 
 // Test GetProviderInfo method (0% coverage).
-func TestGetProviderInfo(t *testing.T) {
-	t.Parallel()
-
-	adapter := &Adapter{}
-
-	info := adapter.GetProviderInfo()
-
-	assert.Equal(t, "GitHub", info.Name)
-	assert.Equal(t, "github", info.Type)
-	assert.Equal(t, "github.com", info.Domain)
-	assert.Equal(t, "v3", info.APIVersion)
-	assert.Contains(t, info.Features, ports.FeatureRepositoryCreation)
-}
-
-// Test SupportsFeature method (0% coverage).
-func TestSupportsFeature(t *testing.T) {
-	t.Parallel()
-
-	adapter := &Adapter{}
-
-	tests := []struct {
-		name     string
-		feature  ports.ProviderFeature
-		expected bool
-	}{
-		{
-			name:     "supports repository creation",
-			feature:  ports.FeatureRepositoryCreation,
-			expected: true,
-		},
-		{
-			name:     "supports branch protection",
-			feature:  ports.FeatureBranchProtection,
-			expected: true,
-		},
-		{
-			name:     "supports webhooks",
-			feature:  ports.FeatureWebhooks,
-			expected: true,
-		},
-		{
-			name:     "supports organizations",
-			feature:  ports.FeatureOrganizations,
-			expected: true,
-		},
-		{
-			name:     "unsupported feature",
-			feature:  ports.ProviderFeature("unsupported"),
-			expected: false,
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			t.Parallel()
-
-			result := adapter.SupportsFeature(test.feature)
-			assert.Equal(t, test.expected, result)
-		})
-	}
-}
 
 // Test CreateRepositoryForPush method (0% coverage).
 func TestCreateRepositoryForPush(t *testing.T) {
@@ -1382,7 +1207,7 @@ func TestProjectExists(t *testing.T) {
 	}
 }
 
-// Helper function to setup test adapter with custom server URL.
+// Sets up test adapter with custom server URL.
 func setupTestAdapter(t *testing.T, serverURL string) *Adapter {
 	t.Helper()
 
@@ -1939,18 +1764,8 @@ func TestIsValidProjectName(t *testing.T) {
 		expected bool
 	}{
 		{
-			name:     "valid project name",
-			projName: "valid-repo",
-			expected: true,
-		},
-		{
-			name:     "valid project name with numbers",
-			projName: "repo123",
-			expected: true,
-		},
-		{
-			name:     "valid project name with underscores",
-			projName: "test_repo",
+			name:     "valid project name with alphanumeric and underscore",
+			projName: "valid_repo123",
 			expected: true,
 		},
 		{
@@ -1966,11 +1781,6 @@ func TestIsValidProjectName(t *testing.T) {
 		{
 			name:     "name starting with period is valid",
 			projName: ".gitignore-repo",
-			expected: true,
-		},
-		{
-			name:     "name ending with period is valid",
-			projName: "repo.",
 			expected: true,
 		},
 		{

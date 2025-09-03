@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -116,7 +117,7 @@ func (a *Adapter) Fetch(_ context.Context, _ ports.GitRepository, _ ports.FetchO
 // Open creates a repository instance for the given path.
 func (a *Adapter) Open(_ context.Context, path string) (ports.GitRepository, error) { //nolint:ireturn
 	// Verify the path exists
-	if _, err := os.Stat(path); os.IsNotExist(err) {
+	if _, err := os.Stat(path); errors.Is(err, fs.ErrNotExist) {
 		return nil, fmt.Errorf("%w: %s", ErrRepositoryPathNotExist, path)
 	}
 
@@ -384,9 +385,15 @@ func (a *Adapter) createArchiveWriters(archivePath string) (*tar.Writer, func(),
 
 // walkAndAddToArchive walks the source directory and adds files to the archive.
 func (a *Adapter) walkAndAddToArchive(sourcePath string, tarWriter *tar.Writer) error {
-	if err := filepath.Walk(sourcePath, func(path string, info os.FileInfo, err error) error {
+	if err := filepath.WalkDir(sourcePath, func(path string, dirEntry fs.DirEntry, err error) error {
 		if err != nil {
 			return err
+		}
+
+		// Get FileInfo for the tar header
+		info, err := dirEntry.Info()
+		if err != nil {
+			return fmt.Errorf("failed to get file info: %w", err)
 		}
 
 		return a.addFileToArchive(sourcePath, path, info, tarWriter)

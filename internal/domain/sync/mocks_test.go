@@ -291,27 +291,27 @@ type SharedMockLogger struct {
 	mock.Mock
 }
 
-func (m *SharedMockLogger) Trace(ctx context.Context, msg string, fields map[string]interface{}) {
+func (m *SharedMockLogger) Trace(ctx context.Context, msg string, fields map[string]any) {
 	m.Called(ctx, msg, fields)
 }
 
-func (m *SharedMockLogger) Debug(ctx context.Context, msg string, fields map[string]interface{}) {
+func (m *SharedMockLogger) Debug(ctx context.Context, msg string, fields map[string]any) {
 	m.Called(ctx, msg, fields)
 }
 
-func (m *SharedMockLogger) Info(ctx context.Context, msg string, fields map[string]interface{}) {
+func (m *SharedMockLogger) Info(ctx context.Context, msg string, fields map[string]any) {
 	m.Called(ctx, msg, fields)
 }
 
-func (m *SharedMockLogger) Warn(ctx context.Context, msg string, fields map[string]interface{}) {
+func (m *SharedMockLogger) Warn(ctx context.Context, msg string, fields map[string]any) {
 	m.Called(ctx, msg, fields)
 }
 
-func (m *SharedMockLogger) Error(ctx context.Context, msg string, fields map[string]interface{}) {
+func (m *SharedMockLogger) Error(ctx context.Context, msg string, fields map[string]any) {
 	m.Called(ctx, msg, fields)
 }
 
-func (m *SharedMockLogger) Fatal(ctx context.Context, msg string, fields map[string]interface{}) {
+func (m *SharedMockLogger) Fatal(ctx context.Context, msg string, fields map[string]any) {
 	m.Called(ctx, msg, fields)
 }
 

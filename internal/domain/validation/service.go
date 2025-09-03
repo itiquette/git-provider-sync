@@ -11,7 +11,7 @@ import (
 	"itiquette/git-provider-sync/internal/domain/ports"
 )
 
-// Service provides comprehensive validation using pure functions.
+// Service validates configurations using pure functions.
 type Service struct {
 	connectivityValidator ConnectivityValidator
 	fileSystemValidator   FileSystemValidator
@@ -106,7 +106,7 @@ func NewQuickValidationService() *Service {
 	return NewService(nil, nil, config)
 }
 
-// NewFullValidationService creates a validation service with comprehensive validation.
+// NewFullValidationService creates a validation service with all validators enabled.
 func NewFullValidationService(
 	connectivityValidator ConnectivityValidator,
 	fileSystemValidator FileSystemValidator,
@@ -122,9 +122,9 @@ func NewFullValidationService(
 	return NewService(connectivityValidator, fileSystemValidator, config)
 }
 
-// ValidateConfiguration performs comprehensive configuration validation.
+// ValidateConfiguration validates the entire configuration.
 //
-//nolint:cyclop // Complex validation orchestration with multiple validation types
+//nolint:cyclop // Multiple validation types and error paths
 func (s *Service) ValidateConfiguration(ctx context.Context, config ports.AppConfiguration) ComprehensiveResult {
 	start := time.Now()
 

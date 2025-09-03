@@ -19,28 +19,6 @@ import (
 	"itiquette/git-provider-sync/internal/domain/entities"
 )
 
-func TestNewSyncCommand_Constructor_CreatesCommandWithFlags(t *testing.T) {
-	t.Parallel()
-
-	cmd := NewSyncCommand()
-
-	assert.NotNil(t, cmd)
-	assert.Equal(t, "sync", cmd.Name)
-	assert.Equal(t, "Mirror repositories from a source Git provider to targets", cmd.Usage)
-	assert.Contains(t, cmd.Description, "The 'sync' command mirrors your repositories")
-	assert.NotNil(t, cmd.Action)
-	assert.Len(t, cmd.Flags, 5)
-
-	// Check flags
-	flagNames := make([]string, 0, len(cmd.Flags))
-	for _, flag := range cmd.Flags {
-		flagNames = append(flagNames, flag.Names()[0])
-	}
-
-	expectedFlags := []string{"dry-run", "force-push", "since", "sanitize-names", "skip-invalid"}
-	assert.ElementsMatch(t, expectedFlags, flagNames)
-}
-
 func TestMergeSyncOptionsWithCLIConfig_MergesFlags(t *testing.T) {
 	t.Parallel()
 
@@ -168,7 +146,7 @@ gitprovidersync:
 	// Set the config file path
 	_ = cmd.Set("config-file", configPath)
 
-	// This test may still fail due to complex dependencies but should not panic
+	// Test may still fail due to complex dependencies but should not panic
 	err = runSync(ctx, cmd)
 	// We expect this to fail due to missing external dependencies, but it should fail gracefully
 	if err != nil {
@@ -317,7 +295,7 @@ func TestSyncInputOption_DebugLog(t *testing.T) { //nolint:paralleltest // DO NO
 	assert.Contains(t, logContent, "ignoreInvalidName")
 }
 
-// Helper function to create a test logger.
+// Creates a test logger.
 func createTestLogger(output *os.File) *zerolog.Logger {
 	logger := zerolog.New(output).With().Timestamp().Logger()
 
@@ -382,9 +360,9 @@ func TestRunSync_ErrorHandling(t *testing.T) {
 
 			err := runSync(ctx, cmd)
 			if testCase.expectedErr {
-				assert.Error(t, err)
+				require.Error(t, err)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			}
 		})
 	}

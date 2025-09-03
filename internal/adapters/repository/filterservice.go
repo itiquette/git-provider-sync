@@ -16,9 +16,7 @@ import (
 	"itiquette/git-provider-sync/internal/domain/ports"
 )
 
-// FilterService provides sophisticated repository filtering capabilities.
-//
-//	targetfilter/filter.go functionality .
+// FilterService filters repositories based on configured criteria.
 type FilterService struct {
 	logger ports.Logger
 }
@@ -36,7 +34,7 @@ func (fs *FilterService) FilterRepositories(
 	repositories []entities.Repository,
 	options FilterOptions,
 ) ([]entities.Repository, error) {
-	fs.logger.Debug(ctx, "Starting repository filtering", map[string]interface{}{
+	fs.logger.Debug(ctx, "Starting repository filtering", map[string]any{
 		"total_repositories": len(repositories),
 		"include_count":      len(options.IncludeList),
 		"exclude_count":      len(options.ExcludeList),
@@ -58,7 +56,7 @@ func (fs *FilterService) FilterRepositories(
 	// Apply include/exclude filtering
 	filtered = fs.filterByIncludeExclude(ctx, filtered, options.IncludeList, options.ExcludeList)
 
-	fs.logger.Info(ctx, "Repository filtering completed", map[string]interface{}{
+	fs.logger.Info(ctx, "Repository filtering completed", map[string]any{
 		"original_count": len(repositories),
 		"filtered_count": len(filtered),
 		"removed_count":  len(repositories) - len(filtered),
@@ -77,8 +75,8 @@ type FilterOptions struct {
 }
 
 // GetFilterStatistics returns statistics about the filtering operation.
-func (fs *FilterService) GetFilterStatistics(original, filtered []entities.Repository) map[string]interface{} {
-	stats := map[string]interface{}{
+func (fs *FilterService) GetFilterStatistics(original, filtered []entities.Repository) map[string]any {
+	stats := map[string]any{
 		"original_count": len(original),
 		"filtered_count": len(filtered),
 		"removed_count":  len(original) - len(filtered),
@@ -114,14 +112,12 @@ func (fs *FilterService) ValidateFilterOptions(options FilterOptions) error {
 }
 
 // filterByTimeInterval filters repositories based on their last activity time.
-//
-//	IsInInterval functionality .
 func (fs *FilterService) filterByTimeInterval(
 	ctx context.Context,
 	repositories []entities.Repository,
 	activeFromLimit string,
 ) ([]entities.Repository, error) {
-	fs.logger.Debug(ctx, "Applying time-based filtering", map[string]interface{}{
+	fs.logger.Debug(ctx, "Applying time-based filtering", map[string]any{
 		"active_from_limit": activeFromLimit,
 	})
 
@@ -134,7 +130,7 @@ func (fs *FilterService) filterByTimeInterval(
 	// Calculate the threshold time (negative duration means "go back in time")
 	threshold := time.Now().Add(-parsedDuration)
 
-	fs.logger.Debug(ctx, "Time filtering threshold calculated", map[string]interface{}{
+	fs.logger.Debug(ctx, "Time filtering threshold calculated", map[string]any{
 		"threshold":     threshold.Format(time.RFC3339),
 		"duration_back": parsedDuration.String(),
 	})
@@ -146,7 +142,7 @@ func (fs *FilterService) filterByTimeInterval(
 		if fs.isInTimeInterval(repo, threshold) {
 			filtered = append(filtered, repo)
 		} else {
-			fs.logger.Debug(ctx, "Repository filtered out by time", map[string]interface{}{
+			fs.logger.Debug(ctx, "Repository filtered out by time", map[string]any{
 				"repository":    repo.Name(),
 				"last_activity": repo.LastActivityAt().Format(time.RFC3339),
 				"threshold":     threshold.Format(time.RFC3339),
@@ -173,14 +169,12 @@ func (fs *FilterService) isInTimeInterval(repo entities.Repository, threshold ti
 }
 
 // filterByIncludeExclude filters repositories based on inclusion and exclusion lists.
-//
-//	FilterIncludedExcludedGen functionality .
 func (fs *FilterService) filterByIncludeExclude(
 	ctx context.Context,
 	repositories []entities.Repository,
 	includeList, excludeList []string,
 ) []entities.Repository {
-	fs.logger.Debug(ctx, "Applying include/exclude filtering", map[string]interface{}{
+	fs.logger.Debug(ctx, "Applying include/exclude filtering", map[string]any{
 		"include_count": len(includeList),
 		"exclude_count": len(excludeList),
 	})

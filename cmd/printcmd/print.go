@@ -41,8 +41,7 @@ func NewPrintCommand() *cli.Command {
 	return NewPrintCommandWithWriter(os.Stdout)
 }
 
-// NewPrintCommandWithWriter creates a print command with a custom writer for output.
-// This enables dependency injection for testing while maintaining clean architecture.
+// NewPrintCommandWithWriter creates a print command with a custom writer for testing.
 func NewPrintCommandWithWriter(writer io.Writer) *cli.Command {
 	cmd := &cli.Command{
 		Name:  "print",
@@ -162,7 +161,7 @@ func runPrintWithWriter(ctx context.Context, cmd *cli.Command, writer io.Writer)
 	return nil
 }
 
-// handleConfigurationError provides specific error messages based on the configuration error type.
+// handleConfigurationError returns specific error messages based on the configuration error type.
 // Deprecated: Use FormatErrorWithSuggestion for consistency.
 func handleConfigurationError(err error) {
 	errMsg := err.Error()
@@ -200,7 +199,7 @@ func handleConfigurationError(err error) {
 	}
 }
 
-// handleValidationError provides specific guidance for configuration validation errors.
+// handleValidationError returns specific guidance for configuration validation errors.
 func handleValidationError(errMsg string) {
 	fmt.Fprintf(os.Stderr, "\nConfiguration validation failed:\n")
 

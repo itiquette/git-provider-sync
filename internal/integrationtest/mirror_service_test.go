@@ -133,7 +133,7 @@ func testMirrorRepositoryWithFilesAndRemotes(t *testing.T, gitOps ports.GitOpera
 	complexFiles["src/pkg/handlers/http.go"] = "package handlers\n\nimport \"net/http\"\n\nfunc Handle(w http.ResponseWriter, r *http.Request) {}"
 	
 	// Documentation
-	complexFiles["docs/README.md"] = "# Documentation\n\nComprehensive project documentation"
+	complexFiles["docs/README.md"] = "# Documentation\n\nproject documentation"
 	complexFiles["docs/api/endpoints.md"] = "# API Endpoints\n\n## GET /health"
 	complexFiles["docs/deployment/docker.md"] = "# Docker Deployment\n\nContainerization guide"
 	
@@ -371,10 +371,10 @@ func (m *testMirrorProvider) TransformRepositoryName(name string, _ ports.NameTr
 
 type testMirrorLogger struct{}
 
-func (l *testMirrorLogger) Debug(context.Context, string, map[string]interface{}) {}
-func (l *testMirrorLogger) Info(context.Context, string, map[string]interface{})  {}
-func (l *testMirrorLogger) Error(context.Context, string, map[string]interface{}) {}
-func (l *testMirrorLogger) Trace(context.Context, string, map[string]interface{}) {}
-func (l *testMirrorLogger) Warn(context.Context, string, map[string]interface{})  {}
-func (l *testMirrorLogger) Fatal(context.Context, string, map[string]interface{}) {}
+func (l *testMirrorLogger) Debug(context.Context, string, map[string]any) {}
+func (l *testMirrorLogger) Info(context.Context, string, map[string]any)  {}
+func (l *testMirrorLogger) Error(context.Context, string, map[string]any) {}
+func (l *testMirrorLogger) Trace(context.Context, string, map[string]any) {}
+func (l *testMirrorLogger) Warn(context.Context, string, map[string]any)  {}
+func (l *testMirrorLogger) Fatal(context.Context, string, map[string]any) {}
 func (l *testMirrorLogger) IsLevelEnabled(ports.LogLevel) bool { return true }

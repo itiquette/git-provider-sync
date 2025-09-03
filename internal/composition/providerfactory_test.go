@@ -18,7 +18,7 @@ import (
 	"itiquette/git-provider-sync/internal/domain/ports"
 )
 
-// Helper function to create a test HTTP factory.
+// Creates a test HTTP factory.
 func createTestHTTPFactory() (*transport.HTTPFactory, error) {
 	config := transport.GetDefaultHTTPConfig()
 	config.SkipTLSVerify = false // Security: Always verify TLS
@@ -37,32 +37,32 @@ type mockLogger struct {
 	messages []string
 }
 
-func (m *mockLogger) Debug(_ context.Context, msg string, _ map[string]interface{}) {
+func (m *mockLogger) Debug(_ context.Context, msg string, _ map[string]any) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	m.messages = append(m.messages, msg)
 }
 
-func (m *mockLogger) Info(_ context.Context, msg string, _ map[string]interface{}) {
+func (m *mockLogger) Info(_ context.Context, msg string, _ map[string]any) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	m.messages = append(m.messages, msg)
 }
 
-func (m *mockLogger) Error(_ context.Context, msg string, _ map[string]interface{}) {
+func (m *mockLogger) Error(_ context.Context, msg string, _ map[string]any) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	m.messages = append(m.messages, msg)
 }
 
-func (m *mockLogger) Warn(_ context.Context, _ string, _ map[string]interface{}) {}
+func (m *mockLogger) Warn(_ context.Context, _ string, _ map[string]any) {}
 
-func (m *mockLogger) Fatal(_ context.Context, _ string, _ map[string]interface{}) {}
+func (m *mockLogger) Fatal(_ context.Context, _ string, _ map[string]any) {}
 
-func (m *mockLogger) Trace(_ context.Context, _ string, _ map[string]interface{}) {}
+func (m *mockLogger) Trace(_ context.Context, _ string, _ map[string]any) {}
 
 func (m *mockLogger) IsLevelEnabled(_ ports.LogLevel) bool { return true }
 
@@ -129,9 +129,9 @@ func TestProviderFactory_ValidateProviderType(t *testing.T) {
 			err := factory.ValidateProviderType(test.providerType)
 
 			if test.expectError {
-				assert.Error(t, err)
+				require.Error(t, err)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			}
 		})
 	}
@@ -213,7 +213,7 @@ func TestProviderFactory_CreateProviderFromConfig(t *testing.T) {
 		},
 	}
 
-	// Note: This test only verifies the config conversion,
+	// Note: Only verifies the config conversion,
 	// actual provider creation might require network calls
 	clientConfig := ProviderConfig{
 		ProviderType: providerConfig.ProviderType,

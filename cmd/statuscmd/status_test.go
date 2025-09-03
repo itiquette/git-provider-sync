@@ -398,12 +398,12 @@ func TestFormatStatus_PlainOutput_ReturnsSimpleText(t *testing.T) {
 func TestFormatJSONOutput(t *testing.T) {
 	t.Parallel()
 
-	testData := map[string]interface{}{
+	testData := map[string]any{
 		"string_field": "test value",
 		"int_field":    42,
 		"bool_field":   true,
 		"array_field":  []string{"item1", "item2"},
-		"nested_field": map[string]interface{}{
+		"nested_field": map[string]any{
 			"nested_string": "nested value",
 			"nested_bool":   false,
 			"nested_array":  []string{"nested1", "nested2"},
@@ -428,8 +428,8 @@ func TestFormatJSONOutput(t *testing.T) {
 }
 
 func TestHandleStatusError_WithErrorTypes_FormatsCorrectly(t *testing.T) {
-	// This test validates the error handling function's logic but doesn't test the actual output
-	// since capturing fmt.Printf output in tests is complex and unreliable
+	// Tests error handling logic without capturing fmt.Printf output
+	// (capturing Printf output in tests is complex and unreliable)
 	t.Parallel()
 
 	tests := []struct {
@@ -458,7 +458,7 @@ func TestHandleStatusError_WithErrorTypes_FormatsCorrectly(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			// Just ensure the function doesn't panic and accepts the expected parameters
+			// Ensure the function doesn't panic and accepts the expected parameters
 			assert.NotPanics(t, func() {
 				handleStatusError(fmt.Errorf("%s", test.errorMsg), test.outputFormat)
 			})
@@ -481,7 +481,7 @@ repos=10
 successful=8
 failed=1
 skipped=1`,
-			expected: "(10 repos, 8 successful)", // Just check key parts, not exact timestamp format
+			expected: "(10 repos, 8 successful)", // Check key parts, not exact timestamp format
 		},
 		{
 			name:        "empty file",
@@ -492,7 +492,7 @@ skipped=1`,
 			name: "partial info",
 			fileContent: `timestamp=1640995200
 repos=5`,
-			expected: "(5 repos, 0 successful)", // Just check key parts, not exact timestamp format
+			expected: "(5 repos, 0 successful)", // Check key parts, not exact timestamp format
 		},
 		{
 			name: "no timestamp",
@@ -786,7 +786,7 @@ func TestFormatJSONValue(t *testing.T) {
 	tests := []struct {
 		name     string
 		key      string
-		value    interface{}
+		value    any
 		indent   string
 		expected string
 	}{
@@ -828,7 +828,7 @@ func TestFormatJSONValue(t *testing.T) {
 		{
 			name:     "nested object",
 			key:      "nested",
-			value:    map[string]interface{}{"sub_key": "sub_value"},
+			value:    map[string]any{"sub_key": "sub_value"},
 			indent:   "",
 			expected: "  \"nested\": {\n    \"sub_key\": \"sub_value\"\n  },\n",
 		},

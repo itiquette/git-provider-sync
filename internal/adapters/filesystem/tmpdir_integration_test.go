@@ -174,7 +174,7 @@ func testDirectoryPermissions(t *testing.T, baseDir string) {
 
 	// Cleanup
 	err = entities.DeleteTmpDir(ctx)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func testSymlinkHandling(t *testing.T, baseDir string) {

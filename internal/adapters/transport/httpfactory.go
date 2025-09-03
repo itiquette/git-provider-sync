@@ -66,7 +66,7 @@ type HTTPClientOptions struct {
 	Token         string
 	Username      string
 	Password      string
-	Custom        map[string]interface{}
+	Custom        map[string]any
 }
 
 // NewHTTPFactory creates a new HTTP factory with default configuration.
@@ -150,18 +150,18 @@ func (f *HTTPFactory) CreateProviderClient(provider string, token string) (*http
 	// Provider-specific configurations
 	switch provider {
 	case ProviderTypeGitHub:
-		options.Custom = map[string]interface{}{
+		options.Custom = map[string]any{
 			"api_url":    "https://api.github.com",
 			"accept":     "application/vnd.github.v3+json",
 			"user_agent": "git-provider-sync/1.0",
 		}
 	case ProviderTypeGitLab:
-		options.Custom = map[string]interface{}{
+		options.Custom = map[string]any{
 			"api_url":    "https://gitlab.com/api/v4",
 			"user_agent": "git-provider-sync/1.0",
 		}
 	case ProviderTypeGitea:
-		options.Custom = map[string]interface{}{
+		options.Custom = map[string]any{
 			"api_url":    "https://gitea.com/api/v1",
 			"user_agent": "git-provider-sync/1.0",
 		}
@@ -427,12 +427,12 @@ func (w *HTTPClientWrapper) Get(path string) (*http.Response, error) {
 }
 
 // Post performs a POST request.
-func (w *HTTPClientWrapper) Post(path string, body interface{}) (*http.Response, error) {
+func (w *HTTPClientWrapper) Post(path string, body any) (*http.Response, error) {
 	return w.request(http.MethodPost, path, body)
 }
 
 // Put performs a PUT request.
-func (w *HTTPClientWrapper) Put(path string, body interface{}) (*http.Response, error) {
+func (w *HTTPClientWrapper) Put(path string, body any) (*http.Response, error) {
 	return w.request(http.MethodPut, path, body)
 }
 
@@ -449,7 +449,7 @@ func (w *HTTPClientWrapper) Close() error {
 }
 
 // request performs an HTTP request with the wrapped client.
-func (w *HTTPClientWrapper) request(method, path string, _ /* body */ interface{}) (*http.Response, error) {
+func (w *HTTPClientWrapper) request(method, path string, _ /* body */ any) (*http.Response, error) {
 	fullURL := w.baseURL + path
 
 	var req *http.Request

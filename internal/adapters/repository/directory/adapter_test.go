@@ -6,6 +6,7 @@ package directory
 
 import (
 	"context"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"testing"
@@ -257,7 +258,7 @@ func TestAdapter_Open_FileInsteadOfDirectory(t *testing.T) {
 	_, err := adapter.Open(context.Background(), tempFile)
 
 	require.Error(t, err)
-	assert.ErrorIs(t, err, domain.ErrPathNotDirectory)
+	require.ErrorIs(t, err, domain.ErrPathNotDirectory)
 }
 
 // Test Init operation
@@ -302,7 +303,7 @@ func TestAdapter_Cleanup(t *testing.T) {
 
 	// Verify directory was removed
 	_, err = os.Stat(tempDir)
-	assert.True(t, os.IsNotExist(err))
+	require.ErrorIs(t, err, fs.ErrNotExist)
 }
 
 func TestAdapter_Cleanup_NonExistentPath(t *testing.T) {
@@ -313,14 +314,16 @@ func TestAdapter_Cleanup_NonExistentPath(t *testing.T) {
 	err := adapter.Cleanup(context.Background(), "/non-existent-path")
 
 	// Should not error for non-existent paths
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 // Test Repository implementation
 
-func TestRepository_GetterMethods_ReturnCorrectValues(t *testing.T) {
+func TestRepository_BehavesAsCleanDirectoryRepository(t *testing.T) {
 	t.Parallel()
 
+	// Test that a directory repository correctly identifies its state
+	// and can be used for directory-based operations
 	tempDir := createTempDirWithFiles(t)
 
 	defer func() { _ = os.RemoveAll(tempDir) }()
@@ -330,12 +333,25 @@ func TestRepository_GetterMethods_ReturnCorrectValues(t *testing.T) {
 		url:  "file://" + tempDir,
 	}
 
-	assert.Equal(t, tempDir, repo.Path())
-	assert.Equal(t, "file://"+tempDir, repo.URL())
-	assert.Equal(t, filepath.Base(tempDir), repo.Name())
-	assert.False(t, repo.IsBare())
-	assert.True(t, repo.IsClean())
-	assert.False(t, repo.HasChanges())
+	// Behavioral test: Repository should identify as clean when no changes
+	assert.True(t, repo.IsClean(), "Fresh directory repo should be clean")
+	assert.False(t, repo.HasChanges(), "Fresh directory repo should have no changes")
+
+	// Behavioral test: Repository should correctly identify its type
+	assert.False(t, repo.IsBare(), "Directory adapter creates working repositories, not bare")
+
+	// Behavioral test: Path should be usable for file operations
+	testFile := filepath.Join(repo.Path(), "test.txt")
+	err := os.WriteFile(testFile, []byte("test"), 0600) // #nosec G306
+	require.NoError(t, err, "Should be able to write to repository path")
+
+	// Verify file exists
+	_, err = os.Stat(testFile)
+	require.NoError(t, err, "File should exist in repository")
+
+	// Behavioral test: Name should be suitable for display/logging
+	assert.NotEmpty(t, repo.Name(), "Repository should have a displayable name")
+	assert.Equal(t, filepath.Base(tempDir), repo.Name(), "Name should be base of path for directory repos")
 }
 
 func TestRepository_CurrentBranch(t *testing.T) {
@@ -399,7 +415,7 @@ func TestRepository_BranchOperations_NotSupported(t *testing.T) {
 			t.Parallel()
 
 			err := test.op()
-			assert.ErrorIs(t, err, domain.ErrBranchOpsNotSupported)
+			require.ErrorIs(t, err, domain.ErrBranchOpsNotSupported)
 		})
 	}
 }
@@ -480,7 +496,7 @@ func TestRepository_RemoteOperations_NotSupported(t *testing.T) {
 			t.Parallel()
 
 			err := test.op()
-			assert.ErrorIs(t, err, domain.ErrRemoteOpsNotSupported)
+			require.ErrorIs(t, err, domain.ErrRemoteOpsNotSupported)
 		})
 	}
 }
@@ -531,7 +547,7 @@ func TestRepository_Fetch(t *testing.T) {
 					require.ErrorIs(t, err, test.errorType)
 				}
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			}
 		})
 	}
@@ -594,7 +610,7 @@ func TestRepository_Push_NotSupported(t *testing.T) {
 
 	err := repo.Push(context.Background(), ports.PushOptions{})
 
-	assert.ErrorIs(t, err, domain.ErrPushOpsNotSupported)
+	require.ErrorIs(t, err, domain.ErrPushOpsNotSupported)
 }
 
 func TestRepository_GetCommit(t *testing.T) {
@@ -681,7 +697,7 @@ func TestRepository_Status(t *testing.T) {
 			status, err := repo.Status(context.Background())
 
 			if test.expectError {
-				assert.Error(t, err)
+				require.Error(t, err)
 			} else {
 				require.NoError(t, err)
 				assert.True(t, status.IsClean)
@@ -698,7 +714,7 @@ func TestRepository_Diff_NotSupported(t *testing.T) {
 	diff, err := repo.Diff(context.Background(), ports.DiffOptions{})
 
 	assert.Empty(t, diff)
-	assert.ErrorIs(t, err, domain.ErrDiffOpsNotSupported)
+	require.ErrorIs(t, err, domain.ErrDiffOpsNotSupported)
 }
 
 func TestRepository_Close(t *testing.T) {
@@ -708,7 +724,7 @@ func TestRepository_Close(t *testing.T) {
 
 	err := repo.Close()
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 // Test helper method copyDirectory

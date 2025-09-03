@@ -47,7 +47,7 @@ type BranchProtectionManager interface {
 	ListProtectedBranches(ctx context.Context, config ProviderConfig, repoName string) ([]string, error)
 }
 
-// ProviderPushOperations provides push-to-provider functionality .
+// ProviderPushOperations defines operations for pushing repositories to providers.
 type ProviderPushOperations interface {
 	CreateRepositoryForPush(ctx context.Context, request CreateRepositoryRequest) (string, error)
 	ProjectExists(ctx context.Context, owner, repo string) (bool, string, error)
@@ -378,7 +378,7 @@ type SyncResult struct {
 	Warnings         []string
 	Duration         time.Duration
 	BytesTransferred int64
-	Metadata         map[string]interface{}
+	Metadata         map[string]any
 }
 
 // SyncStatus represents the current sync status of a repository.
@@ -394,8 +394,8 @@ type SyncStatus struct {
 // SyncDifference represents a difference between source and target repositories.
 type SyncDifference struct {
 	Field          string
-	SourceValue    interface{}
-	TargetValue    interface{}
+	SourceValue    any
+	TargetValue    any
 	DifferenceType DifferenceType
 	CanAutoResolve bool
 }

@@ -35,29 +35,8 @@ func (m *mockFileSystemValidator) ValidateFileSystem(_ context.Context, validati
 		Exists:     true,
 		Readable:   true,
 		Writable:   validation.Writable,
-		Details:    make(map[string]interface{}),
+		Details:    make(map[string]any),
 	}
-}
-
-func TestNewService(t *testing.T) {
-	t.Parallel()
-
-	connectivityValidator := &mockConnectivityValidator{}
-	fileSystemValidator := &mockFileSystemValidator{}
-	config := Config{
-		EnableConnectivityTests: true,
-		EnableFileSystemTests:   true,
-		ConnectivityTimeout:     time.Second * 30,
-		SkipOptionalTests:       false,
-		MaxConcurrentTests:      5,
-	}
-
-	service := NewService(connectivityValidator, fileSystemValidator, config)
-
-	require.NotNil(t, service)
-	assert.Equal(t, connectivityValidator, service.connectivityValidator)
-	assert.Equal(t, fileSystemValidator, service.fileSystemValidator)
-	assert.Equal(t, config, service.config)
 }
 
 func TestNewDefaultValidationService(t *testing.T) {

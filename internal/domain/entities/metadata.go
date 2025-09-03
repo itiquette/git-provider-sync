@@ -126,7 +126,7 @@ func (srm *SyncRunMetadata) FailureRate() float64 {
 	return (float64(srm.FailureCount) / float64(srm.ProcessedCount)) * 100.0
 }
 
-// GetSummary returns a summary of the sync run.
+// GetSummary creates a read-only snapshot of current sync statistics.
 func (srm *SyncRunMetadata) GetSummary() SyncSummary {
 	return SyncSummary{
 		TotalRepositories: srm.TotalRepositories,
@@ -164,12 +164,12 @@ type SyncSummary struct {
 	DryRun            bool
 }
 
-// HasFailures returns true if there were any failures during the sync.
+// HasFailures checks if any repositories failed to sync.
 func (srm *SyncRunMetadata) HasFailures() bool {
 	return srm.FailureCount > 0
 }
 
-// GetFailuresByCategory returns failures grouped by category.
+// GetFailuresByCategory returns a defensive copy of failures grouped by category.
 func (srm *SyncRunMetadata) GetFailuresByCategory() map[string][]string {
 	result := make(map[string][]string)
 	for category, repos := range srm.Failures {
@@ -180,7 +180,7 @@ func (srm *SyncRunMetadata) GetFailuresByCategory() map[string][]string {
 	return result
 }
 
-// GetSuccessesByCategory returns successes grouped by category.
+// GetSuccessesByCategory returns a defensive copy of successes grouped by category.
 func (srm *SyncRunMetadata) GetSuccessesByCategory() map[string][]string {
 	result := make(map[string][]string)
 	for category, repos := range srm.Success {
@@ -202,12 +202,12 @@ func (srm *SyncRunMetadata) GetSkippedByCategory() map[string][]string {
 	return result
 }
 
-// SetTotalRepositories sets the total number of repositories to be processed.
+// SetTotalRepositories sets the total repository count.
 func (srm *SyncRunMetadata) SetTotalRepositories(total int) {
 	srm.TotalRepositories = total
 }
 
-// SetOptions sets the sync options used for this run.
+// SetOptions sets the sync run options.
 func (srm *SyncRunMetadata) SetOptions(options SyncRunOptions) {
 	srm.Options = options
 }
@@ -217,7 +217,7 @@ func (srm *SyncRunMetadata) SetDryRun(dryRun bool) {
 	srm.DryRun = dryRun
 }
 
-// GetProgressPercentage returns the progress as a percentage.
+// GetProgressPercentage returns the sync progress as a percentage.
 func (srm *SyncRunMetadata) GetProgressPercentage() float64 {
 	if srm.TotalRepositories == 0 {
 		return 0.0
@@ -263,7 +263,7 @@ func ContainsFailureInContext(ctx context.Context, category, repositoryName stri
 	return false
 }
 
-// String provides a comprehensive string representation of sync metadata.
+// String returns a string representation of sync metadata.
 func (srm *SyncRunMetadata) String() string {
 	var parts []string
 

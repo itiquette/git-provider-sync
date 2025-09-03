@@ -282,9 +282,11 @@ func TestIsValidOwnerName(t *testing.T) {
 	}
 }
 
-//nolint:dupl // Similar test structure is intentional for path validation consistency
 func TestIsValidDirectoryPath(t *testing.T) {
 	t.Parallel()
+
+	// Use temp directory for test paths to avoid hardcoded system paths
+	tempDir := t.TempDir()
 
 	tests := []struct {
 		name string
@@ -292,8 +294,8 @@ func TestIsValidDirectoryPath(t *testing.T) {
 		want bool
 	}{
 		{
-			name: "valid path - simple",
-			path: "/home/user/repos",
+			name: "valid path - absolute temp dir",
+			path: tempDir + "/repos",
 			want: true,
 		},
 		{
@@ -303,12 +305,12 @@ func TestIsValidDirectoryPath(t *testing.T) {
 		},
 		{
 			name: "valid path - with dots in filename",
-			path: "/home/user/my.repos",
+			path: tempDir + "/my.repos",
 			want: true,
 		},
 		{
-			name: "valid path - complex",
-			path: "/var/lib/git-sync/repositories/mirrors",
+			name: "valid path - nested directories",
+			path: tempDir + "/git-sync/repositories/mirrors",
 			want: true,
 		},
 		{
@@ -318,7 +320,7 @@ func TestIsValidDirectoryPath(t *testing.T) {
 		},
 		{
 			name: "invalid path - contains parent directory traversal",
-			path: "/home/user/../etc",
+			path: tempDir + "/../etc",
 			want: false,
 		},
 		{
@@ -328,12 +330,12 @@ func TestIsValidDirectoryPath(t *testing.T) {
 		},
 		{
 			name: "invalid path - ends with parent directory traversal",
-			path: "/home/user/..",
+			path: tempDir + "/..",
 			want: false,
 		},
 		{
 			name: "invalid path - multiple parent directory traversals",
-			path: "/home/user/../../etc",
+			path: tempDir + "/../../etc",
 			want: false,
 		},
 	}
@@ -348,9 +350,11 @@ func TestIsValidDirectoryPath(t *testing.T) {
 	}
 }
 
-//nolint:dupl // Similar test structure is intentional for path validation consistency
 func TestIsValidArchivePath(t *testing.T) {
 	t.Parallel()
+
+	// Use temp directory for test paths
+	tempDir := t.TempDir()
 
 	tests := []struct {
 		name string
@@ -359,12 +363,12 @@ func TestIsValidArchivePath(t *testing.T) {
 	}{
 		{
 			name: "valid path - tar.gz",
-			path: "/backup/repos.tar.gz",
+			path: tempDir + "/repos.tar.gz",
 			want: true,
 		},
 		{
 			name: "valid path - zip",
-			path: "/backup/repos.zip",
+			path: tempDir + "/repos.zip",
 			want: true,
 		},
 		{
@@ -374,7 +378,7 @@ func TestIsValidArchivePath(t *testing.T) {
 		},
 		{
 			name: "valid path - timestamped archive",
-			path: "/var/backups/git-sync/archive-2024-01-01.tar.gz",
+			path: tempDir + "/git-sync/archive-2024-01-01.tar.gz",
 			want: true,
 		},
 		{
@@ -384,7 +388,7 @@ func TestIsValidArchivePath(t *testing.T) {
 		},
 		{
 			name: "invalid path - archive with parent directory traversal",
-			path: "/backup/../etc/passwd.tar.gz",
+			path: tempDir + "/../etc/passwd.tar.gz",
 			want: false,
 		},
 		{
@@ -394,12 +398,12 @@ func TestIsValidArchivePath(t *testing.T) {
 		},
 		{
 			name: "invalid path - archive directory parent traversal",
-			path: "/backup/..",
+			path: tempDir + "/..",
 			want: false,
 		},
 		{
 			name: "invalid path - archive with nested parent traversals",
-			path: "/backup/../../etc/passwd",
+			path: tempDir + "/../../etc/passwd",
 			want: false,
 		},
 	}
@@ -417,6 +421,10 @@ func TestIsValidArchivePath(t *testing.T) {
 func TestHasValidAuthentication(t *testing.T) {
 	t.Parallel()
 
+	// Use temp directory for SSH key paths
+	tempDir := t.TempDir()
+	sshKeyPath := tempDir + "/id_rsa"
+
 	tests := []struct {
 		name string
 		auth ports.AuthenticationConfig
@@ -432,7 +440,7 @@ func TestHasValidAuthentication(t *testing.T) {
 		{
 			name: "valid - has SSH key path",
 			auth: ports.AuthenticationConfig{
-				SSHKeyPath: "/home/user/.ssh/id_rsa",
+				SSHKeyPath: sshKeyPath,
 			},
 			want: true,
 		},
@@ -447,7 +455,7 @@ func TestHasValidAuthentication(t *testing.T) {
 			name: "valid - has token and SSH key path",
 			auth: ports.AuthenticationConfig{
 				Token:      "ghp_1234567890abcdef",
-				SSHKeyPath: "/home/user/.ssh/id_rsa",
+				SSHKeyPath: sshKeyPath,
 			},
 			want: true,
 		},
@@ -455,7 +463,7 @@ func TestHasValidAuthentication(t *testing.T) {
 			name: "valid - has all authentication methods",
 			auth: ports.AuthenticationConfig{
 				Token:      "ghp_1234567890abcdef",
-				SSHKeyPath: "/home/user/.ssh/id_rsa",
+				SSHKeyPath: sshKeyPath,
 				SSHKey:     "-----BEGIN OPENSSH PRIVATE KEY-----",
 			},
 			want: true,

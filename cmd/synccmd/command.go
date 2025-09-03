@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-// Package synccmd provides sync command implementation with hexagonal architecture.
+// Package synccmd implements the sync command.
 package synccmd
 
 import (
@@ -23,7 +23,7 @@ import (
 	"itiquette/git-provider-sync/internal/log"
 )
 
-// NewSyncCommand creates the sync command that orchestrates repository mirroring operations.
+// NewSyncCommand creates the sync command for repository mirroring.
 func NewSyncCommand() *cli.Command {
 	cmd := &cli.Command{
 		Name:  "sync",

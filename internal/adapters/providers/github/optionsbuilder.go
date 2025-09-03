@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-// Package github provides GitHub provider implementation with sophisticated repository management capabilities.
+// Package github provides GitHub provider implementation.
 package github
 
 import (
@@ -11,7 +11,7 @@ import (
 	"github.com/google/go-github/v71/github"
 )
 
-// ProjectOptionsBuilder creates sophisticated GitHub repository configurations.
+// ProjectOptionsBuilder creates GitHub repository configurations.
 type ProjectOptionsBuilder struct {
 	opts *github.Repository
 }
@@ -27,7 +27,7 @@ func NewProjectOptionsBuilder() *ProjectOptionsBuilder {
 func (b *ProjectOptionsBuilder) BuildBasicOptions(visibility, name, description, defaultBranch string) *github.Repository {
 	isPrivate := strings.EqualFold(visibility, "private")
 
-	// Configure all advanced GitHub repository features
+	// Configure GitHub repository features
 	b.opts.AllowAutoMerge = github.Ptr(true)
 	b.opts.AllowForking = github.Ptr(true)
 	b.opts.AllowRebaseMerge = github.Ptr(true)

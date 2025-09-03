@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-// Package main provides a comprehensive test runner for git-provider-sync.
+// Package main provides a test runner for git-provider-sync.
 package main
 
 import (
@@ -11,6 +11,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io/fs"
 	"log"
 	"os"
 	"os/exec"
@@ -165,7 +166,7 @@ func (tr *TestRunner) GetTestSuites() []TestSuite {
 		},
 		{
 			Name:        "enhanced",
-			Description: "Enhanced comprehensive tests with advanced scenarios",
+			Description: "Enhanced tests with advanced scenarios",
 			Timeout:     20 * time.Minute,
 			Parallel:    false,
 			Commands: []TestCommand{
@@ -362,7 +363,7 @@ func (tr *TestRunner) RunTestSuite(ctx context.Context, suite TestSuite) ([]Test
 	return results, nil
 }
 
-// GenerateReport generates a comprehensive test report.
+// GenerateReport generates a test report.
 func (tr *TestRunner) GenerateReport(results map[string][]TestResult) {
 	fmt.Printf("\nTEST REPORT\n")
 	fmt.Printf("%s\n", "="+strings.Repeat("=", 50))
@@ -438,7 +439,7 @@ func (tr *TestRunner) ValidateTestStructure() error {
 	}
 
 	for _, testFile := range requiredTests {
-		if _, err := os.Stat(testFile); os.IsNotExist(err) {
+		if _, err := os.Stat(testFile); errors.Is(err, fs.ErrNotExist) {
 			return fmt.Errorf("%w: %s", ErrRequiredTestFileMissing, testFile)
 		}
 	}
@@ -592,7 +593,7 @@ func (tr *TestRunner) countSuccessfulCommands(results []TestResult) int {
 
 // hasTestFiles checks if directory has test files.
 func (tr *TestRunner) hasTestFiles(dir string) bool {
-	err := filepath.Walk(dir, func(path string, _ os.FileInfo, err error) error {
+	err := filepath.WalkDir(dir, func(path string, _ fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -611,12 +612,12 @@ func (tr *TestRunner) hasTestFiles(dir string) bool {
 func (tr *TestRunner) validateTestNaming() error {
 	testPattern := regexp.MustCompile(`^.*_test\.go$`)
 
-	if err := filepath.Walk(".", func(path string, info os.FileInfo, err error) error {
+	if err := filepath.WalkDir(".", func(path string, dirEntry fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
 
-		if strings.Contains(path, "_test.go") && !testPattern.MatchString(info.Name()) {
+		if strings.Contains(path, "_test.go") && !testPattern.MatchString(dirEntry.Name()) {
 			return fmt.Errorf("%w: %s", ErrInvalidTestFileNaming, path)
 		}
 

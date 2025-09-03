@@ -37,8 +37,6 @@ var (
 )
 
 // Service implements authentication methods for git operations.
-//
-//	gitlib/authservice.go functionality .
 type Service struct{}
 
 // NewService creates a new authentication service.

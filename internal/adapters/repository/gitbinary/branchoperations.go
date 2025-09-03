@@ -12,7 +12,7 @@ import (
 	"itiquette/git-provider-sync/internal/domain/ports"
 )
 
-// BranchOperations provides sophisticated branch management for git binary operations.
+// BranchOperations provides branch management for git binary operations.
 //
 //	CreateTrackingBranches functionality  gitbinary/operation.go.
 type BranchOperations struct {
@@ -30,11 +30,9 @@ func NewBranchOperations(executor ExecutorService, logger ports.Logger) *BranchO
 
 // Note: Using ExecutorService interface from executorservice.go to avoid redundancy
 
-// Fetch performs a comprehensive fetch operation with branch tracking.
-//
-//	exact Fetch functionality .
+// Fetch performs a fetch operation with branch tracking.
 func (bo *BranchOperations) Fetch(ctx context.Context, targetPath string) error {
-	bo.logger.Debug(ctx, "Starting comprehensive fetch operation", map[string]interface{}{
+	bo.logger.Debug(ctx, "Starting fetch operation", map[string]any{
 		"target_path": targetPath,
 	})
 
@@ -45,7 +43,7 @@ func (bo *BranchOperations) Fetch(ctx context.Context, targetPath string) error 
 	}
 
 	for _, cmd := range commands {
-		bo.logger.Debug(ctx, "Executing git command", map[string]interface{}{
+		bo.logger.Debug(ctx, "Executing git command", map[string]any{
 			"command": strings.Join(cmd, " "),
 			"path":    targetPath,
 		})
@@ -60,10 +58,8 @@ func (bo *BranchOperations) Fetch(ctx context.Context, targetPath string) error 
 }
 
 // CreateTrackingBranches creates local tracking branches for all remote branches.
-//
-//	exact CreateTrackingBranches functionality .
 func (bo *BranchOperations) CreateTrackingBranches(ctx context.Context, targetPath string) error {
-	bo.logger.Debug(ctx, "Creating tracking branches", map[string]interface{}{
+	bo.logger.Debug(ctx, "Creating tracking branches", map[string]any{
 		"target_path": targetPath,
 	})
 
@@ -78,10 +74,8 @@ func (bo *BranchOperations) CreateTrackingBranches(ctx context.Context, targetPa
 }
 
 // ProcessTrackingBranches processes remote branch output and creates tracking branches.
-//
-//	exact ProcessTrackingBranches functionality .
 func (bo *BranchOperations) ProcessTrackingBranches(ctx context.Context, targetPath string, output []byte) error {
-	bo.logger.Debug(ctx, "Processing tracking branches", map[string]interface{}{
+	bo.logger.Debug(ctx, "Processing tracking branches", map[string]any{
 		"target_path": targetPath,
 		"output_size": len(output),
 	})
@@ -111,21 +105,21 @@ func (bo *BranchOperations) ProcessTrackingBranches(ctx context.Context, targetP
 		if err != nil {
 			// Check if branch already exists (this is expected behavior)
 			if strings.Contains(err.Error(), "already exists") {
-				bo.logger.Debug(ctx, "Tracking branch already exists", map[string]interface{}{
+				bo.logger.Debug(ctx, "Tracking branch already exists", map[string]any{
 					"branch":       branch,
 					"local_branch": localBranch,
 				})
 
 				skippedCount++
 			} else {
-				bo.logger.Warn(ctx, "Could not create tracking branch", map[string]interface{}{
+				bo.logger.Warn(ctx, "Could not create tracking branch", map[string]any{
 					"branch":       branch,
 					"local_branch": localBranch,
 					"error":        err.Error(),
 				})
 			}
 		} else {
-			bo.logger.Debug(ctx, "Created tracking branch", map[string]interface{}{
+			bo.logger.Debug(ctx, "Created tracking branch", map[string]any{
 				"branch":       branch,
 				"local_branch": localBranch,
 			})
@@ -134,7 +128,7 @@ func (bo *BranchOperations) ProcessTrackingBranches(ctx context.Context, targetP
 		}
 	}
 
-	bo.logger.Info(ctx, "Tracking branch creation completed", map[string]interface{}{
+	bo.logger.Info(ctx, "Tracking branch creation completed", map[string]any{
 		"total_branches":   len(remoteBranches),
 		"created_branches": createdCount,
 		"skipped_branches": skippedCount,
@@ -145,7 +139,7 @@ func (bo *BranchOperations) ProcessTrackingBranches(ctx context.Context, targetP
 
 // ListRemoteBranches returns a list of all remote branches.
 func (bo *BranchOperations) ListRemoteBranches(ctx context.Context, targetPath string) ([]string, error) {
-	bo.logger.Debug(ctx, "Listing remote branches", map[string]interface{}{
+	bo.logger.Debug(ctx, "Listing remote branches", map[string]any{
 		"target_path": targetPath,
 	})
 
@@ -174,7 +168,7 @@ func (bo *BranchOperations) ListRemoteBranches(ctx context.Context, targetPath s
 
 // ListLocalBranches returns a list of all local branches.
 func (bo *BranchOperations) ListLocalBranches(ctx context.Context, targetPath string) ([]string, error) {
-	bo.logger.Debug(ctx, "Listing local branches", map[string]interface{}{
+	bo.logger.Debug(ctx, "Listing local branches", map[string]any{
 		"target_path": targetPath,
 	})
 
@@ -201,7 +195,7 @@ func (bo *BranchOperations) ListLocalBranches(ctx context.Context, targetPath st
 
 // GetCurrentBranch returns the currently checked out branch.
 func (bo *BranchOperations) GetCurrentBranch(ctx context.Context, targetPath string) (string, error) {
-	bo.logger.Debug(ctx, "Getting current branch", map[string]interface{}{
+	bo.logger.Debug(ctx, "Getting current branch", map[string]any{
 		"target_path": targetPath,
 	})
 
@@ -212,7 +206,7 @@ func (bo *BranchOperations) GetCurrentBranch(ctx context.Context, targetPath str
 
 	currentBranch := strings.TrimSpace(string(output))
 
-	bo.logger.Debug(ctx, "Current branch identified", map[string]interface{}{
+	bo.logger.Debug(ctx, "Current branch identified", map[string]any{
 		"current_branch": currentBranch,
 	})
 
@@ -221,7 +215,7 @@ func (bo *BranchOperations) GetCurrentBranch(ctx context.Context, targetPath str
 
 // CreateBranch creates a new local branch.
 func (bo *BranchOperations) CreateBranch(ctx context.Context, targetPath, branchName, startPoint string) error {
-	bo.logger.Debug(ctx, "Creating new branch", map[string]interface{}{
+	bo.logger.Debug(ctx, "Creating new branch", map[string]any{
 		"target_path": targetPath,
 		"branch_name": branchName,
 		"start_point": startPoint,
@@ -237,7 +231,7 @@ func (bo *BranchOperations) CreateBranch(ctx context.Context, targetPath, branch
 		return fmt.Errorf("failed to create branch %s: %w", branchName, err)
 	}
 
-	bo.logger.Info(ctx, "Branch created successfully", map[string]interface{}{
+	bo.logger.Info(ctx, "Branch created successfully", map[string]any{
 		"branch_name": branchName,
 		"start_point": startPoint,
 	})
@@ -247,7 +241,7 @@ func (bo *BranchOperations) CreateBranch(ctx context.Context, targetPath, branch
 
 // CheckoutBranch switches to the specified branch.
 func (bo *BranchOperations) CheckoutBranch(ctx context.Context, targetPath, branchName string) error {
-	bo.logger.Debug(ctx, "Checking out branch", map[string]interface{}{
+	bo.logger.Debug(ctx, "Checking out branch", map[string]any{
 		"target_path": targetPath,
 		"branch_name": branchName,
 	})
@@ -257,7 +251,7 @@ func (bo *BranchOperations) CheckoutBranch(ctx context.Context, targetPath, bran
 		return fmt.Errorf("failed to checkout branch %s: %w", branchName, err)
 	}
 
-	bo.logger.Info(ctx, "Branch checked out successfully", map[string]interface{}{
+	bo.logger.Info(ctx, "Branch checked out successfully", map[string]any{
 		"branch_name": branchName,
 	})
 

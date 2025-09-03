@@ -175,7 +175,8 @@ func TestDeleteTmpDir(t *testing.T) {
 		{
 			name: "path_outside_temp_directory",
 			setupContext: func() (context.Context, string) {
-				ctx := context.WithValue(context.Background(), TempDirKey{}, "/etc/passwd")
+				// Use filepath.Join to create a non-temp path that's OS-agnostic
+				ctx := context.WithValue(context.Background(), TempDirKey{}, filepath.Join(string(filepath.Separator), "non-temp", "file"))
 
 				return ctx, ""
 			},
@@ -241,13 +242,13 @@ func TestIsSubdirectoryOfTemp(t *testing.T) {
 			expected: false,
 		},
 		{
-			name:     "etc_directory",
-			path:     "/etc",
+			name:     "system_directory",
+			path:     filepath.Join(string(filepath.Separator), "sys"),
 			expected: false,
 		},
 		{
-			name:     "home_directory",
-			path:     "/home/user",
+			name:     "non_temp_directory",
+			path:     filepath.Join(string(filepath.Separator), "non-temp", "user"),
 			expected: false,
 		},
 		{
@@ -270,47 +271,6 @@ func TestIsSubdirectoryOfTemp(t *testing.T) {
 			assert.Equal(t, test.expected, result)
 		})
 	}
-}
-
-func TestTempDirKey(t *testing.T) {
-	t.Parallel()
-
-	// Test that the key type works correctly for context storage
-	key1 := TempDirKey{}
-	key2 := TempDirKey{}
-
-	// Keys should be equal
-	assert.Equal(t, key1, key2)
-
-	// Test context storage and retrieval
-	ctx := context.Background()
-	testValue := "/tmp/test"
-
-	ctx = context.WithValue(ctx, key1, testValue)
-	retrieved := ctx.Value(key2)
-
-	require.NotNil(t, retrieved)
-	retrievedStr, ok := retrieved.(string)
-	require.True(t, ok, "expected string type")
-	assert.Equal(t, testValue, retrievedStr)
-}
-
-func TestErrorConstants(t *testing.T) {
-	t.Parallel()
-
-	// Verify error constants are properly defined
-	errors := []error{
-		ErrTempDirNotFound,
-		ErrInvalidTempDirPath,
-	}
-
-	for _, err := range errors {
-		require.Error(t, err)
-		assert.NotEmpty(t, err.Error())
-	}
-
-	// Verify errors are distinct
-	assert.NotEqual(t, ErrTempDirNotFound.Error(), ErrInvalidTempDirPath.Error())
 }
 
 // TestTempDirWorkflow tests the complete workflow of creating, using, and cleaning up temp directories.

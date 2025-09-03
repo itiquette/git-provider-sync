@@ -36,7 +36,7 @@ type Config struct {
 	UserAgent  string
 }
 
-// New constructs GitHub adapter with optional token authentication.
+// New creates a GitHub adapter with optional token authentication.
 func New(ctx context.Context, token string) *Adapter {
 	var client *github.Client
 
@@ -51,7 +51,7 @@ func New(ctx context.Context, token string) *Adapter {
 	return &Adapter{client: client}
 }
 
-// NewWithConfig constructs GitHub adapter with comprehensive configuration including custom endpoints.
+// NewWithConfig creates a GitHub adapter with custom configuration and endpoints.
 func NewWithConfig(ctx context.Context, config Config) *Adapter {
 	var client *github.Client
 
@@ -87,7 +87,7 @@ func NewWithConfig(ctx context.Context, config Config) *Adapter {
 	return &Adapter{client: client}
 }
 
-// ListRepositories retrieves paginated repository collection for specified owner with metadata conversion.
+// ListRepositories fetches all repositories for the specified owner.
 func (a *Adapter) ListRepositories(ctx context.Context, config ports.ProviderConfig) ([]entities.Repository, error) {
 	opts := &github.RepositoryListByUserOptions{
 		Type:        "all",
@@ -277,7 +277,7 @@ func (a *Adapter) TransformRepositoryName(name string, options ports.NameTransfo
 	return result
 }
 
-// GetBranchProtection gets branch protection settings.
+// GetBranchProtection retrieves protection rules for the specified branch. Returns empty protection if branch is unprotected.
 func (a *Adapter) GetBranchProtection(ctx context.Context, config ports.ProviderConfig, repoName, branch string) (ports.BranchProtection, error) {
 	protection, _, err := a.client.Repositories.GetBranchProtection(ctx, config.Owner, repoName, branch)
 	if err != nil {
@@ -287,7 +287,7 @@ func (a *Adapter) GetBranchProtection(ctx context.Context, config ports.Provider
 	return a.convertBranchProtection(protection), nil
 }
 
-// SetBranchProtection sets branch protection settings.
+// SetBranchProtection applies protection rules to the specified branch.
 func (a *Adapter) SetBranchProtection(ctx context.Context, config ports.ProviderConfig, repoName, branch string, protection ports.BranchProtection) error {
 	req := a.convertToGitHubProtection(protection)
 
@@ -299,7 +299,7 @@ func (a *Adapter) SetBranchProtection(ctx context.Context, config ports.Provider
 	return nil
 }
 
-// RemoveBranchProtection removes branch protection.
+// RemoveBranchProtection disables all protection rules for the specified branch.
 func (a *Adapter) RemoveBranchProtection(ctx context.Context, config ports.ProviderConfig, repoName, branch string) error {
 	_, err := a.client.Repositories.RemoveBranchProtection(ctx, config.Owner, repoName, branch)
 	if err != nil {
@@ -309,7 +309,7 @@ func (a *Adapter) RemoveBranchProtection(ctx context.Context, config ports.Provi
 	return nil
 }
 
-// ListProtectedBranches lists protected branches.
+// ListProtectedBranches returns all branches with protection enabled.
 func (a *Adapter) ListProtectedBranches(ctx context.Context, config ports.ProviderConfig, repoName string) ([]string, error) {
 	branches, _, err := a.client.Repositories.ListBranches(ctx, config.Owner, repoName, &github.BranchListOptions{
 		Protected: github.Ptr(true),
@@ -432,7 +432,7 @@ func (a *Adapter) Protect(ctx context.Context, owner string, defaultBranch strin
 		return fmt.Errorf("invalid project ID: %w", err)
 	}
 
-	// Get repository name from ID (GitHub API limitation)
+	// GitHub API limitation: must fetch name from ID
 	repo, _, err := a.client.Repositories.GetByID(ctx, projectID)
 	if err != nil {
 		return fmt.Errorf("failed to get repository by ID: %w", err)
@@ -466,7 +466,7 @@ func (a *Adapter) Unprotect(ctx context.Context, defaultBranch string, projectID
 		return fmt.Errorf("invalid project ID: %w", err)
 	}
 
-	// Get repository name from ID (GitHub API limitation)
+	// GitHub API limitation: must fetch name from ID
 	repo, _, err := a.client.Repositories.GetByID(ctx, projectID)
 	if err != nil {
 		return fmt.Errorf("failed to get repository by ID: %w", err)
@@ -488,7 +488,7 @@ func (a *Adapter) Unprotect(ctx context.Context, defaultBranch string, projectID
 	return nil
 }
 
-// SetDefaultBranch sets the default branch for a repository.
+// SetDefaultBranch changes the repository's default branch. The branch must already exist.
 func (a *Adapter) SetDefaultBranch(ctx context.Context, owner, name, branch string) error {
 	repo := &github.Repository{
 		DefaultBranch: github.Ptr(branch),

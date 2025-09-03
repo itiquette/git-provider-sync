@@ -2,7 +2,6 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-// Package synccmd provides sync command implementation with hexagonal architecture.
 package synccmd
 
 import (
@@ -27,7 +26,7 @@ import (
 	gpsconfig "itiquette/git-provider-sync/internal/model/configuration"
 )
 
-// performSync executes the core sync functionality by orchestrating domain use cases.
+// performSync executes the sync operation using domain use cases.
 func performSync(ctx context.Context, cfg *gpsconfig.AppConfiguration) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Starting sync")
@@ -125,9 +124,9 @@ func createContainerWithConfig(ctx context.Context, _ *gpsconfig.AppConfiguratio
 }
 
 // executeSyncConfigurationWithResults executes sync for a single source-to-mirrors configuration.
-// Implements the sourceToMirror workflow: fetch from source provider, then sync to all configured mirrors.
+// executeSyncConfigurationWithResults fetches from source provider and syncs to all configured mirrors.
 //
-//nolint:cyclop,nestif // Complexity is necessary for sync orchestration
+//nolint:cyclop,nestif // Multiple validation and error paths required
 func executeSyncConfigurationWithResults(
 	ctx context.Context,
 	container *composition.Container,
@@ -143,7 +142,6 @@ func executeSyncConfigurationWithResults(
 		Str("owner", syncCfg.Owner).
 		Msg("Executing sync configuration")
 
-	// Get symbols for progress indicators
 	// Default to auto mode - honors NO_COLOR environment variable
 	symbols := cli.GetSymbols(terminal.ColorAuto)
 
@@ -362,7 +360,10 @@ func syncToMirrorWithGitReposAndResults(
 	// Create archive operations adapter
 	archiveOps := archive.NewOperations(loggerAdapter, os.TempDir(), mirrorCfg.Path)
 
-	syncUseCase := sync.NewToMirrorsUseCase(targetProvider, gitOperations, archiveOps, loggerAdapter)
+	// Get file system from container
+	fileSystem := container.FileSystem()
+
+	syncUseCase := sync.NewToMirrorsUseCase(targetProvider, gitOperations, archiveOps, fileSystem, loggerAdapter)
 
 	// Get CLI configuration for sync options
 	cliConfig, ok := cli.ConfigFromContext(ctx)

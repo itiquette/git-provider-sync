@@ -7,6 +7,7 @@ package entities
 import (
 	"errors"
 	"fmt"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -23,7 +24,6 @@ var (
 )
 
 // SyncOperation represents a complete synchronization operation between source and targets.
-// This is an immutable value object that encapsulates sync logic and validation.
 type SyncOperation struct {
 	sourceConfig  SourceConfig
 	mirrorConfigs []MirrorConfig
@@ -71,7 +71,7 @@ type SyncResult struct {
 	// Currently unused - placeholder for future sync result tracking
 }
 
-// SyncOperationBuilder provides a functional approach to building sync operations.
+// SyncOperationBuilder builds sync operations.
 type SyncOperationBuilder struct {
 	operation SyncOperation
 }
@@ -480,18 +480,12 @@ func (mc MirrorConfig) WithGitBinary(use bool) MirrorConfig {
 
 // matchesPattern checks if a name matches a glob-like pattern.
 func matchesPattern(name, pattern string) bool {
-	// Simple glob matching - can be enhanced with proper glob library
-	if pattern == "*" {
-		return true
+	// Use standard library glob matching for consistency
+	matched, err := filepath.Match(pattern, name)
+	if err != nil {
+		// Invalid pattern, treat as literal string comparison
+		return name == pattern
 	}
 
-	if strings.Contains(pattern, "*") {
-		// Basic wildcard matching
-		parts := strings.Split(pattern, "*")
-		if len(parts) == 2 {
-			return strings.HasPrefix(name, parts[0]) && strings.HasSuffix(name, parts[1])
-		}
-	}
-
-	return strings.Contains(strings.ToLower(name), strings.ToLower(pattern))
+	return matched
 }

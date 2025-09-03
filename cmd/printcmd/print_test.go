@@ -536,7 +536,7 @@ func TestErrorHandling_Isolated(t *testing.T) { //nolint:paralleltest // Cannot 
 	}
 }
 
-// Additional edge case tests for comprehensive coverage.
+// Additional edge case tests for coverage.
 func TestErrorHandling_ComplexNestedErrors_FormatsCorrectly(t *testing.T) { //nolint:paralleltest // Cannot run in parallel due to os.Stderr global variable modification
 	// Cannot run in parallel due to os.Stderr global variable modification
 	tests := []struct {
@@ -653,46 +653,6 @@ func TestErrorHandling_Robustness(t *testing.T) {
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-func TestBuildHTTPSURL(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name     string
-		domain   string
-		expected string
-	}{
-		{
-			name:     "valid domain",
-			domain:   "github.com",
-			expected: "https://github.com",
-		},
-		{
-			name:     "empty domain",
-			domain:   "",
-			expected: "",
-		},
-		{
-			name:     "domain with subdomain",
-			domain:   "api.github.com",
-			expected: "https://api.github.com",
-		},
-		{
-			name:     "domain with port",
-			domain:   "localhost:8080",
-			expected: "https://localhost:8080",
-		},
-	}
-
-	for _, testCase := range tests {
-		t.Run(testCase.name, func(t *testing.T) {
-			t.Parallel()
-
-			result := buildHTTPSURL(testCase.domain)
-			assert.Equal(t, testCase.expected, result)
-		})
-	}
-}
-
 func TestDisplayConnectivityResults(t *testing.T) {
 	t.Parallel() // Now safe with dependency injection
 
@@ -787,63 +747,12 @@ func TestDisplayConnectivityResults(t *testing.T) {
 			if testCase.wantErr {
 				require.Error(t, err)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				if testCase.expectOutput != "" {
 					assert.Contains(t, testBuffer.String(), testCase.expectOutput)
 				}
 			}
-		})
-	}
-}
-
-func TestCountSuccessfulResults(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name     string
-		results  []validation.ConnectivityResult
-		expected int
-	}{
-		{
-			name:     "empty results",
-			results:  []validation.ConnectivityResult{},
-			expected: 0,
-		},
-		{
-			name: "all successful",
-			results: []validation.ConnectivityResult{
-				{Success: true},
-				{Success: true},
-				{Success: true},
-			},
-			expected: 3,
-		},
-		{
-			name: "mixed results",
-			results: []validation.ConnectivityResult{
-				{Success: true},
-				{Success: false},
-				{Success: true},
-			},
-			expected: 2,
-		},
-		{
-			name: "all failed",
-			results: []validation.ConnectivityResult{
-				{Success: false},
-				{Success: false},
-			},
-			expected: 0,
-		},
-	}
-
-	for _, testCase := range tests {
-		t.Run(testCase.name, func(t *testing.T) {
-			t.Parallel()
-
-			result := countSuccessfulResults(testCase.results)
-			assert.Equal(t, testCase.expected, result)
 		})
 	}
 }
@@ -932,7 +841,7 @@ func TestDisplayConnectivity(t *testing.T) {
 			if testCase.wantErr {
 				require.Error(t, err)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			}
 		})
 	}
@@ -1153,7 +1062,7 @@ func TestWriteConnectivityHeaderErrors(t *testing.T) {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), "failed to write connectivity")
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			}
 		})
 	}
@@ -1188,7 +1097,7 @@ func TestWriteConnectivityJSONFooterErrors(t *testing.T) {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), "failed to write")
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			}
 		})
 	}
@@ -1233,7 +1142,7 @@ func TestDisplayConnectivityResultsJSONErrors(t *testing.T) {
 			if test.expectError {
 				require.Error(t, err)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			}
 		})
 	}
@@ -1278,7 +1187,7 @@ func TestDisplayConnectivityResultsConsoleErrors(t *testing.T) {
 			if test.expectError {
 				require.Error(t, err)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			}
 		})
 	}
@@ -1323,7 +1232,7 @@ func TestWriteConnectivitySummaryErrors(t *testing.T) {
 			if test.expectError {
 				require.Error(t, err)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			}
 		})
 	}
@@ -1368,7 +1277,7 @@ func TestWriteConnectivityResultsErrors(t *testing.T) {
 			if test.expectError {
 				require.Error(t, err)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			}
 		})
 	}

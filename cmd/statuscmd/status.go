@@ -388,7 +388,7 @@ func formatStatusPlain(status SystemStatus, _ /* skipSuggestions */ bool) string
 // formatStatusJSON creates JSON output for programmatic use.
 func formatStatusJSON(status SystemStatus) string {
 	// Create a simplified JSON structure
-	statusMap := map[string]interface{}{
+	statusMap := map[string]any{
 		"overall_success":      !status.HasCriticalIssues,
 		"configuration_valid":  status.ConfigurationValid,
 		"environment_count":    status.EnvironmentCount,
@@ -411,7 +411,7 @@ func formatStatusJSON(status SystemStatus) string {
 }
 
 // formatJSONOutput creates basic JSON output without external dependencies.
-func formatJSONOutput(data map[string]interface{}) string {
+func formatJSONOutput(data map[string]any) string {
 	output := "{\n"
 
 	for key, value := range data {
@@ -426,7 +426,7 @@ func formatJSONOutput(data map[string]interface{}) string {
 }
 
 // formatJSONValue formats a single JSON key-value pair with proper indentation.
-func formatJSONValue(key string, value interface{}, indent string) string {
+func formatJSONValue(key string, value any, indent string) string {
 	baseIndent := "  " + indent
 
 	switch typedValue := value.(type) {
@@ -440,7 +440,7 @@ func formatJSONValue(key string, value interface{}, indent string) string {
 		return fmt.Sprintf("%s\"%s\": %v,\n", baseIndent, key, typedValue)
 	case []string:
 		return formatJSONStringArray(key, typedValue, baseIndent)
-	case map[string]interface{}:
+	case map[string]any:
 		return formatJSONObject(key, typedValue, baseIndent)
 	default:
 		return ""
@@ -465,7 +465,7 @@ func formatJSONStringArray(key string, values []string, indent string) string {
 }
 
 // formatJSONObject formats a nested object as JSON.
-func formatJSONObject(key string, objValue map[string]interface{}, indent string) string {
+func formatJSONObject(key string, objValue map[string]any, indent string) string {
 	output := fmt.Sprintf("%s\"%s\": {\n", indent, key)
 
 	for subKey, subValue := range objValue {
@@ -480,7 +480,7 @@ func formatJSONObject(key string, objValue map[string]interface{}, indent string
 }
 
 // formatJSONObjectValue formats a value within a nested object.
-func formatJSONObjectValue(key string, value interface{}, indent string) string {
+func formatJSONObjectValue(key string, value any, indent string) string {
 	switch typedValue := value.(type) {
 	case string:
 		return fmt.Sprintf("%s\"%s\": \"%s\",\n", indent, key, typedValue)
@@ -527,7 +527,7 @@ func handleStatusError(err error, outputFormat string) {
 }
 
 // getLastSyncInfoFromPath reads simple last sync info from a specific file path.
-// This function is testable with custom file paths.
+// Testable with custom file paths.
 func getLastSyncInfoFromPath(filePath string) string {
 	content, err := os.ReadFile(filePath) //nolint:gosec // File path is controlled and validated
 	if err != nil {

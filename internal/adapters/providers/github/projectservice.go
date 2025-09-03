@@ -19,9 +19,7 @@ import (
 	"itiquette/git-provider-sync/internal/domain/validation"
 )
 
-// ProjectService provides GitHub-specific project operations with all advanced features.
-//
-//	sophisticated project service functionality  completely.
+// ProjectService for GitHub-specific project operations.
 type ProjectService struct {
 	client            *github.Client
 	logger            ports.Logger
@@ -29,7 +27,7 @@ type ProjectService struct {
 	protectionService *ProtectionService
 }
 
-// NewProjectService creates a new GitHub project service with advanced capabilities.
+// NewProjectService creates a new GitHub project service.
 func NewProjectService(client *github.Client, logger ports.Logger) *ProjectService {
 	return &ProjectService{
 		client:            client,
@@ -61,9 +59,9 @@ type TemplateRepository struct {
 	IncludeAllBranches bool
 }
 
-// CreateProject creates a new GitHub repository with sophisticated options.
+// CreateProject creates a new GitHub repository with options.
 func (ps *ProjectService) CreateProject(ctx context.Context, request CreateProjectRequest) (*entities.Repository, error) {
-	ps.logger.Debug(ctx, "Creating GitHub project", map[string]interface{}{
+	ps.logger.Debug(ctx, "Creating GitHub project", map[string]any{
 		"owner":      request.Owner,
 		"name":       request.Name,
 		"visibility": request.Visibility,
@@ -91,7 +89,7 @@ func (ps *ProjectService) CreateProject(ctx context.Context, request CreateProje
 		return nil, fmt.Errorf("failed to convert created repository: %w", err)
 	}
 
-	ps.logger.Info(ctx, "GitHub project created successfully", map[string]interface{}{
+	ps.logger.Info(ctx, "GitHub project created successfully", map[string]any{
 		"owner": request.Owner,
 		"name":  request.Name,
 		"url":   repository.HTTPSURL(),
@@ -102,7 +100,7 @@ func (ps *ProjectService) CreateProject(ctx context.Context, request CreateProje
 
 // UpdateProject updates an existing GitHub repository.
 func (ps *ProjectService) UpdateProject(ctx context.Context, owner, name string, updates ports.UpdateRepositoryOptions) error {
-	ps.logger.Debug(ctx, "Updating GitHub project", map[string]interface{}{
+	ps.logger.Debug(ctx, "Updating GitHub project", map[string]any{
 		"owner": owner,
 		"name":  name,
 	})
@@ -127,7 +125,7 @@ func (ps *ProjectService) UpdateProject(ctx context.Context, owner, name string,
 		return fmt.Errorf("failed to update GitHub project %s/%s: %w", owner, name, err)
 	}
 
-	ps.logger.Info(ctx, "GitHub project updated successfully", map[string]interface{}{
+	ps.logger.Info(ctx, "GitHub project updated successfully", map[string]any{
 		"owner": owner,
 		"name":  name,
 	})
@@ -157,9 +155,9 @@ func (ps *ProjectService) IsValidProjectName(name string) bool {
 	return result.Valid
 }
 
-// CreateProjectWithAdvancedOptions creates a project using the sophisticated options builder.
+// CreateProjectWithAdvancedOptions creates a project using the options builder.
 func (ps *ProjectService) CreateProjectWithAdvancedOptions(ctx context.Context, request CreateProjectRequest) (*entities.Repository, error) {
-	ps.logger.Debug(ctx, "Creating GitHub project with advanced options", map[string]interface{}{
+	ps.logger.Debug(ctx, "Creating GitHub project", map[string]any{
 		"owner":      request.Owner,
 		"name":       request.Name,
 		"visibility": request.Visibility,
@@ -167,7 +165,7 @@ func (ps *ProjectService) CreateProjectWithAdvancedOptions(ctx context.Context, 
 		"disabled":   request.DisableFeatures,
 	})
 
-	// Use the sophisticated options builder
+	// Use the options builder
 	ps.optBuilder.Reset()
 	ps.optBuilder.BasicOpts(request.Visibility, request.Name, request.Description, request.DefaultBranch)
 
@@ -177,7 +175,7 @@ func (ps *ProjectService) CreateProjectWithAdvancedOptions(ctx context.Context, 
 		ps.optBuilder.EnableAllFeatures()
 	}
 
-	// Set additional sophisticated options
+	// Set additional options
 	ps.optBuilder.SetAutoInit(request.AutoInit)
 	ps.optBuilder.SetGitIgnoreTemplate(request.GitIgnore)
 	ps.optBuilder.SetLicenseTemplate(request.License)
@@ -197,7 +195,7 @@ func (ps *ProjectService) CreateProjectWithAdvancedOptions(ctx context.Context, 
 		return nil, fmt.Errorf("failed to create GitHub project %s: %w", request.Name, err)
 	}
 
-	ps.logger.Debug(ctx, "GitHub project created successfully", map[string]interface{}{
+	ps.logger.Debug(ctx, "GitHub project created successfully", map[string]any{
 		"owner":     request.Owner,
 		"name":      request.Name,
 		"full_name": *createdRepo.FullName,
@@ -209,7 +207,7 @@ func (ps *ProjectService) CreateProjectWithAdvancedOptions(ctx context.Context, 
 		return nil, fmt.Errorf("failed to convert created repository: %w", err)
 	}
 
-	ps.logger.Info(ctx, "GitHub project created successfully", map[string]interface{}{
+	ps.logger.Info(ctx, "GitHub project created successfully", map[string]any{
 		"owner": request.Owner,
 		"name":  request.Name,
 		"url":   repository.HTTPSURL(),
@@ -220,7 +218,7 @@ func (ps *ProjectService) CreateProjectWithAdvancedOptions(ctx context.Context, 
 
 // ExistsProject checks if a project exists and returns its information.
 func (ps *ProjectService) ExistsProject(ctx context.Context, owner, name string) (bool, string, error) {
-	ps.logger.Debug(ctx, "Checking if GitHub project exists", map[string]interface{}{
+	ps.logger.Debug(ctx, "Checking if GitHub project exists", map[string]any{
 		"owner": owner,
 		"name":  name,
 	})
@@ -288,9 +286,9 @@ func (ps *ProjectService) TransformProjectName(name string, options ports.NameTr
 	return result
 }
 
-// GetProjectInfos retrieves repository metadata with sophisticated filtering and pagination.
+// GetProjectInfos retrieves repository metadata with filtering and pagination.
 func (ps *ProjectService) GetProjectInfos(ctx context.Context, owner string, isOrganization bool, includeForks bool) ([]*entities.Repository, error) {
-	ps.logger.Debug(ctx, "Fetching GitHub project infos", map[string]interface{}{
+	ps.logger.Debug(ctx, "Fetching GitHub project infos", map[string]any{
 		"owner":          owner,
 		"isOrganization": isOrganization,
 		"includeForks":   includeForks,
@@ -301,13 +299,13 @@ func (ps *ProjectService) GetProjectInfos(ctx context.Context, owner string, isO
 		return nil, err
 	}
 
-	ps.logger.Debug(ctx, "Total fetched repositories", map[string]interface{}{
+	ps.logger.Debug(ctx, "Total fetched repositories", map[string]any{
 		"totalRepositories": len(allRepos),
 	})
 
 	repositories := ps.convertAndFilterRepositories(ctx, allRepos, includeForks)
 
-	ps.logger.Info(ctx, "Successfully fetched GitHub project infos", map[string]interface{}{
+	ps.logger.Info(ctx, "Successfully fetched GitHub project infos", map[string]any{
 		"owner":             owner,
 		"totalRepositories": len(allRepos),
 		"filteredCount":     len(repositories),
@@ -319,7 +317,7 @@ func (ps *ProjectService) GetProjectInfos(ctx context.Context, owner string, isO
 
 // GetProjectInfo retrieves detailed metadata for a single repository.
 func (ps *ProjectService) GetProjectInfo(ctx context.Context, owner, name string) (*entities.Repository, error) {
-	ps.logger.Debug(ctx, "Fetching GitHub project info", map[string]interface{}{
+	ps.logger.Debug(ctx, "Fetching GitHub project info", map[string]any{
 		"owner": owner,
 		"name":  name,
 	})
@@ -334,7 +332,7 @@ func (ps *ProjectService) GetProjectInfo(ctx context.Context, owner, name string
 		return nil, fmt.Errorf("failed to convert repository to entity: %w", err)
 	}
 
-	ps.logger.Debug(ctx, "Successfully fetched GitHub project info", map[string]interface{}{
+	ps.logger.Debug(ctx, "Successfully fetched GitHub project info", map[string]any{
 		"owner":      owner,
 		"name":       name,
 		"visibility": entity.Visibility(),
@@ -345,7 +343,7 @@ func (ps *ProjectService) GetProjectInfo(ctx context.Context, owner, name string
 
 // RepositoryExists checks if a repository exists and returns metadata.
 func (ps *ProjectService) RepositoryExists(ctx context.Context, owner, repo string) (bool, string, error) {
-	ps.logger.Debug(ctx, "Checking GitHub repository existence", map[string]interface{}{
+	ps.logger.Debug(ctx, "Checking GitHub repository existence", map[string]any{
 		"owner": owner,
 		"repo":  repo,
 	})
@@ -361,7 +359,7 @@ func (ps *ProjectService) RepositoryExists(ctx context.Context, owner, repo stri
 
 	projectID := getValueOrEmpty(project.FullName)
 
-	ps.logger.Debug(ctx, "GitHub repository exists", map[string]interface{}{
+	ps.logger.Debug(ctx, "GitHub repository exists", map[string]any{
 		"owner":     owner,
 		"repo":      repo,
 		"projectID": projectID,
@@ -372,7 +370,7 @@ func (ps *ProjectService) RepositoryExists(ctx context.Context, owner, repo stri
 
 // SetDefaultBranch sets the default branch for a repository.
 func (ps *ProjectService) SetDefaultBranch(ctx context.Context, owner string, projectName string, branch string) error {
-	ps.logger.Debug(ctx, "Setting GitHub default branch", map[string]interface{}{
+	ps.logger.Debug(ctx, "Setting GitHub default branch", map[string]any{
 		"owner":       owner,
 		"projectName": projectName,
 		"branch":      branch,
@@ -385,7 +383,7 @@ func (ps *ProjectService) SetDefaultBranch(ctx context.Context, owner string, pr
 		return fmt.Errorf("failed to set default branch. err: %w", err)
 	}
 
-	ps.logger.Info(ctx, "GitHub default branch set successfully", map[string]interface{}{
+	ps.logger.Info(ctx, "GitHub default branch set successfully", map[string]any{
 		"owner":       owner,
 		"projectName": projectName,
 		"branch":      branch,
@@ -607,7 +605,7 @@ func (ps *ProjectService) convertAndFilterRepositories(ctx context.Context, allR
 
 		entity, err := ps.convertGitHubRepoToEntity(repo)
 		if err != nil {
-			ps.logger.Warn(ctx, "Failed to convert repository", map[string]interface{}{
+			ps.logger.Warn(ctx, "Failed to convert repository", map[string]any{
 				"repo":  repo.GetName(),
 				"error": err.Error(),
 			})
@@ -718,8 +716,8 @@ func (ps *ProjectService) setEntityFlags(repo *github.Repository, builder *entit
 	}
 }
 
-// getValueOrEmpty is a helper function that returns the value of a string pointer if it's not nil,
-// or "N/A" otherwise.  main branch helper functionality.
+// getValueOrEmpty returns the value of a string pointer if it's not nil,
+// or "N/A" otherwise.
 func getValueOrEmpty(s *string) string {
 	if s != nil {
 		return *s

@@ -80,9 +80,8 @@ func TestValidateGitBinary_LongTimeout(t *testing.T) {
 
 	// Test with a longer timeout to actually find git if available
 	ctx := context.Background()
-	path, err := ValidateGitBinary(ctx)
 
-	// This test verifies the function executes correctly regardless of outcome
+	path, err := ValidateGitBinary(ctx)
 	if err != nil {
 		assert.Equal(t, ErrGitBinaryNotFound, err)
 		assert.Empty(t, path)

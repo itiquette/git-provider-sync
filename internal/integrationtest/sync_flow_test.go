@@ -15,11 +15,11 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"itiquette/git-provider-sync/internal/adapters/repository/gogit"
-	"itiquette/git-provider-sync/internal/integrationtest/testutil"
 	"itiquette/git-provider-sync/internal/domain"
 	"itiquette/git-provider-sync/internal/domain/entities"
 	"itiquette/git-provider-sync/internal/domain/ports"
 	"itiquette/git-provider-sync/internal/domain/sync"
+	"itiquette/git-provider-sync/internal/integrationtest/testutil"
 )
 
 // TestCriticalGitHubToGitLabSyncFlow tests the critical GitHub → GitLab sync flow
@@ -56,10 +56,10 @@ func TestCriticalGitHubToGitLabSyncFlow(t *testing.T) {
 			TargetRepoName:  "gitlab-repo",
 			WorkingRepoName: "sync-workspace",
 			InitialFiles: map[string]string{
-				"README.md":      "# Test Repository\nOriginal GitHub content for sync test",
-				"src/main.go":    "package main\n\nfunc main() {\n\tprintln(\"Hello from GitHub!\")",
-				".gitignore":     "*.log\n*.tmp\n",
-				"docs/API.md":    "# API Documentation\n\nEndpoints...",
+				"README.md":   "# Test Repository\nOriginal GitHub content for sync test",
+				"src/main.go": "package main\n\nfunc main() {\n\tprintln(\"Hello from GitHub!\")",
+				".gitignore":  "*.log\n*.tmp\n",
+				"docs/API.md": "# API Documentation\n\nEndpoints...",
 			},
 			AddRemotes: map[string]string{
 				"origin": "", // Will be set to GitHub (source) URL
@@ -161,7 +161,7 @@ func TestCriticalGitHubToGitLabSyncFlow(t *testing.T) {
 		t.Logf("✅ CRITICAL FIX VERIFIED: Remote successfully updated!")
 		t.Logf("   GitHub (source): %s", gpsUpstreamRemote.URL)
 		t.Logf("   GitLab (target): %s", originRemote.URL)
-		t.Logf("   This test validates the UpdateRemote fix that resolves empty GitLab repositories")
+		t.Logf("   Validates the UpdateRemote fix that resolves empty GitLab repositories")
 
 		// Step 8: Verify all mock expectations were met
 		mockProvider.AssertExpectations(t)
@@ -238,8 +238,8 @@ func TestRemoteURLUpdateFailure(t *testing.T) {
 // Helper functions
 
 // NOTE: createGitHubLikeRepository and createGitHubLikeRepositoryWithContent functions
-// have been replaced by the testutil.GitTestEnvironment utility which provides
-// a more robust and maintainable approach to setting up git test environments.
+// have been replaced by the testutil.GitTestEnvironment utility for
+// setting up git test environments.
 
 // createGitLabMirrorTarget creates a GitLab mirror target configuration
 func createGitLabMirrorTarget() entities.MirrorTarget {
@@ -346,22 +346,22 @@ type TestSyncLogger struct {
 	mock.Mock
 }
 
-func (l *TestSyncLogger) Debug(ctx context.Context, msg string, fields map[string]interface{}) {
+func (l *TestSyncLogger) Debug(ctx context.Context, msg string, fields map[string]any) {
 	l.Called(ctx, msg, fields)
 }
-func (l *TestSyncLogger) Info(ctx context.Context, msg string, fields map[string]interface{}) {
+func (l *TestSyncLogger) Info(ctx context.Context, msg string, fields map[string]any) {
 	l.Called(ctx, msg, fields)
 }
-func (l *TestSyncLogger) Error(ctx context.Context, msg string, fields map[string]interface{}) {
+func (l *TestSyncLogger) Error(ctx context.Context, msg string, fields map[string]any) {
 	l.Called(ctx, msg, fields)
 }
-func (l *TestSyncLogger) Trace(ctx context.Context, msg string, fields map[string]interface{}) {
+func (l *TestSyncLogger) Trace(ctx context.Context, msg string, fields map[string]any) {
 	l.Called(ctx, msg, fields)
 }
-func (l *TestSyncLogger) Warn(ctx context.Context, msg string, fields map[string]interface{}) {
+func (l *TestSyncLogger) Warn(ctx context.Context, msg string, fields map[string]any) {
 	l.Called(ctx, msg, fields)
 }
-func (l *TestSyncLogger) Fatal(ctx context.Context, msg string, fields map[string]interface{}) {
+func (l *TestSyncLogger) Fatal(ctx context.Context, msg string, fields map[string]any) {
 	l.Called(ctx, msg, fields)
 }
 func (l *TestSyncLogger) IsLevelEnabled(level ports.LogLevel) bool {
@@ -483,7 +483,7 @@ func (r *TestSyncGitRepository) Pull(ctx context.Context, options ports.PullOpti
 	return args.Error(0)
 }
 
-// Helper function to create test repository entities
+// Creates test repository entities
 func createTestRepository(name string) entities.Repository {
 	builder := entities.NewRepositoryBuilder()
 	builder, _ = builder.WithName(name)

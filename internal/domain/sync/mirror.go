@@ -8,7 +8,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -18,25 +17,28 @@ import (
 	"itiquette/git-provider-sync/internal/log"
 )
 
-// ToMirrorsUseCase coordinates repository synchronization across multiple mirror destinations.
+// ToMirrorsUseCase syncs repositories to multiple mirror destinations.
 type ToMirrorsUseCase struct {
 	repositoryProvider ports.RepositoryProvider
 	gitOperations      ports.GitOperations
 	archiveOperations  ports.ArchiveOperations
+	fileSystem         ports.FileSystem
 	logger             ports.Logger
 }
 
-// NewToMirrorsUseCase constructs a mirror synchronization coordinator with dependency injection.
+// NewToMirrorsUseCase creates a new ToMirrorsUseCase.
 func NewToMirrorsUseCase(
 	repositoryProvider ports.RepositoryProvider,
 	gitOps ports.GitOperations,
 	archiveOps ports.ArchiveOperations,
+	fileSystem ports.FileSystem,
 	logger ports.Logger,
 ) ToMirrorsUseCase {
 	return ToMirrorsUseCase{
 		repositoryProvider: repositoryProvider,
 		gitOperations:      gitOps,
 		archiveOperations:  archiveOps,
+		fileSystem:         fileSystem,
 		logger:             logger,
 	}
 }
@@ -81,7 +83,7 @@ type MirrorResult struct {
 	Action         string // "created", "updated", "skipped"
 }
 
-// Execute orchestrates repository synchronization across all configured mirror targets.
+// Execute syncs repositories to all configured mirror targets.
 func (uc ToMirrorsUseCase) Execute(
 	ctx context.Context,
 	request ToMirrorsRequest,
@@ -93,7 +95,7 @@ func (uc ToMirrorsUseCase) Execute(
 	var err error
 
 	// TRACE: Use case entry point (hexagonal boundary)
-	logger.Trace(ctx, "ToMirrorsUseCase.Execute entry", map[string]interface{}{
+	logger.Trace(ctx, "ToMirrorsUseCase.Execute entry", map[string]any{
 		"source_repos":   len(request.SourceRepositories),
 		"mirror_targets": len(request.MirrorTargets),
 		"dry_run":        request.DryRun,
@@ -101,7 +103,7 @@ func (uc ToMirrorsUseCase) Execute(
 
 	defer func() {
 		// TRACE: Use case exit point with outcome
-		logger.Trace(ctx, "ToMirrorsUseCase.Execute exit", map[string]interface{}{
+		logger.Trace(ctx, "ToMirrorsUseCase.Execute exit", map[string]any{
 			"success":            response.Success,
 			"total_repositories": response.TotalRepositories,
 			"successful_syncs":   response.SuccessfulSyncs,
@@ -110,7 +112,7 @@ func (uc ToMirrorsUseCase) Execute(
 		})
 	}()
 
-	logger.Info(ctx, "Starting mirror synchronization", map[string]interface{}{
+	logger.Info(ctx, "Starting mirror synchronization", map[string]any{
 		"source_repos":   len(request.SourceRepositories),
 		"mirror_targets": len(request.MirrorTargets),
 		"dry_run":        request.DryRun,
@@ -129,7 +131,7 @@ func (uc ToMirrorsUseCase) Execute(
 	// Process each mirror target
 	for i, mirrorTarget := range request.MirrorTargets {
 		// TRACE: Mirror processing boundary
-		logger.Trace(ctx, "processing mirror target", map[string]interface{}{
+		logger.Trace(ctx, "processing mirror target", map[string]any{
 			"mirror_index":  i + 1,
 			"total_mirrors": len(request.MirrorTargets),
 			"mirror_name":   mirrorTarget.Name(),
@@ -137,14 +139,14 @@ func (uc ToMirrorsUseCase) Execute(
 		})
 
 		if !mirrorTarget.Enabled() {
-			logger.Info(ctx, "Skipping disabled mirror", map[string]interface{}{
+			logger.Info(ctx, "Skipping disabled mirror", map[string]any{
 				"mirror_name": mirrorTarget.Name(),
 			})
 
 			continue
 		}
 
-		logger.Info(ctx, "Processing mirror target", map[string]interface{}{
+		logger.Info(ctx, "Processing mirror target", map[string]any{
 			"mirror_name":   mirrorTarget.Name(),
 			"provider_type": mirrorTarget.ProviderType(),
 			"mirror_owner":  mirrorTarget.Owner(),
@@ -167,7 +169,7 @@ func (uc ToMirrorsUseCase) Execute(
 		}
 	}
 
-	logger.Info(ctx, "Mirror synchronization completed", map[string]interface{}{
+	logger.Info(ctx, "Mirror synchronization completed", map[string]any{
 		"total_operations": len(response.Results),
 		"successful":       response.SuccessfulSyncs,
 		"failed":           response.FailedSyncs,
@@ -179,7 +181,6 @@ func (uc ToMirrorsUseCase) Execute(
 }
 
 // syncRepositoriesToMirror processes repository batch synchronization for a specific mirror target.
-// This implements the processRepository logic.
 func (uc ToMirrorsUseCase) syncRepositoriesToMirror(
 	ctx context.Context,
 	sourceRepos []ports.GitRepository,
@@ -222,13 +223,13 @@ func (uc ToMirrorsUseCase) syncSingleRepositoryToMirror(
 	result := uc.initMirrorResult(repoName, mirrorTarget.Name())
 
 	// TRACE: Per-repository sync entry
-	logger.Trace(ctx, "syncSingleRepositoryToMirror entry", map[string]interface{}{
+	logger.Trace(ctx, "syncSingleRepositoryToMirror entry", map[string]any{
 		"repository":    repoName,
 		"mirror":        mirrorTarget.Name(),
 		"provider_type": mirrorTarget.ProviderType(),
 	})
 
-	logger.Debug(ctx, "Processing repository for mirror", map[string]interface{}{
+	logger.Debug(ctx, "Processing repository for mirror", map[string]any{
 		"repository":    repoName,
 		"mirror":        mirrorTarget.Name(),
 		"provider_type": mirrorTarget.ProviderType(),
@@ -243,7 +244,7 @@ func (uc ToMirrorsUseCase) syncSingleRepositoryToMirror(
 
 	if err := uc.validateRepositoryForMirror(ctx, repoName, mirrorTarget, mirrorProvider); err != nil {
 		if request.Options.IgnoreInvalidNames {
-			uc.logger.Warn(ctx, "Ignoring repository with invalid name", map[string]interface{}{
+			uc.logger.Warn(ctx, "Ignoring repository with invalid name", map[string]any{
 				"repository": repoName,
 				"mirror":     mirrorTarget.Name(),
 				"error":      err.Error(),
@@ -290,7 +291,7 @@ func (uc ToMirrorsUseCase) shouldSkipInvalidRepo(ctx context.Context, repoName, 
 	}
 
 	if ignoreInvalidNames {
-		uc.logger.Warn(ctx, "Repository already marked as invalid, skipping", map[string]interface{}{
+		uc.logger.Warn(ctx, "Repository already marked as invalid, skipping", map[string]any{
 			"repository": repoName,
 			"mirror":     mirrorName,
 		})
@@ -302,7 +303,7 @@ func (uc ToMirrorsUseCase) shouldSkipInvalidRepo(ctx context.Context, repoName, 
 }
 
 func (uc ToMirrorsUseCase) handleDryRun(ctx context.Context, repoName, targetRepoName, mirrorName string) MirrorResult {
-	uc.logger.Info(ctx, "Dry run - would sync repository", map[string]interface{}{
+	uc.logger.Info(ctx, "Dry run - would sync repository", map[string]any{
 		"source_repo": repoName,
 		"target_repo": targetRepoName,
 		"mirror":      mirrorName,
@@ -372,7 +373,7 @@ func (uc ToMirrorsUseCase) validateRepositoryForMirror(
 	mirrorTarget entities.MirrorTarget,
 	mirrorProvider ports.RepositoryProvider,
 ) error {
-	uc.logger.Trace(ctx, "Validating repository for mirror", map[string]interface{}{
+	uc.logger.Trace(ctx, "Validating repository for mirror", map[string]any{
 		"repository": repoName,
 		"mirror":     mirrorTarget.Name(),
 	})
@@ -384,7 +385,7 @@ func (uc ToMirrorsUseCase) validateRepositoryForMirror(
 	if mirrorProvider != nil {
 		if !mirrorProvider.IsValidProjectName(ctx, targetRepoName) {
 			// This matches main branch behavior where invalid names can be ignored
-			uc.logger.Warn(ctx, "Repository name is invalid for target provider", map[string]interface{}{
+			uc.logger.Warn(ctx, "Repository name is invalid for target provider", map[string]any{
 				"repository":  repoName,
 				"target_name": targetRepoName,
 				"provider":    mirrorTarget.ProviderType(),
@@ -401,7 +402,7 @@ func (uc ToMirrorsUseCase) validateRepositoryForMirror(
 		}
 	}
 
-	uc.logger.Debug(ctx, "Repository validation passed", map[string]interface{}{
+	uc.logger.Debug(ctx, "Repository validation passed", map[string]any{
 		"repository":  repoName,
 		"target_name": targetRepoName,
 		"mirror":      mirrorTarget.Name(),
@@ -441,7 +442,7 @@ func (uc ToMirrorsUseCase) syncToDirectory(
 	targetPath string,
 	repoName string,
 ) error {
-	uc.logger.Debug(ctx, "Syncing to directory", map[string]interface{}{
+	uc.logger.Debug(ctx, "Syncing to directory", map[string]any{
 		"repository":  repoName,
 		"target_path": targetPath,
 	})
@@ -465,7 +466,9 @@ func (uc ToMirrorsUseCase) syncToDirectory(
 	}
 
 	// Check if target already exists
-	if _, err := os.Stat(fullTargetPath); err == nil {
+	if exists, err := uc.fileSystem.Exists(fullTargetPath); err != nil {
+		return fmt.Errorf("failed to check if target exists: %w", err)
+	} else if exists {
 		return uc.syncExistingDirectoryRepository(ctx, fullTargetPath, repoName)
 	}
 
@@ -477,13 +480,13 @@ func (uc ToMirrorsUseCase) syncToDirectory(
 
 	defer func() {
 		if closeErr := targetRepo.Close(); closeErr != nil {
-			uc.logger.Warn(ctx, "Failed to close target repository", map[string]interface{}{
+			uc.logger.Warn(ctx, "Failed to close target repository", map[string]any{
 				"error": closeErr.Error(),
 			})
 		}
 	}()
 
-	uc.logger.Info(ctx, "Successfully cloned to new directory mirror", map[string]interface{}{
+	uc.logger.Info(ctx, "Successfully cloned to new directory mirror", map[string]any{
 		"repository":  repoName,
 		"target_path": fullTargetPath,
 	})
@@ -501,13 +504,13 @@ func (uc ToMirrorsUseCase) syncToArchive(
 	targetPath string,
 	repoName string,
 ) error {
-	uc.logger.Debug(ctx, "Syncing to archive", map[string]interface{}{
+	uc.logger.Debug(ctx, "Syncing to archive", map[string]any{
 		"repository":  repoName,
 		"target_path": targetPath,
 	})
 
 	// Create target directory if it doesn't exist
-	if err := os.MkdirAll(targetPath, 0750); err != nil {
+	if err := uc.fileSystem.MkdirAll(targetPath, 0750); err != nil {
 		return fmt.Errorf("failed to create archive target directory: %w", err)
 	}
 
@@ -542,7 +545,7 @@ func (uc ToMirrorsUseCase) syncToArchive(
 		DryRun:             false,
 	}
 
-	uc.logger.Info(ctx, "Creating archive using mirror service", map[string]interface{}{
+	uc.logger.Info(ctx, "Creating archive using mirror service", map[string]any{
 		"repository":     repoName,
 		"target_path":    targetPath,
 		"archive_format": mirrorRequest.ArchiveFormat,
@@ -555,7 +558,7 @@ func (uc ToMirrorsUseCase) syncToArchive(
 		return fmt.Errorf("failed to create archive: %w", err)
 	}
 
-	uc.logger.Info(ctx, "Archive sync completed successfully", map[string]interface{}{
+	uc.logger.Info(ctx, "Archive sync completed successfully", map[string]any{
 		"repository":  repoName,
 		"target_path": targetPath,
 	})
@@ -575,7 +578,7 @@ func (uc ToMirrorsUseCase) performGitSync(
 	targetRepoName string,
 	request ToMirrorsRequest,
 ) error {
-	uc.logger.Debug(ctx, "Syncing to git provider", map[string]interface{}{
+	uc.logger.Debug(ctx, "Syncing to git provider", map[string]any{
 		"repository":    targetRepoName,
 		"provider_type": mirrorTarget.ProviderType(),
 		"owner":         mirrorTarget.Owner(),
@@ -606,7 +609,7 @@ func (uc ToMirrorsUseCase) performGitSync(
 		return fmt.Errorf("%w: %w", domain.ErrPushToProviderFailed, pushResponse.Error)
 	}
 
-	uc.logger.Info(ctx, "Successfully pushed to git provider", map[string]interface{}{
+	uc.logger.Info(ctx, "Successfully pushed to git provider", map[string]any{
 		"repository": targetRepoName,
 		"provider":   mirrorTarget.ProviderType(),
 		"created":    pushResponse.Created,
@@ -621,7 +624,7 @@ func (uc ToMirrorsUseCase) performGitSync(
 	if request.Options.SyncProtection {
 		err := uc.syncBranchProtection(ctx, sourceRepo, mirrorTarget, mirrorProvider, targetRepoName)
 		if err != nil {
-			uc.logger.Warn(ctx, "Failed to sync branch protection", map[string]interface{}{
+			uc.logger.Warn(ctx, "Failed to sync branch protection", map[string]any{
 				"repository": targetRepoName,
 				"error":      err.Error(),
 			})
@@ -668,7 +671,7 @@ func (uc ToMirrorsUseCase) createRepositoryEntity(ctx context.Context, gitRepo p
 	repo, err := builder.Build()
 	if err != nil {
 		// Log error but return a minimal repository
-		uc.logger.Warn(ctx, "Failed to build repository entity", map[string]interface{}{
+		uc.logger.Warn(ctx, "Failed to build repository entity", map[string]any{
 			"error": err.Error(),
 			"name":  name,
 		})
@@ -700,7 +703,7 @@ func (uc ToMirrorsUseCase) syncBranchProtection(
 	mirrorProvider ports.RepositoryProvider,
 	targetRepoName string,
 ) error {
-	uc.logger.Debug(ctx, "Syncing branch protection", map[string]interface{}{
+	uc.logger.Debug(ctx, "Syncing branch protection", map[string]any{
 		"source_repo": sourceRepo.Name(),
 		"target_repo": targetRepoName,
 		"mirror":      mirrorTarget.Name(),
@@ -708,7 +711,7 @@ func (uc ToMirrorsUseCase) syncBranchProtection(
 
 	// Check if provider supports branch protection
 	if !mirrorProvider.SupportsFeature(ports.FeatureBranchProtection) {
-		uc.logger.Debug(ctx, "Provider does not support branch protection, skipping", map[string]interface{}{
+		uc.logger.Debug(ctx, "Provider does not support branch protection, skipping", map[string]any{
 			"provider": mirrorTarget.ProviderType(),
 		})
 
@@ -762,7 +765,7 @@ func (uc ToMirrorsUseCase) syncBranchProtection(
 		return fmt.Errorf("failed to set branch protection on mirror: %w", err)
 	}
 
-	uc.logger.Info(ctx, "Branch protection synced successfully", map[string]interface{}{
+	uc.logger.Info(ctx, "Branch protection synced successfully", map[string]any{
 		"target_repo": targetRepoName,
 		"branch":      defaultBranch,
 		"mirror":      mirrorTarget.Name(),
@@ -781,7 +784,7 @@ func (uc ToMirrorsUseCase) initMirrorSync(ctx context.Context, mirrorTarget enti
 	// Add to context
 	ctx = entities.AddMetadataToContext(ctx, meta)
 
-	uc.logger.Debug(ctx, "Initialized mirror sync metadata", map[string]interface{}{
+	uc.logger.Debug(ctx, "Initialized mirror sync metadata", map[string]any{
 		"mirror_target":    mirrorTarget.Name(),
 		"provider_type":    mirrorTarget.ProviderType(),
 		"repository_count": repositoryCount,
@@ -794,7 +797,7 @@ func (uc ToMirrorsUseCase) initMirrorSync(ctx context.Context, mirrorTarget enti
 func (uc ToMirrorsUseCase) incrementSyncCount(ctx context.Context) {
 	if meta, ok := entities.GetMetadataFromContext(ctx); ok {
 		meta.AddSuccess("sync", "repository")
-		uc.logger.Debug(ctx, "Incremented sync count", map[string]interface{}{
+		uc.logger.Debug(ctx, "Incremented sync count", map[string]any{
 			"processed_count": meta.ProcessedCount,
 		})
 	}
@@ -817,7 +820,7 @@ func (uc ToMirrorsUseCase) syncExistingDirectoryRepository(ctx context.Context, 
 
 	defer func() {
 		if closeErr := targetRepo.Close(); closeErr != nil {
-			uc.logger.Warn(ctx, "Failed to close target repository", map[string]interface{}{
+			uc.logger.Warn(ctx, "Failed to close target repository", map[string]any{
 				"error": closeErr.Error(),
 			})
 		}
@@ -848,7 +851,7 @@ func (uc ToMirrorsUseCase) syncExistingDirectoryRepository(ctx context.Context, 
 			fullTargetPath, err)
 	}
 
-	uc.logger.Info(ctx, "Successfully pulled to existing directory mirror", map[string]interface{}{
+	uc.logger.Info(ctx, "Successfully pulled to existing directory mirror", map[string]any{
 		"repository":  repoName,
 		"target_path": fullTargetPath,
 	})

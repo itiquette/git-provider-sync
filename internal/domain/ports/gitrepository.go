@@ -70,7 +70,7 @@ type GitStatusOperations interface {
 }
 
 // GitRepository represents a git repository that can be operated on.
-// This interface composes smaller, focused interfaces following ISP.
+// Composes smaller, focused interfaces following ISP.
 type GitRepository interface {
 	GitRepositoryInfo
 	GitBranchOperations

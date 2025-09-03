@@ -17,8 +17,6 @@ import (
 )
 
 // ExecutorService defines the interface for executing git commands.
-//
-//	critical git binary execution functionality .
 type ExecutorService interface {
 	RunGitCommand(ctx context.Context, env []string, workingDir string, args ...string) error
 	RunGitCommandWithOutput(ctx context.Context, workingDir string, args ...string) ([]byte, error)
@@ -26,7 +24,7 @@ type ExecutorService interface {
 
 // executorService implements ExecutorService for git binary operations.
 //
-//	sophisticated git command execution .
+//	git command execution .
 type executorService struct {
 	gitBinaryPath string
 	logger        ports.Logger
@@ -67,7 +65,7 @@ func NewExecutorServiceWithTimeout(binaryPath string, logger ports.Logger, timeo
 
 func (e *executorService) RunGitCommand(ctx context.Context, env []string, workingDir string, args ...string) error {
 	if e.logger != nil {
-		e.logger.Trace(ctx, "Entering RunGitCommand", map[string]interface{}{
+		e.logger.Trace(ctx, "Entering RunGitCommand", map[string]any{
 			"args":       strings.Join(args, " "),
 			"workingDir": workingDir,
 		})
@@ -93,7 +91,7 @@ func (e *executorService) RunGitCommand(ctx context.Context, env []string, worki
 	}
 
 	if e.logger != nil {
-		e.logger.Debug(ctx, "Git command output", map[string]interface{}{
+		e.logger.Debug(ctx, "Git command output", map[string]any{
 			"output": string(output),
 		})
 	}

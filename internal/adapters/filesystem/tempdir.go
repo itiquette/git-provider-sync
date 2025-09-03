@@ -45,7 +45,7 @@ func CreateTmpDir(ctx context.Context, dir, prefix string) (context.Context, err
 }
 
 // DeleteTmpDir deletes the temporary directory from context.
-// Performs safety checks to ensure the directory is valid before deletion.
+// Validates directory before deletion.
 func DeleteTmpDir(ctx context.Context) error {
 	tmpDir, err := GetTmpDirPath(ctx)
 	if err != nil {

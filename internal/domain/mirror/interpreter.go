@@ -36,7 +36,7 @@ func NewEffectInterpreter(
 // ExecuteOperation executes a pure operation plan by interpreting its effects.
 // The operation parameter contains a sequence of effects to execute with dependency resolution.
 // Uses simple dependency resolution: unsatisfied effects are moved to end of queue for retry.
-// This ensures operations execute in correct order (e.g., CreateRepository before ProtectBranch).
+// Operations execute in order: CreateRepository before ProtectBranch.
 func (ei *EffectInterpreter) ExecuteOperation(ctx context.Context, operation Operation) OperationResult {
 	start := time.Now()
 
@@ -47,7 +47,7 @@ func (ei *EffectInterpreter) ExecuteOperation(ctx context.Context, operation Ope
 		Metrics:   OperationMetrics{},
 	}
 
-	ei.logger.Info(ctx, "Executing operation", map[string]interface{}{
+	ei.logger.Info(ctx, "Executing operation", map[string]any{
 		"operation_id":   operation.Metadata.ID,
 		"operation_type": operation.Type,
 		"effects_count":  len(operation.Effects),
@@ -60,7 +60,7 @@ func (ei *EffectInterpreter) ExecuteOperation(ctx context.Context, operation Ope
 			if !validationResult.Valid {
 				result.Success = false
 				result.Error = fmt.Errorf("%w: %s", domain.ErrValidationFailed, validationResult.Message)
-				ei.logger.Error(ctx, "Operation validation failed", map[string]interface{}{
+				ei.logger.Error(ctx, "Operation validation failed", map[string]any{
 					"operation_id": operation.Metadata.ID,
 					"error":        result.Error,
 					"code":         validationResult.Code,
@@ -72,7 +72,7 @@ func (ei *EffectInterpreter) ExecuteOperation(ctx context.Context, operation Ope
 	}
 
 	// Execute effects in dependency order using simple dependency resolution algorithm.
-	// This implements a basic topological sort by moving unsatisfied effects to the end of the queue.
+	// Topological sort by moving unsatisfied effects to the end of the queue.
 	// The algorithm retries effects until all dependencies are satisfied or no progress can be made.
 	completedEffects := make(map[string]bool)
 
@@ -98,7 +98,7 @@ func (ei *EffectInterpreter) ExecuteOperation(ctx context.Context, operation Ope
 		} else {
 			result.Success = false
 			result.Error = completedEffect.Error
-			ei.logger.Error(ctx, "Effect execution failed", map[string]interface{}{
+			ei.logger.Error(ctx, "Effect execution failed", map[string]any{
 				"operation_id": operation.Metadata.ID,
 				"effect_type":  effect.Type,
 				"error":        completedEffect.Error,
@@ -110,7 +110,7 @@ func (ei *EffectInterpreter) ExecuteOperation(ctx context.Context, operation Ope
 
 	result.Duration = time.Since(start)
 
-	ei.logger.Info(ctx, "Operation completed", map[string]interface{}{
+	ei.logger.Info(ctx, "Operation completed", map[string]any{
 		"operation_id": operation.Metadata.ID,
 		"success":      result.Success,
 		"duration":     result.Duration,
@@ -145,7 +145,7 @@ func (ei *EffectInterpreter) initializeCompletedEffect(effect Effect) CompletedE
 
 // logEffectExecution logs the start of effect execution.
 func (ei *EffectInterpreter) logEffectExecution(ctx context.Context, effect Effect, operation Operation) {
-	ei.logger.Debug(ctx, "Executing effect", map[string]interface{}{
+	ei.logger.Debug(ctx, "Executing effect", map[string]any{
 		"effect_type":  effect.Type,
 		"description":  effect.Description,
 		"operation_id": operation.Metadata.ID,
@@ -217,9 +217,9 @@ func (ei *EffectInterpreter) finalizeCompletedEffect(completedEffect *CompletedE
 
 // Effect execution implementations
 
-func (ei *EffectInterpreter) executeCloneRepository(ctx context.Context, effect Effect, operation Operation) (interface{}, error) {
+func (ei *EffectInterpreter) executeCloneRepository(ctx context.Context, effect Effect, operation Operation) (any, error) {
 	if operation.Options.DryRun {
-		ei.logger.Info(ctx, "[DRY RUN] Would clone repository", map[string]interface{}{
+		ei.logger.Info(ctx, "[DRY RUN] Would clone repository", map[string]any{
 			"url":        effect.Parameters["url"],
 			"local_path": effect.Parameters["local_path"],
 		})
@@ -267,9 +267,9 @@ func (ei *EffectInterpreter) executeCloneRepository(ctx context.Context, effect 
 	return repo, nil
 }
 
-func (ei *EffectInterpreter) executeCreateRepository(ctx context.Context, effect Effect, operation Operation) (interface{}, error) {
+func (ei *EffectInterpreter) executeCreateRepository(ctx context.Context, effect Effect, operation Operation) (any, error) {
 	if operation.Options.DryRun {
-		ei.logger.Info(ctx, "[DRY RUN] Would create repository", map[string]interface{}{
+		ei.logger.Info(ctx, "[DRY RUN] Would create repository", map[string]any{
 			"name":  effect.Parameters["name"],
 			"owner": effect.Parameters["owner"],
 		})
@@ -320,9 +320,9 @@ func getVisibility(isPrivate bool) string {
 	return "public"
 }
 
-func (ei *EffectInterpreter) executePushToRepository(ctx context.Context, effect Effect, operation Operation) (interface{}, error) {
+func (ei *EffectInterpreter) executePushToRepository(ctx context.Context, effect Effect, operation Operation) (any, error) {
 	if operation.Options.DryRun {
-		ei.logger.Info(ctx, "[DRY RUN] Would push to repository", map[string]interface{}{
+		ei.logger.Info(ctx, "[DRY RUN] Would push to repository", map[string]any{
 			"url":        effect.Parameters["url"],
 			"local_path": effect.Parameters["local_path"],
 		})
@@ -378,14 +378,14 @@ func (ei *EffectInterpreter) executePushToRepository(ctx context.Context, effect
 	return "push_success", nil
 }
 
-func (ei *EffectInterpreter) executeUpdateDescription(ctx context.Context, effect Effect, operation Operation) (interface{}, error) {
+func (ei *EffectInterpreter) executeUpdateDescription(ctx context.Context, effect Effect, operation Operation) (any, error) {
 	return ei.executeRepositoryUpdate(ctx, effect, operation, "description", "description",
 		func(value string) ports.UpdateRepositoryOptions {
 			return ports.UpdateRepositoryOptions{Description: &value}
 		})
 }
 
-func (ei *EffectInterpreter) executeUpdateVisibility(ctx context.Context, effect Effect, operation Operation) (interface{}, error) {
+func (ei *EffectInterpreter) executeUpdateVisibility(ctx context.Context, effect Effect, operation Operation) (any, error) {
 	return ei.executeRepositoryUpdate(ctx, effect, operation, "visibility", "visibility",
 		func(value string) ports.UpdateRepositoryOptions {
 			return ports.UpdateRepositoryOptions{Visibility: &value}
@@ -400,9 +400,9 @@ func (ei *EffectInterpreter) executeRepositoryUpdate(
 	dryRunAction string,
 	paramName string,
 	optionsFunc func(string) ports.UpdateRepositoryOptions,
-) (interface{}, error) {
+) (any, error) {
 	if operation.Options.DryRun {
-		ei.logger.Info(ctx, "[DRY RUN] Would update "+dryRunAction, map[string]interface{}{
+		ei.logger.Info(ctx, "[DRY RUN] Would update "+dryRunAction, map[string]any{
 			"repository": effect.Parameters["repository"],
 			paramName:    effect.Parameters[paramName],
 		})
@@ -437,9 +437,9 @@ func (ei *EffectInterpreter) executeRepositoryUpdate(
 	return dryRunAction + "_updated", nil
 }
 
-func (ei *EffectInterpreter) executeUpdateTopics(ctx context.Context, effect Effect, operation Operation) (interface{}, error) {
+func (ei *EffectInterpreter) executeUpdateTopics(ctx context.Context, effect Effect, operation Operation) (any, error) {
 	if operation.Options.DryRun {
-		ei.logger.Info(ctx, "[DRY RUN] Would update topics", map[string]interface{}{
+		ei.logger.Info(ctx, "[DRY RUN] Would update topics", map[string]any{
 			"repository": effect.Parameters["repository"],
 			"topics":     effect.Parameters["topics"],
 		})
@@ -476,9 +476,9 @@ func (ei *EffectInterpreter) executeUpdateTopics(ctx context.Context, effect Eff
 	return "topics_updated", nil
 }
 
-func (ei *EffectInterpreter) executeCleanupTempFiles(ctx context.Context, effect Effect, operation Operation) (interface{}, error) {
+func (ei *EffectInterpreter) executeCleanupTempFiles(ctx context.Context, effect Effect, operation Operation) (any, error) {
 	if operation.Options.DryRun {
-		ei.logger.Info(ctx, "[DRY RUN] Would cleanup temp files", map[string]interface{}{
+		ei.logger.Info(ctx, "[DRY RUN] Would cleanup temp files", map[string]any{
 			"local_path": effect.Parameters["local_path"],
 		})
 
@@ -498,8 +498,8 @@ func (ei *EffectInterpreter) executeCleanupTempFiles(ctx context.Context, effect
 	return "cleanup_success", nil
 }
 
-func (ei *EffectInterpreter) executeLogOperation(ctx context.Context, _ Effect, operation Operation) interface{} {
-	ei.logger.Info(ctx, "Mirror operation logged", map[string]interface{}{
+func (ei *EffectInterpreter) executeLogOperation(ctx context.Context, _ Effect, operation Operation) any {
+	ei.logger.Info(ctx, "Mirror operation logged", map[string]any{
 		"operation_id":   operation.Metadata.ID,
 		"operation_type": operation.Type,
 		"source":         operation.Source.URL,
@@ -509,9 +509,9 @@ func (ei *EffectInterpreter) executeLogOperation(ctx context.Context, _ Effect, 
 	return "logged"
 }
 
-func (ei *EffectInterpreter) executeUpdateDefaultBranch(ctx context.Context, _ Effect, operation Operation) interface{} {
+func (ei *EffectInterpreter) executeUpdateDefaultBranch(ctx context.Context, _ Effect, operation Operation) any {
 	// Placeholder implementation for updating default branch
-	ei.logger.Info(ctx, "Updating default branch", map[string]interface{}{
+	ei.logger.Info(ctx, "Updating default branch", map[string]any{
 		"operation_id": operation.Metadata.ID,
 		"source":       operation.Source.URL,
 		"target":       operation.Target.URL,
@@ -520,9 +520,9 @@ func (ei *EffectInterpreter) executeUpdateDefaultBranch(ctx context.Context, _ E
 	return "default_branch_updated"
 }
 
-func (ei *EffectInterpreter) executeSyncBranchProtection(ctx context.Context, _ Effect, operation Operation) interface{} {
+func (ei *EffectInterpreter) executeSyncBranchProtection(ctx context.Context, _ Effect, operation Operation) any {
 	// Placeholder implementation for syncing branch protection
-	ei.logger.Info(ctx, "Syncing branch protection", map[string]interface{}{
+	ei.logger.Info(ctx, "Syncing branch protection", map[string]any{
 		"operation_id": operation.Metadata.ID,
 		"source":       operation.Source.URL,
 		"target":       operation.Target.URL,
@@ -531,18 +531,18 @@ func (ei *EffectInterpreter) executeSyncBranchProtection(ctx context.Context, _ 
 	return "branch_protection_synced"
 }
 
-func (ei *EffectInterpreter) executeCreateDirectories(ctx context.Context, _ Effect, operation Operation) interface{} {
+func (ei *EffectInterpreter) executeCreateDirectories(ctx context.Context, _ Effect, operation Operation) any {
 	// Placeholder implementation for creating directories
-	ei.logger.Info(ctx, "Creating directories", map[string]interface{}{
+	ei.logger.Info(ctx, "Creating directories", map[string]any{
 		"operation_id": operation.Metadata.ID,
 	})
 
 	return "directories_created"
 }
 
-func (ei *EffectInterpreter) executeRecordMetrics(ctx context.Context, _ Effect, operation Operation) interface{} {
+func (ei *EffectInterpreter) executeRecordMetrics(ctx context.Context, _ Effect, operation Operation) any {
 	// Placeholder implementation for recording metrics
-	ei.logger.Info(ctx, "Recording metrics", map[string]interface{}{
+	ei.logger.Info(ctx, "Recording metrics", map[string]any{
 		"operation_id":   operation.Metadata.ID,
 		"operation_type": operation.Type,
 	})

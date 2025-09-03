@@ -324,7 +324,7 @@ func TestValidateGitBinary(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	// This test will pass if git is available on the system
+	// Test will pass if git is available on the system
 	// and fail if it's not, which is expected behavior
 	err := validateGitBinary(ctx)
 

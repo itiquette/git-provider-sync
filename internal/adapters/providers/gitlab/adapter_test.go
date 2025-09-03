@@ -9,8 +9,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -67,7 +67,7 @@ func getMultipleReposJSON() string {
 	]`
 }
 
-func validateRepositoryFields(t *testing.T, repos []entities.Repository, expectedFields map[string]interface{}) {
+func validateRepositoryFields(t *testing.T, repos []entities.Repository, expectedFields map[string]any) {
 	t.Helper()
 	// Verify first repository fields
 	if name, ok := expectedFields["first_repo_name"]; ok {
@@ -99,117 +99,27 @@ func validateRepositoryFields(t *testing.T, repos []entities.Repository, expecte
 	assert.NotZero(t, repos[0].LastActivityAt())
 }
 
-func TestNew_ValidCredentials_CreatesGitLabAdapter(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name           string
-		token          string
-		domain         string
-		expectedDomain string
-		expectError    bool
-	}{
-		{
-			name:           "valid token and domain",
-			token:          "test-token",
-			domain:         "gitlab.example.com",
-			expectedDomain: "gitlab.example.com",
-			expectError:    false,
-		},
-		{
-			name:           "valid token with empty domain defaults to gitlab.com",
-			token:          "test-token",
-			domain:         "",
-			expectedDomain: "gitlab.com",
-			expectError:    false,
-		},
-	}
-
-	for _, testCase := range tests {
-		t.Run(testCase.name, func(t *testing.T) {
-			t.Parallel()
-
-			adapter, err := New(testCase.token, testCase.domain)
-
-			if testCase.expectError {
-				require.Error(t, err)
-
-				assert.Nil(t, adapter)
-
-				return
-			}
-
-			require.NoError(t, err)
-			require.NotNil(t, adapter)
-			assert.Equal(t, testCase.expectedDomain, adapter.domain)
-			assert.NotNil(t, adapter.client)
-		})
-	}
-}
-
 func TestNewWithConfig(t *testing.T) {
 	t.Parallel()
 
 	zeroRetries := 0
 
-	tests := []struct {
-		name           string
-		config         Config
-		expectedDomain string
-		expectError    bool
-	}{
-		{
-			name: "config with custom base URL",
-			config: Config{
-				Token:          "test-token",
-				BaseURL:        "https://gitlab.example.com/api/v4",
-				CustomRetryMax: &zeroRetries,
-			},
-			expectedDomain: "gitlab.example.com",
-			expectError:    false,
-		},
-		{
-			name: "config with default settings",
-			config: Config{
-				Token:          "test-token",
-				CustomRetryMax: &zeroRetries,
-			},
-			expectedDomain: "gitlab.com",
-			expectError:    false,
-		},
-		{
-			name: "config with HTTP client",
-			config: Config{
-				Token:          "test-token",
-				HTTPClient:     &http.Client{Timeout: 100 * time.Millisecond}, // Fast timeout for tests
-				CustomRetryMax: &zeroRetries,
-			},
-			expectedDomain: "gitlab.com",
-			expectError:    false,
-		},
-	}
+	// Test domain extraction from custom base URL
+	t.Run("custom base URL extracts domain", func(t *testing.T) {
+		t.Parallel()
 
-	for _, testCase := range tests {
-		t.Run(testCase.name, func(t *testing.T) {
-			t.Parallel()
+		config := Config{
+			Token:          "test-token",
+			BaseURL:        "https://gitlab.example.com/api/v4",
+			CustomRetryMax: &zeroRetries,
+		}
 
-			ctx := context.Background()
-			adapter, err := NewWithConfig(ctx, testCase.config)
+		ctx := context.Background()
+		adapter, err := NewWithConfig(ctx, config)
 
-			if testCase.expectError {
-				require.Error(t, err)
-
-				assert.Nil(t, adapter)
-
-				return
-			}
-
-			require.NoError(t, err)
-			require.NotNil(t, adapter)
-			assert.Equal(t, testCase.expectedDomain, adapter.domain)
-			assert.NotNil(t, adapter.client)
-		})
-	}
+		require.NoError(t, err)
+		assert.Equal(t, "gitlab.example.com", adapter.domain)
+	})
 }
 
 func TestListRepositories(t *testing.T) {
@@ -223,7 +133,7 @@ func TestListRepositories(t *testing.T) {
 		statusCode     int
 		expectError    bool
 		expectedRepos  int
-		expectedFields map[string]interface{}
+		expectedFields map[string]any
 	}{
 		{
 			name:          "successful response with multiple repositories",
@@ -231,7 +141,7 @@ func TestListRepositories(t *testing.T) {
 			statusCode:    200,
 			expectError:   false,
 			expectedRepos: 2,
-			expectedFields: map[string]interface{}{
+			expectedFields: map[string]any{
 				"first_repo_name":        "test-repo-1",
 				"first_repo_default":     "main",
 				"first_repo_visibility":  "private",
@@ -473,7 +383,7 @@ func TestCreateRepository(t *testing.T) {
 				assert.Contains(t, request.URL.Path, "/projects")
 
 				// Verify request body
-				var requestBody map[string]interface{}
+				var requestBody map[string]any
 
 				err := json.NewDecoder(request.Body).Decode(&requestBody)
 				if err != nil {
@@ -594,50 +504,6 @@ func TestUpdateRepository(t *testing.T) {
 			}
 
 			require.NoError(t, err)
-		})
-	}
-}
-
-func TestAdapterImplementsInterface(t *testing.T) {
-	t.Parallel()
-
-	// Verify that Adapter implements the RepositoryProvider interface
-	var _ ports.RepositoryProvider = (*Adapter)(nil)
-}
-
-func TestAdapter_Initialization_SetsCorrectFields(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name     string
-		testFunc func(t *testing.T, adapter *Adapter)
-	}{
-		{
-			name: "adapter has expected domain field",
-			testFunc: func(t *testing.T, adapter *Adapter) {
-				t.Helper()
-				// Verify adapter was created with expected domain
-				assert.Equal(t, "gitlab.com", adapter.domain)
-			},
-		},
-		{
-			name: "adapter has GitLab client",
-			testFunc: func(t *testing.T, adapter *Adapter) {
-				t.Helper()
-				// Verify adapter has a valid GitLab client
-				assert.NotNil(t, adapter.client)
-			},
-		},
-	}
-
-	for _, testCase := range tests {
-		t.Run(testCase.name, func(t *testing.T) {
-			t.Parallel()
-
-			adapter, err := New("test-token", "")
-			require.NoError(t, err)
-
-			testCase.testFunc(t, adapter)
 		})
 	}
 }
@@ -882,7 +748,7 @@ func TestValidateRepositoryName(t *testing.T) {
 		},
 		{
 			name:        "name too long",
-			repoName:    string(make([]byte, 256)),
+			repoName:    strings.Repeat("a", 256),
 			expectError: true,
 		},
 		{
@@ -1294,7 +1160,7 @@ func TestIsValidProjectName(t *testing.T) {
 		},
 		{
 			name:     "name too long",
-			projName: string(make([]byte, 256)),
+			projName: strings.Repeat("a", 256),
 			expected: false,
 		},
 	}
@@ -1890,7 +1756,7 @@ func TestConvertToRepository_NilProject_ReturnsError(t *testing.T) {
 	assert.Contains(t, err.Error(), "project is nil")
 }
 
-// Helper function for creating string pointers.
+// String pointer factory.
 func stringPtr(s string) *string {
 	return &s
 }

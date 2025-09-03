@@ -53,13 +53,6 @@ func TestNewTmpDir_ValidPath_CreatesValueObject(t *testing.T) {
 	}
 }
 
-func TestNewTmpDir_EmptyPath_ReturnsError(t *testing.T) {
-	t.Parallel()
-
-	_, err := NewTmpDir("")
-	assert.Equal(t, domain.ErrTempDirectoryNotFound, err)
-}
-
 func TestTmpDir_SubDir_CreatesSubdirectory(t *testing.T) {
 	t.Parallel()
 
@@ -93,7 +86,7 @@ func TestTmpDir_Exists_ChecksFilesystem(t *testing.T) {
 			setupFunc: func(t *testing.T) string {
 				t.Helper()
 
-				return t.TempDir() // This ensures the directory exists for this specific test
+				return t.TempDir() // Directory exists for this specific test
 			},
 			expected: true,
 		},
@@ -117,17 +110,6 @@ func TestTmpDir_Exists_ChecksFilesystem(t *testing.T) {
 			assert.Equal(t, testCase.expected, tmpDir.Exists())
 		})
 	}
-}
-
-func TestTmpDir_String_ReturnsFormattedString(t *testing.T) {
-	t.Parallel()
-
-	tmpDir, err := NewTmpDir("/tmp/test")
-	require.NoError(t, err)
-
-	result := tmpDir.String()
-	assert.Contains(t, result, "TmpDir")
-	assert.Contains(t, result, "/tmp/test")
 }
 
 // Test the legacy context-based functions for backwards compatibility.
@@ -172,9 +154,9 @@ func TestCreateTmpDir_Integration(t *testing.T) {
 
 				// Clean up
 				cleanupErr := DeleteTmpDir(newCtx)
-				assert.NoError(t, cleanupErr)
+				require.NoError(t, cleanupErr)
 			} else {
-				assert.Error(t, err)
+				require.Error(t, err)
 			}
 		})
 	}

@@ -54,7 +54,7 @@ type ConnectivityResult struct {
 	Success    bool
 	Error      error
 	Duration   time.Duration
-	Details    map[string]interface{}
+	Details    map[string]any
 }
 
 // ConnectivityValidator executes connectivity validations.
@@ -225,7 +225,7 @@ type FileSystemResult struct {
 	Exists     bool
 	Readable   bool
 	Writable   bool
-	Details    map[string]interface{}
+	Details    map[string]any
 }
 
 // Helper functions for planning connectivity validations
@@ -388,7 +388,7 @@ func ValidateAllConnectivity(ctx context.Context, validator ConnectivityValidato
 					Validation: validations[remainingIndex],
 					Success:    false,
 					Error:      ErrValidationSkipped,
-					Details:    map[string]interface{}{"reason": "previous required validation failed"},
+					Details:    map[string]any{"reason": "previous required validation failed"},
 				}
 			}
 

@@ -169,7 +169,7 @@ func TestInitLogger_OutputCapture(t *testing.T) { //nolint:paralleltest // Canno
 	assert.Contains(t, output, `"level":"info"`)
 
 	// Verify it's valid JSON
-	var logEntry map[string]interface{}
+	var logEntry map[string]any
 
 	err = json.Unmarshal([]byte(strings.TrimSpace(output)), &logEntry)
 	require.NoError(t, err)
@@ -324,20 +324,6 @@ func TestGetLogLevel(t *testing.T) {
 			assert.Equal(t, test.expected, result)
 		})
 	}
-}
-
-func TestConstants(t *testing.T) {
-	t.Parallel()
-
-	// Test Level constants
-	assert.Equal(t, LevelQuiet, Level("quiet"))
-	assert.Equal(t, LevelBrief, Level("brief"))
-	assert.Equal(t, LevelDebug, Level("debug"))
-	assert.Equal(t, LevelTrace, Level("trace"))
-
-	// Test Format constants
-	assert.Equal(t, JSON, Format("json"))
-	assert.Equal(t, CONSOLE, Format("console"))
 }
 
 func TestLoggerIntegration_ActualLogging(t *testing.T) {

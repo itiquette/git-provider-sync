@@ -17,18 +17,6 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-func TestNewManCommand_Constructor_CreatesHiddenCommand(t *testing.T) {
-	t.Parallel()
-
-	cmd := NewManCommand()
-
-	assert.NotNil(t, cmd)
-	assert.Equal(t, "man", cmd.Name)
-	assert.Equal(t, "Generate man page documentation", cmd.Usage)
-	assert.True(t, cmd.Hidden, "man command should be hidden from regular help")
-	assert.NotNil(t, cmd.Action)
-}
-
 func TestRunManGeneration_ToStdout_OutputsManPage(t *testing.T) { //nolint:paralleltest // Manipulates global os.Stdout
 	// Capture stdout
 	oldStdout := os.Stdout
@@ -54,7 +42,7 @@ func TestRunManGeneration_ToStdout_OutputsManPage(t *testing.T) { //nolint:paral
 	require.NoError(t, copyErr)
 
 	// Verify no error occurred
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Verify output contains expected content
 	output := buf.String()
@@ -93,7 +81,7 @@ func TestManCommand_Execution_GeneratesDocumentation(t *testing.T) { //nolint:pa
 	require.NoError(t, copyErr)
 
 	// Verify execution
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	output := buf.String()
 	assert.NotEmpty(t, output)
@@ -121,7 +109,7 @@ func TestManContentStructure(t *testing.T) { //nolint:paralleltest // Manipulate
 	_, copyErr := io.Copy(&buf, reader)
 	require.NoError(t, copyErr)
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	output := buf.String()
 

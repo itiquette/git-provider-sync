@@ -12,11 +12,11 @@ import (
 )
 
 var (
-	// Regex patterns for sophisticated string cleaning.
+	// Regex patterns for string cleaning.
 	doubleHyphenRegex    = regexp.MustCompile(`-{2,}`)
 	nonAlphanumericRegex = regexp.MustCompile(`[^a-zA-Z0-9-]|^-|-$`)
 
-	// Comprehensive linebreak replacer for all Unicode linebreak types.
+	// linebreak replacer for all Unicode linebreak types.
 	linebreakReplacer = strings.NewReplacer( //nolint:gochecknoglobals // Shared string processing utility
 		"\r\n", " ", "\r", " ", "\n", " ", "\v", " ",
 		"\f", " ", "\u0085", " ", "\u2028", " ", "\u2029", " ",

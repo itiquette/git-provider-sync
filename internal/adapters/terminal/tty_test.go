@@ -11,26 +11,20 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestIsOutput(t *testing.T) {
-	t.Parallel()
-	// This test just verifies the function exists and returns a boolean
-	// In CI/test environments, this will typically return false
-	result := IsOutput()
-	assert.IsType(t, bool(false), result)
-}
-
-func TestIsError(t *testing.T) {
+func TestIsError_BehaviorInTestEnvironment(t *testing.T) {
 	t.Parallel()
 
+	// Test that IsError correctly detects stderr is not a terminal in test environment
 	result := IsError()
-	assert.IsType(t, bool(false), result)
+	assert.False(t, result, "stderr should not be detected as terminal in test environment")
 }
 
-func TestIsInput(t *testing.T) {
+func TestIsInput_BehaviorInTestEnvironment(t *testing.T) {
 	t.Parallel()
 
+	// Test that IsInput correctly detects stdin is not a terminal in test environment
 	result := IsInput()
-	assert.IsType(t, bool(false), result)
+	assert.False(t, result, "stdin should not be detected as terminal in test environment")
 }
 
 func TestNewColor(t *testing.T) {

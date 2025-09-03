@@ -24,7 +24,7 @@ type CloneOptions struct {
 	protocol       string
 }
 
-// CloneOptionsBuilder provides functional approach to building clone options.
+// CloneOptionsBuilder builds clone options.
 type CloneOptionsBuilder struct {
 	options CloneOptions
 }

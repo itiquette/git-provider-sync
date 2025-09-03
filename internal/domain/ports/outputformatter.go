@@ -19,7 +19,7 @@ type OutputFormatter interface {
 
 	// FormatSyncResults formats sync operation results for output.
 	// Progress and status information should go to stderr, data to stdout.
-	FormatSyncResults(results interface{}, format string, dataWriter, progressWriter io.Writer) error
+	FormatSyncResults(results any, format string, dataWriter, progressWriter io.Writer) error
 
 	// SupportedFormats returns the list of supported output formats.
 	SupportedFormats() []string

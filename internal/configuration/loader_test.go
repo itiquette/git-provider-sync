@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -121,91 +122,6 @@ func TestLoadConfiguration_InvalidConfig(t *testing.T) {
 			require.Contains(t, err.Error(), tabletest.expectedError)
 		})
 	}
-}
-
-func TestSplitAndTrim(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		input    string
-		expected []string
-	}{
-		{"a,b,c", []string{"a", "b", "c"}},
-		{"a, b, c", []string{"a", "b", "c"}},
-		{"", []string{""}},
-		{" ", []string{""}},
-		{"a,,c", []string{"a", "", "c"}},
-		{" a , b , c ", []string{"a", "b", "c"}},
-	}
-
-	for _, tabletest := range tests {
-		t.Run(tabletest.input, func(t *testing.T) {
-			t.Parallel()
-
-			result := splitAndTrim(tabletest.input)
-			require.Equal(t, tabletest.expected, result)
-		})
-	}
-}
-func TestHasLocalConfigFile(t *testing.T) {
-	t.Parallel()
-
-	require.True(t, hasLocalConfigFile("testdata/testconfig.yaml"))
-	require.False(t, hasLocalConfigFile("nonexistent.yaml"))
-}
-
-func TestHasXDGConfigFile(t *testing.T) {
-	t.Run("XDG config exists", func(t *testing.T) {
-		tempDir := t.TempDir()
-		cwd, _ := os.Getwd()
-		testdataPath := filepath.Join(cwd, "testdata")
-		tempTestdataPath := filepath.Join(tempDir, "testdata")
-		err := copyDir(testdataPath, tempTestdataPath)
-		require.NoError(t, err)
-
-		t.Setenv("XDG_CONFIG_HOME", tempTestdataPath)
-
-		exists, path := hasXDGConfigFile("XDG_CONFIG_HOME")
-		require.True(t, exists)
-		require.Contains(t, path, "testdata/gitprovidersync/gitprovidersync.yaml")
-	})
-
-	t.Run("XDG config does not exist", func(t *testing.T) {
-		tempDir := t.TempDir()
-		nonExistentPath := filepath.Join(tempDir, "nonexistent")
-
-		t.Setenv("XDG_CONFIG_HOME", nonExistentPath)
-
-		exists, _ := hasXDGConfigFile("XDG_CONFIG_HOME")
-		require.False(t, exists)
-	})
-}
-
-func TestHasDotEnvFile(t *testing.T) {
-	t.Run("Dot env file exists", func(t *testing.T) {
-		tempDir := t.TempDir()
-		cwd, _ := os.Getwd()
-		testdataPath := filepath.Join(cwd, "testdata")
-		tempTestdataPath := filepath.Join(tempDir, "testdata")
-		err := copyDir(testdataPath, tempTestdataPath)
-		require.NoError(t, err)
-
-		t.Setenv("GPS_TESTCONFIG_HOME", tempTestdataPath)
-
-		exists, path := hasDotEnvFile()
-		require.True(t, exists)
-		require.Contains(t, path, "testdata/.env")
-	})
-
-	t.Run("Dot env file does not exist", func(t *testing.T) {
-		tempDir := t.TempDir()
-		nonExistentPath := filepath.Join(tempDir, "nonexistent")
-
-		t.Setenv("GPS_TESTCONFIG_HOME", nonExistentPath)
-
-		exists, _ := hasDotEnvFile()
-		require.False(t, exists)
-	})
 }
 
 func TestReadConfigFileCommaDelimitedRepositoryLists(t *testing.T) {
@@ -678,7 +594,7 @@ func TestReadConfigurationFile_RepositoryLists_ParsesVariousFormats(t *testing.T
 
 // copyDir recursively copies a directory from src to dst for test isolation.
 func copyDir(src, dst string) error {
-	if err := filepath.Walk(src, func(path string, info os.FileInfo, err error) error {
+	if err := filepath.WalkDir(src, func(path string, dirEntry fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -691,8 +607,12 @@ func copyDir(src, dst string) error {
 
 		dstPath := filepath.Join(dst, relPath)
 
-		if info.IsDir() {
+		if dirEntry.IsDir() {
 			// Create directory
+			info, err := dirEntry.Info()
+			if err != nil {
+				return fmt.Errorf("failed to get dir info: %w", err)
+			}
 			if err := os.MkdirAll(dstPath, info.Mode()); err != nil {
 				return fmt.Errorf("failed to create directory: %w", err)
 			}

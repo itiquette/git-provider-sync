@@ -16,13 +16,13 @@ import (
 	"itiquette/git-provider-sync/internal/log"
 )
 
-// RepositoriesUseCase orchestrates the synchronization of repositories from source to mirrors.
-// This orchestrates repository synchronization using hexagonal architecture principles.
+// RepositoriesUseCase syncs repositories from source to mirrors.
 type RepositoriesUseCase struct {
 	configProvider     ports.Configuration
 	repositoryProvider ports.RepositoryProvider
 	gitOperations      ports.GitOperations
 	archiveOperations  ports.ArchiveOperations
+	fileSystem         ports.FileSystem
 	logger             ports.Logger
 }
 
@@ -32,6 +32,7 @@ func NewRepositoriesUseCase(
 	repositoryProvider ports.RepositoryProvider,
 	gitOps ports.GitOperations,
 	archiveOps ports.ArchiveOperations,
+	fileSystem ports.FileSystem,
 	logger ports.Logger,
 ) RepositoriesUseCase {
 	return RepositoriesUseCase{
@@ -39,6 +40,7 @@ func NewRepositoriesUseCase(
 		repositoryProvider: repositoryProvider,
 		gitOperations:      gitOps,
 		archiveOperations:  archiveOps,
+		fileSystem:         fileSystem,
 		logger:             logger,
 	}
 }
@@ -60,8 +62,7 @@ type Response struct {
 	Duration        string
 }
 
-// Execute performs the repository synchronization operation.
-// This implements the core sync logic using the sourceToMirror workflow pattern.
+// Execute synchronizes repositories based on the request configuration.
 func (uc RepositoriesUseCase) Execute(ctx context.Context, request Request) (Response, error) {
 	logger := log.CreateDomainLogger(ctx)
 
@@ -69,13 +70,13 @@ func (uc RepositoriesUseCase) Execute(ctx context.Context, request Request) (Res
 
 	var err error
 
-	// Check for cancellation early (idiomatic Go)
+	// Check for cancellation early
 	if ctx.Err() != nil {
 		return Response{}, fmt.Errorf("sync cancelled before start: %w", ctx.Err())
 	}
 
-	// TRACE: Use case entry point (hexagonal boundary)
-	logger.Trace(ctx, "RepositoriesUseCase.Execute entry", map[string]interface{}{
+	// TRACE: Use case entry point
+	logger.Trace(ctx, "RepositoriesUseCase.Execute entry", map[string]any{
 		"config_path": request.ConfigPath,
 		"environment": request.Environment,
 		"dry_run":     request.DryRun,
@@ -83,7 +84,7 @@ func (uc RepositoriesUseCase) Execute(ctx context.Context, request Request) (Res
 
 	defer func() {
 		// TRACE: Use case exit point with outcome
-		logger.Trace(ctx, "RepositoriesUseCase.Execute exit", map[string]interface{}{
+		logger.Trace(ctx, "RepositoriesUseCase.Execute exit", map[string]any{
 			"success":          response.Success,
 			"processed_repos":  response.ProcessedRepos,
 			"successful_syncs": response.SuccessfulSyncs,
@@ -92,7 +93,7 @@ func (uc RepositoriesUseCase) Execute(ctx context.Context, request Request) (Res
 		})
 	}()
 
-	logger.Info(ctx, "Starting repository synchronization", map[string]interface{}{
+	logger.Info(ctx, "Starting repository synchronization", map[string]any{
 		"config_path": request.ConfigPath,
 		"environment": request.Environment,
 		"dry_run":     request.DryRun,
@@ -147,21 +148,17 @@ func (uc RepositoriesUseCase) Execute(ctx context.Context, request Request) (Res
 		return Response{}, fmt.Errorf("source configuration validation failed: %w", err)
 	}
 
-	// Execute sync for each environment
 	response = Response{Success: true}
 
-	// Initialize sync run metadata tracking
 	metadata := entities.NewSyncRunMetadata("source", "mirrors", "sync", "default")
 	metadata.SetTotalRepositories(len(config.Environments))
 	ctx = entities.AddMetadataToContext(ctx, metadata)
 
-	// Implementation of sourceToMirror workflow pattern
-	// Core workflow: fetch source repos → sync to each mirror
 	if err := uc.executeSourceToMirror(ctx, config, request, &response); err != nil {
 		return response, fmt.Errorf("sync execution failed: %w", err)
 	}
 
-	logger.Info(ctx, "Repository synchronization completed", map[string]interface{}{
+	logger.Info(ctx, "Repository synchronization completed", map[string]any{
 		"processed_repos":  response.ProcessedRepos,
 		"successful_syncs": response.SuccessfulSyncs,
 		"failed_syncs":     response.FailedSyncs,
@@ -171,8 +168,7 @@ func (uc RepositoriesUseCase) Execute(ctx context.Context, request Request) (Res
 	return response, nil
 }
 
-// executeSourceToMirror implements the core sync logic using hexagonal architecture.
-// This follows the sourceToMirror workflow pattern with proper dependency injection.
+// executeSourceToMirror implements the core sync logic.
 func (uc RepositoriesUseCase) executeSourceToMirror(
 	ctx context.Context,
 	config ports.AppConfiguration,
@@ -181,8 +177,8 @@ func (uc RepositoriesUseCase) executeSourceToMirror(
 ) error {
 	logger := log.CreateDomainLogger(ctx)
 
-	// TRACE: Internal orchestration method entry
-	logger.Trace(ctx, "executeSourceToMirror entry", map[string]interface{}{
+	// TRACE: Internal method entry
+	logger.Trace(ctx, "executeSourceToMirror entry", map[string]any{
 		"environments_count": len(config.Environments),
 	})
 
@@ -196,7 +192,7 @@ func (uc RepositoriesUseCase) executeSourceToMirror(
 
 	for envName, env := range environments {
 		if !env.Enabled {
-			logger.Info(ctx, "Skipping disabled environment", map[string]interface{}{
+			logger.Info(ctx, "Skipping disabled environment", map[string]any{
 				"environment": envName,
 			})
 
@@ -204,12 +200,12 @@ func (uc RepositoriesUseCase) executeSourceToMirror(
 		}
 
 		// TRACE: Environment processing boundary
-		logger.Trace(ctx, "processing environment", map[string]interface{}{
+		logger.Trace(ctx, "processing environment", map[string]any{
 			"environment": envName,
 			"enabled":     env.Enabled,
 		})
 
-		logger.Info(ctx, "Processing environment", map[string]interface{}{
+		logger.Info(ctx, "Processing environment", map[string]any{
 			"environment": envName,
 		})
 
@@ -232,7 +228,7 @@ func (uc RepositoriesUseCase) processEnvironment(
 	logger := log.CreateDomainLogger(ctx)
 
 	// TRACE: Per-environment processing entry
-	logger.Trace(ctx, "processEnvironment entry", map[string]interface{}{
+	logger.Trace(ctx, "processEnvironment entry", map[string]any{
 		"environment": envName,
 		"provider":    env.Source.ProviderType,
 		"mirrors":     len(env.Mirrors),
@@ -262,7 +258,7 @@ func (uc RepositoriesUseCase) processEnvironment(
 	}
 
 	if len(fetchResponse.ClonedRepos) == 0 && !fetchRequest.DryRun {
-		logger.Warn(ctx, "No repositories to sync", map[string]interface{}{
+		logger.Warn(ctx, "No repositories to sync", map[string]any{
 			"environment": envName,
 		})
 
@@ -270,7 +266,7 @@ func (uc RepositoriesUseCase) processEnvironment(
 	}
 
 	// TRACE: Step boundary - fetch completed, starting sync
-	logger.Trace(ctx, "fetch completed, starting sync to mirrors", map[string]interface{}{
+	logger.Trace(ctx, "fetch completed, starting sync to mirrors", map[string]any{
 		"environment":   envName,
 		"cloned_repos":  len(fetchResponse.ClonedRepos),
 		"total_mirrors": len(env.Mirrors),
@@ -286,6 +282,7 @@ func (uc RepositoriesUseCase) processEnvironment(
 		uc.repositoryProvider,
 		uc.gitOperations,
 		uc.archiveOperations,
+		uc.fileSystem,
 		uc.logger,
 	)
 
@@ -316,7 +313,7 @@ func (uc RepositoriesUseCase) processEnvironment(
 		response.Success = false
 	}
 
-	logger.Info(ctx, "Environment processing completed", map[string]interface{}{
+	logger.Info(ctx, "Environment processing completed", map[string]any{
 		"environment":      envName,
 		"successful_syncs": syncResponse.SuccessfulSyncs,
 		"failed_syncs":     syncResponse.FailedSyncs,
@@ -404,7 +401,7 @@ func (uc RepositoriesUseCase) validateSourceConfig(ctx context.Context, config p
 	logger := log.CreateDomainLogger(ctx)
 
 	// TRACE: Validation boundary entry
-	logger.Trace(ctx, "validateSourceConfig entry", map[string]interface{}{
+	logger.Trace(ctx, "validateSourceConfig entry", map[string]any{
 		"provider": config.ProviderType,
 		"domain":   config.Domain,
 		"owner":    config.Owner,
@@ -439,7 +436,7 @@ func (uc RepositoriesUseCase) validateSourceConfig(ctx context.Context, config p
 		return fmt.Errorf("unsupported provider type: %s (supported: %v)", config.ProviderType, validProviders)
 	}
 
-	logger.Debug(ctx, "Source configuration validation passed", map[string]interface{}{
+	logger.Debug(ctx, "Source configuration validation passed", map[string]any{
 		"provider": config.ProviderType,
 		"domain":   config.Domain,
 		"owner":    config.Owner,

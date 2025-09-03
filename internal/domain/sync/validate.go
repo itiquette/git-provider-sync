@@ -65,7 +65,7 @@ type ValidationError struct {
 	Component     string
 	Message       string
 	Field         string
-	Value         interface{}
+	Value         any
 	Severity      ValidationSeverity
 	CanAutoFix    bool
 	FixSuggestion string
@@ -130,7 +130,7 @@ const (
 	SeverityLow ValidationSeverity = "low"
 )
 
-// Execute performs comprehensive validation of the sync operation.
+// Execute validates the sync operation.
 func (uc ValidateSyncUseCase) Execute(
 	ctx context.Context,
 	request ValidateSyncRequest,

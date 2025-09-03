@@ -11,8 +11,6 @@
 //   - status: Show synchronization status and health checks
 //   - man: Generate manual pages
 //
-// Supported providers: GitHub, GitLab, Gitea, local directory, tar.gz archive
-//
 // The package structure includes:
 //   - Root command setup and global CLI configuration
 //   - Individual command implementations in dedicated subdirectories

@@ -14,8 +14,6 @@ import (
 )
 
 // ProtectionService provides Gitea-specific repository protection operations.
-//
-//	sophisticated protection service functionality .
 type ProtectionService struct {
 	client *gitea.Client
 	logger ports.Logger
@@ -58,7 +56,7 @@ type BranchProtectionRule struct {
 
 // ProtectRepository applies protection to a Gitea repository.
 func (ps *ProtectionService) ProtectRepository(ctx context.Context, request ProtectRepositoryRequest) error {
-	ps.logger.Debug(ctx, "Protecting Gitea repository", map[string]interface{}{
+	ps.logger.Debug(ctx, "Protecting Gitea repository", map[string]any{
 		"owner":                    request.Owner,
 		"repository":               request.RepositoryName,
 		"enable_branch_protection": request.EnableBranchProtection,
@@ -70,7 +68,7 @@ func (ps *ProtectionService) ProtectRepository(ctx context.Context, request Prot
 		}
 	}
 
-	ps.logger.Info(ctx, "Repository protection applied successfully", map[string]interface{}{
+	ps.logger.Info(ctx, "Repository protection applied successfully", map[string]any{
 		"owner":      request.Owner,
 		"repository": request.RepositoryName,
 	})
@@ -80,7 +78,7 @@ func (ps *ProtectionService) ProtectRepository(ctx context.Context, request Prot
 
 // UnprotectRepository removes protection from a Gitea repository.
 func (ps *ProtectionService) UnprotectRepository(ctx context.Context, owner, repositoryName string) error {
-	ps.logger.Debug(ctx, "Unprotecting Gitea repository", map[string]interface{}{
+	ps.logger.Debug(ctx, "Unprotecting Gitea repository", map[string]any{
 		"owner":      owner,
 		"repository": repositoryName,
 	})
@@ -88,7 +86,7 @@ func (ps *ProtectionService) UnprotectRepository(ctx context.Context, owner, rep
 	// List and remove all branch protections
 	protections, _, err := ps.client.ListBranchProtections(owner, repositoryName, gitea.ListBranchProtectionsOptions{})
 	if err != nil {
-		ps.logger.Warn(ctx, "Failed to list branch protections", map[string]interface{}{
+		ps.logger.Warn(ctx, "Failed to list branch protections", map[string]any{
 			"owner":      owner,
 			"repository": repositoryName,
 			"error":      err.Error(),
@@ -100,7 +98,7 @@ func (ps *ProtectionService) UnprotectRepository(ctx context.Context, owner, rep
 	for _, protection := range protections {
 		_, err := ps.client.DeleteBranchProtection(owner, repositoryName, protection.BranchName)
 		if err != nil {
-			ps.logger.Warn(ctx, "Failed to remove branch protection", map[string]interface{}{
+			ps.logger.Warn(ctx, "Failed to remove branch protection", map[string]any{
 				"owner":      owner,
 				"repository": repositoryName,
 				"branch":     protection.BranchName,
@@ -109,7 +107,7 @@ func (ps *ProtectionService) UnprotectRepository(ctx context.Context, owner, rep
 		}
 	}
 
-	ps.logger.Info(ctx, "Repository protection removed", map[string]interface{}{
+	ps.logger.Info(ctx, "Repository protection removed", map[string]any{
 		"owner":      owner,
 		"repository": repositoryName,
 	})
@@ -176,7 +174,7 @@ func (ps *ProtectionService) applyBranchProtectionRule(ctx context.Context, owne
 	// First, try to delete existing protection (if any)
 	_, err := ps.client.DeleteBranchProtection(owner, repositoryName, rule.BranchName)
 	if err != nil {
-		ps.logger.Debug(ctx, "Branch was not previously protected", map[string]interface{}{
+		ps.logger.Debug(ctx, "Branch was not previously protected", map[string]any{
 			"owner":       owner,
 			"repository":  repositoryName,
 			"branch_name": rule.BranchName,
@@ -189,7 +187,7 @@ func (ps *ProtectionService) applyBranchProtectionRule(ctx context.Context, owne
 		return fmt.Errorf("failed to create branch protection: %w", err)
 	}
 
-	ps.logger.Debug(ctx, "Branch protection applied", map[string]interface{}{
+	ps.logger.Debug(ctx, "Branch protection applied", map[string]any{
 		"owner":      owner,
 		"repository": repositoryName,
 		"branch":     rule.BranchName,

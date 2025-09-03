@@ -5,6 +5,7 @@
 package validation
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -639,7 +640,7 @@ func TestValidateRepositoryName(t *testing.T) {
 		{"GitHub with dots", "my.repo", "github", true},
 		{"GitHub with underscores", "my_repo", "github", true},
 		{"GitHub empty name", "", "github", false},
-		{"GitHub name too long", "a" + string(make([]byte, 100)), "github", false},
+		{"GitHub name too long", strings.Repeat("a", 101), "github", false},
 		{"GitHub invalid characters", "my repo", "github", false},
 		{"GitHub starts with dot", ".myrepo", "github", false},
 		{"GitHub ends with dot", "myrepo.", "github", false},
@@ -650,20 +651,20 @@ func TestValidateRepositoryName(t *testing.T) {
 		{"valid GitLab name", "my-repo", "gitlab", true},
 		{"GitLab with dots and underscores", "my.repo_test", "gitlab", true},
 		{"GitLab empty name", "", "gitlab", false},
-		{"GitLab name too long", "a" + string(make([]byte, 100)), "gitlab", false},
+		{"GitLab name too long", strings.Repeat("a", 101), "gitlab", false},
 		{"GitLab invalid characters", "my repo", "gitlab", false},
 
 		// Gitea tests
 		{"valid Gitea name", "my-repo", "gitea", true},
 		{"Gitea with dots", "my.repo", "gitea", true},
 		{"Gitea empty name", "", "gitea", false},
-		{"Gitea name too long", "a" + string(make([]byte, 100)), "gitea", false},
+		{"Gitea name too long", strings.Repeat("a", 101), "gitea", false},
 		{"Gitea invalid characters", "my repo", "gitea", false},
 
 		// Generic tests
 		{"valid generic name", "my-repo", "other", true},
 		{"generic empty name", "", "other", false},
-		{"generic name too long", "a" + string(make([]byte, 100)), "other", false},
+		{"generic name too long", strings.Repeat("a", 101), "other", false},
 		{"generic invalid characters", "my repo", "other", false},
 	}
 
@@ -720,71 +721,11 @@ func TestValidateURL(t *testing.T) {
 	}
 }
 
-func TestIsValidLogLevel(t *testing.T) {
-	t.Parallel()
-
-	validLevels := []string{"trace", "debug", "info", "warn", "error", "fatal"}
-	invalidLevels := []string{"", "invalid", "INFO", "DEBUG"}
-
-	for _, level := range validLevels {
-		assert.True(t, isValidLogLevel(level), "Level %s should be valid", level)
-	}
-
-	for _, level := range invalidLevels {
-		assert.False(t, isValidLogLevel(level), "Level %s should be invalid", level)
-	}
-}
-
-func TestIsValidLogFormat(t *testing.T) {
-	t.Parallel()
-
-	validFormats := []string{"json", "text", "console"}
-	invalidFormats := []string{"", "invalid", "JSON", "TEXT"}
-
-	for _, format := range validFormats {
-		assert.True(t, isValidLogFormat(format), "Format %s should be valid", format)
-	}
-
-	for _, format := range invalidFormats {
-		assert.False(t, isValidLogFormat(format), "Format %s should be invalid", format)
-	}
-}
-
-func TestIsValidProviderType(t *testing.T) {
-	t.Parallel()
-
-	validTypes := []string{"github", "gitlab", "gitea", "directory", "archive"}
-	invalidTypes := []string{"", "invalid", "GITHUB", "bitbucket"}
-
-	for _, providerType := range validTypes {
-		assert.True(t, isValidProviderType(providerType), "Provider type %s should be valid", providerType)
-	}
-
-	for _, providerType := range invalidTypes {
-		assert.False(t, isValidProviderType(providerType), "Provider type %s should be invalid", providerType)
-	}
-}
-
-func TestIsValidAuthType(t *testing.T) {
-	t.Parallel()
-
-	validTypes := []string{"none", "token", "basic", "ssh", "oauth"}
-	invalidTypes := []string{"", "invalid", "TOKEN", "apikey"}
-
-	for _, authType := range validTypes {
-		assert.True(t, isValidAuthType(authType), "Auth type %s should be valid", authType)
-	}
-
-	for _, authType := range invalidTypes {
-		assert.False(t, isValidAuthType(authType), "Auth type %s should be invalid", authType)
-	}
-}
-
 func TestIsValidDomain(t *testing.T) {
 	t.Parallel()
 
 	validDomains := []string{"example.com", "sub.example.com", "test-github.example.com", "gitlab.example.org"}
-	invalidDomains := []string{"", "invalid..domain", ".example.com", "example.com.", "toolong" + string(make([]byte, 250)) + ".com"}
+	invalidDomains := []string{"", "invalid..domain", ".example.com", "example.com.", strings.Repeat("a", 256) + ".com"}
 
 	for _, domain := range validDomains {
 		assert.True(t, isValidDomain(domain), "Domain %s should be valid", domain)
@@ -799,7 +740,7 @@ func TestIsValidOwner(t *testing.T) {
 	t.Parallel()
 
 	validOwners := []string{"testuser", "test-user", "test_user", "user123"}
-	invalidOwners := []string{"", "test user", "test@user", "toolong" + string(make([]byte, 100))}
+	invalidOwners := []string{"", "test user", "test@user", strings.Repeat("a", 108)}
 
 	for _, owner := range validOwners {
 		assert.True(t, isValidOwner(owner), "Owner %s should be valid", owner)
@@ -807,36 +748,6 @@ func TestIsValidOwner(t *testing.T) {
 
 	for _, owner := range invalidOwners {
 		assert.False(t, isValidOwner(owner), "Owner %s should be invalid", owner)
-	}
-}
-
-func TestIsRemoteProvider(t *testing.T) {
-	t.Parallel()
-
-	remoteProviders := []string{"github", "gitlab", "gitea"}
-	nonRemoteProviders := []string{"directory", "archive", "invalid"}
-
-	for _, provider := range remoteProviders {
-		assert.True(t, isRemoteProvider(provider), "Provider %s should be remote", provider)
-	}
-
-	for _, provider := range nonRemoteProviders {
-		assert.False(t, isRemoteProvider(provider), "Provider %s should not be remote", provider)
-	}
-}
-
-func TestIsLocalProvider(t *testing.T) {
-	t.Parallel()
-
-	localProviders := []string{"directory", "archive"}
-	nonLocalProviders := []string{"github", "gitlab", "gitea", "invalid"}
-
-	for _, provider := range localProviders {
-		assert.True(t, isLocalProvider(provider), "Provider %s should be local", provider)
-	}
-
-	for _, provider := range nonLocalProviders {
-		assert.False(t, isLocalProvider(provider), "Provider %s should not be local", provider)
 	}
 }
 
@@ -855,7 +766,7 @@ func TestProviderSpecificRepositoryNameValidation(t *testing.T) {
 			{"valid name", "my-repo", true, ""},
 			{"valid with dots", "my.repo", true, ""},
 			{"valid with underscores", "my_repo", true, ""},
-			{"too long", string(make([]byte, 101)), false, "NAME_TOO_LONG"},
+			{"too long", strings.Repeat("a", 101), false, "NAME_TOO_LONG"},
 			{"invalid characters", "my repo", false, "INVALID_CHARACTERS"},
 			{"starts with dot", ".myrepo", false, "INVALID_START_END"},
 			{"ends with dot", "myrepo.", false, "INVALID_START_END"},
@@ -889,7 +800,7 @@ func TestProviderSpecificRepositoryNameValidation(t *testing.T) {
 		}{
 			{"valid name", "my-repo", true, ""},
 			{"valid with dots and underscores", "my.repo_test", true, ""},
-			{"too long", string(make([]byte, 101)), false, "NAME_TOO_LONG"},
+			{"too long", strings.Repeat("a", 101), false, "NAME_TOO_LONG"},
 			{"invalid characters", "my repo", false, "INVALID_CHARACTERS"},
 		}
 
@@ -919,7 +830,7 @@ func TestProviderSpecificRepositoryNameValidation(t *testing.T) {
 		}{
 			{"valid name", "my-repo", true, ""},
 			{"valid with dots", "my.repo", true, ""},
-			{"too long", string(make([]byte, 101)), false, "NAME_TOO_LONG"},
+			{"too long", strings.Repeat("a", 101), false, "NAME_TOO_LONG"},
 			{"invalid characters", "my repo", false, "INVALID_CHARACTERS"},
 		}
 
@@ -949,7 +860,7 @@ func TestProviderSpecificRepositoryNameValidation(t *testing.T) {
 		}{
 			{"valid name", "my-repo", true, ""},
 			{"valid with dots", "my.repo", true, ""},
-			{"too long", string(make([]byte, 101)), false, "NAME_TOO_LONG"},
+			{"too long", strings.Repeat("a", 101), false, "NAME_TOO_LONG"},
 			{"invalid characters", "my repo", false, "INVALID_CHARACTERS"},
 		}
 

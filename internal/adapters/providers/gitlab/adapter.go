@@ -55,7 +55,7 @@ func New(token, domain string) (*Adapter, error) {
 	}, nil
 }
 
-// NewWithConfig creates a new GitLab adapter with advanced configuration.
+// NewWithConfig creates a new GitLab adapter with configuration.
 func NewWithConfig(_ context.Context, config Config) (*Adapter, error) {
 	var options []gitlab.ClientOptionFunc
 
@@ -132,7 +132,7 @@ func (a *Adapter) ListRepositories(ctx context.Context, _ ports.ProviderConfig) 
 	return allRepos, nil
 }
 
-// GetRepository gets a specific repository.
+// GetRepository fetches repository metadata from GitLab.
 func (a *Adapter) GetRepository(ctx context.Context, config ports.ProviderConfig, name string) (entities.Repository, error) {
 	projectPath := config.Owner + "/" + name
 
@@ -144,7 +144,7 @@ func (a *Adapter) GetRepository(ctx context.Context, config ports.ProviderConfig
 	return a.convertToRepository(project)
 }
 
-// RepositoryExists checks if a repository exists.
+// RepositoryExists verifies repository presence and returns its GitLab project ID if found.
 func (a *Adapter) RepositoryExists(ctx context.Context, request ports.RepositoryExistsRequest) (bool, string, error) {
 	projectPath := request.Owner + "/" + request.Name
 
@@ -160,7 +160,7 @@ func (a *Adapter) RepositoryExists(ctx context.Context, request ports.Repository
 	return true, strconv.Itoa(project.ID), nil
 }
 
-// CreateRepository creates a new repository.
+// CreateRepository initializes a new GitLab project with the specified options.
 func (a *Adapter) CreateRepository(ctx context.Context, config ports.ProviderConfig, options ports.CreateRepositoryOptions) (entities.Repository, error) {
 	visibility := gitlab.PublicVisibility
 	if options.Visibility == constants.VisibilityPrivate {

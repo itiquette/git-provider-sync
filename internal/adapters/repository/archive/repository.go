@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -365,12 +366,12 @@ func (r *Repository) ListFiles(_ context.Context, path string) ([]string, error)
 
 	var files []string
 
-	err := filepath.Walk(searchPath, func(filePath string, info os.FileInfo, err error) error {
+	err := filepath.WalkDir(searchPath, func(filePath string, dirEntry fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
 
-		if !info.IsDir() {
+		if !dirEntry.IsDir() {
 			relPath, err := filepath.Rel(r.path, filePath)
 			if err != nil {
 				return fmt.Errorf("failed to get relative path: %w", err)

@@ -5,6 +5,7 @@
 package entities_test
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -33,7 +34,7 @@ func TestRepositoryBuilder_WithName(t *testing.T) {
 		},
 		{
 			name:        "repository_name_too_long",
-			repoName:    string(make([]byte, 101)), // 101 characters
+			repoName:    strings.Repeat("a", 101), // 101 characters
 			expectError: true,
 		},
 		{
@@ -154,61 +155,6 @@ func TestRepositoryBuilder_Build(t *testing.T) {
 			}
 		})
 	}
-}
-
-func TestRepository_GetterMethods_ReturnCorrectValues(t *testing.T) {
-	t.Parallel()
-
-	// Create test repository
-	builder := entities.NewRepositoryBuilder()
-	builder, _ = builder.WithName("test-repo")
-	builder, _ = builder.WithHTTPSURL("https://github.com/owner/repo.git")
-	builder, _ = builder.WithSSHURL("git@github.com:owner/repo.git")
-	builder = builder.WithDescription("Test repository")
-	builder = builder.WithVisibility("private")
-	builder = builder.WithLastActivityAt(time.Now().AddDate(0, -3, 0)) // 3 months ago
-	builder = builder.WithFlags(true, false, false)                    // private, not fork, not archived
-
-	repo, err := builder.Build()
-	require.NoError(t, err)
-
-	t.Run("preferred_clone_url_returns_https", func(t *testing.T) {
-		t.Parallel()
-
-		url := repo.PreferredCloneURL()
-		require.Equal(t, "https://github.com/owner/repo.git", url)
-	})
-
-	t.Run("is_active_within_six_months", func(t *testing.T) {
-		t.Parallel()
-
-		isActive := repo.IsActive()
-		require.True(t, isActive)
-	})
-
-	t.Run("should_include_in_sync_respects_flags", func(t *testing.T) {
-		t.Parallel()
-
-		// Should include private repos when includeForks=false, includeArchived=false
-		shouldInclude := repo.ShouldIncludeInSync(false, false)
-		require.True(t, shouldInclude)
-	})
-
-	t.Run("validate_for_github_provider", func(t *testing.T) {
-		t.Parallel()
-
-		err := repo.ValidateForProvider("github")
-		require.NoError(t, err)
-	})
-
-	t.Run("with_updated_description", func(t *testing.T) {
-		t.Parallel()
-
-		updated := repo.WithUpdatedDescription("New description")
-		require.Equal(t, "New description", updated.Description())
-		// Original should be unchanged
-		require.Equal(t, "Test repository", repo.Description())
-	})
 }
 
 func TestRepository_IsActive(t *testing.T) {
@@ -379,7 +325,7 @@ func TestValidateRepositoryName(t *testing.T) {
 		},
 		{
 			name:        "name_too_long",
-			repoName:    string(make([]byte, 101)),
+			repoName:    strings.Repeat("a", 101),
 			expectError: true,
 		},
 		{

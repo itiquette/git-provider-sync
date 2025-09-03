@@ -15,7 +15,6 @@ import (
 )
 
 // ExtractRootInputOptions creates CLI configuration from command flags.
-// This follows hexagonal architecture by extracting options explicitly rather than hiding them in context.
 func ExtractRootInputOptions(cmd *cli.Command) (entities.CLIConfig, error) {
 	// Check for conflicting log level flags
 	if hasConflictingLogFlags(cmd) {

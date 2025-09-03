@@ -24,7 +24,6 @@ var (
 )
 
 // MirrorTarget represents a destination for repository mirroring with validation and behavior.
-// This is an immutable value object that encapsulates mirror configuration and operations.
 type MirrorTarget struct {
 	name         string
 	providerType ProviderType
@@ -72,7 +71,7 @@ type MirrorOptions struct {
 	disableProtection    bool // Restore main branch Settings.Disabled functionality
 }
 
-// MirrorTargetBuilder provides a functional approach to building mirror targets.
+// MirrorTargetBuilder builds mirror targets.
 type MirrorTargetBuilder struct {
 	target MirrorTarget
 }

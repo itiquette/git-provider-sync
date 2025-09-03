@@ -24,7 +24,6 @@ var (
 )
 
 // Repository represents a repository in the domain with immutable properties and behavior.
-// This is a value object that encapsulates repository metadata and validation logic.
 type Repository struct {
 	name           string
 	cleanName      string
@@ -41,7 +40,7 @@ type Repository struct {
 	isArchived     bool
 }
 
-// RepositoryBuilder provides a functional approach to building repositories.
+// RepositoryBuilder builds Repository instances.
 type RepositoryBuilder struct {
 	repo Repository
 }

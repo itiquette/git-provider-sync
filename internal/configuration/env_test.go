@@ -105,9 +105,9 @@ gitprovidersync:
 
 			// Verify
 			if testCase.wantSuccess {
-				assert.NoError(t, err, testCase.description)
+				require.NoError(t, err, testCase.description)
 			} else {
-				assert.Error(t, err, testCase.description)
+				require.Error(t, err, testCase.description)
 			}
 		})
 	}

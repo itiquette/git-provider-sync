@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-// Package sync provides repository synchronization domain logic.
+// Package sync implements repository synchronization logic.
 package sync
 
 import (
@@ -53,7 +53,6 @@ type FetchSourceResponse struct {
 }
 
 // Execute fetches repositories from the source provider.
-// This implements the core sourceRepositories logic.
 func (uc FetchSourceRepositoriesUseCase) Execute(
 	ctx context.Context,
 	request FetchSourceRequest,
@@ -65,7 +64,7 @@ func (uc FetchSourceRepositoriesUseCase) Execute(
 	var err error
 
 	// TRACE: Use case entry point (hexagonal boundary)
-	logger.Trace(ctx, "FetchSourceRepositoriesUseCase.Execute entry", map[string]interface{}{
+	logger.Trace(ctx, "FetchSourceRepositoriesUseCase.Execute entry", map[string]any{
 		"provider":      request.ProviderConfig.ProviderType,
 		"domain":        request.ProviderConfig.Domain,
 		"owner":         request.ProviderConfig.Owner,
@@ -75,7 +74,7 @@ func (uc FetchSourceRepositoriesUseCase) Execute(
 
 	defer func() {
 		// TRACE: Use case exit point with outcome
-		logger.Trace(ctx, "FetchSourceRepositoriesUseCase.Execute exit", map[string]interface{}{
+		logger.Trace(ctx, "FetchSourceRepositoriesUseCase.Execute exit", map[string]any{
 			"success":      response.Success,
 			"processed":    response.ProcessedCount,
 			"cloned_count": len(response.ClonedRepos),
@@ -85,13 +84,13 @@ func (uc FetchSourceRepositoriesUseCase) Execute(
 	}()
 
 	// INFO: Immediate feedback before network operation (< 100ms response)
-	logger.Info(ctx, "Fetching repository list from provider", map[string]interface{}{
+	logger.Info(ctx, "Fetching repository list from provider", map[string]any{
 		"provider": request.ProviderConfig.ProviderType,
 		"owner":    request.ProviderConfig.Owner,
 	})
 
 	// TRACE: Step 1 - Cross to provider adapter
-	logger.Trace(ctx, "crossing to provider adapter: ListRepositories", map[string]interface{}{
+	logger.Trace(ctx, "crossing to provider adapter: ListRepositories", map[string]any{
 		"step":     "1_list_repositories",
 		"provider": request.ProviderConfig.ProviderType,
 	})
@@ -102,7 +101,7 @@ func (uc FetchSourceRepositoriesUseCase) Execute(
 	}
 
 	// DEBUG: Repository fetch results (application state)
-	logger.Debug(ctx, "Repository metadata retrieved from provider", map[string]interface{}{
+	logger.Debug(ctx, "Repository metadata retrieved from provider", map[string]any{
 		"total_found": len(repositories),
 		"provider":    request.ProviderConfig.ProviderType,
 	})
@@ -117,7 +116,7 @@ func (uc FetchSourceRepositoriesUseCase) Execute(
 	}
 
 	// TRACE: Step 2 - Apply filters
-	logger.Trace(ctx, "applying repository filters", map[string]interface{}{
+	logger.Trace(ctx, "applying repository filters", map[string]any{
 		"step":                "2_apply_filters",
 		"include_forks":       request.IncludeForks,
 		"has_include_filters": len(request.Filters.IncludePatterns) > 0,
@@ -129,7 +128,7 @@ func (uc FetchSourceRepositoriesUseCase) Execute(
 	response.SkippedCount = len(repositories) - len(filteredRepos)
 
 	// DEBUG: Filter results (business logic outcome)
-	logger.Debug(ctx, "Repository filtering completed", map[string]interface{}{
+	logger.Debug(ctx, "Repository filtering completed", map[string]any{
 		"total_found":   len(repositories),
 		"after_filters": len(filteredRepos),
 		"skipped":       response.SkippedCount,
@@ -138,19 +137,19 @@ func (uc FetchSourceRepositoriesUseCase) Execute(
 	// TRACE: Step 3 - Check dry run mode
 	if request.DryRun {
 		// DEBUG: Conditional branch decision
-		logger.Debug(ctx, "Dry run mode enabled", map[string]interface{}{
+		logger.Debug(ctx, "Dry run mode enabled", map[string]any{
 			"skipping_clone":     true,
 			"repositories_count": len(filteredRepos),
 		})
 
 		// TRACE: Dry run repository enumeration
-		logger.Trace(ctx, "enumerating repositories for dry run", map[string]interface{}{
+		logger.Trace(ctx, "enumerating repositories for dry run", map[string]any{
 			"step": "3_dry_run_enumeration",
 		})
 
 		for _, repo := range filteredRepos {
 			// DEBUG: Repository details that would be cloned
-			logger.Debug(ctx, "Would clone repository", map[string]interface{}{
+			logger.Debug(ctx, "Would clone repository", map[string]any{
 				"name":        repo.Name(),
 				"clone_url":   repo.HTTPSURL(),
 				"visibility":  repo.Visibility(),
@@ -162,7 +161,7 @@ func (uc FetchSourceRepositoriesUseCase) Execute(
 	}
 
 	// TRACE: Step 4 - Clone repositories (critical git operations)
-	logger.Trace(ctx, "cloning repositories from source", map[string]interface{}{
+	logger.Trace(ctx, "cloning repositories from source", map[string]any{
 		"step":           "4_clone_repositories",
 		"to_clone_count": len(filteredRepos),
 	})
@@ -172,7 +171,7 @@ func (uc FetchSourceRepositoriesUseCase) Execute(
 	response.Errors = cloneErrors
 
 	// DEBUG: Clone operation results (final state)
-	logger.Debug(ctx, "Repository cloning completed", map[string]interface{}{
+	logger.Debug(ctx, "Repository cloning completed", map[string]any{
 		"successful_clones": len(clonedRepos),
 		"failed_clones":     len(cloneErrors),
 		"success":           len(cloneErrors) == 0,
@@ -182,7 +181,7 @@ func (uc FetchSourceRepositoriesUseCase) Execute(
 		response.Success = false
 
 		// DEBUG: Error state details
-		logger.Debug(ctx, "Some repositories failed to clone", map[string]interface{}{
+		logger.Debug(ctx, "Some repositories failed to clone", map[string]any{
 			"successful_clones": len(clonedRepos),
 			"failed_clones":     len(cloneErrors),
 			"total_attempted":   len(filteredRepos),
@@ -210,7 +209,7 @@ func (uc FetchSourceRepositoriesUseCase) applyFilters(
 	logger := log.CreateDomainLogger(ctx)
 
 	// TRACE: Internal method entry
-	logger.Trace(ctx, "applyFilters entry", map[string]interface{}{
+	logger.Trace(ctx, "applyFilters entry", map[string]any{
 		"total_repositories": len(repositories),
 		"include_forks":      includeForks,
 	})
@@ -220,7 +219,7 @@ func (uc FetchSourceRepositoriesUseCase) applyFilters(
 	for _, repo := range repositories {
 		if uc.shouldSkipRepo(ctx, repo, filters, includeForks) {
 			// DEBUG: Individual repository skip decision
-			logger.Debug(ctx, "Repository skipped by filters", map[string]interface{}{
+			logger.Debug(ctx, "Repository skipped by filters", map[string]any{
 				"name":        repo.Name(),
 				"is_fork":     repo.IsFork(),
 				"is_private":  repo.IsPrivate(),
@@ -234,7 +233,7 @@ func (uc FetchSourceRepositoriesUseCase) applyFilters(
 	}
 
 	// DEBUG: Final filtering results (business logic outcome)
-	logger.Debug(ctx, "Repository filtering completed", map[string]interface{}{
+	logger.Debug(ctx, "Repository filtering completed", map[string]any{
 		"input_count":  len(repositories),
 		"output_count": len(filtered),
 		"filtered_out": len(repositories) - len(filtered),
@@ -252,7 +251,7 @@ func (uc FetchSourceRepositoriesUseCase) shouldSkipRepo(ctx context.Context, rep
 	// Check fork exclusion first (performance optimization)
 	if repo.IsFork() && !includeForks && !filters.IncludeForks {
 		// DEBUG: Filter decision
-		logger.Debug(ctx, "Repository excluded: is fork", map[string]interface{}{
+		logger.Debug(ctx, "Repository excluded: is fork", map[string]any{
 			"name":          repo.Name(),
 			"include_forks": includeForks,
 		})
@@ -263,7 +262,7 @@ func (uc FetchSourceRepositoriesUseCase) shouldSkipRepo(ctx context.Context, rep
 	// Check archive status
 	if repo.IsArchived() && !filters.IncludeArchived {
 		// DEBUG: Filter decision
-		logger.Debug(ctx, "Repository excluded: is archived", map[string]interface{}{
+		logger.Debug(ctx, "Repository excluded: is archived", map[string]any{
 			"name": repo.Name(),
 		})
 
@@ -273,7 +272,7 @@ func (uc FetchSourceRepositoriesUseCase) shouldSkipRepo(ctx context.Context, rep
 	// Check private visibility
 	if repo.IsPrivate() && !filters.IncludePrivate {
 		// DEBUG: Filter decision
-		logger.Debug(ctx, "Repository excluded: is private", map[string]interface{}{
+		logger.Debug(ctx, "Repository excluded: is private", map[string]any{
 			"name": repo.Name(),
 		})
 
@@ -283,7 +282,7 @@ func (uc FetchSourceRepositoriesUseCase) shouldSkipRepo(ctx context.Context, rep
 	// Check public visibility
 	if !repo.IsPrivate() && !filters.IncludePublic {
 		// DEBUG: Filter decision
-		logger.Debug(ctx, "Repository excluded: is public", map[string]interface{}{
+		logger.Debug(ctx, "Repository excluded: is public", map[string]any{
 			"name": repo.Name(),
 		})
 
@@ -293,7 +292,7 @@ func (uc FetchSourceRepositoriesUseCase) shouldSkipRepo(ctx context.Context, rep
 	// Check name patterns (most complex check last)
 	if !uc.matchesPatterns(ctx, repo.Name(), filters.IncludePatterns, filters.ExcludePatterns) {
 		// DEBUG: Filter decision
-		logger.Debug(ctx, "Repository excluded: pattern mismatch", map[string]interface{}{
+		logger.Debug(ctx, "Repository excluded: pattern mismatch", map[string]any{
 			"name":             repo.Name(),
 			"include_patterns": filters.IncludePatterns,
 			"exclude_patterns": filters.ExcludePatterns,
@@ -314,7 +313,7 @@ func (uc FetchSourceRepositoriesUseCase) matchesPatterns(
 	logger := log.CreateDomainLogger(ctx)
 
 	// TRACE: Pattern matching entry
-	logger.Trace(ctx, "matchesPatterns entry", map[string]interface{}{
+	logger.Trace(ctx, "matchesPatterns entry", map[string]any{
 		"name":             name,
 		"include_patterns": includePatterns,
 		"exclude_patterns": excludePatterns,
@@ -328,7 +327,7 @@ func (uc FetchSourceRepositoriesUseCase) matchesPatterns(
 		if uc.matchPattern(ctx, name, pattern) {
 			included = true
 			// DEBUG: Pattern match result
-			logger.Debug(ctx, "Repository included by pattern", map[string]interface{}{
+			logger.Debug(ctx, "Repository included by pattern", map[string]any{
 				"name":    name,
 				"pattern": pattern,
 			})
@@ -339,7 +338,7 @@ func (uc FetchSourceRepositoriesUseCase) matchesPatterns(
 
 	if !included {
 		// DEBUG: No include pattern matched
-		logger.Debug(ctx, "Repository excluded: no include pattern matched", map[string]interface{}{
+		logger.Debug(ctx, "Repository excluded: no include pattern matched", map[string]any{
 			"name":             name,
 			"include_patterns": includePatterns,
 		})
@@ -351,7 +350,7 @@ func (uc FetchSourceRepositoriesUseCase) matchesPatterns(
 	for _, pattern := range excludePatterns {
 		if uc.matchPattern(ctx, name, pattern) {
 			// DEBUG: Excluded by pattern
-			logger.Debug(ctx, "Repository excluded by pattern", map[string]interface{}{
+			logger.Debug(ctx, "Repository excluded by pattern", map[string]any{
 				"name":    name,
 				"pattern": pattern,
 			})
@@ -370,7 +369,7 @@ func (uc FetchSourceRepositoriesUseCase) matchPattern(ctx context.Context, name,
 	// Simple wildcard matching - could be enhanced with proper glob matching
 	if pattern == "*" {
 		// DEBUG: Wildcard match
-		logger.Debug(ctx, "Pattern wildcard match", map[string]interface{}{
+		logger.Debug(ctx, "Pattern wildcard match", map[string]any{
 			"name":    name,
 			"pattern": pattern,
 			"result":  true,
@@ -381,7 +380,7 @@ func (uc FetchSourceRepositoriesUseCase) matchPattern(ctx context.Context, name,
 
 	matches := name == pattern
 	// DEBUG: Exact pattern match result
-	logger.Debug(ctx, "Pattern exact match", map[string]interface{}{
+	logger.Debug(ctx, "Pattern exact match", map[string]any{
 		"name":    name,
 		"pattern": pattern,
 		"result":  matches,
@@ -399,7 +398,7 @@ func (uc FetchSourceRepositoriesUseCase) cloneRepositories(
 	logger := log.CreateDomainLogger(ctx)
 
 	// TRACE: Internal method entry (git operations boundary)
-	logger.Trace(ctx, "cloneRepositories entry", map[string]interface{}{
+	logger.Trace(ctx, "cloneRepositories entry", map[string]any{
 		"repository_count": len(repositories),
 		"provider":         providerConfig.ProviderType,
 	})
@@ -409,7 +408,7 @@ func (uc FetchSourceRepositoriesUseCase) cloneRepositories(
 
 	for i, repo := range repositories {
 		// TRACE: Individual repository clone operation
-		logger.Trace(ctx, "cloning individual repository", map[string]interface{}{
+		logger.Trace(ctx, "cloning individual repository", map[string]any{
 			"index":     i + 1,
 			"total":     len(repositories),
 			"name":      repo.Name(),
@@ -417,7 +416,7 @@ func (uc FetchSourceRepositoriesUseCase) cloneRepositories(
 		})
 
 		// DEBUG: Repository clone details (application state)
-		logger.Debug(ctx, "Starting repository clone", map[string]interface{}{
+		logger.Debug(ctx, "Starting repository clone", map[string]any{
 			"name":           repo.Name(),
 			"clone_url":      repo.HTTPSURL(),
 			"default_branch": repo.DefaultBranch(),
@@ -428,7 +427,7 @@ func (uc FetchSourceRepositoriesUseCase) cloneRepositories(
 		tmpDir, err := uc.gitOperations.GetTmpDirPath(ctx)
 		if err != nil {
 			// DEBUG: Clone failure (error state)
-			logger.Debug(ctx, "Failed to get temp directory for clone", map[string]interface{}{
+			logger.Debug(ctx, "Failed to get temp directory for clone", map[string]any{
 				"name":  repo.Name(),
 				"error": err.Error(),
 			})
@@ -439,7 +438,7 @@ func (uc FetchSourceRepositoriesUseCase) cloneRepositories(
 
 		// DEBUG: Clone preparation state
 		clonePath := filepath.Join(tmpDir, repo.Name())
-		logger.Debug(ctx, "Prepared clone options", map[string]interface{}{
+		logger.Debug(ctx, "Prepared clone options", map[string]any{
 			"name":       repo.Name(),
 			"clone_path": clonePath,
 			"tmp_dir":    tmpDir,
@@ -469,7 +468,7 @@ func (uc FetchSourceRepositoriesUseCase) cloneRepositories(
 		}
 
 		// TRACE: Before crossing to git adapter (hexagonal boundary)
-		logger.Trace(ctx, "crossing to git adapter: Clone", map[string]interface{}{
+		logger.Trace(ctx, "crossing to git adapter: Clone", map[string]any{
 			"operation": "Clone",
 			"name":      repo.Name(),
 			"url":       repo.HTTPSURL(),
@@ -482,8 +481,8 @@ func (uc FetchSourceRepositoriesUseCase) cloneRepositories(
 			break
 		}
 
-		// INFO: Immediate feedback before network operation (robustness guideline)
-		logger.Info(ctx, "Cloning repository", map[string]interface{}{
+		// Log before network operation
+		logger.Info(ctx, "Cloning repository", map[string]any{
 			"name": repo.Name(),
 			"url":  repo.HTTPSURL(),
 		})
@@ -492,7 +491,7 @@ func (uc FetchSourceRepositoriesUseCase) cloneRepositories(
 		gitRepo, err := uc.gitOperations.Clone(ctx, cloneOptions)
 		if err != nil {
 			// DEBUG: Clone failure (error state)
-			logger.Debug(ctx, "Repository clone failed", map[string]interface{}{
+			logger.Debug(ctx, "Repository clone failed", map[string]any{
 				"name":  repo.Name(),
 				"url":   repo.HTTPSURL(),
 				"error": err.Error(),
@@ -503,7 +502,7 @@ func (uc FetchSourceRepositoriesUseCase) cloneRepositories(
 		}
 
 		// DEBUG: Successful clone (application state)
-		logger.Debug(ctx, "Repository cloned successfully", map[string]interface{}{
+		logger.Debug(ctx, "Repository cloned successfully", map[string]any{
 			"name":       repo.Name(),
 			"clone_path": clonePath,
 		})
@@ -512,7 +511,7 @@ func (uc FetchSourceRepositoriesUseCase) cloneRepositories(
 	}
 
 	// DEBUG: Final cloning results (business logic outcome)
-	logger.Debug(ctx, "Repository cloning completed", map[string]interface{}{
+	logger.Debug(ctx, "Repository cloning completed", map[string]any{
 		"total_attempted":   len(repositories),
 		"successful_clones": len(clonedRepos),
 		"failed_clones":     len(errors),

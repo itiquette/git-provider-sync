@@ -16,8 +16,6 @@ import (
 )
 
 // PushOption represents options for a git push operation.
-// It encapsulates the target repository, reference specifications,
-// and flags for pruning and force pushing.
 type PushOption struct {
 	Force    bool // Whether to force push (overwrite remote history)
 	AuthCfg  model.AuthConfig

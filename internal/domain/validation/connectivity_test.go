@@ -33,7 +33,7 @@ func (m *mockConnectivityValidator) ValidateConnectivity(_ context.Context, vali
 		Validation: validation,
 		Success:    true,
 		Duration:   time.Millisecond * 100,
-		Details:    make(map[string]interface{}),
+		Details:    make(map[string]any),
 	}
 }
 
@@ -701,7 +701,7 @@ func TestConnectivityStructures(t *testing.T) {
 		t.Parallel()
 
 		validation := ConnectivityValidation{Type: ConnectivityTypeHTTP, Target: "https://test-github.example.com"}
-		details := map[string]interface{}{"status_code": 200}
+		details := map[string]any{"status_code": 200}
 
 		result := ConnectivityResult{
 			Validation: validation,
@@ -740,7 +740,7 @@ func TestConnectivityStructures(t *testing.T) {
 		t.Parallel()
 
 		validation := FileSystemValidation{Type: FileSystemTypeDirectory, Path: "/path/to/directory"}
-		details := map[string]interface{}{"permissions": "755"}
+		details := map[string]any{"permissions": "755"}
 
 		result := FileSystemResult{
 			Validation: validation,

@@ -6,6 +6,7 @@ package gitbinary
 
 import (
 	"context"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"testing"
@@ -343,7 +344,7 @@ func TestCleanup(t *testing.T) {
 
 	// Verify directory is gone
 	_, err = os.Stat(testDir)
-	assert.True(t, os.IsNotExist(err))
+	require.ErrorIs(t, err, fs.ErrNotExist)
 }
 
 // Performance benchmarks.

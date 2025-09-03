@@ -14,15 +14,13 @@ import (
 	"itiquette/git-provider-sync/internal/domain/ports"
 )
 
-// ProtectionService provides GitHub-specific repository protection operations with advanced features.
-//
-//	sophisticated protection service functionality  completely.
+// ProtectionService for GitHub repository protection operations.
 type ProtectionService struct {
 	client *github.Client
 	logger ports.Logger
 }
 
-// NewProtectionService creates a new GitHub protection service with advanced capabilities.
+// NewProtectionService creates a new GitHub protection service.
 func NewProtectionService(client *github.Client, logger ports.Logger) *ProtectionService {
 	return &ProtectionService{
 		client: client,
@@ -104,9 +102,9 @@ type TagProtectionRule struct {
 	Pattern string
 }
 
-// ProtectRepository applies comprehensive protection to a GitHub repository.
+// ProtectRepository applies protection to a GitHub repository.
 func (ps *ProtectionService) ProtectRepository(ctx context.Context, request ProtectRepositoryRequest) error {
-	ps.logger.Debug(ctx, "Protecting GitHub repository", map[string]interface{}{
+	ps.logger.Debug(ctx, "Protecting GitHub repository", map[string]any{
 		"owner":                    request.Owner,
 		"repository":               request.RepositoryName,
 		"disable_actions":          request.DisableActions,
@@ -117,7 +115,7 @@ func (ps *ProtectionService) ProtectRepository(ctx context.Context, request Prot
 	// Disable GitHub Actions if requested
 	if request.DisableActions {
 		if err := ps.disableActions(ctx, request.Owner, request.RepositoryName); err != nil {
-			ps.logger.Warn(ctx, "Failed to disable GitHub Actions", map[string]interface{}{
+			ps.logger.Warn(ctx, "Failed to disable GitHub Actions", map[string]any{
 				"owner":      request.Owner,
 				"repository": request.RepositoryName,
 				"error":      err.Error(),
@@ -141,13 +139,13 @@ func (ps *ProtectionService) ProtectRepository(ctx context.Context, request Prot
 
 	// Enable security features (skipped - requires additional API endpoints)
 	if request.EnableSecurityFeatures {
-		ps.logger.Debug(ctx, "Security features configuration skipped", map[string]interface{}{
+		ps.logger.Debug(ctx, "Security features configuration skipped", map[string]any{
 			"owner":      request.Owner,
 			"repository": request.RepositoryName,
 		})
 	}
 
-	ps.logger.Info(ctx, "Repository protection applied successfully", map[string]interface{}{
+	ps.logger.Info(ctx, "Repository protection applied successfully", map[string]any{
 		"owner":      request.Owner,
 		"repository": request.RepositoryName,
 	})
@@ -157,7 +155,7 @@ func (ps *ProtectionService) ProtectRepository(ctx context.Context, request Prot
 
 // UnprotectRepository removes protection from a GitHub repository.
 func (ps *ProtectionService) UnprotectRepository(ctx context.Context, owner, repositoryName string) error {
-	ps.logger.Debug(ctx, "Unprotecting GitHub repository", map[string]interface{}{
+	ps.logger.Debug(ctx, "Unprotecting GitHub repository", map[string]any{
 		"owner":      owner,
 		"repository": repositoryName,
 	})
@@ -171,7 +169,7 @@ func (ps *ProtectionService) UnprotectRepository(ctx context.Context, owner, rep
 	if repo.DefaultBranch != nil {
 		_, err = ps.client.Repositories.RemoveBranchProtection(ctx, owner, repositoryName, *repo.DefaultBranch)
 		if err != nil && !strings.Contains(err.Error(), "404") {
-			ps.logger.Warn(ctx, "Failed to remove branch protection", map[string]interface{}{
+			ps.logger.Warn(ctx, "Failed to remove branch protection", map[string]any{
 				"owner":      owner,
 				"repository": repositoryName,
 				"branch":     *repo.DefaultBranch,
@@ -180,7 +178,7 @@ func (ps *ProtectionService) UnprotectRepository(ctx context.Context, owner, rep
 		}
 	}
 
-	ps.logger.Info(ctx, "Repository protection removed", map[string]interface{}{
+	ps.logger.Info(ctx, "Repository protection removed", map[string]any{
 		"owner":      owner,
 		"repository": repositoryName,
 	})
@@ -188,16 +186,16 @@ func (ps *ProtectionService) UnprotectRepository(ctx context.Context, owner, rep
 	return nil
 }
 
-// ProtectAdvanced applies sophisticated protection to a repository using comprehensive techniques.
+// ProtectAdvanced applies protection to a repository using techniques.
 func (ps *ProtectionService) ProtectAdvanced(ctx context.Context, owner, projectName string) error {
-	ps.logger.Debug(ctx, "Applying advanced GitHub protection", map[string]interface{}{
+	ps.logger.Debug(ctx, "Applying GitHub protection", map[string]any{
 		"owner":       owner,
 		"projectName": projectName,
 	})
 
 	// 1. Disable GitHub Actions
 	if err := ps.disableActions(ctx, owner, projectName); err != nil {
-		ps.logger.Warn(ctx, "Failed to disable Actions", map[string]interface{}{
+		ps.logger.Warn(ctx, "Failed to disable Actions", map[string]any{
 			"owner":       owner,
 			"projectName": projectName,
 			"error":       err.Error(),
@@ -206,7 +204,7 @@ func (ps *ProtectionService) ProtectAdvanced(ctx context.Context, owner, project
 
 	// 2. Enable branch protection with rulesets
 	if err := ps.enableBranchProtection(ctx, owner, projectName); err != nil {
-		ps.logger.Warn(ctx, "Failed to enable branch protection", map[string]interface{}{
+		ps.logger.Warn(ctx, "Failed to enable branch protection", map[string]any{
 			"owner":       owner,
 			"projectName": projectName,
 			"error":       err.Error(),
@@ -215,14 +213,14 @@ func (ps *ProtectionService) ProtectAdvanced(ctx context.Context, owner, project
 
 	// 3. Enable tag protection with rulesets
 	if err := ps.enableTagProtection(ctx, owner, projectName); err != nil {
-		ps.logger.Warn(ctx, "Failed to enable tag protection", map[string]interface{}{
+		ps.logger.Warn(ctx, "Failed to enable tag protection", map[string]any{
 			"owner":       owner,
 			"projectName": projectName,
 			"error":       err.Error(),
 		})
 	}
 
-	ps.logger.Info(ctx, "Advanced GitHub protection applied successfully", map[string]interface{}{
+	ps.logger.Info(ctx, "Advanced GitHub protection applied successfully", map[string]any{
 		"owner":       owner,
 		"projectName": projectName,
 	})
@@ -230,9 +228,9 @@ func (ps *ProtectionService) ProtectAdvanced(ctx context.Context, owner, project
 	return nil
 }
 
-// UnprotectAdvanced removes sophisticated protection from a repository.
+// UnprotectAdvanced removes protection from a repository.
 func (ps *ProtectionService) UnprotectAdvanced(ctx context.Context, branch, owner, projectName string) error {
-	ps.logger.Debug(ctx, "Removing advanced GitHub protection", map[string]interface{}{
+	ps.logger.Debug(ctx, "Removing GitHub protection", map[string]any{
 		"owner":       owner,
 		"projectName": projectName,
 		"branch":      branch,
@@ -243,7 +241,7 @@ func (ps *ProtectionService) UnprotectAdvanced(ctx context.Context, branch, owne
 		return fmt.Errorf("failed to disable protected branches. projectName: %s. err: %w", projectName, err)
 	}
 
-	ps.logger.Info(ctx, "Advanced GitHub protection removed successfully", map[string]interface{}{
+	ps.logger.Info(ctx, "Advanced GitHub protection removed successfully", map[string]any{
 		"owner":       owner,
 		"projectName": projectName,
 	})
@@ -254,7 +252,7 @@ func (ps *ProtectionService) UnprotectAdvanced(ctx context.Context, branch, owne
 // disableActions disables GitHub Actions for a repository
 
 func (ps *ProtectionService) disableActions(ctx context.Context, owner, projectName string) error {
-	ps.logger.Debug(ctx, "Disabling GitHub Actions", map[string]interface{}{
+	ps.logger.Debug(ctx, "Disabling GitHub Actions", map[string]any{
 		"owner":       owner,
 		"projectName": projectName,
 	})
@@ -273,7 +271,7 @@ func (ps *ProtectionService) disableActions(ctx context.Context, owner, projectN
 		return fmt.Errorf("failed to disable Actions. projectName: %s. err: %w", projectName, err)
 	}
 
-	ps.logger.Debug(ctx, "GitHub Actions disabled successfully", map[string]interface{}{
+	ps.logger.Debug(ctx, "GitHub Actions disabled successfully", map[string]any{
 		"owner":       owner,
 		"projectName": projectName,
 	})
@@ -281,10 +279,10 @@ func (ps *ProtectionService) disableActions(ctx context.Context, owner, projectN
 	return nil
 }
 
-// enableBranchProtection enables sophisticated branch protection using rulesets
+// enableBranchProtection enables branch protection using rulesets
 
 func (ps *ProtectionService) enableBranchProtection(ctx context.Context, owner, projectName string) error {
-	ps.logger.Debug(ctx, "Enabling GitHub branch protection with rulesets", map[string]interface{}{
+	ps.logger.Debug(ctx, "Enabling GitHub branch protection with rulesets", map[string]any{
 		"owner":       owner,
 		"projectName": projectName,
 	})
@@ -316,7 +314,7 @@ func (ps *ProtectionService) enableBranchProtection(ctx context.Context, owner, 
 	if err != nil {
 		if strings.Contains(err.Error(), "403") && strings.Contains(err.Error(), "Upgrade to GitHub Pro") {
 			// This is expected for non-Pro repositories, return nil to continue
-			ps.logger.Debug(ctx, "GitHub Pro required for rulesets, skipping", map[string]interface{}{
+			ps.logger.Debug(ctx, "GitHub Pro required for rulesets, skipping", map[string]any{
 				"owner":       owner,
 				"projectName": projectName,
 			})
@@ -327,7 +325,7 @@ func (ps *ProtectionService) enableBranchProtection(ctx context.Context, owner, 
 		return fmt.Errorf("failed to create ruleset protection. projectName: %s. err: %w", projectName, err)
 	}
 
-	ps.logger.Debug(ctx, "GitHub branch protection enabled successfully", map[string]interface{}{
+	ps.logger.Debug(ctx, "GitHub branch protection enabled successfully", map[string]any{
 		"owner":       owner,
 		"projectName": projectName,
 	})
@@ -335,10 +333,10 @@ func (ps *ProtectionService) enableBranchProtection(ctx context.Context, owner, 
 	return nil
 }
 
-// enableTagProtection enables sophisticated tag protection using rulesets
+// enableTagProtection enables tag protection using rulesets
 
 func (ps *ProtectionService) enableTagProtection(ctx context.Context, owner, projectName string) error {
-	ps.logger.Debug(ctx, "Enabling GitHub tag protection with rulesets", map[string]interface{}{
+	ps.logger.Debug(ctx, "Enabling GitHub tag protection with rulesets", map[string]any{
 		"owner":       owner,
 		"projectName": projectName,
 	})
@@ -366,7 +364,7 @@ func (ps *ProtectionService) enableTagProtection(ctx context.Context, owner, pro
 	if err != nil {
 		if strings.Contains(err.Error(), "403") && strings.Contains(err.Error(), "Upgrade to GitHub Pro") {
 			// This is expected for non-Pro repositories, return nil to continue
-			ps.logger.Debug(ctx, "GitHub Pro required for tag rulesets, skipping", map[string]interface{}{
+			ps.logger.Debug(ctx, "GitHub Pro required for tag rulesets, skipping", map[string]any{
 				"owner":       owner,
 				"projectName": projectName,
 			})
@@ -377,7 +375,7 @@ func (ps *ProtectionService) enableTagProtection(ctx context.Context, owner, pro
 		return fmt.Errorf("failed to protect tags: %w", err)
 	}
 
-	ps.logger.Debug(ctx, "GitHub tag protection enabled successfully", map[string]interface{}{
+	ps.logger.Debug(ctx, "GitHub tag protection enabled successfully", map[string]any{
 		"owner":       owner,
 		"projectName": projectName,
 	})
@@ -388,7 +386,7 @@ func (ps *ProtectionService) enableTagProtection(ctx context.Context, owner, pro
 // deleteAllRulesets removes all rulesets from a repository
 
 func (ps *ProtectionService) deleteAllRulesets(ctx context.Context, owner, projectName string) error {
-	ps.logger.Debug(ctx, "Deleting all GitHub rulesets", map[string]interface{}{
+	ps.logger.Debug(ctx, "Deleting all GitHub rulesets", map[string]any{
 		"owner":       owner,
 		"projectName": projectName,
 	})
@@ -399,7 +397,7 @@ func (ps *ProtectionService) deleteAllRulesets(ctx context.Context, owner, proje
 		// Check for upgrade requirement or 404 errors
 		if strings.Contains(err.Error(), "403") && strings.Contains(err.Error(), "Upgrade to GitHub Pro") {
 			// This is expected for non-Pro repositories, return nil to continue
-			ps.logger.Debug(ctx, "GitHub Pro required for rulesets, skipping", map[string]interface{}{
+			ps.logger.Debug(ctx, "GitHub Pro required for rulesets, skipping", map[string]any{
 				"owner":       owner,
 				"projectName": projectName,
 			})
@@ -417,7 +415,7 @@ func (ps *ProtectionService) deleteAllRulesets(ctx context.Context, owner, proje
 		}
 	}
 
-	ps.logger.Debug(ctx, "All GitHub rulesets deleted successfully", map[string]interface{}{
+	ps.logger.Debug(ctx, "All GitHub rulesets deleted successfully", map[string]any{
 		"owner":       owner,
 		"projectName": projectName,
 		"count":       len(rulesets),
@@ -429,7 +427,7 @@ func (ps *ProtectionService) deleteAllRulesets(ctx context.Context, owner, proje
 // deleteRuleset deletes a single ruleset by ID
 
 func (ps *ProtectionService) deleteRuleset(ctx context.Context, owner, projectName string, rulesetID int64) error {
-	ps.logger.Debug(ctx, "Deleting GitHub ruleset", map[string]interface{}{
+	ps.logger.Debug(ctx, "Deleting GitHub ruleset", map[string]any{
 		"owner":       owner,
 		"projectName": projectName,
 		"rulesetID":   rulesetID,
@@ -441,7 +439,7 @@ func (ps *ProtectionService) deleteRuleset(ctx context.Context, owner, projectNa
 			projectName, rulesetID, err)
 	}
 
-	ps.logger.Debug(ctx, "GitHub ruleset deleted successfully", map[string]interface{}{
+	ps.logger.Debug(ctx, "GitHub ruleset deleted successfully", map[string]any{
 		"owner":       owner,
 		"projectName": projectName,
 		"rulesetID":   rulesetID,

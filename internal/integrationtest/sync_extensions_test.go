@@ -15,11 +15,11 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"itiquette/git-provider-sync/internal/adapters/repository/gogit"
-	"itiquette/git-provider-sync/internal/integrationtest/testutil"
 	"itiquette/git-provider-sync/internal/domain/ports"
+	"itiquette/git-provider-sync/internal/integrationtest/testutil"
 )
 
-// Enhanced integration tests with safe git test environment utility
+// Integration tests with git test environment utility
 func TestEnhancedGitOperationsIntegration(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping enhanced integration test in short mode")
@@ -53,12 +53,12 @@ func testCompleteRepositoryLifecycle(t *testing.T, gitOps ports.GitOperations) {
 	// Use safe git test environment utility
 	env, err := testutil.SetupGitTestEnvironment(t, gitOps, testutil.GitTestOptions{
 		SourceRepoName:  "lifecycle-source",
-		TargetRepoName:  "lifecycle-target", 
+		TargetRepoName:  "lifecycle-target",
 		WorkingRepoName: "lifecycle-repo",
 		InitialFiles: map[string]string{
-			"README.md":         "# Lifecycle Test Repository\\n\\nTesting complete repository lifecycle",
-			"src/main.go":       "package main\\n\\nfunc main() {\\n\\tprintln(\\\"Lifecycle test!\\\")\\n}",
-			"docs/setup.md":     "# Setup Instructions\\n\\nHow to set up the project",
+			"README.md":          "# Lifecycle Test Repository\\n\\nTesting complete repository lifecycle",
+			"src/main.go":        "package main\\n\\nfunc main() {\\n\\tprintln(\\\"Lifecycle test!\\\")\\n}",
+			"docs/setup.md":      "# Setup Instructions\\n\\nHow to set up the project",
 			"tests/main_test.go": "package main\\n\\nimport \\\"testing\\\"\\n\\nfunc TestMain(t *testing.T) {\\n\\tt.Log(\\\"test\\\")\\n}",
 		},
 		AddRemotes: map[string]string{
@@ -122,7 +122,7 @@ func testCompleteRepositoryLifecycle(t *testing.T, gitOps ports.GitOperations) {
 	require.NotNil(t, updatedOrigin, "Should find updated origin remote")
 	assert.Equal(t, env.GetTargetURL(), updatedOrigin.URL, "Remote URL should point to target")
 
-	t.Logf("✅ Repository lifecycle test completed: origin updated from source (%s) to target (%s)", 
+	t.Logf("✅ Repository lifecycle test completed: origin updated from source (%s) to target (%s)",
 		env.GetSourceURL(), env.GetTargetURL())
 }
 
@@ -132,7 +132,7 @@ func testLargeRepositoryOperations(t *testing.T, gitOps ports.GitOperations) {
 
 	// Create large repository with many files using safe test utility
 	largeFileSet := make(map[string]string)
-	
+
 	// Generate multiple directories with multiple files each
 	dirs := []string{"src", "docs", "tests", "config", "assets", "scripts"}
 	for _, dir := range dirs {
@@ -200,17 +200,17 @@ func testLargeRepositoryOperations(t *testing.T, gitOps ports.GitOperations) {
 	t.Logf("Repository status clean: %t", status.IsClean)
 }
 
-// testRemoteManagementComprehensive tests comprehensive remote management scenarios
+// testRemoteManagementtests remote management scenarios
 func testRemoteManagementComprehensive(t *testing.T, gitOps ports.GitOperations) {
 	ctx := context.Background()
 
-	// Use safe test environment utility for comprehensive remote testing
+	// Use safe test environment utility for remote testing
 	env, err := testutil.SetupGitTestEnvironment(t, gitOps, testutil.GitTestOptions{
 		SourceRepoName:  "remote-source",
 		TargetRepoName:  "remote-target",
 		WorkingRepoName: "remote-mgmt-repo",
 		InitialFiles: map[string]string{
-			"README.md":     "# Remote Management Test\\n\\nTesting comprehensive remote scenarios",
+			"README.md":     "# Remote Management Test\\n\\nTesting remote scenarios",
 			"src/config.go": "package main\\n\\n// Remote management configuration",
 		},
 		AddRemotes: map[string]string{
@@ -219,7 +219,7 @@ func testRemoteManagementComprehensive(t *testing.T, gitOps ports.GitOperations)
 	})
 	require.NoError(t, err)
 
-	// Test comprehensive remote management scenarios
+	// Test remote management scenarios
 	remoteConfigs := []struct {
 		name string
 		url  string
@@ -291,7 +291,7 @@ func testRemoteManagementComprehensive(t *testing.T, gitOps ports.GitOperations)
 	err = env.WorkingRepo.Repo.AddRemote(ctx, "target", env.GetTargetURL())
 	require.NoError(t, err, "Should add target remote")
 
-	t.Logf("✅ Comprehensive remote management test completed")
+	t.Logf("✅ remote management test completed")
 	t.Logf("   Source URL: %s", env.GetSourceURL())
 	t.Logf("   Target URL: %s", env.GetTargetURL())
 	t.Logf("   Total remotes tested: %d", len(remoteConfigs)+2) // origin, target, + others

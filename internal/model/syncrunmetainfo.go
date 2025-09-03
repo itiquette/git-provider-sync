@@ -5,9 +5,7 @@
 package model
 
 import (
-	"context"
 	"fmt"
-	"slices"
 	"strings"
 )
 
@@ -38,21 +36,6 @@ type SyncRunMetainfo struct {
 	Fail *map[string][]string
 }
 
-// NewSyncRunMetainfo creates a new SyncRunMetainfo instance.
-// It initializes a SyncRunMetainfo struct with the provided values
-// and an empty Fail map.
-func NewSyncRunMetainfo(ctxID int, source, target string, total int) *SyncRunMetainfo {
-	failMap := make(map[string][]string, 200)
-
-	return &SyncRunMetainfo{
-		CtxID:  ctxID,
-		Source: source,
-		Target: target,
-		Total:  total,
-		Fail:   &failMap,
-	}
-}
-
 // String provides a string representation of SyncRunMetainfo.
 // It formats all the fields of SyncRunMetainfo into a human-readable string,
 // including a detailed representation of any failures.
@@ -81,29 +64,6 @@ func (s *SyncRunMetainfo) AddFailure(key, value string) {
 	}
 
 	(*s.Fail)[key] = append((*s.Fail)[key], value)
-}
-
-// ContainsFailure checks if a specific name is in the failure list for a given type.
-func ContainsFailure(ctx context.Context, name string) bool {
-	if meta, ok := ctx.Value(SyncRunMetainfoKey{}).(*SyncRunMetainfo); ok {
-		failList := (*meta.Fail)["invalid"]
-
-		return slices.Contains(failList, name)
-	}
-
-	return false
-}
-
-// GetSyncRunMetainfo retrieves SyncRunMetainfo from context.
-func GetSyncRunMetainfo(ctx context.Context) (*SyncRunMetainfo, bool) {
-	meta, ok := ctx.Value(SyncRunMetainfoKey{}).(*SyncRunMetainfo)
-
-	return meta, ok
-}
-
-// WithSyncRunMetainfo adds SyncRunMetainfo to context.
-func WithSyncRunMetainfo(ctx context.Context, meta *SyncRunMetainfo) context.Context {
-	return context.WithValue(ctx, SyncRunMetainfoKey{}, meta)
 }
 
 // GetFailuresByType returns failures of a specific type.

@@ -220,16 +220,25 @@ func TestConfigContext_Propagation(t *testing.T) {
 	ctx2 := WithCLIConfig(ctx1, config)
 	ctx3 := context.WithValue(ctx2, testContextKey("extra"), "value")
 
-	// All contexts in the chain should have access to the config
+	// Test that config propagates through context chain correctly
 	_, found1 := ConfigFromContext(ctx1)
 	config2, found2 := ConfigFromContext(ctx2)
 	config3, found3 := ConfigFromContext(ctx3)
 
+	// ctx1 (base) should not have config
 	assert.False(t, found1)
+
+	// ctx2 (with config) should have config
 	require.True(t, found2)
+	assert.Equal(t, config.ConfigFilePath(), config2.ConfigFilePath())
+	assert.Equal(t, config.OutputFormat(), config2.OutputFormat())
+	assert.Equal(t, config.Quiet(), config2.Quiet())
+
+	// ctx3 (derived from ctx2) should inherit the same config
 	require.True(t, found3)
-	assert.Equal(t, config, config2)
-	assert.Equal(t, config, config3)
+	assert.Equal(t, config2.ConfigFilePath(), config3.ConfigFilePath())
+	assert.Equal(t, config2.OutputFormat(), config3.OutputFormat())
+	assert.Equal(t, config2.Quiet(), config3.Quiet())
 
 	// Extra value should only be in ctx3
 	assert.Nil(t, ctx1.Value(testContextKey("extra")))

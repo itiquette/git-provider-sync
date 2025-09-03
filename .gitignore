@@ -36,3 +36,4 @@ go.work
 /gitprovidersync
 generated/manpages/
 generated/completions/
+*.bak

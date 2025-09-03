@@ -16,11 +16,11 @@ import (
 	"itiquette/git-provider-sync/internal/domain/ports"
 )
 
-// CompleteAdapter provides a comprehensive GitHub adapter with all services.
+// CompleteAdapter provides a GitHub adapter with all services.
 type CompleteAdapter struct {
 	*Adapter // Embed the basic adapter
 
-	// Sophisticated service layers
+	// service layers
 	projectService    *ProjectService
 	protectionService *ProtectionService
 	filterService     *FilterService
@@ -49,7 +49,7 @@ func NewCompleteAdapter(ctx context.Context, config Config, logger ports.Logger)
 		client, err = client.WithEnterpriseURLs(config.BaseURL, config.UploadURL)
 		if err != nil {
 			// Log error but continue with default client
-			logger.Error(ctx, "Failed to set GitHub enterprise URLs", map[string]interface{}{
+			logger.Error(ctx, "Failed to set GitHub enterprise URLs", map[string]any{
 				"baseURL":   config.BaseURL,
 				"uploadURL": config.UploadURL,
 				"error":     err.Error(),
@@ -76,13 +76,13 @@ func NewCompleteAdapter(ctx context.Context, config Config, logger ports.Logger)
 	}
 }
 
-// CreateRepositoryWithAdvancedOptions creates a repository with sophisticated options.
+// CreateRepositoryWithAdvancedOptions creates a repository with options.
 func (ca *CompleteAdapter) CreateRepositoryWithAdvancedOptions(
 	ctx context.Context,
 	config ports.ProviderConfig,
 	options CreateProjectRequest,
 ) (*entities.Repository, error) {
-	ca.logger.Info(ctx, "Creating GitHub repository with advanced options", map[string]interface{}{
+	ca.logger.Info(ctx, "Creating GitHub repository", map[string]any{
 		"owner": config.Owner,
 		"name":  options.Name,
 	})
@@ -98,7 +98,7 @@ func (ca *CompleteAdapter) CreateRepositoryWithAdvancedOptions(
 		return nil, fmt.Errorf("failed to create repository: %w", err)
 	}
 
-	ca.logger.Info(ctx, "GitHub repository created successfully", map[string]interface{}{
+	ca.logger.Info(ctx, "GitHub repository created successfully", map[string]any{
 		"owner": config.Owner,
 		"name":  options.Name,
 		"url":   repository.HTTPSURL(),
@@ -107,14 +107,14 @@ func (ca *CompleteAdapter) CreateRepositoryWithAdvancedOptions(
 	return repository, nil
 }
 
-// ApplyRepositoryProtection applies comprehensive protection to a repository.
+// ApplyRepositoryProtection applies protection to a repository.
 func (ca *CompleteAdapter) ApplyRepositoryProtection(
 	ctx context.Context,
 	config ports.ProviderConfig,
 	repositoryName string,
 	protectionOptions ProtectRepositoryRequest,
 ) error {
-	ca.logger.Info(ctx, "Applying repository protection", map[string]interface{}{
+	ca.logger.Info(ctx, "Applying repository protection", map[string]any{
 		"owner":      config.Owner,
 		"repository": repositoryName,
 	})
@@ -131,7 +131,7 @@ func (ca *CompleteAdapter) RemoveRepositoryProtection(
 	config ports.ProviderConfig,
 	repositoryName string,
 ) error {
-	ca.logger.Info(ctx, "Removing repository protection", map[string]interface{}{
+	ca.logger.Info(ctx, "Removing repository protection", map[string]any{
 		"owner":      config.Owner,
 		"repository": repositoryName,
 	})
@@ -139,13 +139,13 @@ func (ca *CompleteAdapter) RemoveRepositoryProtection(
 	return ca.protectionService.UnprotectRepository(ctx, config.Owner, repositoryName)
 }
 
-// FilterRepositoriesWithAdvancedCriteria filters repositories using sophisticated criteria.
+// FilterRepositoriesWithAdvancedCriteria filters repositories using criteria.
 func (ca *CompleteAdapter) FilterRepositoriesWithAdvancedCriteria(
 	ctx context.Context,
 	repositories []entities.Repository,
 	filterOptions FilterRepositoriesRequest,
 ) ([]entities.Repository, error) {
-	ca.logger.Debug(ctx, "Filtering repositories with advanced criteria", map[string]interface{}{
+	ca.logger.Debug(ctx, "Filtering repositories", map[string]any{
 		"total_count": len(repositories),
 	})
 
@@ -184,8 +184,8 @@ func (ca *CompleteAdapter) ValidateAndTransformRepositoryName(
 func (ca *CompleteAdapter) GetRepositoryStatistics(
 	_ context.Context,
 	repositories []entities.Repository,
-) map[string]interface{} {
-	stats := map[string]interface{}{
+) map[string]any {
+	stats := map[string]any{
 		"total_count": len(repositories),
 	}
 
@@ -227,7 +227,7 @@ func (ca *CompleteAdapter) BulkApplyProtection(
 	repositoryNames []string,
 	protectionOptions ProtectRepositoryRequest,
 ) error {
-	ca.logger.Info(ctx, "Applying bulk repository protection", map[string]interface{}{
+	ca.logger.Info(ctx, "Applying bulk repository protection", map[string]any{
 		"owner":            config.Owner,
 		"repository_count": len(repositoryNames),
 	})
@@ -236,7 +236,7 @@ func (ca *CompleteAdapter) BulkApplyProtection(
 
 	for _, repoName := range repositoryNames {
 		if err := ca.ApplyRepositoryProtection(ctx, config, repoName, protectionOptions); err != nil {
-			ca.logger.Error(ctx, "Failed to apply protection to repository", map[string]interface{}{
+			ca.logger.Error(ctx, "Failed to apply protection to repository", map[string]any{
 				"owner":      config.Owner,
 				"repository": repoName,
 				"error":      err.Error(),
@@ -250,7 +250,7 @@ func (ca *CompleteAdapter) BulkApplyProtection(
 		return fmt.Errorf("%w: %d repositories failed: %v", domain.ErrBulkProtectionFailed, len(errors), errors)
 	}
 
-	ca.logger.Info(ctx, "Bulk repository protection completed successfully", map[string]interface{}{
+	ca.logger.Info(ctx, "Bulk repository protection completed successfully", map[string]any{
 		"owner":            config.Owner,
 		"repository_count": len(repositoryNames),
 	})
@@ -264,7 +264,7 @@ func (ca *CompleteAdapter) BulkRemoveProtection(
 	config ports.ProviderConfig,
 	repositoryNames []string,
 ) error {
-	ca.logger.Info(ctx, "Removing bulk repository protection", map[string]interface{}{
+	ca.logger.Info(ctx, "Removing bulk repository protection", map[string]any{
 		"owner":            config.Owner,
 		"repository_count": len(repositoryNames),
 	})
@@ -273,7 +273,7 @@ func (ca *CompleteAdapter) BulkRemoveProtection(
 
 	for _, repoName := range repositoryNames {
 		if err := ca.RemoveRepositoryProtection(ctx, config, repoName); err != nil {
-			ca.logger.Error(ctx, "Failed to remove protection from repository", map[string]interface{}{
+			ca.logger.Error(ctx, "Failed to remove protection from repository", map[string]any{
 				"owner":      config.Owner,
 				"repository": repoName,
 				"error":      err.Error(),
@@ -287,7 +287,7 @@ func (ca *CompleteAdapter) BulkRemoveProtection(
 		return fmt.Errorf("%w: %d repositories failed: %v", domain.ErrBulkRemovalFailed, len(errors), errors)
 	}
 
-	ca.logger.Info(ctx, "Bulk repository protection removal completed successfully", map[string]interface{}{
+	ca.logger.Info(ctx, "Bulk repository protection removal completed successfully", map[string]any{
 		"owner":            config.Owner,
 		"repository_count": len(repositoryNames),
 	})
@@ -296,6 +296,6 @@ func (ca *CompleteAdapter) BulkRemoveProtection(
 }
 
 // GetFilterStatistics returns filtering statistics.
-func (ca *CompleteAdapter) GetFilterStatistics(original, filtered []entities.Repository) map[string]interface{} {
+func (ca *CompleteAdapter) GetFilterStatistics(original, filtered []entities.Repository) map[string]any {
 	return ca.filterService.GetFilterStatistics(original, filtered)
 }

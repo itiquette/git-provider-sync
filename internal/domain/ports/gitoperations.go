@@ -3,10 +3,10 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 // Package ports contains interface definitions for the hexagonal architecture.
-// This file provides import aggregation for all git-related ports.
+// Import aggregation for all git-related ports.
 package ports
 
-// This file serves as an import aggregation point for git operations.
+// Import aggregation point for git operations.
 // All git-related interfaces are now split into focused files:
 // - git_service.go: Core GitOperations interface
 // - git_repository.go: Repository interfaces and supporting types

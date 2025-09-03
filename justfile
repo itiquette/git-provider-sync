@@ -84,7 +84,7 @@ test: test-unit test-integration
 [group('test')]
 test-unit:
     @just _header "Run unit tests" "go test -count=1 -race -buildvcs=false \$(go list './...' | grep -v generated)"
-    go test -count=1 -race -buildvcs=false $(go list './...' | grep -v generated)
+    go test -count=1 -race -buildvcs=false `go list './...' | grep -v generated`
 
 # Execute integration tests only
 [group('test')]
@@ -98,7 +98,7 @@ test-integration:
 [group('test')]
 test-coverage: clean-build
     @just _header "Run all tests with coverage" "go test -coverprofile"
-    go test -v -count=1 -race -buildvcs=false -coverprofile={{bin}}/coverage-unit.out $(go list './...' | grep -v generated)
+    go test -v -count=1 -race -buildvcs=false -coverprofile={{bin}}/coverage-unit.out `go list './...' | grep -v generated`
     go test -v -tags=integration -count=1 -race -buildvcs=false -coverprofile={{bin}}/coverage-integration.out ./internal/integrationtest/
     @just _header "Merge coverage profiles"
     @just _run_with_output "go run github.com/wadey/gocovmerge {{bin}}/coverage-unit.out {{bin}}/coverage-integration.out > {{bin}}/coverage.out" "Coverage merge"

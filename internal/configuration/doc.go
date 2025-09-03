@@ -2,13 +2,10 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-// Package configuration provides functionality for managing, validating,
-// and interacting with configurations. It offers:
+// Package configuration handles loading, parsing, and validating
+// Git Provider Sync configuration from YAML files and environment variables.
 //
-//   - Loading and parsing of YAML configuration files with environment variable substitution
-//   - Validation of configuration settings with detailed error reporting
-//   - Utilities for printing and displaying configuration information
-//   - Handling of environment-specific and default configurations
-//   - Configuration file watching and hot-reload capabilities
-//   - Interfaces for accessing configuration data in a type-safe manner
+// It provides type-safe access to configuration with detailed validation
+// and error reporting, supporting multiple configuration sources with
+// proper precedence handling.
 package configuration

@@ -2,7 +2,6 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-// Package synccmd provides sync command implementation with hexagonal architecture.
 package synccmd
 
 import (

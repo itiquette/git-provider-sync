@@ -16,7 +16,7 @@ import (
 	"itiquette/git-provider-sync/internal/domain/ports"
 )
 
-//nolint:cyclop // Test function with multiple comprehensive test cases
+//nolint:cyclop // Test function with multiple test cases
 func TestPushToProviderUseCase_Execute(t *testing.T) {
 	t.Parallel()
 

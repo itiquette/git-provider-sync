@@ -232,8 +232,8 @@ var (
 
 // Logger defines a minimal logger interface to avoid import cycles.
 type Logger interface {
-	Error(ctx context.Context, msg string, fields map[string]interface{})
-	Info(ctx context.Context, msg string, fields map[string]interface{})
+	Error(ctx context.Context, msg string, fields map[string]any)
+	Info(ctx context.Context, msg string, fields map[string]any)
 }
 
 // ErrorHandler provides pure functional error handling without side effects.
@@ -253,7 +253,7 @@ func (h ErrorHandler) HandleFatalError(ctx context.Context, err error) (bool, in
 		return false, 0, ""
 	}
 
-	h.logger.Error(ctx, "A fatal error occurred", map[string]interface{}{
+	h.logger.Error(ctx, "A fatal error occurred", map[string]any{
 		"error": err.Error(),
 	})
 

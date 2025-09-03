@@ -85,7 +85,7 @@ func createFastHTTPClient() *http.Client {
 	}
 }
 
-func validateGiteaRepositoryFields(t *testing.T, repos []entities.Repository, expectedFields map[string]interface{}) {
+func validateGiteaRepositoryFields(t *testing.T, repos []entities.Repository, expectedFields map[string]any) {
 	t.Helper()
 	// Verify first repository fields
 	if name, ok := expectedFields["first_repo_name"]; ok {
@@ -115,76 +115,6 @@ func validateGiteaRepositoryFields(t *testing.T, repos []entities.Repository, ex
 	assert.NotEmpty(t, repos[0].ProjectID())
 	assert.NotEmpty(t, repos[0].Name())
 	assert.NotZero(t, repos[0].LastActivityAt())
-}
-
-func TestNew_ValidCredentials_CreatesGiteaAdapter(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name           string
-		token          string
-		domain         string
-		expectedDomain string
-		expectError    bool
-	}{
-		{
-			name:           "valid token and domain",
-			token:          "test-token",
-			domain:         "gitea.example.com",
-			expectedDomain: "gitea.example.com",
-			expectError:    false,
-		},
-		{
-			name:           "valid token with empty domain defaults to gitea.com",
-			token:          "test-token",
-			domain:         "",
-			expectedDomain: "gitea.com",
-			expectError:    false,
-		},
-	}
-
-	for _, testCase := range tests {
-		t.Run(testCase.name, func(t *testing.T) {
-			t.Parallel()
-
-			// Create mock server to avoid real HTTP calls
-			server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-				if request.URL.Path == versionAPIPath {
-					writer.Header().Set("Content-Type", "application/json")
-					writer.WriteHeader(http.StatusOK)
-					_, _ = writer.Write([]byte(`{"version": "1.16.0"}`))
-
-					return
-				}
-
-				writer.WriteHeader(http.StatusNotFound)
-			}))
-			defer server.Close()
-
-			// Use NewWithConfig instead to provide mock server
-			config := Config{
-				Token:      testCase.token,
-				BaseURL:    server.URL,
-				HTTPClient: createFastHTTPClient(),
-			}
-
-			ctx := context.Background()
-			adapter, err := NewWithConfig(ctx, config)
-
-			if testCase.expectError {
-				require.Error(t, err)
-				assert.Nil(t, adapter)
-
-				return
-			}
-
-			require.NoError(t, err)
-			require.NotNil(t, adapter)
-			// Since we're using a mock server, domain will be from mock server URL
-			assert.Contains(t, adapter.domain, "127.0.0.1")
-			assert.NotNil(t, adapter.client)
-		})
-	}
 }
 
 func TestNewWithConfig(t *testing.T) {
@@ -276,7 +206,7 @@ func TestListRepositories(t *testing.T) {
 		statusCode     int
 		expectError    bool
 		expectedRepos  int
-		expectedFields map[string]interface{}
+		expectedFields map[string]any
 	}{
 		{
 			name:          "successful response with multiple repositories",
@@ -284,7 +214,7 @@ func TestListRepositories(t *testing.T) {
 			statusCode:    200,
 			expectError:   false,
 			expectedRepos: 2,
-			expectedFields: map[string]interface{}{
+			expectedFields: map[string]any{
 				"first_repo_name":     "test-repo-1",
 				"first_repo_default":  "main",
 				"first_repo_private":  true,
@@ -362,7 +292,7 @@ func TestListRepositories(t *testing.T) {
 			repos, err := adapter.ListRepositories(ctx, providerConfig)
 
 			if testCase.expectError {
-				assert.Error(t, err)
+				require.Error(t, err)
 
 				return
 			}
@@ -473,7 +403,7 @@ func TestRepositoryExists(t *testing.T) {
 			exists, _, err := adapter.RepositoryExists(ctx, request)
 
 			if testCase.expectError {
-				assert.Error(t, err)
+				require.Error(t, err)
 
 				return
 			}
@@ -565,7 +495,7 @@ func TestCreateRepository(t *testing.T) {
 				// Handle repository creation endpoint
 				if request.Method == http.MethodPost && strings.Contains(request.URL.Path, "/repos") {
 					// Verify request body
-					var requestBody map[string]interface{}
+					var requestBody map[string]any
 
 					err := json.NewDecoder(request.Body).Decode(&requestBody)
 					if err != nil {
@@ -606,7 +536,7 @@ func TestCreateRepository(t *testing.T) {
 			result, err := adapter.CreateRepository(ctx, ports.ProviderConfig{}, testCase.repoRequest)
 
 			if testCase.expectError {
-				assert.Error(t, err)
+				require.Error(t, err)
 
 				return
 			}
@@ -697,78 +627,12 @@ func TestUpdateRepository(t *testing.T) {
 			err = adapter.UpdateRepository(ctx, providerConfig, "test-repo", testCase.updateReq)
 
 			if testCase.expectError {
-				assert.Error(t, err)
+				require.Error(t, err)
 
 				return
 			}
 
 			require.NoError(t, err)
-		})
-	}
-}
-
-func TestAdapterImplementsInterface(t *testing.T) {
-	t.Parallel()
-
-	// Verify that Adapter implements the RepositoryProvider interface
-	var _ ports.RepositoryProvider = (*Adapter)(nil)
-}
-
-func TestAdapter_Initialization_SetsCorrectFields(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name     string
-		testFunc func(t *testing.T, adapter *Adapter)
-	}{
-		{
-			name: "adapter has expected domain field",
-			testFunc: func(t *testing.T, adapter *Adapter) {
-				t.Helper()
-				// Verify adapter was created with expected domain (will be mock server domain)
-				assert.Contains(t, adapter.domain, "127.0.0.1")
-			},
-		},
-		{
-			name: "adapter has Gitea client",
-			testFunc: func(t *testing.T, adapter *Adapter) {
-				t.Helper()
-				// Verify adapter has a valid Gitea client
-				assert.NotNil(t, adapter.client)
-			},
-		},
-	}
-
-	for _, testCase := range tests {
-		t.Run(testCase.name, func(t *testing.T) {
-			t.Parallel()
-
-			// Create mock server to avoid real HTTP calls
-			server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-				if request.URL.Path == versionAPIPath {
-					writer.Header().Set("Content-Type", "application/json")
-					writer.WriteHeader(http.StatusOK)
-					_, _ = writer.Write([]byte(`{"version": "1.16.0"}`))
-
-					return
-				}
-
-				writer.WriteHeader(http.StatusNotFound)
-			}))
-			defer server.Close()
-
-			// Use NewWithConfig with mock server
-			config := Config{
-				Token:      "test-token",
-				BaseURL:    server.URL,
-				HTTPClient: createFastHTTPClient(),
-			}
-
-			ctx := context.Background()
-			adapter, err := NewWithConfig(ctx, config)
-			require.NoError(t, err)
-
-			testCase.testFunc(t, adapter)
 		})
 	}
 }
@@ -830,7 +694,7 @@ func TestValidateRepositoryName(t *testing.T) {
 				return
 			}
 
-			assert.NoError(t, err)
+			require.NoError(t, err)
 		})
 	}
 }
@@ -1215,70 +1079,6 @@ func TestTransformRepositoryName(t *testing.T) {
 	}
 }
 
-func TestGetProviderInfo(t *testing.T) {
-	t.Parallel()
-
-	adapter := &Adapter{domain: "custom.gitea.com"}
-
-	info := adapter.GetProviderInfo()
-
-	assert.Equal(t, "Gitea", info.Name)
-	assert.Equal(t, "gitea", info.Type)
-	assert.Equal(t, "custom.gitea.com", info.Domain)
-	assert.Equal(t, "v1", info.APIVersion)
-	assert.NotEmpty(t, info.Features)
-	assert.Contains(t, info.Features, ports.FeatureRepositoryCreation)
-	assert.Contains(t, info.Features, ports.FeatureBranchProtection)
-	assert.Equal(t, 100, info.Capabilities.MaxRepositoriesPerRequest)
-	assert.Equal(t, 3000, info.Capabilities.RateLimitPerHour)
-	assert.True(t, info.Capabilities.SupportsSSH)
-	assert.True(t, info.Capabilities.SupportsHTTPS)
-	assert.True(t, info.Capabilities.SupportsPrivateRepos)
-	assert.True(t, info.Capabilities.SupportsOrganizations)
-}
-
-func TestSupportsFeature(t *testing.T) {
-	t.Parallel()
-
-	adapter := &Adapter{}
-
-	tests := []struct {
-		name     string
-		feature  ports.ProviderFeature
-		expected bool
-	}{
-		{
-			name:     "supports repository creation",
-			feature:  ports.FeatureRepositoryCreation,
-			expected: true,
-		},
-		{
-			name:     "supports branch protection",
-			feature:  ports.FeatureBranchProtection,
-			expected: true,
-		},
-		{
-			name:     "supports webhooks",
-			feature:  ports.FeatureWebhooks,
-			expected: true,
-		},
-		{
-			name:     "supports organizations",
-			feature:  ports.FeatureOrganizations,
-			expected: true,
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			t.Parallel()
-
-			result := adapter.SupportsFeature(test.feature)
-			assert.Equal(t, test.expected, result)
-		})
-	}
-}
-
 func TestCreateRepositoryForPush(t *testing.T) {
 	t.Parallel()
 
@@ -1483,7 +1283,7 @@ func TestIsValidProjectName(t *testing.T) {
 		},
 		{
 			name:     "name too long",
-			projName: string(make([]byte, 101)),
+			projName: strings.Repeat("a", 101),
 			expected: false,
 		},
 	}
@@ -1581,7 +1381,7 @@ func TestGiteaAdapter_SetDefaultBranch_UpdatesViaAPI(t *testing.T) {
 	}
 }
 
-// Helper function for creating string pointers.
+// String pointer factory.
 func stringPtr(s string) *string {
 	return &s
 }

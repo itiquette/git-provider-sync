@@ -7,6 +7,7 @@ package sync_test
 import (
 	"context"
 	"fmt"
+	"io/fs"
 	"testing"
 	"time"
 
@@ -330,23 +331,23 @@ type mockLogger struct {
 	mock.Mock
 }
 
-func (m *mockLogger) Debug(ctx context.Context, message string, fields map[string]interface{}) {
+func (m *mockLogger) Debug(ctx context.Context, message string, fields map[string]any) {
 	m.Called(ctx, message, fields)
 }
 
-func (m *mockLogger) Info(ctx context.Context, message string, fields map[string]interface{}) {
+func (m *mockLogger) Info(ctx context.Context, message string, fields map[string]any) {
 	m.Called(ctx, message, fields)
 }
 
-func (m *mockLogger) Warn(ctx context.Context, message string, fields map[string]interface{}) {
+func (m *mockLogger) Warn(ctx context.Context, message string, fields map[string]any) {
 	m.Called(ctx, message, fields)
 }
 
-func (m *mockLogger) Error(ctx context.Context, message string, fields map[string]interface{}) {
+func (m *mockLogger) Error(ctx context.Context, message string, fields map[string]any) {
 	m.Called(ctx, message, fields)
 }
 
-func (m *mockLogger) Fatal(ctx context.Context, message string, fields map[string]interface{}) {
+func (m *mockLogger) Fatal(ctx context.Context, message string, fields map[string]any) {
 	m.Called(ctx, message, fields)
 }
 
@@ -356,7 +357,7 @@ func (m *mockLogger) IsLevelEnabled(level ports.LogLevel) bool {
 	return args.Bool(0)
 }
 
-func (m *mockLogger) Trace(ctx context.Context, message string, fields map[string]interface{}) {
+func (m *mockLogger) Trace(ctx context.Context, message string, fields map[string]any) {
 	m.Called(ctx, message, fields)
 }
 
@@ -373,9 +374,46 @@ func (m *mockArchiveOperations) CreateMirror(_ context.Context, _ ports.ArchiveM
 	return nil
 }
 
+type mockFileSystem struct {
+	mock.Mock
+}
+
+func (m *mockFileSystem) Exists(path string) (bool, error) {
+	args := m.Called(path)
+
+	return args.Bool(0), args.Error(1)
+}
+
+func (m *mockFileSystem) MkdirAll(path string, perm fs.FileMode) error {
+	args := m.Called(path, perm)
+
+	return args.Error(0) //nolint:wrapcheck // Test mock
+}
+
+func (m *mockFileSystem) RemoveAll(path string) error {
+	args := m.Called(path)
+
+	return args.Error(0) //nolint:wrapcheck // Test mock
+}
+
+func (m *mockFileSystem) Stat(path string) (fs.FileInfo, error) {
+	args := m.Called(path)
+	if args.Get(0) == nil {
+		return nil, args.Error(1) //nolint:wrapcheck // Test mock
+	}
+
+	return args.Get(0).(fs.FileInfo), args.Error(1) //nolint:wrapcheck,forcetypeassert // Test mock
+}
+
+func (m *mockFileSystem) TempDir(dir, pattern string) (string, error) {
+	args := m.Called(dir, pattern)
+
+	return args.String(0), args.Error(1)
+}
+
 // Test Suite
 
-// TestSyncRepositoriesUseCase_Execute validates the complete sync workflow orchestration.
+// TestSyncRepositoriesUseCase_Execute validates the complete sync process.
 //
 // TEST PURPOSE:
 // This integration test validates the core sync use case end-to-end, ensuring:
@@ -384,7 +422,7 @@ func (m *mockArchiveOperations) CreateMirror(_ context.Context, _ ports.ArchiveM
 // 3. Temporary directory creation and lifecycle management
 // 4. Source repository operations coordination
 // 5. Mirror synchronization to all configured targets
-// 6. Comprehensive error handling and recovery
+// 6. error handling and recovery
 // 7. Statistics reporting and observability
 // 8. Proper resource cleanup (directories, connections)
 //
@@ -394,10 +432,7 @@ func (m *mockArchiveOperations) CreateMirror(_ context.Context, _ ports.ArchiveM
 // - Dry run mode (should simulate operations without side effects)
 // - Various error conditions with proper error propagation
 //
-// This test validates the hexagonal architecture orchestration layer,
-// ensuring the use case properly coordinates between all ports (configuration,
-// repository providers, git operations, logging) while maintaining separation
-// of concerns and testability.
+// Tests coordination between configuration, repository providers, git operations, and logging.
 func TestSyncRepositoriesUseCase_Execute(t *testing.T) {
 	t.Parallel()
 
@@ -566,12 +601,16 @@ func TestSyncRepositoriesUseCase_Execute(t *testing.T) {
 			// Create mock archive operations
 			mockArchive := &mockArchiveOperations{}
 
+			// Create mock file system
+			mockFS := &mockFileSystem{}
+
 			// Create use case
 			useCase := sync.NewRepositoriesUseCase(
 				mockConfig,
 				mockRepo,
 				mockGit,
 				mockArchive,
+				mockFS,
 				mockLogger,
 			)
 
@@ -589,18 +628,4 @@ func TestSyncRepositoriesUseCase_Execute(t *testing.T) {
 			mockLogger.AssertExpectations(t)
 		})
 	}
-}
-
-func TestSyncRepositoriesUseCase_NewSyncRepositoriesUseCase(t *testing.T) {
-	t.Parallel()
-
-	mockConfig := &mockConfiguration{}
-	mockRepo := &mockRepositoryProvider{}
-	mockGit := &mockGitOperations{}
-	mockLogger := &mockLogger{}
-
-	mockArchive := &mockArchiveOperations{}
-	useCase := sync.NewRepositoriesUseCase(mockConfig, mockRepo, mockGit, mockArchive, mockLogger)
-
-	require.NotNil(t, useCase)
 }

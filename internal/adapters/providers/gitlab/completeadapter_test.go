@@ -22,13 +22,13 @@ import (
 // testGitLabLogger is a simple no-op logger for testing CompleteAdapter.
 type testGitLabLogger struct{}
 
-func (l testGitLabLogger) Trace(_ context.Context, _ string, _ map[string]interface{}) {}
-func (l testGitLabLogger) Debug(_ context.Context, _ string, _ map[string]interface{}) {}
-func (l testGitLabLogger) Info(_ context.Context, _ string, _ map[string]interface{})  {}
-func (l testGitLabLogger) Warn(_ context.Context, _ string, _ map[string]interface{})  {}
-func (l testGitLabLogger) Error(_ context.Context, _ string, _ map[string]interface{}) {}
-func (l testGitLabLogger) Fatal(_ context.Context, _ string, _ map[string]interface{}) {}
-func (l testGitLabLogger) IsLevelEnabled(_ ports.LogLevel) bool                        { return true }
+func (l testGitLabLogger) Trace(_ context.Context, _ string, _ map[string]any) {}
+func (l testGitLabLogger) Debug(_ context.Context, _ string, _ map[string]any) {}
+func (l testGitLabLogger) Info(_ context.Context, _ string, _ map[string]any)  {}
+func (l testGitLabLogger) Warn(_ context.Context, _ string, _ map[string]any)  {}
+func (l testGitLabLogger) Error(_ context.Context, _ string, _ map[string]any) {}
+func (l testGitLabLogger) Fatal(_ context.Context, _ string, _ map[string]any) {}
+func (l testGitLabLogger) IsLevelEnabled(_ ports.LogLevel) bool                { return true }
 
 func TestNewCompleteAdapter(t *testing.T) {
 	t.Parallel()

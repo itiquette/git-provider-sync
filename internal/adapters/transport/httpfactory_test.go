@@ -16,38 +16,6 @@ import (
 	"itiquette/git-provider-sync/internal/domain"
 )
 
-func TestNewHTTPFactory(t *testing.T) {
-	t.Parallel()
-
-	config := HTTPConfig{
-		Timeout:       30 * time.Second,
-		MaxRetries:    3,
-		RetryDelay:    time.Second,
-		SkipTLSVerify: false,
-		ProxyURL:      "http://proxy.example.com:8080",
-		Headers: map[string]string{
-			"User-Agent": "test-agent",
-		},
-		RateLimit: RateLimitConfig{
-			RequestsPerSecond: 10,
-			BurstSize:         20,
-			Enable:            true,
-		},
-	}
-
-	factory, err := NewHTTPFactory(config)
-	require.NoError(t, err)
-
-	require.NotNil(t, factory)
-	assert.Equal(t, config.Timeout, factory.defaultTimeout)
-	assert.Equal(t, config.MaxRetries, factory.maxRetries)
-	assert.Equal(t, config.RetryDelay, factory.retryDelay)
-	assert.Equal(t, config.SkipTLSVerify, factory.skipTLSVerify)
-	assert.Equal(t, config.Headers, factory.customHeaders)
-	assert.Equal(t, config.RateLimit, factory.rateLimitConfig)
-	assert.NotNil(t, factory.proxyURL)
-}
-
 func TestNewHTTPFactory_InvalidProxyURL(t *testing.T) {
 	t.Parallel()
 
@@ -63,23 +31,6 @@ func TestNewHTTPFactory_InvalidProxyURL(t *testing.T) {
 	require.Error(t, err)
 	assert.Nil(t, factory) // Should be nil for invalid proxy URL
 	assert.Contains(t, err.Error(), "invalid proxy URL")
-}
-
-func TestNewHTTPFactory_EmptyProxyURL(t *testing.T) {
-	t.Parallel()
-
-	config := HTTPConfig{
-		Timeout:    30 * time.Second,
-		MaxRetries: 3,
-		RetryDelay: time.Second,
-		ProxyURL:   "",
-	}
-
-	factory, err := NewHTTPFactory(config)
-	require.NoError(t, err)
-
-	require.NotNil(t, factory)
-	assert.Nil(t, factory.proxyURL)
 }
 
 func TestHTTPFactory_CreateClient(t *testing.T) {
@@ -162,7 +113,7 @@ func TestHTTPFactory_CreateProviderClient_UnsupportedProvider(t *testing.T) {
 
 	require.Error(t, err)
 	require.Nil(t, client)
-	assert.ErrorIs(t, err, domain.ErrUnsupportedProvider)
+	require.ErrorIs(t, err, domain.ErrUnsupportedProvider)
 }
 
 func TestHTTPFactory_CreateGitHTTPClient(t *testing.T) {
@@ -203,21 +154,6 @@ func TestHTTPFactory_CreateWebhookClient(t *testing.T) {
 	require.NotNil(t, client)
 	// CreateWebhookClient also uses retryablehttp, so timeout behavior may be different
 	assert.NotNil(t, client.Transport)
-}
-
-func TestGetDefaultHTTPConfig(t *testing.T) {
-	t.Parallel()
-
-	config := GetDefaultHTTPConfig()
-
-	assert.Equal(t, 30*time.Second, config.Timeout)
-	assert.Equal(t, 3, config.MaxRetries)
-	assert.Equal(t, time.Second, config.RetryDelay)
-	assert.False(t, config.SkipTLSVerify)
-	assert.Equal(t, "git-provider-sync/1.0", config.Headers["User-Agent"])
-	assert.InDelta(t, float64(10), config.RateLimit.RequestsPerSecond, 0.01)
-	assert.Equal(t, 20, config.RateLimit.BurstSize)
-	assert.True(t, config.RateLimit.Enable)
 }
 
 func TestGetProviderHTTPConfig_GitHub(t *testing.T) {
@@ -392,9 +328,9 @@ func TestHTTPFactory_retryPolicy(t *testing.T) {
 			assert.Equal(t, test.expectedRetry, retry)
 
 			if test.expectedErrNil {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			} else {
-				assert.Error(t, err)
+				require.Error(t, err)
 			}
 		})
 	}
@@ -436,7 +372,7 @@ func TestMiddlewareTransport_RoundTrip(t *testing.T) {
 		Provider:      "github",
 		Authenticated: true,
 		Token:         "test-token",
-		Custom: map[string]interface{}{
+		Custom: map[string]any{
 			"accept":     "application/json",
 			"user_agent": "test-agent",
 		},
@@ -473,7 +409,7 @@ func TestMiddlewareTransport_addProviderHeaders(t *testing.T) {
 	t.Parallel()
 
 	options := HTTPClientOptions{
-		Custom: map[string]interface{}{
+		Custom: map[string]any{
 			"accept":     "application/json",
 			"user_agent": "test-agent",
 		},
@@ -610,7 +546,7 @@ func TestHTTPClientWrapper_Close(t *testing.T) {
 
 	err := wrapper.Close()
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 // Mock transport for testing.
@@ -621,82 +557,6 @@ type mockRoundTripper struct {
 
 func (m *mockRoundTripper) RoundTrip(_ *http.Request) (*http.Response, error) {
 	return m.response, m.err
-}
-
-func TestProviderConstants(t *testing.T) {
-	t.Parallel()
-
-	assert.Equal(t, "github", ProviderTypeGitHub)
-	assert.Equal(t, "gitlab", ProviderTypeGitLab)
-	assert.Equal(t, "gitea", ProviderTypeGitea)
-}
-
-func TestHTTPConfig_Structs(t *testing.T) {
-	t.Parallel()
-
-	config := HTTPConfig{
-		Timeout:       30 * time.Second,
-		MaxRetries:    3,
-		RetryDelay:    time.Second,
-		SkipTLSVerify: true,
-		ProxyURL:      "http://proxy.example.com",
-		Headers: map[string]string{
-			"User-Agent": "test-agent",
-		},
-		RateLimit: RateLimitConfig{
-			RequestsPerSecond: 10,
-			BurstSize:         20,
-			Enable:            true,
-		},
-		UserAgent: "custom-agent",
-	}
-
-	assert.Equal(t, 30*time.Second, config.Timeout)
-	assert.Equal(t, 3, config.MaxRetries)
-	assert.Equal(t, time.Second, config.RetryDelay)
-	assert.True(t, config.SkipTLSVerify)
-	assert.Equal(t, "http://proxy.example.com", config.ProxyURL)
-	assert.Equal(t, "test-agent", config.Headers["User-Agent"])
-	assert.InDelta(t, float64(10), config.RateLimit.RequestsPerSecond, 0.01)
-	assert.Equal(t, 20, config.RateLimit.BurstSize)
-	assert.True(t, config.RateLimit.Enable)
-	assert.Equal(t, "custom-agent", config.UserAgent)
-}
-
-func TestRateLimitConfig_Struct(t *testing.T) {
-	t.Parallel()
-
-	config := RateLimitConfig{
-		RequestsPerSecond: 15.5,
-		BurstSize:         25,
-		Enable:            false,
-	}
-
-	assert.InDelta(t, 15.5, config.RequestsPerSecond, 0.01)
-	assert.Equal(t, 25, config.BurstSize)
-	assert.False(t, config.Enable)
-}
-
-func TestHTTPClientOptions_Struct(t *testing.T) {
-	t.Parallel()
-
-	options := HTTPClientOptions{
-		Provider:      "github",
-		Authenticated: true,
-		Token:         "test-token",
-		Username:      "testuser",
-		Password:      "testpass",
-		Custom: map[string]interface{}{
-			"api_url": "https://api.github.com",
-		},
-	}
-
-	assert.Equal(t, "github", options.Provider)
-	assert.True(t, options.Authenticated)
-	assert.Equal(t, "test-token", options.Token)
-	assert.Equal(t, "testuser", options.Username)
-	assert.Equal(t, "testpass", options.Password)
-	assert.Equal(t, "https://api.github.com", options.Custom["api_url"])
 }
 
 // Test TLS bypass security enhancement

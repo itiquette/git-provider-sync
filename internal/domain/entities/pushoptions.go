@@ -22,7 +22,7 @@ type PushOptions struct {
 	remoteName   string
 }
 
-// PushOptionsBuilder provides functional approach to building push options.
+// PushOptionsBuilder builds push options.
 type PushOptionsBuilder struct {
 	options PushOptions
 }

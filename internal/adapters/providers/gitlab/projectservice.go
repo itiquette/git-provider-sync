@@ -17,8 +17,6 @@ import (
 )
 
 // ProjectService provides GitLab-specific project operations.
-//
-//	sophisticated project service functionality .
 type ProjectService struct {
 	client *gitlab.Client
 	logger ports.Logger
@@ -57,9 +55,9 @@ type CreateProjectRequest struct {
 	InitializeWithReadme     bool
 }
 
-// CreateProject creates a new GitLab repository with sophisticated options.
+// CreateProject creates a new GitLab repository with options.
 func (ps *ProjectService) CreateProject(ctx context.Context, request CreateProjectRequest) (*entities.Repository, error) {
-	ps.logger.Debug(ctx, "Creating GitLab project", map[string]interface{}{
+	ps.logger.Debug(ctx, "Creating GitLab project", map[string]any{
 		"owner":      request.Owner,
 		"name":       request.Name,
 		"visibility": request.Visibility,
@@ -78,7 +76,7 @@ func (ps *ProjectService) CreateProject(ctx context.Context, request CreateProje
 	// Apply disabled settings if requested
 	if request.DisableFeatures {
 		if err := ps.applyDisabledSettings(ctx, project.ID, request.Name); err != nil {
-			ps.logger.Warn(ctx, "Failed to apply disabled settings", map[string]interface{}{
+			ps.logger.Warn(ctx, "Failed to apply disabled settings", map[string]any{
 				"owner":      request.Owner,
 				"name":       request.Name,
 				"project_id": project.ID,
@@ -93,7 +91,7 @@ func (ps *ProjectService) CreateProject(ctx context.Context, request CreateProje
 		return nil, fmt.Errorf("failed to convert created project: %w", err)
 	}
 
-	ps.logger.Info(ctx, "GitLab project created successfully", map[string]interface{}{
+	ps.logger.Info(ctx, "GitLab project created successfully", map[string]any{
 		"owner":      request.Owner,
 		"name":       request.Name,
 		"project_id": project.ID,
@@ -105,7 +103,7 @@ func (ps *ProjectService) CreateProject(ctx context.Context, request CreateProje
 
 // GetProjectInfo retrieves GitLab project information.
 func (ps *ProjectService) GetProjectInfo(ctx context.Context, owner, name string) (*entities.Repository, error) {
-	ps.logger.Debug(ctx, "Getting GitLab project info", map[string]interface{}{
+	ps.logger.Debug(ctx, "Getting GitLab project info", map[string]any{
 		"owner": owner,
 		"name":  name,
 	})
@@ -122,7 +120,7 @@ func (ps *ProjectService) GetProjectInfo(ctx context.Context, owner, name string
 
 // UpdateProject updates an existing GitLab repository.
 func (ps *ProjectService) UpdateProject(ctx context.Context, owner, name string, updates ports.UpdateRepositoryOptions) error {
-	ps.logger.Debug(ctx, "Updating GitLab project", map[string]interface{}{
+	ps.logger.Debug(ctx, "Updating GitLab project", map[string]any{
 		"owner": owner,
 		"name":  name,
 	})
@@ -155,7 +153,7 @@ func (ps *ProjectService) UpdateProject(ctx context.Context, owner, name string,
 		return fmt.Errorf("failed to update GitLab project %s: %w", projectPath, err)
 	}
 
-	ps.logger.Info(ctx, "GitLab project updated successfully", map[string]interface{}{
+	ps.logger.Info(ctx, "GitLab project updated successfully", map[string]any{
 		"owner": owner,
 		"name":  name,
 	})
@@ -419,7 +417,7 @@ func (ps *ProjectService) setContainerRegistryAccess(opts *gitlab.CreateProjectO
 
 // applyDisabledSettings disables features on a GitLab project.
 func (ps *ProjectService) applyDisabledSettings(ctx context.Context, projectID int, projectName string) error {
-	ps.logger.Debug(ctx, "Applying disabled settings", map[string]interface{}{
+	ps.logger.Debug(ctx, "Applying disabled settings", map[string]any{
 		"project_id":   projectID,
 		"project_name": projectName,
 	})

@@ -19,7 +19,7 @@ func TestPanicHandler_HandlePanic(t *testing.T) {
 
 	tests := []struct {
 		name           string
-		panicValue     interface{}
+		panicValue     any
 		expectInOutput []string
 	}{
 		{

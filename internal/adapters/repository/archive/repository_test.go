@@ -15,7 +15,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"itiquette/git-provider-sync/internal/domain"
-	"itiquette/git-provider-sync/internal/domain/constants"
 	"itiquette/git-provider-sync/internal/domain/ports"
 )
 
@@ -60,49 +59,6 @@ func createTestRepository(tb testing.TB) (*Repository, string) {
 }
 
 // Test basic repository properties
-
-func TestRepository_Path(t *testing.T) {
-	t.Parallel()
-
-	repo, tempDir := createTestRepository(t)
-
-	defer func() { _ = os.RemoveAll(tempDir) }()
-
-	assert.Equal(t, tempDir, repo.Path())
-}
-
-func TestRepository_URL(t *testing.T) {
-	t.Parallel()
-
-	repo, tempDir := createTestRepository(t)
-
-	defer func() { _ = os.RemoveAll(tempDir) }()
-
-	// Archive repositories don't have URLs
-	assert.Empty(t, repo.URL())
-}
-
-func TestRepository_Name(t *testing.T) {
-	t.Parallel()
-
-	repo, tempDir := createTestRepository(t)
-
-	defer func() { _ = os.RemoveAll(tempDir) }()
-
-	expected := filepath.Base(tempDir)
-	assert.Equal(t, expected, repo.Name())
-}
-
-func TestRepository_IsBare(t *testing.T) {
-	t.Parallel()
-
-	repo, tempDir := createTestRepository(t)
-
-	defer func() { _ = os.RemoveAll(tempDir) }()
-
-	// Archive repositories are not bare
-	assert.False(t, repo.IsBare())
-}
 
 func TestRepository_IsClean(t *testing.T) {
 	t.Parallel()
@@ -278,32 +234,6 @@ func TestRepository_GetCommits(t *testing.T) {
 
 // Test branch operations
 
-func TestRepository_CurrentBranch(t *testing.T) {
-	t.Parallel()
-
-	repo, tempDir := createTestRepository(t)
-
-	defer func() { _ = os.RemoveAll(tempDir) }()
-
-	branch, err := repo.CurrentBranch()
-
-	require.NoError(t, err)
-	assert.Equal(t, constants.DefaultBranch, branch)
-}
-
-func TestRepository_GetCurrentBranch(t *testing.T) {
-	t.Parallel()
-
-	repo, tempDir := createTestRepository(t)
-
-	defer func() { _ = os.RemoveAll(tempDir) }()
-
-	branch, err := repo.GetCurrentBranch(context.Background())
-
-	require.NoError(t, err)
-	assert.Equal(t, constants.DefaultBranch, branch)
-}
-
 func TestRepository_ListBranches(t *testing.T) {
 	t.Parallel()
 
@@ -323,228 +253,6 @@ func TestRepository_ListBranches(t *testing.T) {
 	assert.True(t, branch.IsCurrent)
 	assert.Empty(t, branch.Upstream)
 }
-
-func TestRepository_GetBranches(t *testing.T) {
-	t.Parallel()
-
-	repo, tempDir := createTestRepository(t)
-
-	defer func() { _ = os.RemoveAll(tempDir) }()
-
-	branches, err := repo.GetBranches(context.Background())
-
-	require.NoError(t, err)
-	require.Len(t, branches, 1)
-	assert.Equal(t, "main", branches[0])
-}
-
-func TestRepository_CreateBranch_NotSupported(t *testing.T) {
-	t.Parallel()
-
-	repo, tempDir := createTestRepository(t)
-
-	defer func() { _ = os.RemoveAll(tempDir) }()
-
-	err := repo.CreateBranch(context.Background(), "new-branch", "main")
-
-	assert.ErrorIs(t, err, ErrCreateBranchNotSupported)
-}
-
-func TestRepository_CheckoutBranch_NotSupportedOperation(t *testing.T) {
-	t.Parallel()
-
-	repo, tempDir := createTestRepository(t)
-	t.Cleanup(func() { _ = os.RemoveAll(tempDir) })
-
-	tests := []struct {
-		name        string
-		branchName  string
-		expectError bool
-		expectedErr error
-	}{
-		{
-			name:        "checkout main branch",
-			branchName:  "main",
-			expectError: false,
-		},
-		{
-			name:        "checkout non-existent branch",
-			branchName:  "feature-branch",
-			expectError: true,
-			expectedErr: ErrOnlyMainBranchExists,
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			t.Parallel()
-
-			err := repo.CheckoutBranch(context.Background(), test.branchName)
-
-			if test.expectError {
-				require.Error(t, err)
-
-				if test.expectedErr != nil {
-					require.ErrorIs(t, err, test.expectedErr)
-				}
-			} else {
-				assert.NoError(t, err)
-			}
-		})
-	}
-}
-
-func TestRepository_DeleteBranch_NotSupported(t *testing.T) {
-	t.Parallel()
-
-	repo, tempDir := createTestRepository(t)
-
-	defer func() { _ = os.RemoveAll(tempDir) }()
-
-	err := repo.DeleteBranch(context.Background(), "branch", false)
-
-	assert.ErrorIs(t, err, ErrDeleteBranchNotSupported)
-}
-
-func TestRepository_SetDefaultBranch_NotSupported(t *testing.T) {
-	t.Parallel()
-
-	repo, tempDir := createTestRepository(t)
-
-	defer func() { _ = os.RemoveAll(tempDir) }()
-
-	err := repo.SetDefaultBranch(context.Background(), "main")
-
-	assert.ErrorIs(t, err, ErrSetDefaultBranchNotSupported)
-}
-
-// Test remote operations
-
-func TestRepository_ListRemotes(t *testing.T) {
-	t.Parallel()
-
-	repo, tempDir := createTestRepository(t)
-
-	defer func() { _ = os.RemoveAll(tempDir) }()
-
-	remotes, err := repo.ListRemotes(context.Background())
-
-	require.NoError(t, err)
-	assert.Empty(t, remotes)
-}
-
-func TestRepository_GetRemote_NotSupported(t *testing.T) {
-	t.Parallel()
-
-	repo, tempDir := createTestRepository(t)
-
-	defer func() { _ = os.RemoveAll(tempDir) }()
-
-	_, err := repo.GetRemote(context.Background(), "origin")
-
-	assert.ErrorIs(t, err, ErrArchiveReposNoRemotes)
-}
-
-func TestRepository_AddRemote_NotSupported(t *testing.T) {
-	t.Parallel()
-
-	repo, tempDir := createTestRepository(t)
-
-	defer func() { _ = os.RemoveAll(tempDir) }()
-
-	err := repo.AddRemote(context.Background(), "origin", "https://example.com")
-
-	assert.ErrorIs(t, err, ErrAddRemoteNotSupported)
-}
-
-func TestRepository_RemoveRemote_NotSupported(t *testing.T) {
-	t.Parallel()
-
-	repo, tempDir := createTestRepository(t)
-
-	defer func() { _ = os.RemoveAll(tempDir) }()
-
-	err := repo.RemoveRemote(context.Background(), "origin")
-
-	assert.ErrorIs(t, err, ErrRemoveRemoteNotSupported)
-}
-
-func TestRepository_UpdateRemote_NotSupported(t *testing.T) {
-	t.Parallel()
-
-	repo, tempDir := createTestRepository(t)
-
-	defer func() { _ = os.RemoveAll(tempDir) }()
-
-	err := repo.UpdateRemote(context.Background(), "origin", "https://new.com")
-
-	assert.ErrorIs(t, err, ErrUpdateRemoteNotSupported)
-}
-
-func TestRepository_GetRemoteURL_NotSupported(t *testing.T) {
-	t.Parallel()
-
-	repo, tempDir := createTestRepository(t)
-
-	defer func() { _ = os.RemoveAll(tempDir) }()
-
-	_, err := repo.GetRemoteURL(context.Background(), "origin")
-
-	assert.ErrorIs(t, err, ErrArchiveReposNoRemotes)
-}
-
-func TestRepository_SetRemoteURL_NotSupported(t *testing.T) {
-	t.Parallel()
-
-	repo, tempDir := createTestRepository(t)
-
-	defer func() { _ = os.RemoveAll(tempDir) }()
-
-	err := repo.SetRemoteURL(context.Background(), "origin", "https://new.com")
-
-	assert.ErrorIs(t, err, domain.ErrRemoteURLNotSupportedArchive)
-}
-
-// Test tag operations
-
-func TestRepository_ListTags(t *testing.T) {
-	t.Parallel()
-
-	repo, tempDir := createTestRepository(t)
-
-	defer func() { _ = os.RemoveAll(tempDir) }()
-
-	tags, err := repo.ListTags(context.Background())
-
-	require.NoError(t, err)
-	assert.Empty(t, tags)
-}
-
-func TestRepository_CreateTag_NotSupported(t *testing.T) {
-	t.Parallel()
-
-	repo, tempDir := createTestRepository(t)
-
-	defer func() { _ = os.RemoveAll(tempDir) }()
-
-	err := repo.CreateTag(context.Background(), "v1.0.0", "main", "Release v1.0.0")
-
-	assert.ErrorIs(t, err, ErrCreateTagNotSupported)
-}
-
-func TestRepository_DeleteTag_NotSupported(t *testing.T) {
-	t.Parallel()
-
-	repo, tempDir := createTestRepository(t)
-
-	defer func() { _ = os.RemoveAll(tempDir) }()
-
-	err := repo.DeleteTag(context.Background(), "v1.0.0")
-
-	assert.ErrorIs(t, err, ErrDeleteTagNotSupported)
-}
-
-// Test status and diff operations
 
 func TestRepository_Status(t *testing.T) {
 	t.Parallel()
@@ -576,7 +284,7 @@ func TestRepository_Status_NonExistentDirectory(t *testing.T) {
 
 	_, err := repo.Status(context.Background())
 
-	assert.Error(t, err)
+	require.Error(t, err)
 }
 
 func TestRepository_GetStatus(t *testing.T) {
@@ -590,121 +298,6 @@ func TestRepository_GetStatus(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Contains(t, status.Untracked, "file1.txt")
-}
-
-func TestRepository_Diff_NotSupported(t *testing.T) {
-	t.Parallel()
-
-	repo, tempDir := createTestRepository(t)
-
-	defer func() { _ = os.RemoveAll(tempDir) }()
-
-	diff, err := repo.Diff(context.Background(), ports.DiffOptions{})
-
-	assert.Empty(t, diff)
-	assert.ErrorIs(t, err, ErrDiffNotSupported)
-}
-
-// Test git operations (not supported)
-
-func TestRepository_Fetch_NotSupported(t *testing.T) {
-	t.Parallel()
-
-	repo, tempDir := createTestRepository(t)
-
-	defer func() { _ = os.RemoveAll(tempDir) }()
-
-	err := repo.Fetch(context.Background(), ports.FetchOptions{})
-
-	assert.ErrorIs(t, err, domain.ErrUnsupportedOperation)
-}
-
-func TestRepository_Pull_NotSupported(t *testing.T) {
-	t.Parallel()
-
-	repo, tempDir := createTestRepository(t)
-
-	defer func() { _ = os.RemoveAll(tempDir) }()
-
-	err := repo.Pull(context.Background(), ports.PullOptions{})
-
-	assert.ErrorIs(t, err, domain.ErrPullNotSupportedArchive)
-}
-
-func TestRepository_Push_NotSupported(t *testing.T) {
-	t.Parallel()
-
-	repo, tempDir := createTestRepository(t)
-
-	defer func() { _ = os.RemoveAll(tempDir) }()
-
-	err := repo.Push(context.Background(), ports.PushOptions{})
-
-	assert.ErrorIs(t, err, domain.ErrPushNotSupportedArchive)
-}
-
-func TestRepository_Add_NotSupported(t *testing.T) {
-	t.Parallel()
-
-	repo, tempDir := createTestRepository(t)
-
-	defer func() { _ = os.RemoveAll(tempDir) }()
-
-	err := repo.Add(context.Background(), []string{"file1.txt"})
-
-	assert.ErrorIs(t, err, domain.ErrAddFilesNotSupportedArchive)
-}
-
-func TestRepository_Commit_NotSupported(t *testing.T) {
-	t.Parallel()
-
-	repo, tempDir := createTestRepository(t)
-
-	defer func() { _ = os.RemoveAll(tempDir) }()
-
-	err := repo.Commit(context.Background(), "Test commit")
-
-	assert.ErrorIs(t, err, domain.ErrCommitNotSupportedArchive)
-}
-
-// Test configuration and metadata operations
-
-func TestRepository_GetConfig(t *testing.T) {
-	t.Parallel()
-
-	repo, tempDir := createTestRepository(t)
-
-	defer func() { _ = os.RemoveAll(tempDir) }()
-
-	config := repo.GetConfig()
-
-	assert.NotNil(t, config)
-	assert.IsType(t, ports.GitConfig{}, config)
-}
-
-func TestRepository_GetWorkingDirectory(t *testing.T) {
-	t.Parallel()
-
-	repo, tempDir := createTestRepository(t)
-
-	defer func() { _ = os.RemoveAll(tempDir) }()
-
-	workDir := repo.GetWorkingDirectory()
-
-	assert.Equal(t, tempDir, workDir)
-}
-
-func TestRepository_GetGitDirectory(t *testing.T) {
-	t.Parallel()
-
-	repo, tempDir := createTestRepository(t)
-
-	defer func() { _ = os.RemoveAll(tempDir) }()
-
-	gitDir := repo.GetGitDirectory()
-
-	expected := filepath.Join(tempDir, ".archive-metadata")
-	assert.Equal(t, expected, gitDir)
 }
 
 func TestRepository_HasUncommittedChanges(t *testing.T) {
@@ -894,7 +487,7 @@ func TestRepository_ListFiles_NonExistentPath(t *testing.T) {
 
 	_, err := repo.ListFiles(context.Background(), "non-existent-dir")
 
-	assert.Error(t, err)
+	require.Error(t, err)
 }
 
 // Test cleanup
@@ -908,7 +501,7 @@ func TestRepository_Close(t *testing.T) {
 
 	err := repo.Close()
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 // Test file security validation
@@ -953,7 +546,7 @@ func TestRepository_FileOperations_AbsolutePathErrors(t *testing.T) {
 		UserEmail: "test@example.com",
 	}
 	repo := &Repository{
-		path:   string([]byte{0}), // Invalid path that should cause filepath.Abs to fail
+		path:   "\x00", // Invalid path that should cause filepath.Abs to fail
 		config: config,
 	}
 

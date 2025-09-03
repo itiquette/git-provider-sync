@@ -8,6 +8,7 @@ package directory
 import (
 	"context"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -334,7 +335,7 @@ func (r *Repository) Close() error {
 
 // copyDirectory recursively copies a directory from src to dst.
 func (a *Adapter) copyDirectory(src, dst string) error {
-	err := filepath.Walk(src, func(path string, info os.FileInfo, err error) error {
+	err := filepath.WalkDir(src, func(path string, dirEntry fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -347,8 +348,13 @@ func (a *Adapter) copyDirectory(src, dst string) error {
 
 		dstPath := filepath.Join(dst, relPath)
 
-		if info.IsDir() {
-			// Create directory
+		if dirEntry.IsDir() {
+			// Create directory - get mode from DirEntry
+			info, err := dirEntry.Info()
+			if err != nil {
+				return fmt.Errorf("failed to get dir info: %w", err)
+			}
+
 			return os.MkdirAll(dstPath, info.Mode())
 		}
 

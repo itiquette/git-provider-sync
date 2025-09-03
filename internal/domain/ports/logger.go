@@ -11,12 +11,12 @@ import "context"
 // Following ISP: separated core logging from configuration concerns.
 type Logger interface {
 	// Core logging methods
-	Trace(ctx context.Context, msg string, fields map[string]interface{})
-	Debug(ctx context.Context, msg string, fields map[string]interface{})
-	Info(ctx context.Context, msg string, fields map[string]interface{})
-	Warn(ctx context.Context, msg string, fields map[string]interface{})
-	Error(ctx context.Context, msg string, fields map[string]interface{})
-	Fatal(ctx context.Context, msg string, fields map[string]interface{})
+	Trace(ctx context.Context, msg string, fields map[string]any)
+	Debug(ctx context.Context, msg string, fields map[string]any)
+	Info(ctx context.Context, msg string, fields map[string]any)
+	Warn(ctx context.Context, msg string, fields map[string]any)
+	Error(ctx context.Context, msg string, fields map[string]any)
+	Fatal(ctx context.Context, msg string, fields map[string]any)
 
 	// Level check for performance
 	IsLevelEnabled(level LogLevel) bool
@@ -31,8 +31,8 @@ type LoggerLevelController interface {
 // LoggerWithEnrichment provides field enrichment capabilities.
 // Note: These methods should return new logger instances (functional style).
 type LoggerWithEnrichment interface {
-	WithField(key string, value interface{}) Logger
-	WithFields(fields map[string]interface{}) Logger
+	WithField(key string, value any) Logger
+	WithFields(fields map[string]any) Logger
 	WithContext(ctx context.Context) Logger
 }
 

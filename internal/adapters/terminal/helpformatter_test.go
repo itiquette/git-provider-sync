@@ -88,7 +88,6 @@ func TestHelpFormatterColorDetection(t *testing.T) {
 	formatter := NewHelpFormatter()
 
 	// The formatter should detect color support based on environment
-	// This test verifies the formatter is created without panicking
 	require.NotNil(t, formatter, "Formatter should be created successfully")
 
 	// Test that Bold and Section methods work without panicking
@@ -178,8 +177,7 @@ func TestHelpFormatterTerminalIndependence(t *testing.T) {
 func TestHelpFormatterInterfaceCompliance(t *testing.T) {
 	t.Parallel()
 
-	// This test ensures our formatter implements the ports.HelpFormatter interface
-	// by testing all required methods exist and work
+	// Verify all ports.HelpFormatter interface methods work correctly
 	formatter := NewHelpFormatter()
 
 	// Test all interface methods

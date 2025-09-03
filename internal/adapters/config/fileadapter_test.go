@@ -367,7 +367,7 @@ func TestValidate(t *testing.T) {
 
 			for i, expectedErr := range test.expectedErrors {
 				if i < len(errors) {
-					assert.ErrorIs(t, errors[i].Err, expectedErr)
+					require.ErrorIs(t, errors[i].Err, expectedErr)
 				}
 			}
 		})
@@ -527,7 +527,7 @@ func TestFileFormatDetection(t *testing.T) {
 
 func TestEnvironmentVariableTransformation(t *testing.T) {
 	// Cannot use t.Parallel() with t.Setenv()
-	// This test demonstrates environment variable loading but may have implementation issues
+	// Demonstrates environment variable loading but may have implementation issues
 	adapter := New()
 	ctx := context.Background()
 
@@ -671,7 +671,7 @@ func TestUnsupportedSourceTypes(t *testing.T) {
 
 			_, err := adapter.Load(ctx, source)
 			require.Error(t, err)
-			assert.ErrorIs(t, err, test.expectErr)
+			require.ErrorIs(t, err, test.expectErr)
 		})
 	}
 }

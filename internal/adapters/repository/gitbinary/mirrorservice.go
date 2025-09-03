@@ -27,7 +27,7 @@ var (
 	ErrPermissionDenied = errors.New("permission denied (publickey)")
 )
 
-// MirrorService provides sophisticated Git mirroring operations using git binary.
+// MirrorService handles Git mirroring operations using the git binary.
 //
 //	git binary mirror functionality  in hexagonal architecture.
 type MirrorService struct {
@@ -97,11 +97,9 @@ type CloneResult struct {
 	Error      error
 }
 
-// Clone performs a sophisticated git clone operation using git binary.
-//
-//	Clone functionality  with enhancements.
+// Clone performs a git clone operation using git binary.
 func (ms *MirrorService) Clone(ctx context.Context, config MirrorConfig) (CloneResult, error) {
-	ms.logger.Info(ctx, "Starting git binary clone operation", map[string]interface{}{
+	ms.logger.Info(ctx, "Starting git binary clone operation", map[string]any{
 		"source_url":    config.SourceURL,
 		"name":          config.Name,
 		"mirror_type":   config.MirrorType,
@@ -126,7 +124,7 @@ func (ms *MirrorService) Clone(ctx context.Context, config MirrorConfig) (CloneR
 
 	cloneURL := ms.prepareCloneURL(ctx, config)
 
-	ms.logger.Debug(ctx, "Executing git clone", map[string]interface{}{
+	ms.logger.Debug(ctx, "Executing git clone", map[string]any{
 		"clone_url":       ms.sanitizeURL(ctx, cloneURL),
 		"destination_dir": destinationDir,
 		"parent_dir":      parentDir,
@@ -141,9 +139,9 @@ func (ms *MirrorService) Clone(ctx context.Context, config MirrorConfig) (CloneR
 			fmt.Errorf("failed to clone repository: %w", err)
 	}
 
-	// Fetch all branches after clone for comprehensive mirror
+	// Fetch all branches after clone for mirror
 	if err := ms.operationsSvc.Fetch(ctx, destinationDir); err != nil {
-		ms.logger.Warn(ctx, "Fetch after clone failed", map[string]interface{}{
+		ms.logger.Warn(ctx, "Fetch after clone failed", map[string]any{
 			"error": err.Error(),
 		})
 	}
@@ -153,7 +151,7 @@ func (ms *MirrorService) Clone(ctx context.Context, config MirrorConfig) (CloneR
 		return CloneResult{Success: false, Error: err}, err
 	}
 
-	ms.logger.Info(ctx, "Git binary clone completed successfully", map[string]interface{}{
+	ms.logger.Info(ctx, "Git binary clone completed successfully", map[string]any{
 		"destination_dir": destinationDir,
 		"source_url":      ms.sanitizeURL(ctx, cloneURL),
 	})
@@ -161,18 +159,16 @@ func (ms *MirrorService) Clone(ctx context.Context, config MirrorConfig) (CloneR
 	return result, nil
 }
 
-// Pull performs a sophisticated git pull operation using git binary.
-//
-//	Pull functionality .
+// Pull performs a git pull operation using git binary.
 func (ms *MirrorService) Pull(ctx context.Context, targetPath string, config MirrorConfig) error {
-	ms.logger.Info(ctx, "Starting git binary pull operation", map[string]interface{}{
+	ms.logger.Info(ctx, "Starting git binary pull operation", map[string]any{
 		"target_path": targetPath,
 		"source_url":  config.SourceURL,
 	})
 
 	env := ms.setupSSHCommandEnv(config.AuthConfig)
 
-	ms.logger.Debug(ctx, "Executing git pull", map[string]interface{}{
+	ms.logger.Debug(ctx, "Executing git pull", map[string]any{
 		"target_path": targetPath,
 	})
 
@@ -182,25 +178,23 @@ func (ms *MirrorService) Pull(ctx context.Context, targetPath string, config Mir
 
 	// Fetch all branches after pull
 	if err := ms.operationsSvc.Fetch(ctx, targetPath); err != nil {
-		ms.logger.Warn(ctx, "Fetch after pull failed", map[string]interface{}{
+		ms.logger.Warn(ctx, "Fetch after pull failed", map[string]any{
 			"error": err.Error(),
 		})
 
 		return fmt.Errorf("failed to fetch branches: %w", err)
 	}
 
-	ms.logger.Info(ctx, "Git binary pull completed successfully", map[string]interface{}{
+	ms.logger.Info(ctx, "Git binary pull completed successfully", map[string]any{
 		"target_path": targetPath,
 	})
 
 	return nil
 }
 
-// Push performs a sophisticated git push operation using git binary.
-//
-//	Push functionality .
+// Push performs a git push operation using git binary.
 func (ms *MirrorService) Push(ctx context.Context, repo entities.Repository, config MirrorConfig) error {
-	ms.logger.Info(ctx, "Starting git binary push operation", map[string]interface{}{
+	ms.logger.Info(ctx, "Starting git binary push operation", map[string]any{
 		"target_url": config.TargetURL,
 		"force":      config.ForcePush,
 	})
@@ -221,7 +215,7 @@ func (ms *MirrorService) Push(ctx context.Context, repo entities.Repository, con
 	repoName := ms.getRepositoryName(repo)
 	destinationDir := filepath.Join(tmpDirPath, repoName)
 
-	ms.logger.Debug(ctx, "Executing git push", map[string]interface{}{
+	ms.logger.Debug(ctx, "Executing git push", map[string]any{
 		"target_url":      ms.sanitizeURL(ctx, config.TargetURL),
 		"destination_dir": destinationDir,
 		"force":           config.ForcePush,
@@ -231,7 +225,7 @@ func (ms *MirrorService) Push(ctx context.Context, repo entities.Repository, con
 		return fmt.Errorf("failed to push repository: %w", err)
 	}
 
-	ms.logger.Info(ctx, "Git binary push completed successfully", map[string]interface{}{
+	ms.logger.Info(ctx, "Git binary push completed successfully", map[string]any{
 		"target_url": ms.sanitizeURL(ctx, config.TargetURL),
 	})
 
@@ -240,7 +234,7 @@ func (ms *MirrorService) Push(ctx context.Context, repo entities.Repository, con
 
 // performDryRunClone simulates a clone operation without making changes.
 func (ms *MirrorService) performDryRunClone(ctx context.Context, config MirrorConfig) (CloneResult, error) {
-	ms.logger.Info(ctx, "Performing dry run clone analysis", map[string]interface{}{
+	ms.logger.Info(ctx, "Performing dry run clone analysis", map[string]any{
 		"source_url": ms.sanitizeURL(ctx, config.SourceURL),
 		"name":       config.Name,
 	})
@@ -253,7 +247,7 @@ func (ms *MirrorService) performDryRunClone(ctx context.Context, config MirrorCo
 		Error:      nil,
 	}
 
-	ms.logger.Info(ctx, "Dry run clone completed", map[string]interface{}{
+	ms.logger.Info(ctx, "Dry run clone completed", map[string]any{
 		"would_clone_to": result.LocalPath,
 	})
 
@@ -261,10 +255,8 @@ func (ms *MirrorService) performDryRunClone(ctx context.Context, config MirrorCo
 }
 
 // prepareCloneURL prepares the clone URL with authentication if needed.
-//
-//	prepareCloneURL functionality .
 func (ms *MirrorService) prepareCloneURL(ctx context.Context, config MirrorConfig) string {
-	ms.logger.Debug(ctx, "Preparing clone URL", map[string]interface{}{
+	ms.logger.Debug(ctx, "Preparing clone URL", map[string]any{
 		"source_url":    ms.sanitizeURL(ctx, config.SourceURL),
 		"source_type":   config.SourceType,
 		"auth_protocol": config.AuthConfig.Protocol,
@@ -281,10 +273,8 @@ func (ms *MirrorService) prepareCloneURL(ctx context.Context, config MirrorConfi
 }
 
 // finalizeClone finalizes the clone operation and creates repository entity.
-//
-//	finalizeClone functionality .
 func (ms *MirrorService) finalizeClone(ctx context.Context, destinationDir, cloneURL string, config MirrorConfig) (CloneResult, error) {
-	ms.logger.Debug(ctx, "Finalizing clone operation", map[string]interface{}{
+	ms.logger.Debug(ctx, "Finalizing clone operation", map[string]any{
 		"destination_dir": destinationDir,
 		"clone_url":       ms.sanitizeURL(ctx, cloneURL),
 		"source_type":     config.SourceType,
@@ -311,10 +301,8 @@ func (ms *MirrorService) finalizeClone(ctx context.Context, destinationDir, clon
 }
 
 // updateRepoConfig updates repository configuration to remove authentication from URLs.
-//
-//	updateRepoConfig functionality .
 func (ms *MirrorService) updateRepoConfig(ctx context.Context, repoPath, cloneURL string) error {
-	ms.logger.Debug(ctx, "Updating repository configuration", map[string]interface{}{
+	ms.logger.Debug(ctx, "Updating repository configuration", map[string]any{
 		"repo_path": repoPath,
 		"clone_url": ms.sanitizeURL(ctx, cloneURL),
 	})
@@ -331,8 +319,6 @@ func (ms *MirrorService) updateRepoConfig(ctx context.Context, repoPath, cloneUR
 }
 
 // setupSSHCommandEnv sets up environment variables for SSH commands.
-//
-//	SetupSSHCommandEnv functionality .
 func (ms *MirrorService) setupSSHCommandEnv(authConfig AuthConfig) []string {
 	if authConfig.SSHCommand == "" {
 		return []string{}
@@ -361,7 +347,7 @@ func (ms *MirrorService) createTempDirectory(ctx context.Context) (string, error
 		return "", fmt.Errorf("failed to create temp directory: %w", err)
 	}
 
-	ms.logger.Debug(ctx, "Created temporary directory", map[string]interface{}{
+	ms.logger.Debug(ctx, "Created temporary directory", map[string]any{
 		"path": tmpDir,
 	})
 
@@ -409,4 +395,4 @@ func (ms *MirrorService) getRepositoryName(_ entities.Repository) string {
 
 // Note: ExecutorService, OperationServiceInterface, and ValidateGitBinary
 // are now implemented in separate files (executor_service.go, operations_service.go, validation.go)
-// with complete functionality restored .
+// with complete functionality restored.

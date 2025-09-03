@@ -41,7 +41,7 @@ type ProviderConfig struct {
 	Timeout      time.Duration
 	MaxRetries   int
 	UserAgent    string
-	Options      map[string]interface{} // Provider-specific options
+	Options      map[string]any // Provider-specific options
 }
 
 // NewProviderFactory creates a new provider factory.
@@ -53,14 +53,13 @@ func NewProviderFactory(httpFactory *transport.HTTPFactory, logger ports.Logger)
 }
 
 // CreateProvider creates a provider instance based on configuration.
-// This ports the sophisticated provider creation logic .
 //
 //nolint:ireturn // Factory method returns interface
 func (pf *ProviderFactory) CreateProvider(
 	ctx context.Context,
 	config ProviderConfig,
 ) (ports.RepositoryProvider, error) {
-	pf.logger.Info(ctx, "Creating provider client", map[string]interface{}{
+	pf.logger.Info(ctx, "Creating provider client", map[string]any{
 		"provider_type": config.ProviderType,
 		"domain":        config.Domain,
 		"owner":         config.Owner,
@@ -71,7 +70,7 @@ func (pf *ProviderFactory) CreateProvider(
 		return nil, fmt.Errorf("provider configuration validation failed for %s: %w", config.ProviderType, err)
 	}
 
-	// Create HTTP client with advanced configuration
+	// Create HTTP client
 	httpClient, err := pf.createHTTPClient(ctx, config)
 	if err != nil {
 		return nil, fmt.Errorf("HTTP client creation failed for %s provider: %w", config.ProviderType, err)
@@ -217,7 +216,7 @@ func (pf *ProviderFactory) createHTTPClient(_ context.Context, config ProviderCo
 	options := transport.HTTPClientOptions{
 		Provider:      config.ProviderType,
 		Authenticated: config.Token != "",
-		Custom: map[string]interface{}{
+		Custom: map[string]any{
 			"timeout":     timeout,
 			"disable_ssl": config.DisableSSL,
 			"max_retries": maxRetries,
@@ -233,7 +232,7 @@ func (pf *ProviderFactory) createHTTPClient(_ context.Context, config ProviderCo
 	return client, nil
 }
 
-// createGitHubProvider creates a GitHub provider with advanced configuration.
+// createGitHubProvider creates a GitHub provider.
 //
 //nolint:ireturn // Factory helper method returns interface
 func (pf *ProviderFactory) createGitHubProvider(
@@ -241,12 +240,12 @@ func (pf *ProviderFactory) createGitHubProvider(
 	httpClient *http.Client,
 	config ProviderConfig,
 ) (ports.RepositoryProvider, error) {
-	pf.logger.Debug(ctx, "Creating GitHub provider", map[string]interface{}{
+	pf.logger.Debug(ctx, "Creating GitHub provider", map[string]any{
 		"domain":   config.Domain,
 		"base_url": config.BaseURL,
 	})
 
-	// Use enhanced GitHub adapter creation
+	// Create GitHub adapter
 	adapter := github.NewWithConfig(ctx, github.Config{
 		Token:      config.Token,
 		HTTPClient: httpClient,
@@ -257,7 +256,7 @@ func (pf *ProviderFactory) createGitHubProvider(
 	return adapter, nil
 }
 
-// createGitLabProvider creates a GitLab provider with advanced configuration.
+// createGitLabProvider creates a GitLab provider.
 //
 //nolint:ireturn // Factory helper method returns interface
 func (pf *ProviderFactory) createGitLabProvider(
@@ -265,12 +264,12 @@ func (pf *ProviderFactory) createGitLabProvider(
 	httpClient *http.Client,
 	config ProviderConfig,
 ) (ports.RepositoryProvider, error) {
-	pf.logger.Debug(ctx, "Creating GitLab provider", map[string]interface{}{
+	pf.logger.Debug(ctx, "Creating GitLab provider", map[string]any{
 		"domain":   config.Domain,
 		"base_url": config.BaseURL,
 	})
 
-	// Use enhanced GitLab adapter creation
+	// Create GitLab adapter
 	adapter, err := gitlab.NewWithConfig(ctx, gitlab.Config{
 		Token:      config.Token,
 		HTTPClient: httpClient,
@@ -284,7 +283,7 @@ func (pf *ProviderFactory) createGitLabProvider(
 	return adapter, nil
 }
 
-// createGiteaProvider creates a Gitea provider with advanced configuration.
+// createGiteaProvider creates a Gitea provider.
 //
 //nolint:ireturn // Factory helper method returns interface
 func (pf *ProviderFactory) createGiteaProvider(
@@ -292,12 +291,12 @@ func (pf *ProviderFactory) createGiteaProvider(
 	httpClient *http.Client,
 	config ProviderConfig,
 ) (ports.RepositoryProvider, error) {
-	pf.logger.Debug(ctx, "Creating Gitea provider", map[string]interface{}{
+	pf.logger.Debug(ctx, "Creating Gitea provider", map[string]any{
 		"domain":   config.Domain,
 		"base_url": config.BaseURL,
 	})
 
-	// Use enhanced Gitea adapter creation
+	// Create Gitea adapter
 	adapter, err := gitea.NewWithConfig(ctx, gitea.Config{
 		Token:         config.Token,
 		HTTPClient:    httpClient,

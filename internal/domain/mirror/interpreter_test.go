@@ -24,7 +24,7 @@ const (
 	mockRepoURL = "https://example.com/repo.git"
 )
 
-// Enhanced mock implementations for interpreter testing
+// Mock implementations for interpreter testing
 
 type mockGitRepository struct {
 	pushError  error
@@ -295,19 +295,19 @@ type mockLoggerWithCapture struct {
 	errorMessages []string
 }
 
-func (m *mockLoggerWithCapture) Debug(_ context.Context, msg string, _ map[string]interface{}) {
+func (m *mockLoggerWithCapture) Debug(_ context.Context, msg string, _ map[string]any) {
 	m.debugMessages = append(m.debugMessages, msg)
 }
 
-func (m *mockLoggerWithCapture) Info(_ context.Context, msg string, _ map[string]interface{}) {
+func (m *mockLoggerWithCapture) Info(_ context.Context, msg string, _ map[string]any) {
 	m.infoMessages = append(m.infoMessages, msg)
 }
 
-func (m *mockLoggerWithCapture) Error(_ context.Context, msg string, _ map[string]interface{}) {
+func (m *mockLoggerWithCapture) Error(_ context.Context, msg string, _ map[string]any) {
 	m.errorMessages = append(m.errorMessages, msg)
 }
 
-func (m *mockLoggerWithCapture) Fatal(_ context.Context, msg string, _ map[string]interface{}) {
+func (m *mockLoggerWithCapture) Fatal(_ context.Context, msg string, _ map[string]any) {
 	m.errorMessages = append(m.errorMessages, msg)
 }
 
@@ -315,11 +315,11 @@ func (m *mockLoggerWithCapture) IsLevelEnabled(_ ports.LogLevel) bool {
 	return true
 }
 
-func (m *mockLoggerWithCapture) Trace(_ context.Context, msg string, _ map[string]interface{}) {
+func (m *mockLoggerWithCapture) Trace(_ context.Context, msg string, _ map[string]any) {
 	m.debugMessages = append(m.debugMessages, msg)
 }
 
-func (m *mockLoggerWithCapture) Warn(_ context.Context, msg string, _ map[string]interface{}) {
+func (m *mockLoggerWithCapture) Warn(_ context.Context, msg string, _ map[string]any) {
 	m.infoMessages = append(m.infoMessages, msg)
 }
 
@@ -426,7 +426,7 @@ func TestEffectInterpreter_executeCloneRepository_Success(t *testing.T) {
 	effect := Effect{
 		Type:        EffectTypeCloneRepository,
 		Description: "Clone repository",
-		Parameters: map[string]interface{}{
+		Parameters: map[string]any{
 			"url":        "https://github.com/owner/repo.git",
 			"local_path": "/tmp/repo",
 			"auth":       AuthSpec{Type: ports.AuthTypeToken, Token: "token"},
@@ -454,7 +454,7 @@ func TestEffectInterpreter_executeCloneRepository_DryRun(t *testing.T) {
 
 	effect := Effect{
 		Type: EffectTypeCloneRepository,
-		Parameters: map[string]interface{}{
+		Parameters: map[string]any{
 			"url":        "https://github.com/owner/repo.git",
 			"local_path": "/tmp/repo",
 		},
@@ -479,22 +479,22 @@ func TestEffectInterpreter_executeCloneRepository_MissingParameters(t *testing.T
 
 	tests := []struct {
 		name          string
-		parameters    map[string]interface{}
+		parameters    map[string]any
 		expectedError error
 	}{
 		{
 			name:          "missing URL",
-			parameters:    map[string]interface{}{"local_path": "/tmp", "auth": AuthSpec{}},
+			parameters:    map[string]any{"local_path": "/tmp", "auth": AuthSpec{}},
 			expectedError: domain.ErrCloneEffectMissingURL,
 		},
 		{
 			name:          "missing local path",
-			parameters:    map[string]interface{}{"url": "https://example.com", "auth": AuthSpec{}},
+			parameters:    map[string]any{"url": "https://example.com", "auth": AuthSpec{}},
 			expectedError: domain.ErrCloneEffectMissingPath,
 		},
 		{
 			name:          "missing auth",
-			parameters:    map[string]interface{}{"url": "https://example.com", "local_path": "/tmp"},
+			parameters:    map[string]any{"url": "https://example.com", "local_path": "/tmp"},
 			expectedError: domain.ErrCloneEffectMissingAuth,
 		},
 	}
@@ -527,7 +527,7 @@ func TestEffectInterpreter_executeCreateRepository_Success(t *testing.T) {
 
 	effect := Effect{
 		Type: EffectTypeCreateRepository,
-		Parameters: map[string]interface{}{
+		Parameters: map[string]any{
 			"name":        "test-repo",
 			"owner":       "test-owner",
 			"description": "Test repository",
@@ -558,7 +558,7 @@ func TestEffectInterpreter_executeCreateRepository_DryRun(t *testing.T) {
 
 	effect := Effect{
 		Type: EffectTypeCreateRepository,
-		Parameters: map[string]interface{}{
+		Parameters: map[string]any{
 			"name":  "test-repo",
 			"owner": "test-owner",
 		},
@@ -583,7 +583,7 @@ func TestEffectInterpreter_executePushToRepository_Success(t *testing.T) {
 
 	effect := Effect{
 		Type: EffectTypePushToRepository,
-		Parameters: map[string]interface{}{
+		Parameters: map[string]any{
 			"url":        "https://github.com/owner/repo.git",
 			"local_path": "/tmp/repo",
 			"auth":       AuthSpec{Type: ports.AuthTypeToken, Token: "token"},
@@ -608,7 +608,7 @@ func TestEffectInterpreter_executePushToRepository_DryRun(t *testing.T) {
 
 	effect := Effect{
 		Type: EffectTypePushToRepository,
-		Parameters: map[string]interface{}{
+		Parameters: map[string]any{
 			"url":        "https://github.com/owner/repo.git",
 			"local_path": "/tmp/repo",
 		},
@@ -631,7 +631,7 @@ func TestEffectInterpreter_executeUpdateDescription_Success(t *testing.T) {
 
 	effect := Effect{
 		Type: EffectTypeUpdateDescription,
-		Parameters: map[string]interface{}{
+		Parameters: map[string]any{
 			"repository":  "test-repo",
 			"description": "Updated description",
 		},
@@ -660,7 +660,7 @@ func TestEffectInterpreter_executeUpdateTopics_Success(t *testing.T) {
 
 	effect := Effect{
 		Type: EffectTypeUpdateTopics,
-		Parameters: map[string]interface{}{
+		Parameters: map[string]any{
 			"repository": "test-repo",
 			"topics":     []string{"topic1", "topic2"},
 		},
@@ -689,7 +689,7 @@ func TestEffectInterpreter_executeCleanupTempFiles_Success(t *testing.T) {
 
 	effect := Effect{
 		Type: EffectTypeCleanupTempFiles,
-		Parameters: map[string]interface{}{
+		Parameters: map[string]any{
 			"local_path": "/tmp/repo",
 		},
 	}
@@ -711,7 +711,7 @@ func TestEffectInterpreter_executeCleanupTempFiles_DryRun(t *testing.T) {
 
 	effect := Effect{
 		Type: EffectTypeCleanupTempFiles,
-		Parameters: map[string]interface{}{
+		Parameters: map[string]any{
 			"local_path": "/tmp/repo",
 		},
 	}
@@ -932,7 +932,7 @@ func createValidOperation() Operation {
 			{
 				Type:        EffectTypeCloneRepository,
 				Description: "Clone source repository",
-				Parameters: map[string]interface{}{
+				Parameters: map[string]any{
 					"url":        "https://github.com/owner/source.git",
 					"local_path": "/tmp/source",
 					"auth":       AuthSpec{Type: ports.AuthTypeToken, Token: "source-token"},

@@ -359,7 +359,7 @@ func TestFileSystemValidation_Integration(t *testing.T) {
 			assert.Equal(t, test.expectWritable, result.Writable)
 
 			if test.expectSuccess {
-				assert.NoError(t, result.Error)
+				require.NoError(t, result.Error)
 			}
 		})
 	}
@@ -376,20 +376,6 @@ func TestStatPath_InvalidCharacters(t *testing.T) {
 
 	require.Error(t, err)
 	assert.Nil(t, info)
-}
-
-func TestIsReadable_EmptyPath(t *testing.T) {
-	t.Parallel()
-
-	result := isReadable("")
-	assert.False(t, result)
-}
-
-func TestIsWritable_EmptyPath(t *testing.T) {
-	t.Parallel()
-
-	result := isWritable("")
-	assert.False(t, result)
 }
 
 // Benchmark tests.

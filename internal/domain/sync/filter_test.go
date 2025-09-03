@@ -19,13 +19,13 @@ import (
 // testLogger is a simple no-op logger for testing.
 type testLogger struct{}
 
-func (l testLogger) Trace(_ context.Context, _ string, _ map[string]interface{}) {}
-func (l testLogger) Debug(_ context.Context, _ string, _ map[string]interface{}) {}
-func (l testLogger) Info(_ context.Context, _ string, _ map[string]interface{})  {}
-func (l testLogger) Warn(_ context.Context, _ string, _ map[string]interface{})  {}
-func (l testLogger) Error(_ context.Context, _ string, _ map[string]interface{}) {}
-func (l testLogger) Fatal(_ context.Context, _ string, _ map[string]interface{}) {}
-func (l testLogger) IsLevelEnabled(_ ports.LogLevel) bool                        { return true }
+func (l testLogger) Trace(_ context.Context, _ string, _ map[string]any) {}
+func (l testLogger) Debug(_ context.Context, _ string, _ map[string]any) {}
+func (l testLogger) Info(_ context.Context, _ string, _ map[string]any)  {}
+func (l testLogger) Warn(_ context.Context, _ string, _ map[string]any)  {}
+func (l testLogger) Error(_ context.Context, _ string, _ map[string]any) {}
+func (l testLogger) Fatal(_ context.Context, _ string, _ map[string]any) {}
+func (l testLogger) IsLevelEnabled(_ ports.LogLevel) bool                { return true }
 
 func TestFilterRepositoriesUseCase_Execute(t *testing.T) {
 	t.Parallel()

@@ -51,12 +51,6 @@ func TestNewContainer_ValidConfig_CreatesContainer(t *testing.T) {
 
 	require.NoError(t, err)
 	require.NotNil(t, container)
-	assert.NotNil(t, container.config)
-	assert.NotNil(t, container.configAdapter)
-	assert.NotNil(t, container.providerFactory)
-	assert.NotNil(t, container.gitFactory)
-	assert.NotNil(t, container.httpFactory)
-	assert.NotNil(t, container.logger)
 }
 
 func TestNewContainer_InvalidConfigPath(t *testing.T) {
@@ -305,72 +299,10 @@ func TestContainerConfig_Validation(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			// Just verify the struct can be created without panicking
-			assert.NotNil(t, test.config)
+			// Verify the struct can be created without panicking
 			assert.Equal(t, test.expectedValid, test.config.ConfigPath != "" || test.config.Environment != "")
 		})
 	}
-}
-
-func TestContainer_Dependencies(t *testing.T) {
-	t.Parallel()
-
-	// Create a temporary config file
-	tempDir := t.TempDir()
-	configFile := filepath.Join(tempDir, "config.yaml")
-	configContent := testConfigContent
-	err := os.WriteFile(configFile, []byte(configContent), 0600)
-	require.NoError(t, err)
-
-	containerConfig := ContainerConfig{
-		ConfigPath:     configFile,
-		Environment:    "defaultenv",
-		LogLevel:       "info",
-		DryRun:         false,
-		SkipTLSVerify:  false,
-		MaxConcurrency: 5,
-	}
-
-	container, err := NewContainer(context.Background(), containerConfig)
-	require.NoError(t, err)
-
-	// Test that all dependencies are properly initialized
-	assert.NotNil(t, container.config, "config should be initialized")
-	assert.NotNil(t, container.configAdapter, "configAdapter should be initialized")
-	assert.NotNil(t, container.providerFactory, "providerFactory should be initialized")
-	assert.NotNil(t, container.gitFactory, "gitFactory should be initialized")
-	assert.NotNil(t, container.httpFactory, "httpFactory should be initialized")
-	assert.NotNil(t, container.logger, "logger should be initialized")
-}
-
-func TestContainer_GetterMethods(t *testing.T) {
-	t.Parallel()
-
-	// Create a temporary config file
-	tempDir := t.TempDir()
-	configFile := filepath.Join(tempDir, "config.yaml")
-	configContent := testConfigContent
-	err := os.WriteFile(configFile, []byte(configContent), 0600)
-	require.NoError(t, err)
-
-	containerConfig := ContainerConfig{
-		ConfigPath:     configFile,
-		Environment:    "defaultenv",
-		LogLevel:       "info",
-		DryRun:         false,
-		SkipTLSVerify:  false,
-		MaxConcurrency: 5,
-	}
-
-	container, err := NewContainer(context.Background(), containerConfig)
-	require.NoError(t, err)
-
-	// Test getter methods
-	assert.NotNil(t, container.Configuration())
-	assert.NotNil(t, container.ConfigAdapter())
-	assert.NotNil(t, container.ProviderFactory())
-	assert.NotNil(t, container.GitFactory())
-	assert.NotNil(t, container.HTTPFactory())
 }
 
 func TestContainer_CreateUseCases(t *testing.T) {

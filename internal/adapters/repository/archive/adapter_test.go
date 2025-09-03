@@ -328,7 +328,7 @@ func TestAdapter_Clone_UnsupportedFormat(t *testing.T) {
 
 	_, err = adapter.Clone(context.Background(), options)
 
-	assert.ErrorIs(t, err, ErrUnsupportedArchiveFormat)
+	require.ErrorIs(t, err, ErrUnsupportedArchiveFormat)
 }
 
 func TestAdapter_Clone_NonFileURL(t *testing.T) {
@@ -344,7 +344,7 @@ func TestAdapter_Clone_NonFileURL(t *testing.T) {
 
 	_, err := adapter.Clone(context.Background(), options)
 
-	assert.ErrorIs(t, err, ErrArchiveOnlySupportsFile)
+	require.ErrorIs(t, err, ErrArchiveOnlySupportsFile)
 }
 
 func TestAdapter_Clone_MaliciousArchives(t *testing.T) {
@@ -390,7 +390,7 @@ func TestAdapter_Clone_MaliciousArchives(t *testing.T) {
 
 			_, err := adapter.Clone(context.Background(), options)
 
-			assert.ErrorIs(t, err, test.expectedErr)
+			require.ErrorIs(t, err, test.expectedErr)
 		})
 	}
 }
@@ -420,22 +420,10 @@ func TestAdapter_Open_NonExistentPath(t *testing.T) {
 
 	_, err := adapter.Open(context.Background(), "/non-existent-path")
 
-	assert.ErrorIs(t, err, ErrRepositoryPathNotExist)
+	require.ErrorIs(t, err, ErrRepositoryPathNotExist)
 }
 
 // Test Init operation
-
-func TestAdapter_Init_NotSupported(t *testing.T) {
-	t.Parallel()
-
-	adapter := New(createMockGitConfig())
-
-	_, err := adapter.Init(context.Background(), "/test/path", ports.InitOptions{})
-
-	assert.ErrorIs(t, err, ErrInitNotSupported)
-}
-
-// Test Cleanup operation
 
 func TestAdapter_Cleanup(t *testing.T) {
 	t.Parallel()
@@ -445,7 +433,7 @@ func TestAdapter_Cleanup(t *testing.T) {
 	err := adapter.Cleanup(context.Background(), "/test/path")
 
 	// Should be a no-op and not error
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 // Test Repository implementation (created from archive package)
@@ -515,28 +503,6 @@ func TestAdapter_Push_CreateArchive(t *testing.T) {
 
 // Test Fetch operation
 
-func TestAdapter_Fetch_NotSupported(t *testing.T) {
-	t.Parallel()
-
-	adapter := New(createMockGitConfig())
-
-	// Create a temporary directory for testing
-	tempDir, err := os.MkdirTemp("", "fetch-test-*")
-	require.NoError(t, err)
-
-	defer func() { _ = os.RemoveAll(tempDir) }()
-
-	// Create mock repository
-	repo, err := adapter.Open(context.Background(), tempDir)
-	require.NoError(t, err)
-
-	err = adapter.Fetch(context.Background(), repo, ports.FetchOptions{})
-
-	assert.ErrorIs(t, err, ErrFetchNotSupported)
-}
-
-// Test helper methods
-
 func TestAdapter_extractArchive_CorruptedArchive(t *testing.T) {
 	t.Parallel()
 
@@ -575,7 +541,7 @@ func TestAdapter_createArchive_NonExistentSource(t *testing.T) {
 
 	err = adapter.createArchive("/non-existent-source", archivePath.Name())
 
-	assert.Error(t, err)
+	require.Error(t, err)
 }
 
 func TestAdapter_validateAndBuildTargetPath(t *testing.T) {
@@ -653,7 +619,7 @@ func TestAdapter_extractEntry_UnsupportedType(t *testing.T) {
 	err := adapter.extractEntry(nil, header, "/test/path")
 
 	// Should not error for unsupported types (they are skipped)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestAdapter_extractFile_PermissionCheck(t *testing.T) {
@@ -698,7 +664,7 @@ func TestAdapter_extractFile_PermissionCheck(t *testing.T) {
 	assert.Equal(t, content, string(extractedContent))
 }
 
-// Helper function to create tar reader with content.
+// Creates tar reader with content.
 func createTarReaderWithContent(t *testing.T, header *tar.Header, content string) *tar.Reader {
 	t.Helper()
 

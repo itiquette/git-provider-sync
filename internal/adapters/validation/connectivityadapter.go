@@ -39,7 +39,7 @@ func (c *ConnectivityAdapter) ValidateConnectivity(ctx context.Context, val vali
 	result := validation.ConnectivityResult{
 		Validation: val,
 		Success:    false,
-		Details:    make(map[string]interface{}),
+		Details:    make(map[string]any),
 		Duration:   0,
 	}
 
@@ -176,7 +176,7 @@ func (f *FileSystemAdapter) ValidateFileSystem(_ context.Context, val validation
 	result := validation.FileSystemResult{
 		Validation: val,
 		Success:    false,
-		Details:    make(map[string]interface{}),
+		Details:    make(map[string]any),
 	}
 
 	switch val.Type {

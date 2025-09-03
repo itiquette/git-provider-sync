@@ -55,7 +55,7 @@ func (h *PanicHandler) HandlePanic() {
 	}
 }
 
-func (h *PanicHandler) handlePanicRecovery(recovered interface{}) {
+func (h *PanicHandler) handlePanicRecovery(recovered any) {
 	// Get stack trace
 	stack := debug.Stack()
 
@@ -66,7 +66,7 @@ func (h *PanicHandler) handlePanicRecovery(recovered interface{}) {
 	h.displayPanicMessage(recovered, crashFile)
 }
 
-func (h *PanicHandler) saveCrashReport(recovered interface{}, stack []byte) string {
+func (h *PanicHandler) saveCrashReport(recovered any, stack []byte) string {
 	// Create crash directory if it doesn't exist
 	if err := os.MkdirAll(h.crashDir, 0750); err != nil {
 		// Can't save crash report, return empty
@@ -87,7 +87,7 @@ func (h *PanicHandler) saveCrashReport(recovered interface{}, stack []byte) stri
 	return crashPath
 }
 
-func (h *PanicHandler) formatCrashReport(recovered interface{}, stack []byte) string {
+func (h *PanicHandler) formatCrashReport(recovered any, stack []byte) string {
 	var builder strings.Builder
 
 	builder.WriteString("Git Provider Sync Crash Report\n")
@@ -109,7 +109,7 @@ func (h *PanicHandler) formatCrashReport(recovered interface{}, stack []byte) st
 	return builder.String()
 }
 
-func (h *PanicHandler) displayPanicMessage(recovered interface{}, crashFile string) {
+func (h *PanicHandler) displayPanicMessage(recovered any, crashFile string) {
 	symbols := GetSymbols(terminal.ColorAuto)
 
 	// Title with error symbol
@@ -159,7 +159,7 @@ func (h *PanicHandler) displayPanicMessage(recovered interface{}, crashFile stri
 	_, _ = fmt.Fprintln(h.writer)
 }
 
-func (h *PanicHandler) generateBugReportURL(recovered interface{}, crashFile string) string {
+func (h *PanicHandler) generateBugReportURL(recovered any, crashFile string) string {
 	baseURL := "https://github.com/itiquette/git-provider-sync/issues/new"
 
 	// Build proper URL with query parameters
@@ -192,7 +192,7 @@ func (h *PanicHandler) generateBugReportURL(recovered interface{}, crashFile str
 	return parsedURL.String()
 }
 
-func (h *PanicHandler) formatIssueBody(recovered interface{}, crashFile string) string {
+func (h *PanicHandler) formatIssueBody(recovered any, crashFile string) string {
 	var builder strings.Builder
 
 	builder.WriteString("## Description\n")

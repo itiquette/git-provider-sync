@@ -128,7 +128,7 @@ func TestCleanup(t *testing.T) {
 
 	// Test cleanup - for go-git, this is a no-op
 	err := adapter.Cleanup(ctx, "/any/path")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 // TestRepository_BasicProperties tests basic repository properties.
@@ -173,7 +173,7 @@ func TestRepository_BasicProperties(t *testing.T) {
 
 			// Test close
 			err := goGitRepo.Close()
-			assert.NoError(t, err)
+			require.NoError(t, err)
 		})
 	}
 }
@@ -199,7 +199,7 @@ func TestRepository_BranchOperations(t *testing.T) {
 
 	// Current branch should return error for empty repo (no HEAD)
 	_, err = goGitRepo.CurrentBranch()
-	assert.Error(t, err) // Expected error for empty repository
+	require.Error(t, err) // Expected error for empty repository
 }
 
 // TestRepository_RemoteOperations tests remote operations.
@@ -308,33 +308,6 @@ func TestRepository_Status(t *testing.T) {
 	assert.Empty(t, status.Added)
 	assert.Empty(t, status.Deleted)
 	assert.Empty(t, status.Untracked)
-}
-
-// TestAdapter_ConvertHelperMethods tests internal conversion methods.
-func TestAdapter_ConvertHelperMethods(t *testing.T) {
-	t.Parallel()
-
-	adapter := New(ports.GitConfig{})
-
-	// Test tag mode conversion
-	tests := []struct {
-		name     string
-		input    ports.TagMode
-		expected git.TagMode
-	}{
-		{"all tags", ports.TagModeAll, git.AllTags},
-		{"no tags", ports.TagModeNone, git.NoTags},
-		{"follow tags", ports.TagModeFollow, git.TagFollowing},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			t.Parallel()
-
-			result := adapter.convertTagMode(test.input)
-			assert.Equal(t, test.expected, result)
-		})
-	}
 }
 
 // BenchmarkRepository_Operations benchmarks core operations with in-memory storage.

@@ -20,8 +20,6 @@ const (
 )
 
 // FilterService provides GitLab-specific repository filtering operations.
-//
-//	sophisticated filter service functionality .
 type FilterService struct {
 	logger ports.Logger
 }
@@ -103,7 +101,7 @@ type ArchiveFilter struct {
 
 // FilterRepositories performs GitLab-specific repository filtering.
 func (fs *FilterService) FilterRepositories(ctx context.Context, request FilterRepositoriesRequest) ([]entities.Repository, error) {
-	fs.logger.Debug(ctx, "Filtering GitLab repositories", map[string]interface{}{
+	fs.logger.Debug(ctx, "Filtering GitLab repositories", map[string]any{
 		"total_count":      len(request.Repositories),
 		"include_patterns": request.IncludePatterns,
 		"exclude_patterns": request.ExcludePatterns,
@@ -120,7 +118,7 @@ func (fs *FilterService) FilterRepositories(ctx context.Context, request FilterR
 		}
 	}
 
-	fs.logger.Info(ctx, "GitLab repository filtering completed", map[string]interface{}{
+	fs.logger.Info(ctx, "GitLab repository filtering completed", map[string]any{
 		"original_count": len(request.Repositories),
 		"filtered_count": len(filtered),
 	})
@@ -168,8 +166,8 @@ func (fs *FilterService) FilterRepositoriesByCompliance(_ context.Context, repos
 }
 
 // GetFilterStatistics returns statistics about GitLab filtering results.
-func (fs *FilterService) GetFilterStatistics(original, filtered []entities.Repository) map[string]interface{} {
-	stats := map[string]interface{}{
+func (fs *FilterService) GetFilterStatistics(original, filtered []entities.Repository) map[string]any {
+	stats := map[string]any{
 		"original_count":      len(original),
 		"filtered_count":      len(filtered),
 		"filtered_percentage": float64(len(filtered)) / float64(len(original)) * 100,
@@ -262,7 +260,7 @@ func (fs *FilterService) isActiveRepository(ctx context.Context, repo entities.R
 
 	duration, err := time.ParseDuration(activeFromLimit)
 	if err != nil {
-		fs.logger.Warn(ctx, "Failed to parse activity duration", map[string]interface{}{
+		fs.logger.Warn(ctx, "Failed to parse activity duration", map[string]any{
 			"duration": activeFromLimit,
 			"error":    err.Error(),
 		})
@@ -386,7 +384,7 @@ func (fs *FilterService) passesPatternFilters(ctx context.Context, repo entities
 	if len(request.ExcludePatterns) > 0 {
 		for _, pattern := range request.ExcludePatterns {
 			if fs.matchesPattern(repo.Name(), pattern) {
-				fs.logger.Debug(ctx, "Repository excluded by pattern", map[string]interface{}{
+				fs.logger.Debug(ctx, "Repository excluded by pattern", map[string]any{
 					"repository": repo.Name(),
 					"pattern":    pattern,
 				})
@@ -442,7 +440,7 @@ func (fs *FilterService) passesContentFilters(repo entities.Repository, request 
 	return true
 }
 
-// passesAdvancedFilters checks advanced filters like activity, membership, security.
+// passesAdvancedFilters checks activity, membership, and security filters.
 func (fs *FilterService) passesAdvancedFilters(ctx context.Context, repo entities.Repository, request FilterRepositoriesRequest) bool {
 	// Check activity filter
 	if request.ActiveFromLimit != "" {

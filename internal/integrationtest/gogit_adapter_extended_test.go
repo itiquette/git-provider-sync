@@ -19,7 +19,7 @@ import (
 	"itiquette/git-provider-sync/internal/domain/ports"
 )
 
-// TestGoGitAdapterExtendedIntegration tests comprehensive GoGit adapter operations
+// TestGoGitAdapterExtendedIntegration tests GoGit adapter operations
 // Moved from internal/adapters/repository/gogit/adapter_test.go:375
 func TestGoGitAdapterExtendedIntegration(t *testing.T) {
 	if testing.Short() {
@@ -347,12 +347,12 @@ func testGoGitErrorHandling(t *testing.T, adapter *gogit.Adapter) {
 	// Test opening non-existent repository
 	nonExistentPath := filepath.Join(env.TmpDir, "non-existent-repo")
 	_, err = adapter.Open(ctx, nonExistentPath)
-	assert.Error(t, err, "Should fail to open non-existent repository")
+	require.Error(t, err, "Should fail to open non-existent repository")
 
 	// Test initializing in invalid location (if any)
 	invalidPath := "/invalid/path/that/should/not/exist"
 	_, err = adapter.Init(ctx, invalidPath, ports.InitOptions{})
-	assert.Error(t, err, "Should fail to initialize in invalid location")
+	require.Error(t, err, "Should fail to initialize in invalid location")
 
 	// Test clone with invalid URL
 	clonePath := filepath.Join(env.TmpDir, "clone-test")
@@ -361,7 +361,7 @@ func testGoGitErrorHandling(t *testing.T, adapter *gogit.Adapter) {
 		Path: clonePath,
 		Auth: ports.AuthOptions{Type: ports.AuthTypeNone},
 	})
-	assert.Error(t, err, "Should fail to clone invalid URL")
+	require.Error(t, err, "Should fail to clone invalid URL")
 
 	t.Logf("✅ GoGit error handling completed")
 	t.Logf("   All error scenarios handled correctly")

@@ -72,7 +72,7 @@ func verifyTestResult(t *testing.T, err error, appConfig *config.AppConfiguratio
 
 	if expectedOwner == "" {
 		// Should fail to load
-		assert.Error(t, err, description)
+		require.Error(t, err, description)
 	} else {
 		// Should succeed and have expected value
 		require.NoError(t, err, description)

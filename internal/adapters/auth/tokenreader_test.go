@@ -161,14 +161,14 @@ func TestValidateToken(t *testing.T) {
 					assert.Contains(t, err.Error(), testCase.errContains)
 				}
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			}
 		})
 	}
 }
 
 func TestReadTokenFromStdin(t *testing.T) { //nolint:paralleltest // Cannot parallelize stdin test
-	// This test requires stdin manipulation which is complex in Go tests
+	// Stdin manipulation is complex in Go tests
 	// In a real scenario, we'd use a test harness that can mock stdin
 	// For now, we just ensure the function exists and compiles
 	t.Skip("Stdin testing requires complex test harness")

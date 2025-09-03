@@ -22,6 +22,7 @@ import (
 // 2. Environment variable expansion in config (token: "${MY_TOKEN}")
 // 3. Token file specified in config (token_file: "/path/to/file").
 func TestTokenPrecedenceOrder(t *testing.T) {
+	// Cannot run parallel with t.Setenv
 	tests := []struct {
 		name          string
 		setupEnv      map[string]string

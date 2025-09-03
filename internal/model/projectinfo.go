@@ -13,8 +13,6 @@ import (
 )
 
 // ProjectInfo holds metadata about a repository.
-// It encapsulates various attributes that describe a repository's
-// properties and state.
 type ProjectInfo struct {
 	// OriginalName is the repository's name as it appears in the source system.
 	OriginalName string
@@ -45,12 +43,12 @@ type ProjectInfo struct {
 	ASCIIName bool
 }
 
-// SetASCIIName sets the ASCII name flag for the project.
+// SetASCIIName enables or disables ASCII name conversion.
 func (rm *ProjectInfo) SetASCIIName(name bool) {
 	rm.ASCIIName = name
 }
 
-// SetCleanName sets the clean name for the project.
+// SetCleanName sets the cleaned repository name.
 func (rm *ProjectInfo) SetCleanName(name string) {
 	rm.CleanName = name
 }

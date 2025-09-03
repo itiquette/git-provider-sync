@@ -13,6 +13,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"io/fs"
 	"net"
 	"net/http"
 	"net/url"
@@ -37,7 +38,7 @@ var (
 // ProxyFunc defines the type for proxy configuration functions.
 type ProxyFunc func(req *http.Request) (*url.URL, error)
 
-// HTTPClientFactory provides sophisticated HTTP client creation with advanced features.
+// HTTPClientFactory creates HTTP clients with custom configuration.
 type HTTPClientFactory struct {
 	logger ports.Logger
 }
@@ -101,9 +102,9 @@ func DefaultHTTPClientConfig() HTTPClientConfig {
 	}
 }
 
-// CreateHTTPClient creates a new HTTP client with sophisticated configuration.
+// CreateHTTPClient creates a new HTTP client with custom configuration.
 func (f *HTTPClientFactory) CreateHTTPClient(ctx context.Context, config HTTPClientConfig) (*http.Client, error) {
-	f.logger.Debug(ctx, "Creating HTTP client with advanced configuration", map[string]interface{}{
+	f.logger.Debug(ctx, "Creating HTTP client", map[string]any{
 		"cert_dir_path":   config.CertDirPath,
 		"has_proxy":       config.ProxyURL != "",
 		"request_timeout": config.RequestTimeout,
@@ -138,7 +139,7 @@ func (f *HTTPClientFactory) CreateHTTPClient(ctx context.Context, config HTTPCli
 		},
 	}
 
-	f.logger.Info(ctx, "HTTP client created successfully", map[string]interface{}{
+	f.logger.Info(ctx, "HTTP client created successfully", map[string]any{
 		"cert_pool_configured": certPool != nil,
 		"proxy_configured":     config.ProxyURL != "",
 		"timeout_seconds":      config.RequestTimeout,
@@ -154,7 +155,7 @@ func (f *HTTPClientFactory) createHTTPTransport(
 	tlsConfig *tls.Config,
 	config HTTPClientConfig,
 ) *http.Transport {
-	f.logger.Debug(ctx, "Creating HTTP transport with advanced settings", map[string]interface{}{
+	f.logger.Debug(ctx, "Creating HTTP transport", map[string]any{
 		"max_idle_conns":          config.MaxIdleConns,
 		"max_idle_conns_per_host": config.MaxIdleConnsPerHost,
 		"max_conns_per_host":      config.MaxConnsPerHost,
@@ -211,7 +212,7 @@ func (f *HTTPClientFactory) createTLSConfig(
 	caCertPool *x509.CertPool,
 	config HTTPClientConfig,
 ) *tls.Config {
-	f.logger.Debug(ctx, "Creating TLS configuration", map[string]interface{}{
+	f.logger.Debug(ctx, "Creating TLS configuration", map[string]any{
 		"has_custom_ca":        caCertPool != nil,
 		"min_tls_version":      config.MinTLSVersion,
 		"max_tls_version":      config.MaxTLSVersion,
@@ -231,7 +232,7 @@ func (f *HTTPClientFactory) createTLSConfig(
 
 // setupProxy configures the proxy function.
 func (f *HTTPClientFactory) setupProxy(ctx context.Context, proxyURL string) (ProxyFunc, error) {
-	f.logger.Debug(ctx, "Setting up proxy configuration", map[string]interface{}{
+	f.logger.Debug(ctx, "Setting up proxy configuration", map[string]any{
 		"proxy_url": proxyURL,
 	})
 
@@ -246,7 +247,7 @@ func (f *HTTPClientFactory) setupProxy(ctx context.Context, proxyURL string) (Pr
 		return nil, fmt.Errorf("%w: %w", ErrInvalidProxy, err)
 	}
 
-	f.logger.Info(ctx, "Proxy configured successfully", map[string]interface{}{
+	f.logger.Info(ctx, "Proxy configured successfully", map[string]any{
 		"proxy_scheme": parsedURL.Scheme,
 		"proxy_host":   parsedURL.Host,
 	})
@@ -256,7 +257,7 @@ func (f *HTTPClientFactory) setupProxy(ctx context.Context, proxyURL string) (Pr
 
 // loadCertificates loads custom CA certificates from a directory.
 func (f *HTTPClientFactory) loadCertificates(ctx context.Context, dirPath string) (*x509.CertPool, error) {
-	f.logger.Debug(ctx, "Loading custom certificates", map[string]interface{}{
+	f.logger.Debug(ctx, "Loading custom certificates", map[string]any{
 		"cert_dir_path": dirPath,
 	})
 
@@ -290,7 +291,7 @@ func (f *HTTPClientFactory) loadCertificates(ctx context.Context, dirPath string
 		}
 	}
 
-	f.logger.Info(ctx, "Custom certificates loaded successfully", map[string]interface{}{
+	f.logger.Info(ctx, "Custom certificates loaded successfully", map[string]any{
 		"cert_dir_path": dirPath,
 		"cert_count":    certCount,
 	})
@@ -311,7 +312,7 @@ func (f *HTTPClientFactory) processCertificateFile(
 
 	certPath := filepath.Join(dirPath, entry.Name())
 
-	f.logger.Debug(ctx, "Loading certificate file", map[string]interface{}{
+	f.logger.Debug(ctx, "Loading certificate file", map[string]any{
 		"cert_path": certPath,
 	})
 
@@ -325,7 +326,7 @@ func (f *HTTPClientFactory) processCertificateFile(
 		return fmt.Errorf("%w: failed to parse certificate %s", ErrCertificateLoad, certPath)
 	}
 
-	f.logger.Debug(ctx, "Certificate loaded successfully", map[string]interface{}{
+	f.logger.Debug(ctx, "Certificate loaded successfully", map[string]any{
 		"cert_path": certPath,
 	})
 
@@ -356,7 +357,7 @@ func (f *HTTPClientFactory) CreateGitTransportClient(ctx context.Context, config
 	// Install git protocol handler
 	client.InstallProtocol("https", githttp.NewClient(httpClient))
 
-	f.logger.Info(ctx, "Git transport client created with protocol registration", map[string]interface{}{
+	f.logger.Info(ctx, "Git transport client created with protocol registration", map[string]any{
 		"timeout":  gitConfig.RequestTimeout,
 		"protocol": "https",
 	})
@@ -434,7 +435,7 @@ func (f *HTTPClientFactory) validateConnectionLimits(config HTTPClientConfig) er
 // validatePaths validates path and URL configuration.
 func (f *HTTPClientFactory) validatePaths(config HTTPClientConfig) error {
 	if config.CertDirPath != "" {
-		if _, err := os.Stat(config.CertDirPath); os.IsNotExist(err) {
+		if _, err := os.Stat(config.CertDirPath); errors.Is(err, fs.ErrNotExist) {
 			return fmt.Errorf("%w: %s", domain.ErrCertificateDirectoryNotExist, config.CertDirPath)
 		}
 	}

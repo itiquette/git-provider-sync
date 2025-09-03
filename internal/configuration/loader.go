@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -143,7 +144,7 @@ func loadUserConfig(koanfConf *koanf.Koanf) error {
 		return nil
 	}
 
-	if _, err := os.Stat(userConfigPath); os.IsNotExist(err) {
+	if _, err := os.Stat(userConfigPath); errors.Is(err, fs.ErrNotExist) {
 		return nil // File doesn't exist, skip
 	}
 
@@ -159,7 +160,7 @@ func loadProjectConfig(koanfConf *koanf.Koanf, configfile string) error {
 		return nil
 	}
 
-	if _, err := os.Stat(configfile); os.IsNotExist(err) {
+	if _, err := os.Stat(configfile); errors.Is(err, fs.ErrNotExist) {
 		return nil // File doesn't exist, skip
 	}
 
@@ -172,7 +173,7 @@ func loadProjectConfig(koanfConf *koanf.Koanf, configfile string) error {
 
 func loadDotEnv(koanfConf *koanf.Koanf) error {
 	dotEnvPath := getDotEnvPath()
-	if _, err := os.Stat(dotEnvPath); os.IsNotExist(err) {
+	if _, err := os.Stat(dotEnvPath); errors.Is(err, fs.ErrNotExist) {
 		return nil // File doesn't exist, skip
 	}
 
@@ -235,7 +236,7 @@ func convertCommaSeparatedToSlice(koanfConf *koanf.Koanf, key string) {
 
 // processTokenFiles reads tokens from files when token_file is specified
 // and applies provider-specific environment variables.
-// This provides a more secure alternative to embedding tokens in config.
+// More secure than embedding tokens in config.
 func processTokenFiles(appConfig *config.AppConfiguration) error {
 	// Process each environment and source
 	for _, env := range appConfig.GitProviderSyncConfs {
@@ -410,56 +411,4 @@ func getDotEnvPath() string {
 	}
 
 	return ".env"
-}
-
-// Deprecated: Use getUserConfigPath instead - keeping for backward compatibility in tests.
-func hasXDGConfigFile(xdgconfighome string) (bool, string) {
-	const xdgconfighomeconfigpath = "/gitprovidersync/gitprovidersync.yaml"
-
-	xdgConfigfileExists := false
-
-	var xdgConfigFilePath string
-
-	envValue, xdgHomeIsSet := os.LookupEnv(xdgconfighome)
-	if xdgHomeIsSet {
-		xdgConfigFilePath = filepath.Join(envValue, xdgconfighomeconfigpath)
-		if _, err := os.Stat(xdgConfigFilePath); err == nil {
-			xdgConfigfileExists = true
-		}
-	}
-
-	return xdgConfigfileExists, xdgConfigFilePath
-}
-
-// Deprecated: No longer needed with new loading logic.
-func hasLocalConfigFile(configFile string) bool {
-	localConfigfileExists := false
-	if _, err := os.Stat(configFile); err == nil {
-		localConfigfileExists = true
-	}
-
-	return localConfigfileExists
-}
-
-// Deprecated: Use getDotEnvPath instead.
-func hasDotEnvFile() (bool, string) {
-	const dotEnvFilename = ".env"
-
-	dotEnvFileExists := false
-	dotEnvFilePath := dotEnvFilename
-
-	envValue, testConfigHomeIsSet := os.LookupEnv("GPS_TESTCONFIG_HOME")
-	if testConfigHomeIsSet {
-		dotEnvFilePath = filepath.Join(envValue, dotEnvFilename)
-	}
-
-	if _, err := os.Stat(dotEnvFilePath); err == nil {
-		dotEnvFileExists = true
-	}
-
-	return dotEnvFileExists, dotEnvFilePath
-}
-
-func splitAndTrim(s string) []string {
-	return strings.Split(strings.ReplaceAll(s, " ", ""), ",")
 }

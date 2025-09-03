@@ -132,12 +132,12 @@ func sanitizePatterns(str string) string {
 }
 
 // SanitizeStringMap sanitizes all URLs and potential secrets in a map.
-func SanitizeStringMap(inputMap map[string]interface{}) map[string]interface{} {
+func SanitizeStringMap(inputMap map[string]any) map[string]any {
 	if inputMap == nil {
 		return nil
 	}
 
-	result := make(map[string]interface{}, len(inputMap))
+	result := make(map[string]any, len(inputMap))
 	for key, value := range inputMap {
 		result[key] = sanitizeMapValue(key, value)
 	}
@@ -146,7 +146,7 @@ func SanitizeStringMap(inputMap map[string]interface{}) map[string]interface{} {
 }
 
 // sanitizeMapValue sanitizes a single map value based on its key and type.
-func sanitizeMapValue(key string, value interface{}) interface{} {
+func sanitizeMapValue(key string, value any) any {
 	// Check if key suggests it contains sensitive data
 	lowerKey := strings.ToLower(key)
 	if containsSensitiveKey(lowerKey) {
@@ -156,7 +156,7 @@ func sanitizeMapValue(key string, value interface{}) interface{} {
 	switch val := value.(type) {
 	case string:
 		return sanitizeStringValue(val)
-	case map[string]interface{}:
+	case map[string]any:
 		return SanitizeStringMap(val)
 	default:
 		return value

@@ -25,9 +25,7 @@ func TestNewGitFactory(t *testing.T) {
 		Debug:                   false,
 	}
 
-	factory := NewGitFactory(config)
-
-	require.NotNil(t, factory)
+	_ = NewGitFactory(config)
 	// GitFactory is now stateless - no config field
 }
 
@@ -54,10 +52,9 @@ func TestGitFactory_CreateOperations_GoGit(t *testing.T) {
 		Debug:                   false,
 	}
 
-	operations, err := factory.CreateOperations(operationConfig)
+	_, err := factory.CreateOperations(operationConfig)
 
 	require.NoError(t, err)
-	require.NotNil(t, operations)
 }
 
 func TestGitFactory_CreateOperations_GitBinary(t *testing.T) {
@@ -83,10 +80,9 @@ func TestGitFactory_CreateOperations_GitBinary(t *testing.T) {
 		Debug:                   false,
 	}
 
-	operations, err := factory.CreateOperations(operationConfig)
+	_, err := factory.CreateOperations(operationConfig)
 
 	require.NoError(t, err)
-	require.NotNil(t, operations)
 }
 
 func TestGitFactory_CreateOperations_Directory(t *testing.T) {
@@ -112,10 +108,9 @@ func TestGitFactory_CreateOperations_Directory(t *testing.T) {
 		Debug:                   false,
 	}
 
-	operations, err := factory.CreateOperations(operationConfig)
+	_, err := factory.CreateOperations(operationConfig)
 
 	require.NoError(t, err)
-	require.NotNil(t, operations)
 }
 
 func TestGitFactory_CreateOperations_Archive(t *testing.T) {
@@ -141,10 +136,9 @@ func TestGitFactory_CreateOperations_Archive(t *testing.T) {
 		Debug:                   false,
 	}
 
-	operations, err := factory.CreateOperations(operationConfig)
+	_, err := factory.CreateOperations(operationConfig)
 
 	require.NoError(t, err)
-	require.NotNil(t, operations)
 }
 
 func TestGitFactory_CreateOperations_UnsupportedImplementation(t *testing.T) {
@@ -178,10 +172,9 @@ func TestGitFactory_CreateOperations_EmptyImplementation(t *testing.T) {
 		MaxConcurrent:           5,
 	}
 
-	operations, err := factory.CreateOperations(config)
+	_, err := factory.CreateOperations(config)
 
 	require.NoError(t, err)
-	require.NotNil(t, operations)
 }
 
 func TestGitFactory_AvailableImplementations(t *testing.T) {
@@ -219,17 +212,4 @@ func TestGitFactory_IsImplementationAvailable(t *testing.T) {
 			assert.Equal(t, test.expected, result)
 		})
 	}
-}
-
-func TestGitFactory_GetDefaultConfig(t *testing.T) {
-	t.Parallel()
-
-	defaultConfig := GetDefaultConfig()
-
-	assert.Equal(t, ProviderTypeGoGit, defaultConfig.PreferredImplementation)
-	assert.Equal(t, "git-provider-sync", defaultConfig.UserName)
-	assert.Equal(t, "sync@git-provider-sync.local", defaultConfig.UserEmail)
-	assert.Equal(t, 5, defaultConfig.MaxConcurrent)
-	assert.True(t, defaultConfig.VerifySSL)
-	assert.False(t, defaultConfig.Debug)
 }

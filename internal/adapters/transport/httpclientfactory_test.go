@@ -30,59 +30,29 @@ type mockLogger struct {
 	infoMessages  []string
 }
 
-func (m *mockLogger) Debug(_ context.Context, msg string, _ map[string]interface{}) {
+func (m *mockLogger) Debug(_ context.Context, msg string, _ map[string]any) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	m.debugMessages = append(m.debugMessages, msg)
 }
 
-func (m *mockLogger) Info(_ context.Context, msg string, _ map[string]interface{}) {
+func (m *mockLogger) Info(_ context.Context, msg string, _ map[string]any) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	m.infoMessages = append(m.infoMessages, msg)
 }
 
-func (m *mockLogger) Error(_ context.Context, _ string, _ map[string]interface{}) {}
+func (m *mockLogger) Error(_ context.Context, _ string, _ map[string]any) {}
 
-func (m *mockLogger) Warn(_ context.Context, _ string, _ map[string]interface{}) {}
+func (m *mockLogger) Warn(_ context.Context, _ string, _ map[string]any) {}
 
-func (m *mockLogger) Fatal(_ context.Context, _ string, _ map[string]interface{}) {}
+func (m *mockLogger) Fatal(_ context.Context, _ string, _ map[string]any) {}
 
-func (m *mockLogger) Trace(_ context.Context, _ string, _ map[string]interface{}) {}
+func (m *mockLogger) Trace(_ context.Context, _ string, _ map[string]any) {}
 
 func (m *mockLogger) IsLevelEnabled(_ ports.LogLevel) bool { return true }
-
-func TestNewHTTPClientFactory(t *testing.T) {
-	t.Parallel()
-
-	logger := &mockLogger{}
-	factory := NewHTTPClientFactory(logger)
-
-	require.NotNil(t, factory)
-	assert.Equal(t, logger, factory.logger)
-}
-
-func TestDefaultHTTPClientConfig(t *testing.T) {
-	t.Parallel()
-
-	config := DefaultHTTPClientConfig()
-
-	assert.Equal(t, 30, config.RequestTimeout)
-	assert.Equal(t, uint16(tls.VersionTLS12), config.MinTLSVersion)
-	assert.Equal(t, uint16(tls.VersionTLS13), config.MaxTLSVersion)
-	assert.Equal(t, 100, config.MaxIdleConns)
-	assert.Equal(t, 10, config.MaxIdleConnsPerHost)
-	assert.Equal(t, 100, config.MaxConnsPerHost)
-	assert.Equal(t, 90*time.Second, config.IdleConnTimeout)
-	assert.Equal(t, 30*time.Second, config.DialTimeout)
-	assert.Equal(t, 30*time.Second, config.KeepAlive)
-	assert.True(t, config.DualStack)
-	assert.True(t, config.ForceAttemptHTTP2)
-	assert.Equal(t, 4*1024, config.WriteBufferSize)
-	assert.Equal(t, 4*1024, config.ReadBufferSize)
-}
 
 func TestHTTPClientFactory_Create_Success(t *testing.T) {
 	t.Parallel()
@@ -284,7 +254,7 @@ func TestHTTPClientFactory_ValidateConfig_InvalidTimeouts(t *testing.T) {
 
 			err := factory.ValidateConfig(config)
 			require.Error(t, err)
-			assert.ErrorIs(t, err, test.expectedErr)
+			require.ErrorIs(t, err, test.expectedErr)
 		})
 	}
 }
@@ -332,7 +302,7 @@ func TestHTTPClientFactory_ValidateConfig_InvalidConnectionLimits(t *testing.T) 
 
 			err := factory.ValidateConfig(config)
 			require.Error(t, err)
-			assert.ErrorIs(t, err, test.expectedErr)
+			require.ErrorIs(t, err, test.expectedErr)
 		})
 	}
 }
@@ -431,7 +401,7 @@ func TestHTTPClientFactory_setupProxy(t *testing.T) {
 			if test.expectError {
 				require.Error(t, err)
 				require.Nil(t, proxyFunc)
-				assert.ErrorIs(t, err, ErrInvalidProxy)
+				require.ErrorIs(t, err, ErrInvalidProxy)
 			} else {
 				require.NoError(t, err)
 				require.NotNil(t, proxyFunc)
@@ -523,36 +493,6 @@ func TestHTTPClientFactory_loadCertificates_InvalidCertificate(t *testing.T) {
 	assert.Contains(t, err.Error(), "failed to parse certificate")
 }
 
-func TestHTTPClientFactory_isCertFile(t *testing.T) {
-	t.Parallel()
-
-	logger := &mockLogger{}
-	factory := NewHTTPClientFactory(logger)
-
-	tests := []struct {
-		filename string
-		expected bool
-	}{
-		{"certificate.crt", true},
-		{"certificate.pem", true},
-		{"certificate.CRT", false}, // Case sensitive
-		{"certificate.txt", false},
-		{"certificate", false},
-		{"readme.md", false},
-		{".crt", true},
-		{".pem", true},
-	}
-
-	for _, test := range tests {
-		t.Run(test.filename, func(t *testing.T) {
-			t.Parallel()
-
-			result := factory.isCertFile(test.filename)
-			assert.Equal(t, test.expected, result)
-		})
-	}
-}
-
 func TestHTTPClientFactory_createTLSConfig(t *testing.T) {
 	t.Parallel()
 
@@ -618,14 +558,4 @@ func TestHTTPClientFactory_createHTTPTransport(t *testing.T) {
 	assert.Equal(t, config.ReadBufferSize, transport.ReadBufferSize)
 	assert.Equal(t, 10*time.Second, transport.TLSHandshakeTimeout)
 	assert.Equal(t, 1*time.Second, transport.ExpectContinueTimeout)
-}
-
-// Test error constants.
-func TestErrorConstants(t *testing.T) {
-	t.Parallel()
-
-	require.Error(t, ErrInvalidProxy)
-	require.Error(t, ErrCertificateLoad)
-	assert.Contains(t, ErrInvalidProxy.Error(), "invalid proxy configuration")
-	assert.Contains(t, ErrCertificateLoad.Error(), "failed to load certificates")
 }

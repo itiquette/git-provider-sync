@@ -17,12 +17,11 @@ import (
 	"itiquette/git-provider-sync/internal/domain/validation"
 )
 
-// CompleteAdapter provides a comprehensive GitLab adapter with all services.
-// This integrates all the sophisticated functionality from the main branch.
+// CompleteAdapter provides a GitLab adapter with all services.
 type CompleteAdapter struct {
 	*Adapter // Embed the basic adapter
 
-	// Sophisticated service layers
+	// service layers
 	projectService    *ProjectService
 	protectionService *ProtectionService
 	filterService     *FilterService
@@ -78,13 +77,13 @@ func NewCompleteAdapter(ctx context.Context, config Config, logger ports.Logger)
 	}, nil
 }
 
-// CreateRepositoryWithAdvancedOptions creates a repository with sophisticated GitLab options.
+// CreateRepositoryWithAdvancedOptions creates a repository with GitLab options.
 func (ca *CompleteAdapter) CreateRepositoryWithAdvancedOptions(
 	ctx context.Context,
 	config ports.ProviderConfig,
 	options CreateProjectRequest,
 ) (*entities.Repository, error) {
-	ca.logger.Info(ctx, "Creating GitLab repository with advanced options", map[string]interface{}{
+	ca.logger.Info(ctx, "Creating GitLab repository", map[string]any{
 		"owner":      config.Owner,
 		"name":       options.Name,
 		"visibility": options.Visibility,
@@ -108,7 +107,7 @@ func (ca *CompleteAdapter) CreateRepositoryWithAdvancedOptions(
 	}
 
 	if !result.Valid {
-		ca.logger.Warn(ctx, "Repository name validation issues", map[string]interface{}{
+		ca.logger.Warn(ctx, "Repository name validation issues", map[string]any{
 			"original_name": options.Name,
 			"clean_name":    cleanName,
 			"issues":        issues,
@@ -124,7 +123,7 @@ func (ca *CompleteAdapter) CreateRepositoryWithAdvancedOptions(
 		return nil, fmt.Errorf("failed to create repository: %w", err)
 	}
 
-	ca.logger.Info(ctx, "GitLab repository created successfully", map[string]interface{}{
+	ca.logger.Info(ctx, "GitLab repository created successfully", map[string]any{
 		"owner": config.Owner,
 		"name":  options.Name,
 		"url":   repository.HTTPSURL(),
@@ -133,14 +132,14 @@ func (ca *CompleteAdapter) CreateRepositoryWithAdvancedOptions(
 	return repository, nil
 }
 
-// ApplyRepositoryProtection applies comprehensive protection to a GitLab repository.
+// ApplyRepositoryProtection applies protection to a GitLab repository.
 func (ca *CompleteAdapter) ApplyRepositoryProtection(
 	ctx context.Context,
 	config ports.ProviderConfig,
 	repositoryName string,
 	protectionOptions ProtectRepositoryRequest,
 ) error {
-	ca.logger.Info(ctx, "Applying GitLab repository protection", map[string]interface{}{
+	ca.logger.Info(ctx, "Applying GitLab repository protection", map[string]any{
 		"owner":      config.Owner,
 		"repository": repositoryName,
 	})
@@ -157,7 +156,7 @@ func (ca *CompleteAdapter) RemoveRepositoryProtection(
 	config ports.ProviderConfig,
 	repositoryName string,
 ) error {
-	ca.logger.Info(ctx, "Removing GitLab repository protection", map[string]interface{}{
+	ca.logger.Info(ctx, "Removing GitLab repository protection", map[string]any{
 		"owner":      config.Owner,
 		"repository": repositoryName,
 	})
@@ -165,13 +164,13 @@ func (ca *CompleteAdapter) RemoveRepositoryProtection(
 	return ca.protectionService.UnprotectRepository(ctx, config.Owner, repositoryName)
 }
 
-// FilterRepositoriesWithAdvancedCriteria filters repositories using sophisticated GitLab criteria.
+// FilterRepositoriesWithAdvancedCriteria filters repositories using GitLab criteria.
 func (ca *CompleteAdapter) FilterRepositoriesWithAdvancedCriteria(
 	ctx context.Context,
 	repositories []entities.Repository,
 	filterOptions FilterRepositoriesRequest,
 ) ([]entities.Repository, error) {
-	ca.logger.Debug(ctx, "Filtering GitLab repositories with advanced criteria", map[string]interface{}{
+	ca.logger.Debug(ctx, "Filtering GitLab repositories", map[string]any{
 		"total_count":    len(repositories),
 		"visibility":     filterOptions.VisibilityFilter,
 		"topics":         filterOptions.TopicFilter,
@@ -184,16 +183,16 @@ func (ca *CompleteAdapter) FilterRepositoriesWithAdvancedCriteria(
 // ValidateAndTransformRepositoryName validates and transforms a GitLab repository name.
 // The name parameter is the original repository name to validate/transform.
 // The options parameter contains transformation rules including case conversion, replacements, and prefix/suffix addition.
-// Returns the validated/transformed name or an error if validation fails even after transformation.
+// ValidateAndTransformRepositoryName returns the validated/transformed name or an error if validation fails.
 func (ca *CompleteAdapter) ValidateAndTransformRepositoryName(
 	name string,
 	options ports.NameTransformOptions,
 ) (string, error) {
-	// First validate the original name using advanced validation
+	// First validate the original name
 	cleanName, isValid, issues := ValidateAndCleanGitLabName(name)
 
 	if !isValid {
-		ca.logger.Info(context.Background(), "Repository name validation failed", map[string]interface{}{
+		ca.logger.Info(context.Background(), "Repository name validation failed", map[string]any{
 			"original_name": name,
 			"clean_name":    cleanName,
 			"issues":        issues,
@@ -218,8 +217,8 @@ func (ca *CompleteAdapter) ValidateAndTransformRepositoryName(
 func (ca *CompleteAdapter) GetRepositoryStatistics(
 	_ context.Context,
 	repositories []entities.Repository,
-) map[string]interface{} {
-	stats := map[string]interface{}{
+) map[string]any {
+	stats := map[string]any{
 		"total_count": len(repositories),
 	}
 
@@ -266,7 +265,7 @@ func (ca *CompleteAdapter) BulkApplyProtection(
 	repositoryNames []string,
 	protectionOptions ProtectRepositoryRequest,
 ) error {
-	ca.logger.Info(ctx, "Applying bulk GitLab repository protection", map[string]interface{}{
+	ca.logger.Info(ctx, "Applying bulk GitLab repository protection", map[string]any{
 		"owner":            config.Owner,
 		"repository_count": len(repositoryNames),
 	})
@@ -275,7 +274,7 @@ func (ca *CompleteAdapter) BulkApplyProtection(
 
 	for _, repoName := range repositoryNames {
 		if err := ca.ApplyRepositoryProtection(ctx, config, repoName, protectionOptions); err != nil {
-			ca.logger.Error(ctx, "Failed to apply protection to repository", map[string]interface{}{
+			ca.logger.Error(ctx, "Failed to apply protection to repository", map[string]any{
 				"owner":      config.Owner,
 				"repository": repoName,
 				"error":      err.Error(),
@@ -289,7 +288,7 @@ func (ca *CompleteAdapter) BulkApplyProtection(
 		return fmt.Errorf("%w: %d repositories failed: %v", domain.ErrBulkProtectionFailed, len(errors), errors)
 	}
 
-	ca.logger.Info(ctx, "Bulk GitLab repository protection completed successfully", map[string]interface{}{
+	ca.logger.Info(ctx, "Bulk GitLab repository protection completed successfully", map[string]any{
 		"owner":            config.Owner,
 		"repository_count": len(repositoryNames),
 	})
@@ -303,7 +302,7 @@ func (ca *CompleteAdapter) BulkRemoveProtection(
 	config ports.ProviderConfig,
 	repositoryNames []string,
 ) error {
-	ca.logger.Info(ctx, "Removing bulk GitLab repository protection", map[string]interface{}{
+	ca.logger.Info(ctx, "Removing bulk GitLab repository protection", map[string]any{
 		"owner":            config.Owner,
 		"repository_count": len(repositoryNames),
 	})
@@ -312,7 +311,7 @@ func (ca *CompleteAdapter) BulkRemoveProtection(
 
 	for _, repoName := range repositoryNames {
 		if err := ca.RemoveRepositoryProtection(ctx, config, repoName); err != nil {
-			ca.logger.Error(ctx, "Failed to remove protection from repository", map[string]interface{}{
+			ca.logger.Error(ctx, "Failed to remove protection from repository", map[string]any{
 				"owner":      config.Owner,
 				"repository": repoName,
 				"error":      err.Error(),
@@ -326,7 +325,7 @@ func (ca *CompleteAdapter) BulkRemoveProtection(
 		return fmt.Errorf("%w: %d repositories failed: %v", domain.ErrBulkRemovalFailed, len(errors), errors)
 	}
 
-	ca.logger.Info(ctx, "Bulk GitLab repository protection removal completed successfully", map[string]interface{}{
+	ca.logger.Info(ctx, "Bulk GitLab repository protection removal completed successfully", map[string]any{
 		"owner":            config.Owner,
 		"repository_count": len(repositoryNames),
 	})
@@ -335,7 +334,7 @@ func (ca *CompleteAdapter) BulkRemoveProtection(
 }
 
 // GetFilterStatistics returns GitLab filtering statistics.
-func (ca *CompleteAdapter) GetFilterStatistics(original, filtered []entities.Repository) map[string]interface{} {
+func (ca *CompleteAdapter) GetFilterStatistics(original, filtered []entities.Repository) map[string]any {
 	return ca.filterService.GetFilterStatistics(original, filtered)
 }
 
@@ -346,7 +345,7 @@ func (ca *CompleteAdapter) GetProjectInfos(
 	isOrganization bool,
 	includeForks bool,
 ) ([]*entities.Repository, error) {
-	ca.logger.Debug(ctx, "Fetching GitLab project infos", map[string]interface{}{
+	ca.logger.Debug(ctx, "Fetching GitLab project infos", map[string]any{
 		"owner":          owner,
 		"isOrganization": isOrganization,
 		"includeForks":   includeForks,
@@ -373,7 +372,7 @@ func (ca *CompleteAdapter) GetProjectInfos(
 		result = append(result, &repoCopy)
 	}
 
-	ca.logger.Info(ctx, "Successfully fetched GitLab project infos", map[string]interface{}{
+	ca.logger.Info(ctx, "Successfully fetched GitLab project infos", map[string]any{
 		"owner":             owner,
 		"totalRepositories": len(repos),
 		"filteredCount":     len(result),
@@ -385,7 +384,7 @@ func (ca *CompleteAdapter) GetProjectInfos(
 
 // ResolveNamespace resolves a GitLab namespace ID from owner name.
 func (ca *CompleteAdapter) ResolveNamespace(ctx context.Context, owner string) (int, error) {
-	ca.logger.Debug(ctx, "Resolving GitLab namespace", map[string]interface{}{
+	ca.logger.Debug(ctx, "Resolving GitLab namespace", map[string]any{
 		"owner": owner,
 	})
 
@@ -400,7 +399,7 @@ func (ca *CompleteAdapter) ResolveNamespace(ctx context.Context, owner string) (
 	// Find exact match
 	for _, namespace := range namespaces {
 		if namespace.Path == owner {
-			ca.logger.Debug(ctx, "Namespace resolved successfully", map[string]interface{}{
+			ca.logger.Debug(ctx, "Namespace resolved successfully", map[string]any{
 				"owner":        owner,
 				"namespace_id": namespace.ID,
 				"namespace":    namespace.FullPath,
@@ -413,7 +412,7 @@ func (ca *CompleteAdapter) ResolveNamespace(ctx context.Context, owner string) (
 	return 0, fmt.Errorf("%w: %s", domain.ErrNamespaceNotFound, owner)
 }
 
-// GetAdvancedProjectOptions creates sophisticated project options for repository creation.
+// GetAdvancedProjectOptions creates project options for repository creation.
 func (ca *CompleteAdapter) GetAdvancedProjectOptions(
 	visibility, name, description, defaultBranch string,
 	namespaceID int,

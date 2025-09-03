@@ -19,7 +19,7 @@ type Result struct {
 	Field      string
 	Code       string
 	Message    string
-	Value      interface{}
+	Value      any
 	Suggestion string
 }
 

@@ -17,9 +17,7 @@ const (
 	visibilityPrivate = "private"
 )
 
-// ProjectOptionsBuilder provides sophisticated Gitea repository creation options.
-//
-//	advanced options builder functionality .
+// ProjectOptionsBuilder provides Gitea repository creation options.
 type ProjectOptionsBuilder struct {
 	opts   *gitea.CreateRepoOption
 	client *gitea.Client
@@ -104,11 +102,9 @@ func (b *ProjectOptionsBuilder) Reset() {
 	b.opts = &gitea.CreateRepoOption{}
 }
 
-// ApplyDisabledSettings applies comprehensive feature disabling after repository creation.
-//
-//	sophisticated disable settings functionality .
+// ApplyDisabledSettings applies feature disabling after repository creation.
 func (b *ProjectOptionsBuilder) ApplyDisabledSettings(ctx context.Context, owner, projectName string) error {
-	b.logger.Debug(ctx, "Applying disabled settings to Gitea repository", map[string]interface{}{
+	b.logger.Debug(ctx, "Applying disabled settings to Gitea repository", map[string]any{
 		"owner": owner,
 		"repo":  projectName,
 	})
@@ -134,7 +130,7 @@ func (b *ProjectOptionsBuilder) ApplyDisabledSettings(ctx context.Context, owner
 		return fmt.Errorf("failed to edit repository settings: owner: %s, repo: %s, err: %w", owner, projectName, err)
 	}
 
-	b.logger.Info(ctx, "Disabled settings applied successfully", map[string]interface{}{
+	b.logger.Info(ctx, "Disabled settings applied successfully", map[string]any{
 		"owner": owner,
 		"repo":  projectName,
 	})
@@ -144,7 +140,7 @@ func (b *ProjectOptionsBuilder) ApplyDisabledSettings(ctx context.Context, owner
 
 // ApplyEnabledSettings enables all repository features.
 func (b *ProjectOptionsBuilder) ApplyEnabledSettings(ctx context.Context, owner, projectName string) error {
-	b.logger.Debug(ctx, "Applying enabled settings to Gitea repository", map[string]interface{}{
+	b.logger.Debug(ctx, "Applying enabled settings to Gitea repository", map[string]any{
 		"owner": owner,
 		"repo":  projectName,
 	})
@@ -163,7 +159,7 @@ func (b *ProjectOptionsBuilder) ApplyEnabledSettings(ctx context.Context, owner,
 		return fmt.Errorf("failed to edit repository settings: owner: %s, repo: %s, err: %w", owner, projectName, err)
 	}
 
-	b.logger.Info(ctx, "Enabled settings applied successfully", map[string]interface{}{
+	b.logger.Info(ctx, "Enabled settings applied successfully", map[string]any{
 		"owner": owner,
 		"repo":  projectName,
 	})

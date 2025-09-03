@@ -271,7 +271,7 @@ const (
 // ConfigurationError represents an error in configuration.
 type ConfigurationError struct {
 	Field    string
-	Value    interface{}
+	Value    any
 	Err      error
 	Severity ErrorSeverity
 	Source   string
@@ -326,9 +326,9 @@ type ValidationRule struct {
 	Required      bool
 	Type          string
 	Pattern       string
-	MinValue      interface{}
-	MaxValue      interface{}
-	AllowedValues []interface{}
+	MinValue      any
+	MaxValue      any
+	AllowedValues []any
 	Dependencies  []string
 }
 
@@ -345,14 +345,14 @@ type SecurityPolicy struct {
 
 // ConfigurationCache provides caching for configuration.
 type ConfigurationCache interface {
-	Get(key string) (interface{}, bool)
-	Set(key string, value interface{}, ttl time.Duration)
+	Get(key string) (any, bool)
+	Set(key string, value any, ttl time.Duration)
 	Delete(key string)
 	Clear()
 	Size() int
 }
 
-// Advanced configuration interfaces
+// Configuration interfaces for dynamic updates
 
 // DynamicConfiguration allows dynamic configuration updates.
 type DynamicConfiguration interface {
@@ -375,8 +375,8 @@ type DynamicConfiguration interface {
 // ConfigurationDrift represents a drift in configuration.
 type ConfigurationDrift struct {
 	Field          string
-	Expected       interface{}
-	Actual         interface{}
+	Expected       any
+	Actual         any
 	Source         string
 	Severity       DriftSeverity
 	AutoResolvable bool
@@ -429,7 +429,7 @@ func NewAppConfiguration() AppConfiguration {
 // Validation helper functions
 
 // ValidateRequired checks if required fields are present.
-func ValidateRequired(value interface{}, fieldName string) error {
+func ValidateRequired(value any, fieldName string) error {
 	if value == nil || value == "" {
 		return &ConfigurationError{
 			Field:    fieldName,

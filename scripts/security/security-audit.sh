@@ -3,7 +3,7 @@
 #
 # SPDX-License-Identifier: CC0-1.0
 
-# Executes comprehensive security audit pipeline combining OSSF scorecard and container scanning
+# Executes security audit pipeline combining OSSF scorecard and container scanning
 # Usage: ./scripts/security-audit.sh [bin_dir] [executable_name]
 # Dependencies: scorecard (optional), container-security-scan.sh, podman, dockle, trivy
 # Output: Combined security assessment results, exit code 1 if issues found
@@ -102,7 +102,7 @@ run_container_security_scan() {
 }
 
 main() {
-  printf "${CYAN}→${NC} Starting comprehensive security audit...\n"
+  printf "${CYAN}→${NC} Starting security audit...\n"
   printf "\n"
 
   # Validate environment

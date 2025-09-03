@@ -7,6 +7,7 @@ package mirror
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"path/filepath"
 	"strings"
 	"time"
@@ -15,7 +16,7 @@ import (
 	"itiquette/git-provider-sync/internal/domain/ports"
 )
 
-// Service provides pure functional mirror operations.
+// Service handles mirror operations.
 type Service struct {
 	interpreter *EffectInterpreter
 	config      Config
@@ -246,13 +247,39 @@ func (s *Service) buildRepositorySpecWithAuth(repo entities.Repository, auth Aut
 	}
 }
 
-func (s *Service) extractOwnerFromURL(url string) string {
-	// Simple extraction - could be improved
-	// Example: https://github.com/owner/repo.git -> owner
-	// This is a placeholder implementation
-	parts := strings.Split(url, "/")
-	if len(parts) >= 4 {
-		return parts[len(parts)-2]
+func (s *Service) extractOwnerFromURL(repoURL string) string {
+	// Parse the URL to extract owner
+	// Supports formats:
+	// - https://github.com/owner/repo.git
+	// - git@github.com:owner/repo.git
+	// - ssh://git@github.com/owner/repo.git
+
+	// First try to parse as a standard URL
+	parsedURL, err := url.Parse(repoURL)
+	if err == nil && parsedURL.Path != "" {
+		// Remove leading slash and trailing .git
+		path := strings.TrimPrefix(parsedURL.Path, "/")
+		path = strings.TrimSuffix(path, ".git")
+
+		// Split by / and get the first part (owner)
+		parts := strings.Split(path, "/")
+		if len(parts) >= 2 {
+			return parts[0]
+		}
+	}
+
+	// Handle SSH format (git@github.com:owner/repo.git)
+	if strings.Contains(repoURL, "@") && strings.Contains(repoURL, ":") {
+		// Split by colon to get the path part
+		colonParts := strings.Split(repoURL, ":")
+		if len(colonParts) >= 2 {
+			path := strings.TrimSuffix(colonParts[1], ".git")
+
+			parts := strings.Split(path, "/")
+			if len(parts) >= 2 {
+				return parts[0]
+			}
+		}
 	}
 
 	return "unknown"

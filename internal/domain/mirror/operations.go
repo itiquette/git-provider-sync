@@ -122,7 +122,7 @@ const (
 type Effect struct {
 	Type        EffectType
 	Description string
-	Parameters  map[string]interface{}
+	Parameters  map[string]any
 	DependsOn   []string
 }
 
@@ -185,7 +185,7 @@ type CompletedEffect struct {
 	Effect   Effect
 	Success  bool
 	Error    error
-	Result   interface{}
+	Result   any
 	Duration time.Duration
 }
 
@@ -226,7 +226,7 @@ func PlanCloneAndMirror(source, target RepositorySpec, options OperationOptions)
 	effects = append(effects, Effect{
 		Type:        EffectTypeCloneRepository,
 		Description: "Clone source repository",
-		Parameters: map[string]interface{}{
+		Parameters: map[string]any{
 			"url":        source.URL,
 			"local_path": source.LocalPath,
 			"auth":       source.Auth,
@@ -239,7 +239,7 @@ func PlanCloneAndMirror(source, target RepositorySpec, options OperationOptions)
 		effects = append(effects, Effect{
 			Type:        EffectTypeCreateRepository,
 			Description: "Create target repository if not exists",
-			Parameters: map[string]interface{}{
+			Parameters: map[string]any{
 				"name":        target.Name,
 				"owner":       target.Owner,
 				"description": target.Description,
@@ -252,7 +252,7 @@ func PlanCloneAndMirror(source, target RepositorySpec, options OperationOptions)
 	effects = append(effects, Effect{
 		Type:        EffectTypePushToRepository,
 		Description: "Push mirrored content to target",
-		Parameters: map[string]interface{}{
+		Parameters: map[string]any{
 			"url":        target.URL,
 			"local_path": source.LocalPath,
 			"auth":       target.Auth,
@@ -266,7 +266,7 @@ func PlanCloneAndMirror(source, target RepositorySpec, options OperationOptions)
 		effects = append(effects, Effect{
 			Type:        EffectTypeUpdateDescription,
 			Description: "Update repository description",
-			Parameters: map[string]interface{}{
+			Parameters: map[string]any{
 				"repository":  target.Name,
 				"description": source.Description,
 			},
@@ -277,7 +277,7 @@ func PlanCloneAndMirror(source, target RepositorySpec, options OperationOptions)
 		effects = append(effects, Effect{
 			Type:        EffectTypeUpdateVisibility,
 			Description: "Sync repository visibility",
-			Parameters: map[string]interface{}{
+			Parameters: map[string]any{
 				"repository": target.Name,
 				"visibility": source.Visibility,
 			},
@@ -288,7 +288,7 @@ func PlanCloneAndMirror(source, target RepositorySpec, options OperationOptions)
 		effects = append(effects, Effect{
 			Type:        EffectTypeUpdateTopics,
 			Description: "Sync repository topics",
-			Parameters: map[string]interface{}{
+			Parameters: map[string]any{
 				"repository": target.Name,
 				"topics":     source.Topics,
 			},
@@ -300,7 +300,7 @@ func PlanCloneAndMirror(source, target RepositorySpec, options OperationOptions)
 		effects = append(effects, Effect{
 			Type:        EffectTypeCleanupTempFiles,
 			Description: "Clean up temporary files",
-			Parameters: map[string]interface{}{
+			Parameters: map[string]any{
 				"local_path": source.LocalPath,
 			},
 		})
@@ -350,7 +350,7 @@ func PlanSync(source, target RepositorySpec, options OperationOptions) Operation
 		{
 			Type:        EffectTypeCloneRepository,
 			Description: "Clone source repository",
-			Parameters: map[string]interface{}{
+			Parameters: map[string]any{
 				"url":        source.URL,
 				"local_path": source.LocalPath,
 				"auth":       source.Auth,
@@ -359,7 +359,7 @@ func PlanSync(source, target RepositorySpec, options OperationOptions) Operation
 		{
 			Type:        EffectTypePushToRepository,
 			Description: "Push changes to target",
-			Parameters: map[string]interface{}{
+			Parameters: map[string]any{
 				"url":        target.URL,
 				"local_path": source.LocalPath,
 				"auth":       target.Auth,
@@ -373,7 +373,7 @@ func PlanSync(source, target RepositorySpec, options OperationOptions) Operation
 		effects = append(effects, Effect{
 			Type:        EffectTypeCleanupTempFiles,
 			Description: "Clean up temporary files",
-			Parameters: map[string]interface{}{
+			Parameters: map[string]any{
 				"local_path": source.LocalPath,
 			},
 		})

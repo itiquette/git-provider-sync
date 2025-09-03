@@ -18,7 +18,7 @@ import (
 	"itiquette/git-provider-sync/internal/domain/ports"
 )
 
-//nolint:cyclop,maintidx // Test function with multiple comprehensive test cases
+//nolint:cyclop,maintidx // Test function with multiple test cases
 func TestFetchSourceRepositoriesUseCase_Execute(t *testing.T) {
 	t.Parallel()
 

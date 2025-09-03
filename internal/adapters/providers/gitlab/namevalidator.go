@@ -15,7 +15,7 @@ import (
 // followed by any number of letters, numbers, underscores, dots, plus signs, hyphens, or spaces.
 var gitlabNameRegex = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9.+\- ]*$`)
 
-// invalidGitLabNames is a comprehensive set of repository names that are not allowed in GitLab.
+// invalidGitLabNames is a set of repository names that are not allowed in GitLab.
 // These names are reserved for GitLab's internal use or have special meanings.
 var invalidGitLabNames = map[string]bool{ //nolint:gochecknoglobals // GitLab name validation constants
 	// Basic reserved names

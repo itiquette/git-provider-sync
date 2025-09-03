@@ -18,30 +18,22 @@ import (
 // testGiteaProjectLogger is a simple no-op logger for testing ProjectService.
 type testGiteaProjectLogger struct{}
 
-func (l testGiteaProjectLogger) Trace(_ context.Context, _ string, _ map[string]interface{}) {
+func (l testGiteaProjectLogger) Trace(_ context.Context, _ string, _ map[string]any) {
 }
-func (l testGiteaProjectLogger) Debug(_ context.Context, _ string, _ map[string]interface{}) {
+func (l testGiteaProjectLogger) Debug(_ context.Context, _ string, _ map[string]any) {
 }
-func (l testGiteaProjectLogger) Info(_ context.Context, _ string, _ map[string]interface{}) {
+func (l testGiteaProjectLogger) Info(_ context.Context, _ string, _ map[string]any) {
 }
-func (l testGiteaProjectLogger) Warn(_ context.Context, _ string, _ map[string]interface{}) {
+func (l testGiteaProjectLogger) Warn(_ context.Context, _ string, _ map[string]any) {
 }
-func (l testGiteaProjectLogger) Error(_ context.Context, _ string, _ map[string]interface{}) {
+func (l testGiteaProjectLogger) Error(_ context.Context, _ string, _ map[string]any) {
 }
-func (l testGiteaProjectLogger) Fatal(_ context.Context, _ string, _ map[string]interface{}) {
+func (l testGiteaProjectLogger) Fatal(_ context.Context, _ string, _ map[string]any) {
 }
 func (l testGiteaProjectLogger) IsLevelEnabled(_ ports.LogLevel) bool { return true }
 
-func TestNewProjectService(t *testing.T) {
-	t.Parallel()
-
-	logger := testGiteaProjectLogger{}
-	service := NewProjectService(nil, logger)
-
-	assert.NotNil(t, service)
-	assert.Nil(t, service.client) // client can be nil for testing
-	assert.NotNil(t, service.logger)
-}
+// Removed TestNewProjectService - constructor test with nil dependency adds no value
+// The actual service behavior is tested in TestProjectService_ValidateProjectName
 
 func TestProjectService_ValidateProjectName(t *testing.T) {
 	t.Parallel()
@@ -162,7 +154,7 @@ func TestProjectService_ValidateProjectName(t *testing.T) {
 					require.ErrorIs(t, err, test.expectedErr)
 				}
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			}
 		})
 	}
@@ -193,12 +185,12 @@ func TestProjectService_validateBasicRequirements(t *testing.T) {
 		},
 		{
 			name:        "name at maximum length",
-			projectName: "a" + string(make([]byte, 99)), // 100 characters total
+			projectName: strings.Repeat("a", 100), // 100 characters total
 			expectError: false,
 		},
 		{
 			name:        "name too long",
-			projectName: "a" + string(make([]byte, 100)), // 101 characters total
+			projectName: strings.Repeat("a", 101), // 101 characters total
 			expectError: true,
 			expectedErr: ErrProjectNameTooLong,
 		},
@@ -217,7 +209,7 @@ func TestProjectService_validateBasicRequirements(t *testing.T) {
 					require.ErrorIs(t, err, test.expectedErr)
 				}
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			}
 		})
 	}
@@ -289,7 +281,7 @@ func TestProjectService_validateNamingRules(t *testing.T) {
 					require.ErrorIs(t, err, test.expectedErr)
 				}
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			}
 		})
 	}
@@ -387,7 +379,7 @@ func TestProjectService_validateCharacters(t *testing.T) {
 					require.ErrorIs(t, err, test.expectedErr)
 				}
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			}
 		})
 	}
@@ -470,7 +462,7 @@ func TestProjectService_validateReservedNames(t *testing.T) {
 					require.ErrorIs(t, err, test.expectedErr)
 				}
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			}
 		})
 	}

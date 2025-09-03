@@ -21,7 +21,6 @@ var (
 )
 
 // Repository represents a Git repository with additional metadata.
-// It encapsulates a go-git Repository and provides methods for common operations.
 type Repository struct {
 	goGitRepository *git.Repository
 	ProjectMetaInfo *ProjectInfo

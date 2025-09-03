@@ -34,7 +34,7 @@ var (
 )
 
 // OutputFormatter implements ports.OutputFormatter for CLI applications.
-// Provides console (human-readable), json (structured), and plain (tabular) output formats.
+// Supports console (human-readable), json (structured), and plain (tabular) output formats.
 type OutputFormatter struct {
 	color terminal.Color
 }
@@ -358,7 +358,7 @@ func (f *OutputFormatter) writeMirrorSettingsFields(writer io.Writer, indent str
 	settingsFields := []struct {
 		condition bool
 		label     string
-		value     interface{}
+		value     any
 	}{
 		{settings.AlphaNumHyphName, "ASCII Name", settings.AlphaNumHyphName},
 		{settings.DescriptionPrefix != "", "Description Prefix", settings.DescriptionPrefix},
@@ -496,7 +496,7 @@ func (f *OutputFormatter) formatConfigurationPlain(appCfg model.AppConfiguration
 
 // FormatSyncResults formats sync operation results for output.
 // Progress and status information should go to stderr, data to stdout.
-func (f *OutputFormatter) FormatSyncResults(results interface{}, format string, dataWriter, progressWriter io.Writer) error {
+func (f *OutputFormatter) FormatSyncResults(results any, format string, dataWriter, progressWriter io.Writer) error {
 	switch format {
 	case formatConsole:
 		return f.formatSyncResultsConsole(results, dataWriter, progressWriter)
@@ -510,7 +510,7 @@ func (f *OutputFormatter) FormatSyncResults(results interface{}, format string, 
 }
 
 // formatSyncResultsConsole outputs human-readable sync results.
-func (f *OutputFormatter) formatSyncResultsConsole(results interface{}, dataWriter, progressWriter io.Writer) error {
+func (f *OutputFormatter) formatSyncResultsConsole(results any, dataWriter, progressWriter io.Writer) error {
 	syncResults, ok := results.(*sync.Results)
 	if !ok {
 		return ErrInvalidSyncResultsType
@@ -580,7 +580,7 @@ func (f *OutputFormatter) writeSyncSummaryHeader(dataWriter io.Writer) error {
 func (f *OutputFormatter) writeSyncSummaryStats(syncResults *sync.Results, dataWriter io.Writer) error {
 	stats := []struct {
 		label string
-		value interface{}
+		value any
 	}{
 		{"Total Sources", syncResults.TotalSources},
 		{"Total Mirrors", syncResults.TotalMirrors},
@@ -681,7 +681,7 @@ func (f *OutputFormatter) writeSyncDetailedResult(result sync.Result, dataWriter
 }
 
 // formatSyncResultsJSON outputs structured JSON sync results.
-func (f *OutputFormatter) formatSyncResultsJSON(results interface{}, dataWriter, progressWriter io.Writer) error {
+func (f *OutputFormatter) formatSyncResultsJSON(results any, dataWriter, progressWriter io.Writer) error {
 	syncResults, ok := results.(*sync.Results)
 	if !ok {
 		return ErrInvalidSyncResultsType
@@ -706,7 +706,7 @@ func (f *OutputFormatter) formatSyncResultsJSON(results interface{}, dataWriter,
 // formatSyncResultsPlain outputs tabular sync results for pipeline compatibility.
 // formatSyncResultsPlain outputs sync results as tab-separated values for pipeline processing.
 // Machine-readable format: one record per line, no formatting, suitable for grep/awk.
-func (f *OutputFormatter) formatSyncResultsPlain(results interface{}, dataWriter, _ io.Writer) error {
+func (f *OutputFormatter) formatSyncResultsPlain(results any, dataWriter, _ io.Writer) error {
 	syncResults, ok := results.(*sync.Results)
 	if !ok {
 		return ErrInvalidSyncResultsType

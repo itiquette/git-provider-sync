@@ -118,58 +118,6 @@ gitprovidersync:
 	assert.Equal(t, "github", testConf.ProviderType)
 }
 
-func TestFunctional_LoadConfiguration_DotEnvFileIntegration(t *testing.T) {
-	t.Skip("DotEnv integration test skipped - configuration system has been redesigned with new fileadapter approach")
-	t.Parallel()
-
-	// Create temp directories
-	tempDir := t.TempDir()
-	envDir := filepath.Join(tempDir, "env")
-	require.NoError(t, os.MkdirAll(envDir, 0o750))
-
-	// Setup .env file
-	dotEnvPath := filepath.Join(envDir, ".env")
-	envContent := `
-GPS_TESTENV_DOTENVCONF_PROVIDER_TYPE=gitea
-GPS_TESTENV_DOTENVCONF_DOMAIN=gitea.company.com
-GPS_TESTENV_DOTENVCONF_OWNER=dotenv-owner
-GPS_TESTENV_DOTENVCONF_AUTH_TOKEN=dotenv-token
-`
-	require.NoError(t, os.WriteFile(dotEnvPath, []byte(envContent), 0o600))
-
-	// Setup main config file
-	configPath := filepath.Join(tempDir, "main-config.yaml")
-	configContent := `
-gitprovidersync:
-  testenv:
-    dotenvconf:
-      provider_type: github # Should be overridden by .env
-      domain: test-github.example.com    # Should be overridden by .env
-      owner: config-owner   # Should be overridden by .env
-`
-	require.NoError(t, os.WriteFile(configPath, []byte(configContent), 0o600))
-
-	// Set environment to point to .env directory
-	t.Setenv("GPS_TESTCONFIG_HOME", envDir)
-
-	// Read configuration using ReadConfigurationFile (not full LoadConfiguration)
-	appConfig := &model.AppConfiguration{}
-	err := ReadConfigurationFile(context.Background(), configPath, false, appConfig)
-
-	require.NoError(t, err)
-	require.NotEmpty(t, appConfig.GitProviderSyncConfs)
-
-	// Verify .env file values override config file
-	env := appConfig.GitProviderSyncConfs["testenv"]
-	require.NotNil(t, env)
-
-	dotenvConf := env["dotenvconf"]
-	assert.Equal(t, "dotenv-owner", dotenvConf.Owner)       // From .env
-	assert.Equal(t, "gitea.company.com", dotenvConf.Domain) // From .env
-	assert.Equal(t, "dotenv-token", dotenvConf.Auth.Token)  // From .env
-	assert.Equal(t, "gitea", dotenvConf.ProviderType)       // From .env
-}
-
 func TestFunctional_LoadConfiguration_MultipleEnvironments_LoadsAllCorrectly(t *testing.T) {
 	t.Parallel()
 
@@ -320,74 +268,6 @@ gitprovidersync:
 			}
 		})
 	}
-}
-
-func TestFunctional_ReadConfig_EnvironmentVariables_ProcessesCorrectly(t *testing.T) {
-	t.Skip("Environment variable processing test skipped - configuration system has been redesigned with new fileadapter approach")
-	t.Parallel()
-
-	tempDir := t.TempDir()
-	configPath := filepath.Join(tempDir, "basic.yaml")
-	content := `
-gitprovidersync:
-  defaultenv:
-    testconf:
-      provider_type: github
-      domain: test-github.example.com
-      owner: test-owner
-`
-
-	require.NoError(t, os.WriteFile(configPath, []byte(content), 0o600))
-
-	// Set environment variables that might cause processing issues
-	t.Setenv("GPS_DEFAULTENV_TESTCONF_REPOSITORIES_INCLUDE", ",,,")   // Only commas
-	t.Setenv("GPS_DEFAULTENV_TESTCONF_REPOSITORIES_EXCLUDE", " , , ") // Only spaces and commas
-
-	// Try to read configuration - should handle gracefully
-	appConfig := &model.AppConfiguration{}
-	err := ReadConfigurationFile(context.Background(), configPath, false, appConfig)
-
-	require.NoError(t, err) // Should handle gracefully
-}
-
-func TestFunctional_ReadConfigurationFile_DotEnvFileErrors(t *testing.T) {
-	t.Skip("DotEnv error test skipped - configuration system has been redesigned with new fileadapter approach")
-	t.Parallel()
-
-	tempDir := t.TempDir()
-
-	// Setup valid config
-	configPath := filepath.Join(tempDir, "config.yaml")
-	configContent := `
-gitprovidersync:
-  defaultenv:
-    testconf:
-      provider_type: github
-      domain: test-github.example.com
-      owner: config-owner
-`
-	require.NoError(t, os.WriteFile(configPath, []byte(configContent), 0o600))
-
-	// Setup corrupted .env file
-	envDir := filepath.Join(tempDir, "env")
-	require.NoError(t, os.MkdirAll(envDir, 0o750))
-	dotEnvPath := filepath.Join(envDir, ".env")
-	// Invalid env file format
-	corruptedEnvContent := `
-GPS_TESTCONF_OWNER=owner
-INVALID LINE WITHOUT EQUALS
-GPS_TESTCONF_DOMAIN=domain
-`
-	require.NoError(t, os.WriteFile(dotEnvPath, []byte(corruptedEnvContent), 0o600))
-
-	t.Setenv("GPS_TESTCONFIG_HOME", envDir)
-
-	// Try to read configuration
-	appConfig := &model.AppConfiguration{}
-	err := ReadConfigurationFile(context.Background(), configPath, false, appConfig)
-
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "error loading dotenvfile config")
 }
 
 func TestFunctional_ConfigurationValidation_InvalidFieldsReturnErrors(t *testing.T) {
@@ -548,72 +428,6 @@ func TestFunctional_ConfigurationValidation_InvalidFieldsReturnErrors(t *testing
 	}
 }
 
-// SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
-// SPDX-License-Identifier: EUPL-1.2
-
-func TestFunctional_LoadConfiguration_EnvVarProcessing(t *testing.T) {
-	t.Skip("EnvVar processing test skipped - configuration system has been redesigned with new fileadapter approach")
-	t.Parallel()
-
-	// Create temp directory and config file
-	tempDir := t.TempDir()
-	configPath := filepath.Join(tempDir, "config.yaml")
-	configContent := `
-gitprovidersync:
-  testenv:
-    testconf:
-      provider_type: github
-      domain: test-github.example.com
-      owner: config-owner
-      auth:
-        token: config-token
-      repositories:
-        include: ["config-repo1", "config-repo2"]
-        exclude: ["config-exclude1"]
-`
-	require.NoError(t, os.WriteFile(configPath, []byte(configContent), 0o600))
-
-	// Set environment variables that should override config
-	t.Setenv("GPS_TESTENV_TESTCONF_OWNER", "env-owner")
-	t.Setenv("GPS_TESTENV_TESTCONF_AUTH_TOKEN", "env-token")
-	t.Setenv("GPS_TESTENV_TESTCONF_REPOSITORIES_INCLUDE", "env-repo1, env-repo2 , env-repo3")
-	t.Setenv("GPS_TESTENV_TESTCONF_REPOSITORIES_EXCLUDE", "env-exclude1, env-exclude2")
-
-	// Create CLI config and context
-	cliConfig := entities.NewCLIConfigBuilder().
-		WithConfigFilePath(configPath).
-		Build()
-
-	ctx := context.Background()
-	ctx = cli.WithCLIConfig(ctx, cliConfig)
-	ctx = log.InitLogger(ctx, "brief", false, false, "console")
-
-	// Load configuration
-	loader := DefaultConfigLoader{}
-	cfg, err := loader.LoadConfiguration(ctx)
-
-	require.NoError(t, err)
-	require.NotNil(t, cfg)
-	require.NotEmpty(t, cfg.GitProviderSyncConfs)
-
-	// Verify environment variables override config file values
-	env := cfg.GitProviderSyncConfs["testenv"]
-	require.NotNil(t, env)
-
-	testConf := env["testconf"]
-	assert.Equal(t, "env-owner", testConf.Owner)                // Environment should override
-	assert.Equal(t, "env-token", testConf.Auth.Token)           // Environment should override
-	assert.Equal(t, "test-github.example.com", testConf.Domain) // Should remain from config
-
-	// Verify repository list processing from environment variables
-	expectedIncludes := []string{"env-repo1", "env-repo2", "env-repo3"}
-	assert.ElementsMatch(t, expectedIncludes, testConf.Repositories.Include)
-
-	expectedExcludes := []string{"env-exclude1", "env-exclude2"}
-	assert.ElementsMatch(t, expectedExcludes, testConf.Repositories.Exclude)
-}
-
 func TestFunctional_LoadConfiguration_ConfigFileOnly(t *testing.T) {
 	// Create temp directory and config file
 	tempDir := t.TempDir()
@@ -658,58 +472,6 @@ gitprovidersync:
 	assert.Equal(t, "config-only-owner", testConf.Owner) // Should use config file value
 	assert.Equal(t, "config-only-token", testConf.Auth.Token)
 	assert.Equal(t, "test-github.example.com", testConf.Domain)
-}
-
-func TestFunctional_ReadConfigurationFile_DotEnvIntegration(t *testing.T) {
-	t.Skip("DotEnv integration test skipped - configuration system has been redesigned with new fileadapter approach")
-	t.Parallel()
-
-	// Create temp directories
-	tempDir := t.TempDir()
-	envDir := filepath.Join(tempDir, "env")
-	require.NoError(t, os.MkdirAll(envDir, 0o750))
-
-	// Setup .env file
-	dotEnvPath := filepath.Join(envDir, ".env")
-	envContent := `
-GPS_TESTENV_DOTENVCONF_PROVIDER_TYPE=gitea
-GPS_TESTENV_DOTENVCONF_DOMAIN=gitea.company.com
-GPS_TESTENV_DOTENVCONF_OWNER=dotenv-owner
-GPS_TESTENV_DOTENVCONF_AUTH_TOKEN=dotenv-token
-`
-	require.NoError(t, os.WriteFile(dotEnvPath, []byte(envContent), 0o600))
-
-	// Setup main config file
-	configPath := filepath.Join(tempDir, "main-config.yaml")
-	configContent := `
-gitprovidersync:
-  testenv:
-    dotenvconf:
-      provider_type: github  # Should be overridden by .env
-      domain: test-github.example.com     # Should be overridden by .env
-      owner: config-owner    # Should be overridden by .env
-`
-	require.NoError(t, os.WriteFile(configPath, []byte(configContent), 0o600))
-
-	// Set environment to point to .env directory
-	t.Setenv("GPS_TESTCONFIG_HOME", envDir)
-
-	// Read configuration
-	appConfig := &model.AppConfiguration{}
-	err := ReadConfigurationFile(context.Background(), configPath, false, appConfig)
-
-	require.NoError(t, err)
-	require.NotEmpty(t, appConfig.GitProviderSyncConfs)
-
-	// Verify .env file values override config file
-	env := appConfig.GitProviderSyncConfs["testenv"]
-	require.NotNil(t, env)
-
-	dotenvConf := env["dotenvconf"]
-	assert.Equal(t, "gitea", dotenvConf.ProviderType)       // From .env
-	assert.Equal(t, "gitea.company.com", dotenvConf.Domain) // From .env
-	assert.Equal(t, "dotenv-owner", dotenvConf.Owner)       // From .env
-	assert.Equal(t, "dotenv-token", dotenvConf.Auth.Token)  // From .env
 }
 
 func TestFunctional_ReadConfigurationFile_ErrorHandling(t *testing.T) {
@@ -786,7 +548,7 @@ other_config:
 					assert.Contains(t, err.Error(), test.errorMsg)
 				}
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			}
 		})
 	}
@@ -864,64 +626,4 @@ func TestFunctional_LoadConfiguration_NoCLIContext(t *testing.T) {
 	// but should not panic due to missing CLI context
 	require.Error(t, err) // Expected since no config file is provided
 	assert.Nil(t, cfg)
-}
-
-//nolint:paralleltest // Cannot use t.Parallel() because subtests use t.Setenv()
-func TestFunctional_ConfigFileDetection_ChecksLocalAndXDGPaths(t *testing.T) {
-	tempDir := t.TempDir()
-
-	t.Run("hasLocalConfigFile", func(t *testing.T) {
-		// Test with existing file
-		existingFile := filepath.Join(tempDir, "existing.yaml")
-		require.NoError(t, os.WriteFile(existingFile, []byte("test"), 0o600))
-
-		assert.True(t, hasLocalConfigFile(existingFile))
-
-		// Test with non-existing file
-		nonExistingFile := filepath.Join(tempDir, "nonexisting.yaml")
-		assert.False(t, hasLocalConfigFile(nonExistingFile))
-	})
-
-	t.Run("hasXDGConfigFile", func(t *testing.T) {
-		// Test with XDG_CONFIG_HOME set and file exists
-		xdgDir := filepath.Join(tempDir, "xdg")
-		xdgConfigDir := filepath.Join(xdgDir, "gitprovidersync")
-		require.NoError(t, os.MkdirAll(xdgConfigDir, 0o750))
-
-		xdgConfigFile := filepath.Join(xdgConfigDir, "gitprovidersync.yaml")
-		require.NoError(t, os.WriteFile(xdgConfigFile, []byte("test"), 0o600))
-
-		exists, _ := hasXDGConfigFile("TEST_XDG_CONFIG_HOME")
-		assert.False(t, exists) // Environment var not set
-
-		// Set environment variable
-		t.Setenv("TEST_XDG_CONFIG_HOME", xdgDir)
-
-		exists, path := hasXDGConfigFile("TEST_XDG_CONFIG_HOME")
-		assert.True(t, exists)
-		assert.Equal(t, xdgConfigFile, path)
-	})
-
-	t.Run("hasDotEnvFile", func(t *testing.T) {
-		// Clean up any existing GPS_TESTCONFIG_HOME env var from other tests
-
-		// Test with GPS_TESTCONFIG_HOME set and .env file exists
-		envTestDir := filepath.Join(tempDir, "envtest")
-		require.NoError(t, os.MkdirAll(envTestDir, 0o750))
-
-		dotEnvFile := filepath.Join(envTestDir, ".env")
-		require.NoError(t, os.WriteFile(dotEnvFile, []byte("TEST=value"), 0o600))
-
-		// Without environment variable
-		exists, _ := hasDotEnvFile()
-		// Should check current directory for .env
-		assert.False(t, exists) // .env doesn't exist in current dir
-
-		// Set environment variable
-		t.Setenv("GPS_TESTCONFIG_HOME", envTestDir)
-
-		exists, path := hasDotEnvFile()
-		assert.True(t, exists)
-		assert.Equal(t, dotEnvFile, path)
-	})
 }

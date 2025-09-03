@@ -182,13 +182,13 @@ func (m *mockRepoProvider) TransformRepositoryName(name string, _ ports.NameTran
 
 type mockLogger struct{}
 
-func (m *mockLogger) Debug(_ context.Context, _ string, _ map[string]interface{}) {}
-func (m *mockLogger) Info(_ context.Context, _ string, _ map[string]interface{})  {}
-func (m *mockLogger) Error(_ context.Context, _ string, _ map[string]interface{}) {}
-func (m *mockLogger) Trace(_ context.Context, _ string, _ map[string]interface{}) {}
-func (m *mockLogger) Warn(_ context.Context, _ string, _ map[string]interface{})  {}
-func (m *mockLogger) Fatal(_ context.Context, _ string, _ map[string]interface{}) {}
-func (m *mockLogger) IsLevelEnabled(_ ports.LogLevel) bool                        { return true }
+func (m *mockLogger) Debug(_ context.Context, _ string, _ map[string]any) {}
+func (m *mockLogger) Info(_ context.Context, _ string, _ map[string]any)  {}
+func (m *mockLogger) Error(_ context.Context, _ string, _ map[string]any) {}
+func (m *mockLogger) Trace(_ context.Context, _ string, _ map[string]any) {}
+func (m *mockLogger) Warn(_ context.Context, _ string, _ map[string]any)  {}
+func (m *mockLogger) Fatal(_ context.Context, _ string, _ map[string]any) {}
+func (m *mockLogger) IsLevelEnabled(_ ports.LogLevel) bool                { return true }
 
 // Test Service constructors.
 
@@ -570,23 +570,73 @@ func TestService_extractOwnerFromURL(t *testing.T) {
 		expected string
 	}{
 		{
-			name:     "github URL",
-			url:      "https://test-github.example.com/owner/repo.git",
+			name:     "HTTPS URL with .git",
+			url:      "https://github.com/owner/repo.git",
 			expected: "owner",
 		},
 		{
-			name:     "gitlab URL",
-			url:      "https://test-gitlab.example.com/owner/repo.git",
+			name:     "HTTPS URL without .git",
+			url:      "https://github.com/owner/repo",
 			expected: "owner",
 		},
 		{
-			name:     "short URL",
-			url:      "short",
+			name:     "SSH URL with git@",
+			url:      "git@github.com:owner/repo.git",
+			expected: "owner",
+		},
+		{
+			name:     "SSH URL format",
+			url:      "ssh://git@github.com/owner/repo.git",
+			expected: "owner",
+		},
+		{
+			name:     "GitLab HTTPS URL with nested groups",
+			url:      "https://gitlab.com/group/subgroup/project.git",
+			expected: "group",
+		},
+		{
+			name:     "GitLab SSH URL with nested groups",
+			url:      "git@gitlab.com:group/subgroup/project.git",
+			expected: "group",
+		},
+		{
+			name:     "Bitbucket HTTPS URL",
+			url:      "https://bitbucket.org/workspace/repo.git",
+			expected: "workspace",
+		},
+		{
+			name:     "Gitea HTTPS URL",
+			url:      "https://gitea.example.com/owner/repo.git",
+			expected: "owner",
+		},
+		{
+			name:     "GitHub Enterprise URL",
+			url:      "https://github.enterprise.com/org/repo.git",
+			expected: "org",
+		},
+		{
+			name:     "URL with port number",
+			url:      "ssh://git@gitlab.example.com:2222/owner/repo.git",
+			expected: "owner",
+		},
+		{
+			name:     "Invalid URL",
+			url:      "not-a-url",
 			expected: "unknown",
 		},
 		{
-			name:     "empty URL",
+			name:     "Empty URL",
 			url:      "",
+			expected: "unknown",
+		},
+		{
+			name:     "URL with only domain",
+			url:      "https://github.com/",
+			expected: "unknown",
+		},
+		{
+			name:     "Malformed SSH URL",
+			url:      "git@github.com",
 			expected: "unknown",
 		},
 	}
@@ -795,7 +845,7 @@ func TestValidateProviderCompatibility(t *testing.T) {
 	}
 }
 
-// Helper function to create test service
+// Creates test service
 
 func createTestService() *Service {
 	config := Config{

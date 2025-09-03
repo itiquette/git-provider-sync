@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-// Package configuration provides functionality for handling and printing configurations.
+// Package configuration loads and validates application configuration.
 package configuration
 
 import (

@@ -126,17 +126,17 @@ func TestSanitizeStringMap(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		input    map[string]interface{}
-		expected map[string]interface{}
+		input    map[string]any
+		expected map[string]any
 	}{
 		{
 			name: "map with URL containing credentials",
-			input: map[string]interface{}{
+			input: map[string]any{
 				"clone_url": "https://user:token@github.com/repo.git",
 				"name":      "my-repo",
 				"public":    true,
 			},
-			expected: map[string]interface{}{
+			expected: map[string]any{
 				"clone_url": "https://***:***@github.com/repo.git",
 				"name":      "my-repo",
 				"public":    true,
@@ -144,13 +144,13 @@ func TestSanitizeStringMap(t *testing.T) {
 		},
 		{
 			name: "map with sensitive keys",
-			input: map[string]interface{}{
+			input: map[string]any{
 				"password":     "supersecret",
 				"api_key":      "xyz123abc",
 				"access_token": "ghp_xxxxxxxxxxxx",
 				"username":     "john",
 			},
-			expected: map[string]interface{}{
+			expected: map[string]any{
 				"password":     "***",
 				"api_key":      "***",
 				"access_token": "***",
@@ -159,15 +159,15 @@ func TestSanitizeStringMap(t *testing.T) {
 		},
 		{
 			name: "nested map with credentials",
-			input: map[string]interface{}{
-				"config": map[string]interface{}{
+			input: map[string]any{
+				"config": map[string]any{
 					"auth_token": "secret123",
 					"server_url": "https://admin:pass@server.com",
 				},
 				"status": "active",
 			},
-			expected: map[string]interface{}{
-				"config": map[string]interface{}{
+			expected: map[string]any{
+				"config": map[string]any{
 					"auth_token": "***",
 					"server_url": "https://***:***@server.com",
 				},
@@ -176,12 +176,12 @@ func TestSanitizeStringMap(t *testing.T) {
 		},
 		{
 			name: "map with token-like strings",
-			input: map[string]interface{}{
+			input: map[string]any{
 				"id":       "abc123",                                     // Too short to be a token
 				"long_key": "abcdefghijklmnopqrstuvwxyz0123456789ABCDEF", // Looks like a token
 				"name":     "regular-name",
 			},
-			expected: map[string]interface{}{
+			expected: map[string]any{
 				"id":       "abc123",
 				"long_key": "***",
 				"name":     "regular-name",
@@ -194,8 +194,8 @@ func TestSanitizeStringMap(t *testing.T) {
 		},
 		{
 			name:     "empty map",
-			input:    map[string]interface{}{},
-			expected: map[string]interface{}{},
+			input:    map[string]any{},
+			expected: map[string]any{},
 		},
 	}
 

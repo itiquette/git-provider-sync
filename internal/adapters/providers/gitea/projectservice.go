@@ -27,8 +27,6 @@ var (
 )
 
 // ProjectService provides Gitea-specific project operations.
-//
-//	sophisticated project service functionality .
 type ProjectService struct {
 	client *gitea.Client
 	logger ports.Logger
@@ -56,7 +54,7 @@ type CreateProjectRequest struct {
 
 // CreateProject creates a new Gitea repository with options.
 func (ps *ProjectService) CreateProject(ctx context.Context, request CreateProjectRequest) (*entities.Repository, error) {
-	ps.logger.Debug(ctx, "Creating Gitea project", map[string]interface{}{
+	ps.logger.Debug(ctx, "Creating Gitea project", map[string]any{
 		"owner":  request.Owner,
 		"name":   request.Name,
 		"is_org": request.IsOrganization,
@@ -92,7 +90,7 @@ func (ps *ProjectService) CreateProject(ctx context.Context, request CreateProje
 	// Apply disabled settings if requested
 	if request.DisableFeatures {
 		if err := ps.applyDisabledSettings(ctx, createdRepo.Owner.UserName, request.Name); err != nil {
-			ps.logger.Warn(ctx, "Failed to apply disabled settings", map[string]interface{}{
+			ps.logger.Warn(ctx, "Failed to apply disabled settings", map[string]any{
 				"owner": request.Owner,
 				"name":  request.Name,
 				"error": err.Error(),
@@ -106,7 +104,7 @@ func (ps *ProjectService) CreateProject(ctx context.Context, request CreateProje
 		return nil, fmt.Errorf("failed to convert created repository: %w", err)
 	}
 
-	ps.logger.Info(ctx, "Gitea project created successfully", map[string]interface{}{
+	ps.logger.Info(ctx, "Gitea project created successfully", map[string]any{
 		"owner": request.Owner,
 		"name":  request.Name,
 		"url":   repository.HTTPSURL(),
@@ -117,7 +115,7 @@ func (ps *ProjectService) CreateProject(ctx context.Context, request CreateProje
 
 // GetProjectInfo retrieves project information.
 func (ps *ProjectService) GetProjectInfo(ctx context.Context, owner, name string) (*entities.Repository, error) {
-	ps.logger.Debug(ctx, "Getting Gitea project info", map[string]interface{}{
+	ps.logger.Debug(ctx, "Getting Gitea project info", map[string]any{
 		"owner": owner,
 		"name":  name,
 	})
@@ -132,7 +130,7 @@ func (ps *ProjectService) GetProjectInfo(ctx context.Context, owner, name string
 
 // UpdateProject updates an existing Gitea repository.
 func (ps *ProjectService) UpdateProject(ctx context.Context, owner, name string, updates ports.UpdateRepositoryOptions) error {
-	ps.logger.Debug(ctx, "Updating Gitea project", map[string]interface{}{
+	ps.logger.Debug(ctx, "Updating Gitea project", map[string]any{
 		"owner": owner,
 		"name":  name,
 	})
@@ -157,7 +155,7 @@ func (ps *ProjectService) UpdateProject(ctx context.Context, owner, name string,
 		return fmt.Errorf("failed to update Gitea project %s/%s: %w", owner, name, err)
 	}
 
-	ps.logger.Info(ctx, "Gitea project updated successfully", map[string]interface{}{
+	ps.logger.Info(ctx, "Gitea project updated successfully", map[string]any{
 		"owner": owner,
 		"name":  name,
 	})
@@ -241,7 +239,7 @@ func (ps *ProjectService) validateReservedNames(name string) error {
 
 // applyDisabledSettings disables features on a Gitea repository.
 func (ps *ProjectService) applyDisabledSettings(ctx context.Context, owner, projectName string) error {
-	ps.logger.Debug(ctx, "Applying disabled settings", map[string]interface{}{
+	ps.logger.Debug(ctx, "Applying disabled settings", map[string]any{
 		"owner": owner,
 		"repo":  projectName,
 	})

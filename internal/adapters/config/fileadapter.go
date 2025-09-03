@@ -11,6 +11,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -247,7 +248,7 @@ func (a *FileAdapter) loadFileSource(source ports.ConfigurationSource) error {
 
 // checkFileExists checks if the configuration file exists and handles optional/required logic.
 func (a *FileAdapter) checkFileExists(source ports.ConfigurationSource) error {
-	if _, err := os.Stat(source.Location); os.IsNotExist(err) {
+	if _, err := os.Stat(source.Location); errors.Is(err, fs.ErrNotExist) {
 		if source.Required {
 			return fmt.Errorf("%w: %s", ErrRequiredConfigFileNotFound, source.Location)
 		}
@@ -330,7 +331,7 @@ func (a *FileAdapter) parseConfiguration() (ports.AppConfiguration, error) {
 
 	// Parse environments
 	if a.koanf.Exists("environments") {
-		envMap := make(map[string]interface{})
+		envMap := make(map[string]any)
 
 		err := a.koanf.Unmarshal("environments", &envMap)
 		if err != nil {
@@ -369,14 +370,14 @@ func (a *FileAdapter) parseConfiguration() (ports.AppConfiguration, error) {
 }
 
 // parseEnvironment parses a single environment configuration.
-func (a *FileAdapter) parseEnvironment(name string, data interface{}) (ports.EnvironmentConfiguration, error) {
+func (a *FileAdapter) parseEnvironment(name string, data any) (ports.EnvironmentConfiguration, error) {
 	env := ports.EnvironmentConfiguration{
 		Name:    name,
 		Enabled: true,
 		Mirrors: make(map[string]ports.MirrorConfiguration),
 	}
 
-	envMap, ok := data.(map[string]interface{})
+	envMap, ok := data.(map[string]any)
 	if !ok {
 		return env, ErrEnvironmentMustBeObject
 	}
@@ -401,10 +402,10 @@ func (a *FileAdapter) parseEnvironment(name string, data interface{}) (ports.Env
 }
 
 // parseSourceConfiguration parses source configuration.
-func (a *FileAdapter) parseSourceConfiguration(data interface{}) (ports.SourceConfiguration, error) {
+func (a *FileAdapter) parseSourceConfiguration(data any) (ports.SourceConfiguration, error) {
 	var source ports.SourceConfiguration
 
-	sourceMap, ok := data.(map[string]interface{})
+	sourceMap, ok := data.(map[string]any)
 	if !ok {
 		return source, ErrSourceMustBeObject
 	}
@@ -442,13 +443,13 @@ func (a *FileAdapter) parseSourceConfiguration(data interface{}) (ports.SourceCo
 }
 
 // parseMirrorConfiguration parses mirror configuration.
-func (a *FileAdapter) parseMirrorConfiguration(name string, data interface{}) (ports.MirrorConfiguration, error) {
+func (a *FileAdapter) parseMirrorConfiguration(name string, data any) (ports.MirrorConfiguration, error) {
 	mirror := ports.MirrorConfiguration{
 		Name:    name,
 		Enabled: true,
 	}
 
-	mirrorMap, ok := data.(map[string]interface{})
+	mirrorMap, ok := data.(map[string]any)
 	if !ok {
 		return mirror, ErrMirrorMustBeObject
 	}
@@ -465,7 +466,7 @@ func (a *FileAdapter) parseMirrorConfiguration(name string, data interface{}) (p
 }
 
 // parseMirrorBasicFields parses the basic fields of a mirror configuration.
-func (a *FileAdapter) parseMirrorBasicFields(mirror *ports.MirrorConfiguration, mirrorMap map[string]interface{}) error { //nolint:unparam // Error return reserved for future validation
+func (a *FileAdapter) parseMirrorBasicFields(mirror *ports.MirrorConfiguration, mirrorMap map[string]any) error { //nolint:unparam // Error return reserved for future validation
 	// Define field mappings for type-safe parsing
 	stringFields := map[string]*string{
 		"provider_type": &mirror.ProviderType,
@@ -494,7 +495,7 @@ func (a *FileAdapter) parseMirrorBasicFields(mirror *ports.MirrorConfiguration, 
 }
 
 // parseMirrorAuthenticationField parses the authentication field of a mirror configuration.
-func (a *FileAdapter) parseMirrorAuthenticationField(mirror *ports.MirrorConfiguration, mirrorMap map[string]interface{}) error {
+func (a *FileAdapter) parseMirrorAuthenticationField(mirror *ports.MirrorConfiguration, mirrorMap map[string]any) error {
 	if authData, exists := mirrorMap["authentication"]; exists {
 		auth, err := a.parseAuthConfiguration(authData)
 		if err != nil {
@@ -508,10 +509,10 @@ func (a *FileAdapter) parseMirrorAuthenticationField(mirror *ports.MirrorConfigu
 }
 
 // parseAuthConfiguration parses authentication configuration.
-func (a *FileAdapter) parseAuthConfiguration(data interface{}) (ports.AuthenticationConfiguration, error) {
+func (a *FileAdapter) parseAuthConfiguration(data any) (ports.AuthenticationConfiguration, error) {
 	var auth ports.AuthenticationConfiguration
 
-	authMap, ok := data.(map[string]interface{})
+	authMap, ok := data.(map[string]any)
 	if !ok {
 		return auth, ErrAuthMustBeObject
 	}
@@ -651,7 +652,7 @@ func (a *FileAdapter) calculateChecksum() string {
 }
 
 // parseEnvironmentEnabled parses the enabled flag for an environment.
-func (a *FileAdapter) parseEnvironmentEnabled(env *ports.EnvironmentConfiguration, envMap map[string]interface{}) error { //nolint:unparam // Error return reserved for future validation
+func (a *FileAdapter) parseEnvironmentEnabled(env *ports.EnvironmentConfiguration, envMap map[string]any) error { //nolint:unparam // Error return reserved for future validation
 	if enabled, exists := envMap["enabled"]; exists {
 		if enabledBool, ok := enabled.(bool); ok {
 			env.Enabled = enabledBool
@@ -662,7 +663,7 @@ func (a *FileAdapter) parseEnvironmentEnabled(env *ports.EnvironmentConfiguratio
 }
 
 // parseEnvironmentSource parses the source configuration for an environment.
-func (a *FileAdapter) parseEnvironmentSource(env *ports.EnvironmentConfiguration, envMap map[string]interface{}) error {
+func (a *FileAdapter) parseEnvironmentSource(env *ports.EnvironmentConfiguration, envMap map[string]any) error {
 	if sourceData, exists := envMap["source"]; exists {
 		source, err := a.parseSourceConfiguration(sourceData)
 		if err != nil {
@@ -676,9 +677,9 @@ func (a *FileAdapter) parseEnvironmentSource(env *ports.EnvironmentConfiguration
 }
 
 // parseEnvironmentMirrors parses the mirrors configuration for an environment.
-func (a *FileAdapter) parseEnvironmentMirrors(env *ports.EnvironmentConfiguration, envMap map[string]interface{}) error {
+func (a *FileAdapter) parseEnvironmentMirrors(env *ports.EnvironmentConfiguration, envMap map[string]any) error {
 	if mirrorsData, exists := envMap["mirrors"]; exists {
-		mirrorsMap, ok := mirrorsData.(map[string]interface{})
+		mirrorsMap, ok := mirrorsData.(map[string]any)
 		if !ok {
 			return ErrMirrorsMustBeObject
 		}
@@ -697,7 +698,7 @@ func (a *FileAdapter) parseEnvironmentMirrors(env *ports.EnvironmentConfiguratio
 }
 
 // parseEnvironmentOptions parses the options configuration for an environment.
-func (a *FileAdapter) parseEnvironmentOptions(env *ports.EnvironmentConfiguration, envMap map[string]interface{}) error { //nolint:unparam // Error return reserved for future validation
+func (a *FileAdapter) parseEnvironmentOptions(env *ports.EnvironmentConfiguration, envMap map[string]any) error { //nolint:unparam // Error return reserved for future validation
 	if optionsData, exists := envMap["options"]; exists {
 		var options ports.EnvironmentOptions
 		// Simple type assertion for now - a full implementation would use reflection
@@ -709,7 +710,7 @@ func (a *FileAdapter) parseEnvironmentOptions(env *ports.EnvironmentConfiguratio
 }
 
 // parseAuthType parses the authentication type field.
-func (a *FileAdapter) parseAuthType(auth *ports.AuthenticationConfiguration, authMap map[string]interface{}) {
+func (a *FileAdapter) parseAuthType(auth *ports.AuthenticationConfiguration, authMap map[string]any) {
 	if authType, exists := authMap["type"]; exists {
 		if at, ok := authType.(string); ok {
 			auth.Type = ports.AuthenticationType(at)
@@ -718,7 +719,7 @@ func (a *FileAdapter) parseAuthType(auth *ports.AuthenticationConfiguration, aut
 }
 
 // parseAuthCredentials parses authentication credential fields.
-func (a *FileAdapter) parseAuthCredentials(auth *ports.AuthenticationConfiguration, authMap map[string]interface{}) {
+func (a *FileAdapter) parseAuthCredentials(auth *ports.AuthenticationConfiguration, authMap map[string]any) {
 	if token, exists := authMap["token"]; exists {
 		if t, ok := token.(string); ok {
 			auth.Token = t
