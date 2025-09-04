@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package gitlab
@@ -21,7 +20,7 @@ import (
 type CompleteAdapter struct {
 	*Adapter // Embed the basic adapter
 
-	// service layers
+	// Service layers
 	projectService    *ProjectService
 	protectionService *ProtectionService
 	filterService     *FilterService
@@ -180,9 +179,9 @@ func (ca *CompleteAdapter) FilterRepositoriesWithAdvancedCriteria(
 	return ca.filterService.FilterRepositories(ctx, filterOptions)
 }
 
-// ValidateAndTransformRepositoryName validates and transforms a GitLab repository name.
-// The name parameter is the original repository name to validate/transform.
-// The options parameter contains transformation rules including case conversion, replacements, and prefix/suffix addition.
+// ValidateAndTransformRepositoryName validates and transforms a GitLab repository name
+// Name parameter is the original repository name to validate/transform
+// Options parameter contains transformation rules including case conversion, replacements, and prefix/suffix addition
 // ValidateAndTransformRepositoryName returns the validated/transformed name or an error if validation fails.
 func (ca *CompleteAdapter) ValidateAndTransformRepositoryName(
 	name string,

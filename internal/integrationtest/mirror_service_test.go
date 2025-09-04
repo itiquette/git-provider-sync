@@ -1,7 +1,6 @@
 //go:build integration
 
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package integrationtest
@@ -22,9 +21,6 @@ import (
 
 // TestMirrorServiceIntegration tests mirror service operations with real git environments
 func TestMirrorServiceIntegration(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping mirror service integration test in short mode")
-	}
 
 	t.Parallel()
 
@@ -47,7 +43,7 @@ func TestMirrorServiceIntegration(t *testing.T) {
 	})
 }
 
-// testCompleteMirrorOperation tests the complete mirror operation flow with real git repos
+// TestCompleteMirrorOperation tests the complete mirror operation flow with real git repos
 func testCompleteMirrorOperation(t *testing.T, gitOps ports.GitOperations) {
 	ctx := context.Background()
 
@@ -85,7 +81,7 @@ func testCompleteMirrorOperation(t *testing.T, gitOps ports.GitOperations) {
 	})
 
 	// For integration testing, create realistic repositories with proper URLs
-	// The test environment provides real git repos that we can reference
+	// Test environment provides real git repos that we can reference
 	sourceRepo := createMirrorTestRepository("mirror-source", "")
 	targetRepo := createMirrorTestRepository("mirror-target", "")
 
@@ -120,7 +116,7 @@ func testCompleteMirrorOperation(t *testing.T, gitOps ports.GitOperations) {
 	t.Logf("   Operation type: %v", planResult.Type)
 }
 
-// testMirrorRepositoryWithFilesAndRemotes tests mirror with complex repository structure
+// TestMirrorRepositoryWithFilesAndRemotes tests mirror with complex repository structure
 func testMirrorRepositoryWithFilesAndRemotes(t *testing.T, gitOps ports.GitOperations) {
 	ctx := context.Background()
 
@@ -208,7 +204,7 @@ func testMirrorRepositoryWithFilesAndRemotes(t *testing.T, gitOps ports.GitOpera
 	t.Logf("   Target: %s", env.GetTargetURL())
 }
 
-// testMirrorOperationValidation tests validation of mirror operations
+// TestMirrorOperationValidation tests validation of mirror operations
 func testMirrorOperationValidation(t *testing.T, gitOps ports.GitOperations) {
 	// Create simple test environment for validation tests
 	env, err := testutil.SetupSimpleGitTestEnvironment(t, gitOps)
@@ -290,7 +286,7 @@ func createMirrorTestRepository(name, url string) entities.Repository {
 	builder, _ = builder.WithName(name)
 	
 	// For mirror service tests, use test HTTPS URLs rather than file:// URLs
-	// The mirror service validation expects proper HTTPS URLs for GitHub/GitLab providers
+	// Mirror service validation expects proper HTTPS URLs for GitHub/GitLab providers
 	testHTTPSURL := "https://test-provider.com/test/" + name + ".git"
 	builder, _ = builder.WithHTTPSURL(testHTTPSURL)
 	
@@ -304,7 +300,7 @@ func createMirrorTestRepository(name, url string) entities.Repository {
 }
 
 // Removed createMirrorTestRepositoryWithFileURL as we're focusing on 
-// testing the pure functional parts of the mirror service
+// Testing the pure functional parts of the mirror service
 
 func createInvalidMirrorTestRepository() entities.Repository {
 	// Create repository with invalid/empty fields to trigger validation errors

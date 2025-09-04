@@ -1,8 +1,6 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
-// Package gogit provides go-git based repository operations for Git Provider Sync.
 package gogit
 
 import (
@@ -44,7 +42,7 @@ func New(config ports.GitConfig) *Adapter {
 	}
 }
 
-// isGitDir checks if a directory contains git repository files (like config, HEAD, etc.)
+// IsGitDir checks if a directory contains git repository files (like config, HEAD, etc.)
 func isGitDir(path string) bool {
 	// Check for common git directory markers
 	markers := []string{"config", "HEAD", "objects", "refs"}
@@ -57,7 +55,7 @@ func isGitDir(path string) bool {
 	return true
 }
 
-// createStorer creates an appropriate storer based on the configuration.
+// CreateStorer creates an appropriate storer based on the configuration.
 func (a *Adapter) createStorer(path string) storage.Storer {
 	switch a.config.StorageMode {
 	case ports.StorageModeFilesystem:
@@ -71,7 +69,7 @@ func (a *Adapter) createStorer(path string) storage.Storer {
 	}
 }
 
-// createFilesystem creates an appropriate filesystem based on the configuration.
+// CreateFilesystem creates an appropriate filesystem based on the configuration.
 func (a *Adapter) createFilesystem(path string) billy.Filesystem {
 	switch a.config.StorageMode {
 	case ports.StorageModeFilesystem:
@@ -143,7 +141,7 @@ func (a *Adapter) Open(_ context.Context, path string) (ports.GitRepository, err
 	return a.createInMemoryRepository(path)
 }
 
-// openFilesystemRepository opens a repository from filesystem storage.
+// OpenFilesystemRepository opens a repository from filesystem storage.
 func (a *Adapter) openFilesystemRepository(path string) (*Repository, error) {
 	storer, worktree := a.determineStorageLayout(path)
 
@@ -161,7 +159,7 @@ func (a *Adapter) openFilesystemRepository(path string) (*Repository, error) {
 	}, nil
 }
 
-// determineStorageLayout determines the correct storer and worktree based on repository type.
+// DetermineStorageLayout determines the correct storer and worktree based on repository type.
 func (a *Adapter) determineStorageLayout(path string) (storage.Storer, billy.Filesystem) {
 	// First try to open as a non-bare repository with .git subdirectory
 	gitPath := filepath.Join(path, ".git")
@@ -179,7 +177,7 @@ func (a *Adapter) determineStorageLayout(path string) (storage.Storer, billy.Fil
 	return a.createStorer(path), a.createFilesystem(path)
 }
 
-// extractRemoteURL extracts the remote URL from the repository.
+// ExtractRemoteURL extracts the remote URL from the repository.
 func (a *Adapter) extractRemoteURL(repo *git.Repository) string {
 	remotes, err := repo.Remotes()
 	if err != nil || len(remotes) == 0 {
@@ -194,7 +192,7 @@ func (a *Adapter) extractRemoteURL(repo *git.Repository) string {
 	return urls[0]
 }
 
-// createInMemoryRepository creates a new in-memory repository.
+// CreateInMemoryRepository creates a new in-memory repository.
 func (a *Adapter) createInMemoryRepository(path string) (*Repository, error) {
 	storer := a.createStorer(path)
 	worktree := a.createFilesystem(path)
@@ -253,7 +251,7 @@ func (a *Adapter) Init(_ context.Context, path string, options ports.InitOptions
 
 // SupportsURL checks if go-git supports the given URL.
 func (a *Adapter) SupportsURL(url string) bool {
-	// go-git supports HTTP, HTTPS, SSH, and file URLs
+	// Go-git supports HTTP, HTTPS, SSH, and file URLs
 	return strings.HasPrefix(url, "http://") ||
 		strings.HasPrefix(url, "https://") ||
 		strings.HasPrefix(url, "git@") ||
@@ -270,7 +268,7 @@ func (a *Adapter) GetName() string {
 // Cleanup cleans up resources at the given path.
 func (a *Adapter) Cleanup(_ context.Context, _ string) error {
 	// For go-git, cleanup mainly involves removing temporary directories
-	// The actual implementation would depend on what needs to be cleaned up
+	// Actual implementation would depend on what needs to be cleaned up
 	return nil
 }
 
@@ -649,7 +647,7 @@ func (r *Repository) GetCommit(_ context.Context, ref string) (ports.CommitInfo,
 	return r.convertCommit(commit), nil
 }
 
-// ListCommits lists commits based on options.
+// ListCommits lists commits based on options
 //
 //nolint:cyclop // Complex commit listing logic with multiple filtering options
 func (r *Repository) ListCommits(_ context.Context, options ports.ListCommitsOptions) ([]ports.CommitInfo, error) {
@@ -807,7 +805,7 @@ func (r *Repository) DeleteTag(_ context.Context, name string) error {
 	return nil
 }
 
-// Status returns the status of the working directory.
+// Status returns the status of the working directory
 //
 //nolint:cyclop // Complex status checking logic with multiple file states
 func (r *Repository) Status(_ context.Context) (ports.StatusResult, error) {
@@ -861,7 +859,7 @@ func (r *Repository) Diff(_ context.Context, _ ports.DiffOptions) (string, error
 
 // Close closes the repository.
 func (r *Repository) Close() error {
-	// go-git repositories don't need explicit closing
+	// Go-git repositories don't need explicit closing
 	return nil
 }
 
@@ -887,7 +885,7 @@ func (a *Adapter) buildAuth(authOptions ports.AuthOptions) (transport.AuthMethod
 	}
 }
 
-// buildBasicAuth creates basic authentication.
+// BuildBasicAuth creates basic authentication.
 func (a *Adapter) buildBasicAuth(authOptions ports.AuthOptions) transport.AuthMethod { //nolint:ireturn
 	return &http.BasicAuth{
 		Username: authOptions.Username,
@@ -895,7 +893,7 @@ func (a *Adapter) buildBasicAuth(authOptions ports.AuthOptions) transport.AuthMe
 	}
 }
 
-// buildTokenAuth creates token-based authentication.
+// BuildTokenAuth creates token-based authentication.
 func (a *Adapter) buildTokenAuth(authOptions ports.AuthOptions) transport.AuthMethod { //nolint:ireturn
 	return &http.BasicAuth{
 		Username: authOptions.Username,
@@ -903,7 +901,7 @@ func (a *Adapter) buildTokenAuth(authOptions ports.AuthOptions) transport.AuthMe
 	}
 }
 
-// buildSSHKeyAuth creates SSH key authentication.
+// BuildSSHKeyAuth creates SSH key authentication.
 func (a *Adapter) buildSSHKeyAuth(authOptions ports.AuthOptions) (transport.AuthMethod, error) { //nolint:ireturn
 	if authOptions.SSHKeyPath != "" {
 		return a.buildSSHKeyFromFile(authOptions)
@@ -916,7 +914,7 @@ func (a *Adapter) buildSSHKeyAuth(authOptions ports.AuthOptions) (transport.Auth
 	return nil, domain.ErrSSHKeyRequired
 }
 
-// buildSSHKeyFromFile creates SSH authentication from a key file.
+// BuildSSHKeyFromFile creates SSH authentication from a key file.
 func (a *Adapter) buildSSHKeyFromFile(authOptions ports.AuthOptions) (transport.AuthMethod, error) { //nolint:ireturn
 	publicKeys, err := ssh.NewPublicKeysFromFile(authOptions.Username, authOptions.SSHKeyPath, authOptions.Passphrase)
 	if err != nil {
@@ -926,7 +924,7 @@ func (a *Adapter) buildSSHKeyFromFile(authOptions ports.AuthOptions) (transport.
 	return publicKeys, nil
 }
 
-// buildSSHKeyFromBytes creates SSH authentication from key bytes.
+// BuildSSHKeyFromBytes creates SSH authentication from key bytes.
 func (a *Adapter) buildSSHKeyFromBytes(authOptions ports.AuthOptions) (transport.AuthMethod, error) { //nolint:ireturn
 	publicKeys, err := ssh.NewPublicKeys(authOptions.Username, authOptions.SSHKey, authOptions.Passphrase)
 	if err != nil {
@@ -991,7 +989,7 @@ func (r *Repository) convertCommit(commit *object.Commit) ports.CommitInfo {
 	}
 }
 
-// noAuth implements transport.AuthMethod for cases where no authentication is needed.
+// NoAuth implements transport.AuthMethod for cases where no authentication is needed.
 type noAuth struct{}
 
 // Name returns the name of the authentication method.

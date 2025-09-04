@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package composition
@@ -214,7 +213,7 @@ func TestProviderFactory_CreateProviderFromConfig(t *testing.T) {
 	}
 
 	// Note: Only verifies the config conversion,
-	// actual provider creation might require network calls
+	// Actual provider creation might require network calls
 	clientConfig := ProviderConfig{
 		ProviderType: providerConfig.ProviderType,
 		Domain:       providerConfig.Domain,

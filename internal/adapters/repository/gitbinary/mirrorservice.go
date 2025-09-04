@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package gitbinary
@@ -27,7 +26,7 @@ var (
 	ErrPermissionDenied = errors.New("permission denied (publickey)")
 )
 
-// MirrorService handles Git mirroring operations using the git binary.
+// MirrorService handles Git mirroring operations using the git binary
 //
 //	git binary mirror functionality  in hexagonal architecture.
 type MirrorService struct {
@@ -232,7 +231,7 @@ func (ms *MirrorService) Push(ctx context.Context, repo entities.Repository, con
 	return nil
 }
 
-// performDryRunClone simulates a clone operation without making changes.
+// PerformDryRunClone simulates a clone operation without making changes.
 func (ms *MirrorService) performDryRunClone(ctx context.Context, config MirrorConfig) (CloneResult, error) {
 	ms.logger.Info(ctx, "Performing dry run clone analysis", map[string]any{
 		"source_url": ms.sanitizeURL(ctx, config.SourceURL),
@@ -254,7 +253,7 @@ func (ms *MirrorService) performDryRunClone(ctx context.Context, config MirrorCo
 	return result, nil
 }
 
-// prepareCloneURL prepares the clone URL with authentication if needed.
+// PrepareCloneURL prepares the clone URL with authentication if needed.
 func (ms *MirrorService) prepareCloneURL(ctx context.Context, config MirrorConfig) string {
 	ms.logger.Debug(ctx, "Preparing clone URL", map[string]any{
 		"source_url":    ms.sanitizeURL(ctx, config.SourceURL),
@@ -272,7 +271,7 @@ func (ms *MirrorService) prepareCloneURL(ctx context.Context, config MirrorConfi
 	return url
 }
 
-// finalizeClone finalizes the clone operation and creates repository entity.
+// FinalizeClone finalizes the clone operation and creates repository entity.
 func (ms *MirrorService) finalizeClone(ctx context.Context, destinationDir, cloneURL string, config MirrorConfig) (CloneResult, error) {
 	ms.logger.Debug(ctx, "Finalizing clone operation", map[string]any{
 		"destination_dir": destinationDir,
@@ -300,7 +299,7 @@ func (ms *MirrorService) finalizeClone(ctx context.Context, destinationDir, clon
 	return result, nil
 }
 
-// updateRepoConfig updates repository configuration to remove authentication from URLs.
+// UpdateRepoConfig updates repository configuration to remove authentication from URLs.
 func (ms *MirrorService) updateRepoConfig(ctx context.Context, repoPath, cloneURL string) error {
 	ms.logger.Debug(ctx, "Updating repository configuration", map[string]any{
 		"repo_path": repoPath,
@@ -318,7 +317,7 @@ func (ms *MirrorService) updateRepoConfig(ctx context.Context, repoPath, cloneUR
 	return nil
 }
 
-// setupSSHCommandEnv sets up environment variables for SSH commands.
+// SetupSSHCommandEnv sets up environment variables for SSH commands.
 func (ms *MirrorService) setupSSHCommandEnv(authConfig AuthConfig) []string {
 	if authConfig.SSHCommand == "" {
 		return []string{}
@@ -339,7 +338,7 @@ func (ms *MirrorService) setupSSHCommandEnv(authConfig AuthConfig) []string {
 	return env
 }
 
-// createTempDirectory creates a temporary directory for operations.
+// CreateTempDirectory creates a temporary directory for operations.
 func (ms *MirrorService) createTempDirectory(ctx context.Context) (string, error) {
 	tmpDir := filepath.Join(ms.tempDir, fmt.Sprintf("gitbinary-mirror-%d", os.Getpid()))
 
@@ -382,17 +381,17 @@ func (ms *MirrorService) removeBasicAuthFromURL(_ context.Context, url string) s
 }
 
 func (ms *MirrorService) createRepositoryEntity(_ context.Context, _ string, _ MirrorConfig) entities.Repository {
-	// This would need to be implemented based on your entities.Repository interface
+	// would need to be implemented based on your entities.Repository interface
 	// For now, returning a placeholder
 	return entities.Repository{} // Placeholder
 }
 
 func (ms *MirrorService) getRepositoryName(_ entities.Repository) string {
-	// This would need to be implemented based on your entities.Repository interface
-	// The entity should provide the repository name
+	// would need to be implemented based on your entities.Repository interface
+	// Entity should provide the repository name
 	return "unknown" // Placeholder
 }
 
 // Note: ExecutorService, OperationServiceInterface, and ValidateGitBinary
-// are now implemented in separate files (executor_service.go, operations_service.go, validation.go)
-// with complete functionality restored.
+// Are now implemented in separate files (executor_service.go, operations_service.go, validation.go)
+// With complete functionality restored

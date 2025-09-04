@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package github
@@ -93,7 +92,7 @@ func (fs *FilterService) FilterRepositories(ctx context.Context, request FilterR
 	return filtered, nil
 }
 
-// matchesPattern checks if a repository name matches a pattern.
+// MatchesPattern checks if a repository name matches a pattern.
 func (fs *FilterService) matchesPattern(name, pattern string) bool { //nolint:funcorder // Helper method used throughout
 	// Convert to lowercase for case-insensitive matching
 	name = strings.ToLower(name)
@@ -112,7 +111,7 @@ func (fs *FilterService) matchesPattern(name, pattern string) bool { //nolint:fu
 	return matched
 }
 
-// isActiveRepository checks if repository meets activity requirements.
+// IsActiveRepository checks if repository meets activity requirements.
 func (fs *FilterService) isActiveRepository(ctx context.Context, repo entities.Repository, activeFromLimit string) bool { //nolint:funcorder // Helper method
 	if activeFromLimit == "" {
 		return true
@@ -138,33 +137,33 @@ func (fs *FilterService) isActiveRepository(ctx context.Context, repo entities.R
 	return lastActivity.After(cutoffTime)
 }
 
-// matchesLanguageFilter checks if repository matches language filter.
+// MatchesLanguageFilter checks if repository matches language filter.
 func (fs *FilterService) matchesLanguageFilter(_ entities.Repository, _ []string) bool { //nolint:funcorder // Helper method
-	// This would require additional metadata about repository languages
+	// would require additional metadata about repository languages
 	// For now, we'll assume all repositories match if no specific language data is available
 	// In a real implementation, this would check the repository's primary language
 	return true
 }
 
-// matchesSizeFilter checks if repository matches size filter.
+// MatchesSizeFilter checks if repository matches size filter.
 func (fs *FilterService) matchesSizeFilter(_ entities.Repository, _ *SizeFilter) bool { //nolint:funcorder // Helper method
-	// This would require additional metadata about repository size
+	// would require additional metadata about repository size
 	// For now, we'll assume all repositories match if no specific size data is available
 	// In a real implementation, this would check the repository's size in KB
 	return true
 }
 
-// matchesActivityFilter checks if repository matches activity filter.
+// MatchesActivityFilter checks if repository matches activity filter.
 func (fs *FilterService) matchesActivityFilter(_ entities.Repository, _ *ActivityFilter) bool { //nolint:funcorder // Helper method
-	// This would require additional metadata about stars, forks, watchers, etc.
+	// would require additional metadata about stars, forks, watchers, etc
 	// For now, we'll assume all repositories match if no specific activity data is available
 	// In a real implementation, this would check the repository's activity metrics
 	return true
 }
 
-// matchesSecurityFilter checks if repository matches security filter.
+// MatchesSecurityFilter checks if repository matches security filter.
 func (fs *FilterService) matchesSecurityFilter(_ entities.Repository, _ *SecurityFilter) bool { //nolint:funcorder // Helper method
-	// This would require additional metadata about security features
+	// would require additional metadata about security features
 	// For now, we'll assume all repositories match if no specific security data is available
 	// In a real implementation, this would check the repository's security settings
 	return true
@@ -229,7 +228,7 @@ func (fs *FilterService) shouldIncludeRepository(ctx context.Context, repo entit
 		fs.passesAdvancedFilters(ctx, repo, request)
 }
 
-// passesBasicFilters checks basic filters like visibility.
+// PassesBasicFilters checks basic filters like visibility.
 func (fs *FilterService) passesBasicFilters(repo entities.Repository, request FilterRepositoriesRequest) bool {
 	// Owner filter not implemented - entities.Repository doesn't expose owner
 	_ = request.OwnerFilter // Suppress unused variable warning
@@ -244,7 +243,7 @@ func (fs *FilterService) passesBasicFilters(repo entities.Repository, request Fi
 	return true
 }
 
-// passesPatternFilters checks include and exclude patterns.
+// PassesPatternFilters checks include and exclude patterns.
 func (fs *FilterService) passesPatternFilters(ctx context.Context, repo entities.Repository, request FilterRepositoriesRequest) bool {
 	// Check exclude patterns first
 	if len(request.ExcludePatterns) > 0 {
@@ -280,7 +279,7 @@ func (fs *FilterService) passesPatternFilters(ctx context.Context, repo entities
 	return true
 }
 
-// passesContentFilters checks content-based filters like language and size.
+// PassesContentFilters checks content-based filters like language and size.
 func (fs *FilterService) passesContentFilters(repo entities.Repository, request FilterRepositoriesRequest) bool {
 	// Check language filter
 	if len(request.LanguageFilter) > 0 {
@@ -299,7 +298,7 @@ func (fs *FilterService) passesContentFilters(repo entities.Repository, request 
 	return true
 }
 
-// passesAdvancedFilters checks activity and security filters.
+// PassesAdvancedFilters checks activity and security filters.
 func (fs *FilterService) passesAdvancedFilters(ctx context.Context, repo entities.Repository, request FilterRepositoriesRequest) bool {
 	// Check activity filter
 	if request.ActiveFromLimit != "" {

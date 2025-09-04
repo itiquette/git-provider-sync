@@ -2,145 +2,56 @@
 //
 // SPDX-License-Identifier: CC0-1.0
 
-= Git Provider Sync - Software Architecture Documentation
+= Git Provider Sync Architecture
 
-== 1. Introduction and Goals
+== Introduction
 
-=== 1.1 Requirements Overview
-
-.Primary capabilities:
+Primary capabilities:
 * Mirror repositories between different Git providers
 * Batch clone repositories to local storage
 * Archive repositories into compressed files
 * Support multiple source and target configurations
 
-=== 1.2 Quality Goals
+Quality goals:
+* Security: Limited token access, OpenSSF best practices
+* Reliability: Error handling, validation, retry support
+* Maintainability: Modular providers, comprehensive testing
 
-.1. Security
-* Limited token access
-* Security scanning integration
-* OpenSSF best practices compliance
+== Constraints
 
-.2. Reliability
-* Error handling for sync operations
-* Validation of sync states
-* Support for retries
-
-.3. Maintainability
-* Modular provider system
-* Comprehensive testing
-* Quality assurance automation
-
-=== 1.3 Stakeholders
-
-* Developers using multiple git providers
-* Organizations needing repository mirroring
-* DevOps teams managing git infrastructure
-* Open source contributors
-
-== 2. Architecture Constraints
-
-=== 2.1 Technical Constraints
-
-* Go version 1.25.0+
+Technical:
+* Go 1.25.0+
 * Git 2.43+
-* Provider-specific API limitations
-* Rate limiting considerations
+* Provider API limitations and rate limits
 
-=== 2.2 Organizational Constraints
+Organizational:
+* EUPL 1.2 License
+* REUSE specification
+* Conventional Commits
+* DCO requirement
 
-* EUPL 1.2 License compliance
-* REUSE specification compliance
-* Conventional Commits standard
-* Developer Certificate of Origin (DCO) requirement
+== System Context
 
-== 3. System Scope and Context
+Business context:
+* Backup and redundancy across providers
+* Migration support between platforms
+* Cross-platform development workflows
 
-=== 3.1 Business Context
+Technical context:
+* GitHub API v3 (OAuth tokens)
+* GitLab API v4 (Personal access tokens)
+* Gitea API v1 (Access tokens)
+* HTTP/SSH authentication support
 
-The system operates in an environment where there is a need to maintain repository synchronization across Git providers.
-This could be for various reasons:
+== Solution Strategy
 
-.1. Backup and Redundancy
-* Maintaining copies of repositories across different providers
-* Creating local backups for disaster recovery
-* Archiving repositories for compliance
+* Provider abstraction: Common interface, extensible for new providers
+* Configuration: Hierarchical sources with environment variable support
+* Sync process: State-based with validation and retry mechanisms
+* Security: Token-based auth with limited scope access
 
-.2. Migration Support
-* Facilitating provider transitions
-* Supporting multi-provider strategies
-* Enabling gradual migrations
+== Building Blocks
 
-.3. Cross-Platform Development
-* Supporting development across different Git platforms
-* Maintaining mirrors for different user groups
-* Enabling platform-specific features while maintaining synchronization
-
-=== 3.2 Technical Context
-
-The system has support for interacting with various external systems through different interfaces:
-
-.1. Git Provider APIs
-[source,yaml]
-----
-GitHub API:
-  - Example Base URL: api.github.com
-  - Version: v3
-  - Auth: OAuth tokens
-  
-GitLab API:
-  - Example Base URL: gitlab.com/api
-  - Version: v4
-  - Auth: Personal access tokens
-  
-Gitea API:
-  - Example Base URL: <instance>/api
-  - Version: v1
-  - Auth: Access tokens
-----
-
-.2. Authentication Methods
-[source,yaml]
-----
-HTTP:
-  - Token-based authentication
-  - Rate limit considerations
-  - API-specific headers
-
-SSH:
-  - Key-based authentication
-  - SSH Command support
-  - Custom SSH configurations
-----
-
-== 4. Solution Strategy
-
-.Key architectural decisions:
-
-.1. Provider Abstraction
-* Modular
-* Common interface for different git providers
-* Extensible for new providers
-
-.2. Configuration Management
-* Hierarchical configuration system
-* Multiple configuration sources
-* Environment variable support
-
-.3. Sync Process
-* State-based synchronization
-* Validation steps
-* Error handling and retry mechanisms
-
-.4. Security
-* Token-based authentication
-* Limited scope access
-
-== 5. Building Block View
-
-=== 5.1 Level 1: System Overview
-
-.Main components:
 [source]
 ----
 Git Provider Sync
@@ -156,36 +67,16 @@ Git Provider Sync
 └── Sync Engine
 ----
 
-=== 5.2 Level 2: Component Details
+* Provider System: API interactions, authentication, provider-specific features
+* Target System: Repository destinations, target-specific operations
+* Configuration: Multiple sources, validation, environment variables
+* Sync Engine: Coordination, state management, retry logic
 
-==== Provider System
-* Handles provider-specific API interactions
-* Manages authentication
-* Implements provider-specific features
-
-==== Target System
-* Manages repository destinations
-* Handles different target types
-* Implements target-specific operations
-
-==== Configuration Management
-* Processes multiple config sources
-* Validates configurations
-* Manages environment variables
-
-==== Sync Engine
-* Coordinates sync operations
-* Handles state management
-* Implements retry logic
-
-== 6. Runtime View
-
-=== 6.1 High-Level Process Overview
+== Runtime View
 
 ifndef::env-vscode[]
 image::../assets/sequenceflow.png[Overview]
 endif::[]
-
 
 ifdef::env-vscode[]
 [plantuml]
@@ -291,106 +182,32 @@ The runtime view implementation follows hexagonal architecture principles:
 * **Adapter Layer**: Implements external integrations (Git providers, filesystem, logging)
 * **Dependency Injection**: Container manages component lifecycle and dependencies
 
-== 7. Deployment View
+== Deployment
 
-=== 7.1 Infrastructure
-
-.Supports deployment as:
-* CLI application
-* Container in CI/CD systems
-* Scheduled job (cron)
-* Manual trigger
-
-=== 7.2 CI/CD Integration
-
-.Supported platforms:
-* GitLab CI
-* GitHub Actions
-* Tekton
+Deployment options:
+* Local execution
+* CI/CD pipelines (GitHub Actions, GitLab CI)
+* Container deployments
 * Kubernetes CronJobs
 
-== 8. Cross-cutting Concepts
+== Implementation Notes
 
-=== 8.1 Development Concepts
+Architecture decisions:
+* Go: Concurrency, cross-platform, strong stdlib
+* Modular providers: Extensible, common interfaces
+* Configuration hierarchy: Multiple sources, clear precedence
 
-* Test-driven development
-* Comprehensive quality checks
-* Security-first approach
-* Open source best practices
+Quality focus:
+* Security: Token management, vulnerability scanning
+* Reliability: Error handling, retry mechanisms
+* Maintainability: Automated testing, quality checks
 
-=== 8.2 Security Concepts
+Current status: Alpha stage with evolving architecture
 
-* Limited token access
-* Signed commits
-* Security scanning
-* Vulnerability checking
+== Glossary
 
-== 9. Architecture Decisions
-
-.1. Use of Go for implementation
-* Strong standard library
-* Built-in concurrency support
-* Cross-platform compatibility
-
-.2. Modular provider system
-* Extensibility
-* Provider-specific implementations
-* Common interfaces
-
-.3. Configuration hierarchy
-* Multiple configuration sources
-* Clear precedence rules
-* Environment variable support
-
-== 10. Quality Requirements
-
-=== 10.1 Quality Scenarios
-
-.1. Security
-* Regular vulnerability scanning
-* Automated security checks
-* OpenSSF Scorecard compliance
-
-.2. Maintainability
-* Automated testing
-* Code quality checks
-* Documentation requirements
-
-.3. Reliability
-* Error handling
-* State validation
-* Retry mechanisms
-
-== 11. Risks and Technical Debt
-
-=== 11.1 Risks
-
-.1. API Changes
-* Provider API changes
-* Rate limiting changes
-* Authentication changes
-
-.2. Security
-* Token management
-* Provider access control
-* Data integrity
-
-=== 11.2 Technical Debt
-
-.1. Current Status
-* Alpha stage software
-* Potential breaking changes
-* Evolving architecture
-
-.2. Mitigation
-* Comprehensive testing
-* Quality automation
-* Security scanning
-
-== 12. Glossary
-
-Git Provider:: A service hosting git repositories (GitHub, GitLab, Gitea)
-Sync Service:: The core synchronization service
+Git Provider:: Service hosting git repositories (GitHub, GitLab, Gitea)
+Sync Service:: Core synchronization service
 Target:: Destination for synchronized repositories
 DCO:: Developer Certificate of Origin
-REUSE:: A standard for license compliance
+REUSE:: Standard for license compliance

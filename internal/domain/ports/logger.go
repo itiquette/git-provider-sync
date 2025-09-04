@@ -1,13 +1,12 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package ports
 
 import "context"
 
-// Logger defines the core interface for logging operations (secondary port).
-// This port is implemented by adapters that handle logging to various destinations.
+// Logger defines the core interface for logging operations (secondary port)
+// port is implemented by adapters that handle logging to various destinations
 // Following ISP: separated core logging from configuration concerns.
 type Logger interface {
 	// Core logging methods
@@ -28,7 +27,7 @@ type LoggerLevelController interface {
 	GetLevel() LogLevel
 }
 
-// LoggerWithEnrichment provides field enrichment capabilities.
+// LoggerWithEnrichment provides field enrichment capabilities
 // Note: These methods should return new logger instances (functional style).
 type LoggerWithEnrichment interface {
 	WithField(key string, value any) Logger

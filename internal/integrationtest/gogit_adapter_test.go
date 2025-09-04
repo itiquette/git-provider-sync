@@ -1,7 +1,6 @@
 //go:build integration
 
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package integrationtest
@@ -20,9 +19,6 @@ import (
 
 // TestGoGitAdapterRealGitIntegration tests gogit adapter with real git operations
 func TestGoGitAdapterRealGitIntegration(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping gogit adapter integration test in short mode")
-	}
 
 	t.Parallel()
 
@@ -45,7 +41,7 @@ func TestGoGitAdapterRealGitIntegration(t *testing.T) {
 	})
 }
 
-// testRealGitRemoteOperations tests remote management with real bare repositories
+// TestRealGitRemoteOperations tests remote management with real bare repositories
 func testRealGitRemoteOperations(t *testing.T, adapter *gogit.Adapter) {
 	ctx := context.Background()
 
@@ -129,7 +125,7 @@ func testRealGitRemoteOperations(t *testing.T, adapter *gogit.Adapter) {
 	t.Logf("   Target: %s", env.GetTargetURL())
 }
 
-// testRealGitCloneAndPushOperations tests clone operations with real repositories
+// TestRealGitCloneAndPushOperations tests clone operations with real repositories
 func testRealGitCloneAndPushOperations(t *testing.T, adapter *gogit.Adapter) {
 	ctx := context.Background()
 
@@ -163,7 +159,7 @@ func testRealGitCloneAndPushOperations(t *testing.T, adapter *gogit.Adapter) {
 	})
 
 	// Clone might fail if source repository is empty (no commits)
-	// This is expected behavior for empty bare repositories
+	// is expected behavior for empty bare repositories
 	if err != nil {
 		t.Logf("Clone failed as expected (empty bare repo): %v", err)
 		
@@ -199,7 +195,7 @@ func testRealGitCloneAndPushOperations(t *testing.T, adapter *gogit.Adapter) {
 	t.Logf("   Clone path: %s", clonePath)
 }
 
-// testRealGitBranchOperations tests branch operations with real repositories
+// TestRealGitBranchOperations tests branch operations with real repositories
 func testRealGitBranchOperations(t *testing.T, adapter *gogit.Adapter) {
 	ctx := context.Background()
 

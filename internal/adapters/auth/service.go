@@ -1,8 +1,6 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
-// Package auth provides authentication services for git provider operations.
 package auth
 
 import (
@@ -44,7 +42,7 @@ func NewService() *Service {
 	return &Service{}
 }
 
-// GetAuthMethod returns the appropriate authentication method based on configuration.
+// GetAuthMethod returns the appropriate authentication method based on configuration
 //
 //	exact main branch GetAuthMethod functionality.
 func (s *Service) GetAuthMethod(_ context.Context, authConfig ports.AuthenticationConfiguration) (transport.AuthMethod, error) { //nolint:ireturn
@@ -87,7 +85,7 @@ func (a *AuthenticationAdapter) GetTransportAuth(ctx context.Context, authConfig
 	return a.service.GetAuthMethod(ctx, authConfig)
 }
 
-// validateTokenBasic performs basic token validation - non-empty and reasonable length.
+// ValidateTokenBasic performs basic token validation - non-empty and reasonable length.
 func (a *AuthenticationAdapter) validateTokenBasic(token string) error {
 	if token == "" {
 		return nil // Empty token validation handled elsewhere

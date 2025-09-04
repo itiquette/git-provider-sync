@@ -1,8 +1,6 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
-// Package gitbinary provides git binary repository adapter.
 package gitbinary
 
 import (
@@ -202,7 +200,7 @@ func (a *Adapter) DeleteTmpDir(ctx context.Context) error {
 
 // Helper methods
 
-// convertAuthOptions converts ports.AuthOptions to gitbinary.AuthConfig.
+// ConvertAuthOptions converts ports.AuthOptions to gitbinary.AuthConfig.
 func (a *Adapter) convertAuthOptions(auth ports.AuthOptions) AuthConfig {
 	authConfig := AuthConfig{
 		Token: auth.Token,
@@ -229,7 +227,7 @@ func (a *Adapter) convertAuthOptions(auth ports.AuthOptions) AuthConfig {
 	return authConfig
 }
 
-// determineMirrorType determines the mirror type from clone options.
+// DetermineMirrorType determines the mirror type from clone options.
 func (a *Adapter) determineMirrorType(options ports.CloneOptions) string {
 	if options.Mirror {
 		return "mirror"
@@ -246,7 +244,7 @@ func (a *Adapter) determineMirrorType(options ports.CloneOptions) string {
 	return "full"
 }
 
-// detectSourceType detects the source type from URL.
+// DetectSourceType detects the source type from URL.
 func (a *Adapter) detectSourceType(url string) string {
 	if strings.HasPrefix(url, "git@") || strings.HasPrefix(url, "ssh://") {
 		return "ssh"

@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package archive
@@ -126,7 +125,9 @@ func TestMirrorService_SetProgressWriter(t *testing.T) {
 	t.Parallel()
 
 	logger := &mockLogger{}
-	service := NewMirrorService(logger, "/tmp", "/archive")
+	tempDir := t.TempDir()
+	archiveDir := t.TempDir()
+	service := NewMirrorService(logger, tempDir, archiveDir)
 
 	var buffer bytes.Buffer
 	service.SetProgressWriter(&buffer)
@@ -369,7 +370,9 @@ func TestMirrorService_generateArchiveName(t *testing.T) {
 	t.Parallel()
 
 	logger := &mockLogger{}
-	service := NewMirrorService(logger, "/tmp", "/archive")
+	tempDir := t.TempDir()
+	archiveDir := t.TempDir()
+	service := NewMirrorService(logger, tempDir, archiveDir)
 
 	sourceRepo := createMockRepository("my-repo", "https://github.com/test/my-repo", "Test repository")
 
@@ -444,7 +447,9 @@ func TestMirrorService_shouldSkipFile(t *testing.T) {
 	t.Parallel()
 
 	logger := &mockLogger{}
-	service := NewMirrorService(logger, "/tmp", "/archive")
+	tempDir := t.TempDir()
+	archiveDir := t.TempDir()
+	service := NewMirrorService(logger, tempDir, archiveDir)
 
 	tests := []struct {
 		name            string
@@ -518,7 +523,9 @@ func TestMirrorService_matchesPattern(t *testing.T) {
 	t.Parallel()
 
 	logger := &mockLogger{}
-	service := NewMirrorService(logger, "/tmp", "/archive")
+	tempDir := t.TempDir()
+	archiveDir := t.TempDir()
+	service := NewMirrorService(logger, tempDir, archiveDir)
 
 	tests := []struct {
 		name     string
@@ -584,9 +591,9 @@ func TestMirrorService_createRealisticRepositoryStructure(t *testing.T) {
 	t.Parallel()
 
 	logger := &mockLogger{}
-	service := NewMirrorService(logger, "/tmp", "/archive")
-
 	tempDir := t.TempDir()
+	archiveDir := t.TempDir()
+	service := NewMirrorService(logger, tempDir, archiveDir)
 	repo := createMockRepository("my-awesome-repo", "https://github.com/test/my-awesome-repo", "An awesome test repository")
 
 	err := service.createRealisticRepositoryStructure(tempDir, repo)
@@ -661,7 +668,9 @@ func TestMirrorService_cleanupWorkingDirectory(t *testing.T) {
 	t.Parallel()
 
 	logger := &mockLogger{}
-	service := NewMirrorService(logger, "/tmp", "/archive")
+	tempDir := t.TempDir()
+	archiveDir := t.TempDir()
+	service := NewMirrorService(logger, tempDir, archiveDir)
 
 	// Create a temp directory to cleanup
 	workDir := t.TempDir()
@@ -686,11 +695,13 @@ func TestMirrorService_cleanupWorkingDirectory_Error(t *testing.T) {
 	t.Parallel()
 
 	logger := &mockLogger{}
-	service := NewMirrorService(logger, "/tmp", "/archive")
+	tempDir := t.TempDir()
+	archiveDir := t.TempDir()
+	service := NewMirrorService(logger, tempDir, archiveDir)
 
 	// Create a directory with a file inside and make it read-only to cause removal to fail
-	tempDir := t.TempDir()
-	testDir := filepath.Join(tempDir, "test-cleanup")
+	testTempDir := t.TempDir()
+	testDir := filepath.Join(testTempDir, "test-cleanup")
 	require.NoError(t, os.MkdirAll(testDir, 0750))
 
 	testFile := filepath.Join(testDir, "test.txt")

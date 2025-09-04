@@ -1,11 +1,9 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package cli
 
 import (
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -13,44 +11,44 @@ import (
 	"itiquette/git-provider-sync/internal/adapters/terminal"
 )
 
-func TestGetSymbols(t *testing.T) { //nolint:tparallel // Environment variable modification
-	t.Parallel()
-
+func TestGetSymbols(t *testing.T) {
+	// Cannot use t.Parallel() with t.Setenv()
 	tests := []struct {
 		name          string
 		colorMode     terminal.ColorMode
-		envSetup      func()
-		envTeardown   func()
+		envVar        string
+		envValue      string
 		expectUnicode bool
 	}{
 		{
 			name:          "auto mode returns ASCII when NO_COLOR is set",
 			colorMode:     terminal.ColorAuto,
-			envSetup:      func() { _ = os.Setenv("NO_COLOR", "1") },
-			envTeardown:   func() { _ = os.Unsetenv("NO_COLOR") },
+			envVar:        "NO_COLOR",
+			envValue:      "1",
 			expectUnicode: false,
 		},
 		{
 			name:          "never mode returns ASCII",
 			colorMode:     terminal.ColorNever,
-			envSetup:      func() {},
-			envTeardown:   func() {},
+			envVar:        "",
+			envValue:      "",
 			expectUnicode: false,
 		},
 		{
 			name:          "always mode with UTF-8 returns Unicode",
 			colorMode:     terminal.ColorAlways,
-			envSetup:      func() { _ = os.Setenv("LANG", "en_US.UTF-8") },
-			envTeardown:   func() { _ = os.Unsetenv("LANG") },
+			envVar:        "LANG",
+			envValue:      "en_US.UTF-8",
 			expectUnicode: true,
 		},
 	}
 
-	for _, testCase := range tests { //nolint:paralleltest // Environment variable modification
+	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			// Setup
-			testCase.envSetup()
-			defer testCase.envTeardown()
+			// Setup - use t.Setenv for automatic cleanup
+			if testCase.envVar != "" {
+				t.Setenv(testCase.envVar, testCase.envValue)
+			}
 
 			// Test
 			symbols := GetSymbols(testCase.colorMode)

@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package gogit
@@ -17,7 +16,7 @@ import (
 	"itiquette/git-provider-sync/internal/domain/ports"
 )
 
-// testGoGitLogger is a simple no-op logger for testing MirrorService.
+// TestGoGitLogger is a simple no-op logger for testing MirrorService.
 type testGoGitLogger struct{}
 
 func (l testGoGitLogger) Trace(_ context.Context, _ string, _ map[string]any) {}

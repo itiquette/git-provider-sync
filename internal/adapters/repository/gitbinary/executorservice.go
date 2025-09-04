@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package gitbinary
@@ -22,7 +21,7 @@ type ExecutorService interface {
 	RunGitCommandWithOutput(ctx context.Context, workingDir string, args ...string) ([]byte, error)
 }
 
-// executorService implements ExecutorService for git binary operations.
+// ExecutorService implements ExecutorService for git binary operations
 //
 //	git command execution .
 type executorService struct {
@@ -61,7 +60,7 @@ func NewExecutorServiceWithTimeout(binaryPath string, logger ports.Logger, timeo
 	}
 }
 
-// RunGitCommand executes a git command with environment setup and working directory.
+// RunGitCommand executes a git command with environment setup and working directory
 
 func (e *executorService) RunGitCommand(ctx context.Context, env []string, workingDir string, args ...string) error {
 	if e.logger != nil {
@@ -99,7 +98,7 @@ func (e *executorService) RunGitCommand(ctx context.Context, env []string, worki
 	return nil
 }
 
-// RunGitCommandWithOutput executes a git command and returns its output.
+// RunGitCommandWithOutput executes a git command and returns its output
 
 func (e *executorService) RunGitCommandWithOutput(ctx context.Context, workingDir string, args ...string) ([]byte, error) {
 	ctx, cancel := context.WithTimeout(ctx, e.gitTimeout)

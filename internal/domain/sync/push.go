@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package sync
@@ -31,9 +30,9 @@ var (
 	ErrDefaultBranch        = errors.New("failed to set default branch")
 )
 
-// PushToProviderUseCase handles pushing repositories to git providers (GitHub, GitLab, Gitea).
+// PushToProviderUseCase handles pushing repositories to git providers (GitHub, GitLab, Gitea)
 // Creates target repository if needed, temporarily disables branch protection during push,
-// then restores protection settings.
+// Then restores protection settings.
 type PushToProviderUseCase struct {
 	provider ports.RepositoryProvider
 	gitOps   ports.GitOperations
@@ -105,7 +104,7 @@ func (uc *PushToProviderUseCase) Execute(ctx context.Context, request PushReques
 	return uc.executePush(ctx, request)
 }
 
-// executePush performs the actual push operation with early returns.
+// ExecutePush performs the actual push operation with early returns.
 func (uc *PushToProviderUseCase) executePush(ctx context.Context, request PushRequest) (PushResponse, error) {
 	logger := log.CreateDomainLogger(ctx)
 
@@ -195,12 +194,12 @@ func (uc *PushToProviderUseCase) executePush(ctx context.Context, request PushRe
 	}, nil
 }
 
-// failResponse creates a standardized failure response.
+// FailResponse creates a standardized failure response.
 func (uc *PushToProviderUseCase) failResponse(err error) PushResponse {
 	return PushResponse{Success: false, Error: err}
 }
 
-// setupGPSUpstreamRemote sets up the GPSUPSTREAM remote from origin.
+// SetupGPSUpstreamRemote sets up the GPSUPSTREAM remote from origin
 //
 //nolint:cyclop // Complex remote setup logic with multiple validation steps
 func (uc *PushToProviderUseCase) setupGPSUpstreamRemote(ctx context.Context, gitRepo ports.GitRepository) error {
@@ -278,7 +277,7 @@ func (uc *PushToProviderUseCase) setupGPSUpstreamRemote(ctx context.Context, git
 	return domain.ErrUpstreamRemoteNotFound
 }
 
-// ensureRepositoryExists checks if repository exists and creates it if needed.
+// EnsureRepositoryExists checks if repository exists and creates it if needed.
 func (uc *PushToProviderUseCase) ensureRepositoryExists(ctx context.Context, request PushRequest) (bool, string, error) {
 	logger := log.CreateDomainLogger(ctx)
 
@@ -328,7 +327,7 @@ func (uc *PushToProviderUseCase) ensureRepositoryExists(ctx context.Context, req
 	return false, projectID, nil
 }
 
-// createRepository creates a new repository at the target provider.
+// CreateRepository creates a new repository at the target provider.
 func (uc *PushToProviderUseCase) createRepository(ctx context.Context, request PushRequest) (string, error) {
 	logger := log.CreateDomainLogger(ctx)
 
@@ -356,7 +355,7 @@ func (uc *PushToProviderUseCase) createRepository(ctx context.Context, request P
 	return projectID, nil
 }
 
-// buildDescription creates repository description.
+// BuildDescription creates repository description.
 func (uc *PushToProviderUseCase) buildDescription(request PushRequest) string {
 	// DescriptionPrefix not implemented in current mirror options
 	descPrefix := "" // Placeholder for request.TargetConfig.Options().DescriptionPrefix
@@ -376,7 +375,7 @@ func (uc *PushToProviderUseCase) buildDescription(request PushRequest) string {
 	return strings.ReplaceAll(strings.ReplaceAll(description, "\n", " "), "\r", "")
 }
 
-// mapVisibility maps source visibility to target visibility.
+// MapVisibility maps source visibility to target visibility.
 func (uc *PushToProviderUseCase) mapVisibility(request PushRequest) string {
 	// Visibility option not implemented in current mirror options
 	visibility := "" // Placeholder for request.TargetConfig.Options().Visibility
@@ -388,7 +387,7 @@ func (uc *PushToProviderUseCase) mapVisibility(request PushRequest) string {
 	return request.SourceRepository.Visibility()
 }
 
-// performPush performs the actual git push operation.
+// PerformPush performs the actual git push operation.
 func (uc *PushToProviderUseCase) performPush(ctx context.Context, request PushRequest) (string, error) {
 	logger := log.CreateDomainLogger(ctx)
 
@@ -449,7 +448,7 @@ func (uc *PushToProviderUseCase) performPush(ctx context.Context, request PushRe
 	return targetURL, nil
 }
 
-// createAuthOptions creates authentication options for git operations.
+// CreateAuthOptions creates authentication options for git operations.
 func (uc *PushToProviderUseCase) createAuthOptions(_ /* ctx */ context.Context, authConfig entities.AuthConfig) ports.AuthOptions {
 	// Create auth options based on configuration
 	if authConfig.Token() != "" {
@@ -478,7 +477,7 @@ func (uc *PushToProviderUseCase) createAuthOptions(_ /* ctx */ context.Context, 
 	return ports.AuthOptions{Type: ports.AuthTypeNone}
 }
 
-// buildTargetURL constructs the target URL for pushing.
+// BuildTargetURL constructs the target URL for pushing.
 func (uc *PushToProviderUseCase) buildTargetURL(_ context.Context, request PushRequest) string {
 	repositoryName := request.SourceRepository.Name()
 
@@ -510,7 +509,7 @@ func (uc *PushToProviderUseCase) buildTargetURL(_ context.Context, request PushR
 	return baseURL
 }
 
-// setDefaultBranch sets the default branch at the target.
+// SetDefaultBranch sets the default branch at the target.
 func (uc *PushToProviderUseCase) setDefaultBranch(ctx context.Context, request PushRequest, projectID string) error { //nolint:unparam // Placeholder implementation - will return errors when implemented
 	logger := log.CreateDomainLogger(ctx)
 
@@ -524,7 +523,7 @@ func (uc *PushToProviderUseCase) setDefaultBranch(ctx context.Context, request P
 	return nil
 }
 
-// disableProtection disables branch protection.
+// DisableProtection disables branch protection.
 func (uc *PushToProviderUseCase) disableProtection(ctx context.Context, request PushRequest, projectID string) error {
 	logger := log.CreateDomainLogger(ctx)
 
@@ -556,7 +555,7 @@ func (uc *PushToProviderUseCase) disableProtection(ctx context.Context, request 
 	return nil
 }
 
-// enableProtection enables branch protection.
+// EnableProtection enables branch protection.
 func (uc *PushToProviderUseCase) enableProtection(ctx context.Context, request PushRequest, projectID string) error {
 	logger := log.CreateDomainLogger(ctx)
 
@@ -590,12 +589,12 @@ func (uc *PushToProviderUseCase) enableProtection(ctx context.Context, request P
 	return nil
 }
 
-// isArchiveOrDirectory checks if provider is archive or directory type.
+// IsArchiveOrDirectory checks if provider is archive or directory type.
 func (uc *PushToProviderUseCase) isArchiveOrDirectory(providerType string) bool {
 	return strings.EqualFold(providerType, "archive") || strings.EqualFold(providerType, "directory")
 }
 
-// performDryRun simulates the push operation.
+// PerformDryRun simulates the push operation.
 func (uc *PushToProviderUseCase) performDryRun(ctx context.Context, request PushRequest) PushResponse {
 	logger := log.CreateDomainLogger(ctx)
 

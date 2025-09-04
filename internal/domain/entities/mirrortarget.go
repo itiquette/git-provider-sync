@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package entities
@@ -194,8 +193,8 @@ func (b MirrorTargetBuilder) Build() (MirrorTarget, error) {
 
 // MirrorTarget accessor methods
 
-// NewMirrorTarget creates a new mirror target.
-// This is a convenience function for use case code.
+// NewMirrorTarget creates a new mirror target
+// is a convenience function for use case code.
 func NewMirrorTarget(name string, providerType ProviderType, domain, owner, path string, authConfig AuthConfig, enabled bool) MirrorTarget {
 	return MirrorTarget{
 		name:         name,
@@ -674,7 +673,7 @@ const (
 	AuthTypeBasic AuthType = "basic"
 )
 
-// Enabled returns true if the mirror target is enabled.
+// Enabled returns true if the mirror target is enabled
 // For now, all mirror targets are considered enabled if they have valid configuration.
 func (mt MirrorTarget) Enabled() bool {
 	return mt.name != "" && mt.providerType != ""

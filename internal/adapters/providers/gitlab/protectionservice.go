@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package gitlab
@@ -180,7 +179,7 @@ func (ps *ProtectionService) UnprotectRepository(ctx context.Context, owner, rep
 	return nil
 }
 
-// enableBranchProtection enables branch protection with specified rules.
+// EnableBranchProtection enables branch protection with specified rules.
 func (ps *ProtectionService) enableBranchProtection(ctx context.Context, projectID int, rules []BranchProtectionRule) error {
 	// If no rules specified, apply default protection
 	if len(rules) == 0 {
@@ -196,7 +195,7 @@ func (ps *ProtectionService) enableBranchProtection(ctx context.Context, project
 	return nil
 }
 
-// enablePushRules enables push rules for the project.
+// EnablePushRules enables push rules for the project.
 func (ps *ProtectionService) enablePushRules(ctx context.Context, projectID int, rules *PushRules) error {
 	ps.logger.Debug(ctx, "Enabling push rules", map[string]any{
 		"project_id": projectID,
@@ -227,7 +226,7 @@ func (ps *ProtectionService) enablePushRules(ctx context.Context, projectID int,
 	return nil
 }
 
-// removePushRules removes push rules from the project.
+// RemovePushRules removes push rules from the project.
 func (ps *ProtectionService) removePushRules(_ /* ctx */ context.Context, projectID int) error {
 	_, err := ps.client.Projects.DeleteProjectPushRule(projectID)
 	if err != nil && !isNotFoundError(err) {
@@ -237,7 +236,7 @@ func (ps *ProtectionService) removePushRules(_ /* ctx */ context.Context, projec
 	return nil
 }
 
-// getDefaultBranchProtectionRules returns default branch protection rules.
+// GetDefaultBranchProtectionRules returns default branch protection rules.
 func (ps *ProtectionService) getDefaultBranchProtectionRules() []BranchProtectionRule {
 	return []BranchProtectionRule{
 		{
@@ -267,7 +266,7 @@ func (ps *ProtectionService) getDefaultBranchProtectionRules() []BranchProtectio
 	}
 }
 
-// applyBranchProtectionRule applies a single branch protection rule.
+// ApplyBranchProtectionRule applies a single branch protection rule.
 func (ps *ProtectionService) applyBranchProtectionRule(ctx context.Context, projectID int, rule BranchProtectionRule) error {
 	ps.logger.Debug(ctx, "Applying branch protection rule", map[string]any{
 		"project_id": projectID,
@@ -318,7 +317,7 @@ func (ps *ProtectionService) applyBranchProtectionRule(ctx context.Context, proj
 	return nil
 }
 
-// convertAccessLevel converts string access level to GitLab access level.
+// ConvertAccessLevel converts string access level to GitLab access level.
 func (ps *ProtectionService) convertAccessLevel(level string) gitlab.AccessLevelValue {
 	switch level {
 	case "no one", "none":
@@ -334,7 +333,7 @@ func (ps *ProtectionService) convertAccessLevel(level string) gitlab.AccessLevel
 	}
 }
 
-// isNotFoundError checks if an error is a 404 not found error.
+// IsNotFoundError checks if an error is a 404 not found error.
 func isNotFoundError(err error) bool {
 	if err == nil {
 		return false

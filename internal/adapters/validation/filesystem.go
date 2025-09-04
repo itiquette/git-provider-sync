@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package validation
@@ -10,7 +9,7 @@ import (
 	"path/filepath"
 )
 
-// statPath gets file info for a path.
+// StatPath gets file info for a path.
 func statPath(path string) (os.FileInfo, error) {
 	absPath, err := filepath.Abs(path)
 	if err != nil {
@@ -25,7 +24,7 @@ func statPath(path string) (os.FileInfo, error) {
 	return info, nil
 }
 
-// isReadable checks if a path is readable.
+// IsReadable checks if a path is readable.
 func isReadable(path string) bool {
 	// #nosec G304 - Path is validated before this call
 	file, err := os.Open(path)
@@ -43,7 +42,7 @@ func isReadable(path string) bool {
 	return true
 }
 
-// isWritable checks if a path is writable.
+// IsWritable checks if a path is writable.
 func isWritable(path string) bool {
 	// For directories, try to create a temp file
 	info, err := os.Stat(path)

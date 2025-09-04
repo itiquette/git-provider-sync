@@ -1,9 +1,8 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 // Package model defines configuration structures for git provider sync operations
-// including application settings, sync options, authentication, and mirror targets.
+// Including application settings, sync options, authentication, and mirror targets
 package model
 
 import (
@@ -40,10 +39,8 @@ type SyncConfig struct {
 	Mirrors map[string]MirrorConfig `koanf:"mirrors"` // Named mirror configurations for this source
 }
 
-// AuthConfig combines HTTP and SSH configurations.
-//
+// AuthConfig combines HTTP and SSH configurations
 // CONFIGURATION EXAMPLES:
-//
 // GitHub with token authentication:
 //
 //	auth:
@@ -121,7 +118,7 @@ func (s SyncConfig) String() string {
 		s.ProviderType, s.Domain, s.Owner, s.OwnerType)
 }
 
-// FillDefaults ensures configuration completeness by applying provider-specific fallback values.
+// FillDefaults applies provider-specific defaults.
 func (b *BaseConfig) FillDefaults() {
 	if b.Domain == "" {
 		b.Domain = b.GetDomain()

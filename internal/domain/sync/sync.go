@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package sync
@@ -168,7 +167,7 @@ func (uc RepositoriesUseCase) Execute(ctx context.Context, request Request) (Res
 	return response, nil
 }
 
-// executeSourceToMirror implements the core sync logic.
+// ExecuteSourceToMirror implements the core sync logic.
 func (uc RepositoriesUseCase) executeSourceToMirror(
 	ctx context.Context,
 	config ports.AppConfiguration,
@@ -218,7 +217,7 @@ func (uc RepositoriesUseCase) executeSourceToMirror(
 	return nil
 }
 
-// processEnvironment processes a single environment (equivalent to sourceToMirror per environment).
+// ProcessEnvironment processes a single environment (equivalent to sourceToMirror per environment).
 func (uc RepositoriesUseCase) processEnvironment(
 	ctx context.Context,
 	envName string,
@@ -324,7 +323,7 @@ func (uc RepositoriesUseCase) processEnvironment(
 
 // Adapter functions to convert between different type systems
 
-// convertSourceToProviderConfig converts SourceConfiguration to ProviderConfig.
+// ConvertSourceToProviderConfig converts SourceConfiguration to ProviderConfig.
 func (uc RepositoriesUseCase) convertSourceToProviderConfig(source ports.SourceConfiguration) ports.ProviderConfig {
 	return ports.ProviderConfig{
 		ProviderType: source.ProviderType,
@@ -339,7 +338,7 @@ func (uc RepositoriesUseCase) convertSourceToProviderConfig(source ports.SourceC
 	}
 }
 
-// convertToFilterOptions converts environment configuration to FilterOptions.
+// ConvertToFilterOptions converts environment configuration to FilterOptions.
 func (uc RepositoriesUseCase) convertToFilterOptions(env ports.EnvironmentConfiguration) ports.FilterOptions {
 	return ports.FilterOptions{
 		IncludePatterns: env.Source.Repository.IncludePatterns,
@@ -356,7 +355,7 @@ func (uc RepositoriesUseCase) convertToFilterOptions(env ports.EnvironmentConfig
 	}
 }
 
-// convertMirrorsToTargets converts mirror configuration map to MirrorTarget slice.
+// ConvertMirrorsToTargets converts mirror configuration map to MirrorTarget slice.
 func (uc RepositoriesUseCase) convertMirrorsToTargets(mirrors map[string]ports.MirrorConfiguration) []entities.MirrorTarget {
 	targets := make([]entities.MirrorTarget, 0, len(mirrors))
 
@@ -394,8 +393,8 @@ func (uc RepositoriesUseCase) convertMirrorsToTargets(mirrors map[string]ports.M
 	return targets
 }
 
-// validateSourceConfig performs basic validation of source configuration without external calls.
-// Basic validation: checks required fields are present but doesn't verify connectivity or credentials.
+// ValidateSourceConfig performs basic validation of source configuration without external calls
+// Basic validation: checks required fields are present but doesn't verify connectivity or credentials
 // For full validation (including network connectivity), use the ValidationService.
 func (uc RepositoriesUseCase) validateSourceConfig(ctx context.Context, config ports.ProviderConfig) error {
 	logger := log.CreateDomainLogger(ctx)

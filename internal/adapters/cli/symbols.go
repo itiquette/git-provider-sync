@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package cli
@@ -10,7 +9,7 @@ import (
 	"itiquette/git-provider-sync/internal/adapters/terminal"
 )
 
-// Symbols provides minimal visual indicators for output.
+// Symbols provides minimal visual indicators for output
 // Be idiomatic: use ASCII by default, Unicode when appropriate.
 type Symbols struct {
 	Check   string // Success/valid
@@ -20,7 +19,7 @@ type Symbols struct {
 	Warning string // Warning
 }
 
-// GetSymbols returns appropriate symbols based on terminal capabilities.
+// GetSymbols returns appropriate symbols based on terminal capabilities
 // Don't overengineer: just check NO_COLOR and basic Unicode support.
 func GetSymbols(colorMode terminal.ColorMode) Symbols {
 	// ASCII fallback for NO_COLOR or when colors are disabled
@@ -36,7 +35,7 @@ func GetSymbols(colorMode terminal.ColorMode) Symbols {
 	return getASCIISymbols()
 }
 
-// getASCIISymbols returns plain ASCII symbols for maximum compatibility.
+// GetASCIISymbols returns plain ASCII symbols for maximum compatibility.
 func getASCIISymbols() Symbols {
 	return Symbols{
 		Check:   "[OK]",
@@ -47,7 +46,7 @@ func getASCIISymbols() Symbols {
 	}
 }
 
-// getUnicodeSymbols returns minimal Unicode symbols for better readability.
+// GetUnicodeSymbols returns minimal Unicode symbols for better readability.
 func getUnicodeSymbols() Symbols {
 	return Symbols{
 		Check:   "✓",
@@ -58,7 +57,7 @@ func getUnicodeSymbols() Symbols {
 	}
 }
 
-// isUnicodeSupported checks if the terminal likely supports Unicode.
+// IsUnicodeSupported checks if the terminal likely supports Unicode
 // Be functional: simple check based on environment.
 func isUnicodeSupported() bool {
 	// Check TERM for dumb terminals
@@ -76,7 +75,7 @@ func isUnicodeSupported() bool {
 	return lang != "" && (contains(lang, "UTF-8") || contains(lang, "utf8"))
 }
 
-// contains is a simple string contains check to avoid importing strings.
+// Contains is a simple string contains check to avoid importing strings.
 func contains(text, substr string) bool {
 	if len(substr) > len(text) {
 		return false

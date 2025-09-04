@@ -1,9 +1,6 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
-// Package auth provides authentication utilities.
-// Be functional, idiomatic, and secure.
 package auth
 
 import (
@@ -17,8 +14,8 @@ import (
 	"golang.org/x/term"
 )
 
-// ReadTokenFromStdin reads a token from stdin.
-// Used with --with-token flag following GitHub CLI pattern.
+// ReadTokenFromStdin reads a token from stdin
+// Used with --with-token flag following GitHub CLI pattern
 // Supports both piped input and interactive terminal input.
 func ReadTokenFromStdin() (string, error) {
 	// Check if stdin is a terminal
@@ -46,8 +43,8 @@ func ReadTokenFromStdin() (string, error) {
 	return strings.TrimSpace(token), nil
 }
 
-// ReadTokenFromFile reads a token from a file.
-// The file should contain only the token, with optional whitespace.
+// ReadTokenFromFile reads a token from a file
+// File should contain only the token, with optional whitespace
 // Use "-" to read from stdin (same as ReadTokenFromStdin).
 func ReadTokenFromFile(path string) (string, error) {
 	if path == "-" {
@@ -67,7 +64,7 @@ func ReadTokenFromFile(path string) (string, error) {
 	return token, nil
 }
 
-// ValidateToken performs basic validation on a token.
+// ValidateToken performs basic validation on a token
 // Returns an error if the token appears invalid.
 func ValidateToken(token string) error {
 	if token == "" {

@@ -1,14 +1,13 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package ports
 
 import "context"
 
-// InterruptHandler provides user feedback during interruptible operations.
-// This port follows hexagonal architecture - domain defines the interface,
-// adapters implement the behavior. Keep it simple, functional, idiomatic.
+// InterruptHandler provides user feedback during interruptible operations
+// port follows hexagonal architecture - domain defines the interface,
+// Adapters implement the behavior. Keep it simple, functional, idiomatic.
 type InterruptHandler interface {
 	// ShowInterruptible displays a message indicating the operation can be interrupted
 	ShowInterruptible(ctx context.Context, operation string)

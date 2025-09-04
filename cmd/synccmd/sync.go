@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package synccmd
@@ -26,7 +25,7 @@ import (
 	gpsconfig "itiquette/git-provider-sync/internal/model/configuration"
 )
 
-// performSync executes the sync operation using domain use cases.
+// PerformSync executes the sync operation using domain use cases.
 func performSync(ctx context.Context, cfg *gpsconfig.AppConfiguration) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Starting sync")
@@ -89,8 +88,8 @@ func performSync(ctx context.Context, cfg *gpsconfig.AppConfiguration) error {
 	return nil
 }
 
-// createContainerWithConfig builds the dependency injection container with already-loaded configuration.
-// This avoids duplicate configuration loading since sync command already loaded it via DefaultConfigLoader.
+// CreateContainerWithConfig builds the dependency injection container
+// with already-loaded configuration, avoiding duplicate loading.
 func createContainerWithConfig(ctx context.Context, _ *gpsconfig.AppConfiguration) (*composition.Container, error) {
 	// Extract CLI options for container configuration
 	cliConfig, ok := cli.ConfigFromContext(ctx)
@@ -113,8 +112,7 @@ func createContainerWithConfig(ctx context.Context, _ *gpsconfig.AppConfiguratio
 		MaxConcurrency: 5,     // Default concurrency limit
 	}
 
-	// NOTE: Container currently loads config from file path - enhancement needed to accept pre-loaded config
-	// Current implementation works around container's config loading requirement
+	// Container requires file path for config loading
 	container, err := composition.NewContainer(ctx, containerConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize application services: %w", err)
@@ -123,8 +121,8 @@ func createContainerWithConfig(ctx context.Context, _ *gpsconfig.AppConfiguratio
 	return container, nil
 }
 
-// executeSyncConfigurationWithResults executes sync for a single source-to-mirrors configuration.
-// executeSyncConfigurationWithResults fetches from source provider and syncs to all configured mirrors.
+// ExecuteSyncConfigurationWithResults executes sync for a single source-to-mirrors configuration
+// ExecuteSyncConfigurationWithResults fetches from source provider and syncs to all configured mirrors
 //
 //nolint:cyclop,nestif // Multiple validation and error paths required
 func executeSyncConfigurationWithResults(
@@ -202,7 +200,7 @@ func executeSyncConfigurationWithResults(
 	return nil
 }
 
-// fetchSourceRepositoriesWithGitRepos fetches and clones repositories returning full response.
+// FetchSourceRepositoriesWithGitRepos fetches and clones repositories returning full response.
 func fetchSourceRepositoriesWithGitRepos(
 	ctx context.Context,
 	container *composition.Container,
@@ -269,7 +267,7 @@ func fetchSourceRepositoriesWithGitRepos(
 	return response, nil
 }
 
-// syncToMirrorWithGitReposAndResults syncs repositories to mirrors using domain use cases.
+// SyncToMirrorWithGitReposAndResults syncs repositories to mirrors using domain use cases.
 func syncToMirrorWithGitReposAndResults(
 	ctx context.Context,
 	container *composition.Container,
@@ -428,7 +426,7 @@ func syncToMirrorWithGitReposAndResults(
 	return nil
 }
 
-// convertRepositoryFilters converts GPS config filters to domain filters.
+// ConvertRepositoryFilters converts GPS config filters to domain filters.
 func convertRepositoryFilters(repoConfig gpsconfig.RepositoriesOption) ports.FilterOptions {
 	return ports.FilterOptions{
 		IncludePatterns: repoConfig.Include,
@@ -440,7 +438,7 @@ func convertRepositoryFilters(repoConfig gpsconfig.RepositoriesOption) ports.Fil
 	}
 }
 
-// convertMirrorConfigToMirrorTargets converts GPS mirror config to domain mirror targets.
+// ConvertMirrorConfigToMirrorTargets converts GPS mirror config to domain mirror targets.
 func convertMirrorConfigToMirrorTargets(syncCfg gpsconfig.SyncConfig) []entities.MirrorTarget {
 	targets := make([]entities.MirrorTarget, 0, len(syncCfg.Mirrors))
 
@@ -498,12 +496,12 @@ func convertMirrorConfigToMirrorTargets(syncCfg gpsconfig.SyncConfig) []entities
 	return targets
 }
 
-// createLoggerAdapter creates a domain logger adapter from zerolog.Logger.
+// CreateLoggerAdapter creates a domain logger adapter from zerolog.Logger.
 func createLoggerAdapter(logger zerolog.Logger) ports.Logger { //nolint:ireturn // Factory function returning interface
 	return logging.NewZerologAdapter(&logger)
 }
 
-// outputSyncResults outputs sync results using the configured formatter.
+// OutputSyncResults outputs sync results using the configured formatter.
 func outputSyncResults(ctx context.Context, results *sync.Results) error {
 	// Get CLI configuration
 	cliConfig, ok := cli.ConfigFromContext(ctx)
@@ -523,7 +521,7 @@ func outputSyncResults(ctx context.Context, results *sync.Results) error {
 	return nil
 }
 
-// executeAllEnvironmentSyncs executes sync for all environments and configurations.
+// ExecuteAllEnvironmentSyncs executes sync for all environments and configurations.
 func executeAllEnvironmentSyncs(ctx context.Context, logger *zerolog.Logger, container *composition.Container, cfg *gpsconfig.AppConfiguration, syncResults *sync.Results) error {
 	for envName, environments := range cfg.GitProviderSyncConfs {
 		syncResults.TotalSources++
@@ -552,7 +550,7 @@ func executeAllEnvironmentSyncs(ctx context.Context, logger *zerolog.Logger, con
 	return nil
 }
 
-// showSyncSummary displays sync summary and suggestions.
+// ShowSyncSummary displays sync summary and suggestions.
 func showSyncSummary(syncResults *sync.Results) {
 	// Add simple summary and suggestion
 	if syncResults.SuccessfulSyncs > 0 {
@@ -580,12 +578,12 @@ func showSyncSummary(syncResults *sync.Results) {
 	}
 }
 
-// getLastSyncFilePath returns the path to the last sync state file in temp directory.
+// GetLastSyncFilePath returns the path to the last sync state file in temp directory.
 func getLastSyncFilePath() string {
 	return filepath.Join(os.TempDir(), ".gitprovidersync-last-sync")
 }
 
-// saveLastSyncInfo saves simple sync info to a file for status command.
+// SaveLastSyncInfo saves simple sync info to a file for status command.
 func saveLastSyncInfo(results *sync.Results) {
 	// Write to temp directory instead of current working directory
 	content := fmt.Sprintf("timestamp=%d\nrepos=%d\nsuccessful=%d\nfailed=%d\nskipped=%d\n",
@@ -595,6 +593,9 @@ func saveLastSyncInfo(results *sync.Results) {
 		results.FailedSyncs,
 		results.SkippedSyncs)
 
-	// Write to file, ignore errors (non-critical)
-	_ = os.WriteFile(getLastSyncFilePath(), []byte(content), 0600)
+	// Write to file (non-critical, so we don't fail the sync)
+	if err := os.WriteFile(getLastSyncFilePath(), []byte(content), 0600); err != nil {
+		// Log the error but don't fail the sync operation
+		fmt.Fprintf(os.Stderr, "warning: failed to write last sync info: %v\n", err)
+	}
 }

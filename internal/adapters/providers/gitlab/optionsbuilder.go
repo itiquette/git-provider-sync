@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package gitlab
@@ -36,7 +35,7 @@ func (b *ProjectOptionsBuilder) WithBasicOpts(visibility, name, description, def
 	}
 }
 
-// WithDisabledFeatures disables all GitLab features for a minimalist repository.
+// WithDisabledFeatures disables all GitLab features for a minimalist repository
 //
 //	feature disabling .
 func (b *ProjectOptionsBuilder) WithDisabledFeatures() {
@@ -140,7 +139,7 @@ func (b *ProjectOptionsBuilder) Reset() {
 	b.opts = &gitlab.CreateProjectOptions{}
 }
 
-// configureAllFeatures configures all GitLab features to enabled or disabled state.
+// ConfigureAllFeatures configures all GitLab features to enabled or disabled state.
 func (b *ProjectOptionsBuilder) configureAllFeatures(enabled bool) {
 	// Core DevOps features
 	b.opts.AutoDevopsEnabled = gitlab.Ptr(enabled)
@@ -182,7 +181,7 @@ func (b *ProjectOptionsBuilder) configureAllFeatures(enabled bool) {
 	b.opts.RequestAccessEnabled = gitlab.Ptr(enabled)
 }
 
-// accessLevel helper function to convert boolean to access level.
+// AccessLevel helper function to convert boolean to access level.
 func (b *ProjectOptionsBuilder) accessLevel(enabled bool) *gitlab.AccessControlValue {
 	if enabled {
 		return gitlab.Ptr(gitlab.EnabledAccessControl)
@@ -191,7 +190,7 @@ func (b *ProjectOptionsBuilder) accessLevel(enabled bool) *gitlab.AccessControlV
 	return gitlab.Ptr(gitlab.DisabledAccessControl)
 }
 
-// toVisibility converts string visibility to GitLab visibility value.
+// ToVisibility converts string visibility to GitLab visibility value.
 func (b *ProjectOptionsBuilder) toVisibility(visibility string) gitlab.VisibilityValue {
 	switch visibility {
 	case visibilityPrivate:

@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package entities
@@ -226,7 +225,7 @@ func (srm *SyncRunMetadata) GetProgressPercentage() float64 {
 	return (float64(srm.ProcessedCount) / float64(srm.TotalRepositories)) * 100.0
 }
 
-// Context-based functionality for sync metadata tracking.
+// Context-based functionality for sync metadata tracking
 
 // SyncRunMetadataKey is used as a key for context values.
 type SyncRunMetadataKey struct{}

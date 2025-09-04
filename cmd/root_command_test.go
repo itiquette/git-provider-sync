@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package cmd
@@ -42,20 +41,4 @@ func TestRootCommand_VersionOutput(t *testing.T) { //nolint:paralleltest // urfa
 	// Test version flag directly without modifying os.Args
 	err := rootCmd.Run(ctx, []string{"gitprovidersync", "--version"})
 	require.NoError(t, err)
-}
-
-// TestRootCommand_InvalidCommand tests error handling for invalid commands.
-func TestRootCommand_InvalidCommand(t *testing.T) { //nolint:paralleltest // urfave/cli has race conditions
-	t.Skip("Skipping - urfave/cli prints to stdout before we can redirect")
-
-	ctx := context.Background()
-	rootCmd := NewRootCommandForTesting(ctx, "test-version")
-
-	// Capture output to avoid polluting test output
-	rootCmd.Writer = io.Discard
-	rootCmd.ErrWriter = io.Discard
-
-	// Test invalid command
-	err := rootCmd.Run(ctx, []string{"gitprovidersync", "invalid-command"})
-	require.Error(t, err, "Should error on invalid command")
 }

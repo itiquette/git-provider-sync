@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package sync
@@ -159,7 +158,7 @@ func (uc BranchProtectionUseCase) ListProtectedBranches(
 	return branches, nil
 }
 
-// enableProtection enables branch protection for a repository branch.
+// EnableProtection enables branch protection for a repository branch.
 func (uc BranchProtectionUseCase) enableProtection(
 	ctx context.Context,
 	request ProtectionRequest,
@@ -194,8 +193,8 @@ func (uc BranchProtectionUseCase) enableProtection(
 	return nil
 }
 
-// disableProtection disables branch protection for a repository branch.
-// This ports the protection service Unprotect functionality.
+// DisableProtection disables branch protection for a repository branch
+// ports the protection service Unprotect functionality.
 func (uc BranchProtectionUseCase) disableProtection(
 	ctx context.Context,
 	request ProtectionRequest,
@@ -229,7 +228,7 @@ func (uc BranchProtectionUseCase) disableProtection(
 	return nil
 }
 
-// updateProtection updates branch protection settings for a repository branch.
+// UpdateProtection updates branch protection settings for a repository branch.
 func (uc BranchProtectionUseCase) updateProtection(
 	ctx context.Context,
 	request ProtectionRequest,

@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package configuration
@@ -119,7 +118,7 @@ gitprovidersync:
 }
 
 func TestFunctional_LoadConfiguration_MultipleEnvironments_LoadsAllCorrectly(t *testing.T) {
-	t.Parallel()
+	// Cannot use t.Parallel() with t.Setenv()
 
 	// Create temp directory and config file with multiple environments
 	tempDir := t.TempDir()
@@ -146,14 +145,12 @@ gitprovidersync:
 	// Set environment variables for one environment only
 	envKey := "GPS_GITPROVIDERSYNC_STAGING_TESTCONF_OWNER"
 	envValue := "env-staging-owner"
-	_ = os.Setenv(envKey, envValue)
+	t.Setenv(envKey, envValue)
 
 	// Debug: verify env var is set
 	if val := os.Getenv(envKey); val != envValue {
 		t.Fatalf("Environment variable not set correctly: got %s, want %s", val, envValue)
 	}
-
-	defer func() { _ = os.Unsetenv(envKey) }()
 
 	// Read configuration using ReadConfigurationFile
 	appConfig := &model.AppConfiguration{}
@@ -623,7 +620,7 @@ func TestFunctional_LoadConfiguration_NoCLIContext(t *testing.T) {
 	cfg, err := loader.LoadConfiguration(ctx)
 
 	// Should use defaults and likely fail due to missing config file
-	// but should not panic due to missing CLI context
+	// But should not panic due to missing CLI context
 	require.Error(t, err) // Expected since no config file is provided
 	assert.Nil(t, cfg)
 }

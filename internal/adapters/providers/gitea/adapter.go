@@ -1,8 +1,6 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
-// Package gitea provides Gitea provider adapter.
 package gitea
 
 import (
@@ -250,9 +248,9 @@ func (a *Adapter) ValidateRepositoryName(name string) error {
 	return nil
 }
 
-// TransformRepositoryName transforms a repository name according to transformation rules.
-// The options parameter supports prefix/suffix addition, case conversion,
-// character replacement, and length constraints for Gitea provider compatibility.
+// TransformRepositoryName transforms a repository name according to transformation rules
+// Options parameter supports prefix/suffix addition, case conversion,
+// Character replacement, and length constraints for Gitea provider compatibility.
 func (a *Adapter) TransformRepositoryName(name string, options ports.NameTransformOptions) string {
 	result := name
 

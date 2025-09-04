@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package gogit
@@ -17,7 +16,7 @@ import (
 	"itiquette/git-provider-sync/internal/domain/ports"
 )
 
-// createInMemoryRepository creates a go-git repository using in-memory storage for unit testing.
+// CreateInMemoryRepository creates a go-git repository using in-memory storage for unit testing.
 func createInMemoryRepository(tb testing.TB, bare bool) *git.Repository {
 	tb.Helper()
 

@@ -1,9 +1,8 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
-// Package printcmd provides functionality to print Git Provider Sync configuration.
-// It allows users to view their current configuration settings in a readable format.
+// Package printcmd prints Git Provider Sync configuration
+// in various readable formats
 package printcmd
 
 import (
@@ -27,16 +26,15 @@ import (
 	gpsconfig "itiquette/git-provider-sync/internal/model/configuration"
 )
 
-// NewPrintCommand creates and returns a new cli.Command for the 'print' subcommand.
-// It displays the current Git Provider Sync configuration using the default formatter.
-//
+// NewPrintCommand creates and returns a new cli.Command for the 'print' subcommand
+// displays the current Git Provider Sync configuration using the default formatter
 // Example usage:
 //
 //	git-provider-sync print
 //	git-provider-sync print --connectivity-check
 //
-// The command will output the full configuration including all sources
-// and their respective settings, optionally with connectivity status.
+// Command will output the full configuration including all sources
+// And their respective settings, optionally with connectivity status.
 func NewPrintCommand() *cli.Command {
 	return NewPrintCommandWithWriter(os.Stdout)
 }
@@ -64,7 +62,7 @@ Optionally tests connectivity to configured providers using the --connectivity-c
 	return cmd
 }
 
-// runPrintWithWriter executes the logic for the 'print' command with custom writer.
+// RunPrintWithWriter executes the logic for the 'print' command with custom writer
 // Uses proper error handling with exit codes and dependency injection.
 func runPrintWithWriter(ctx context.Context, cmd *cli.Command, writer io.Writer) error {
 	logger := log.Logger(ctx)
@@ -161,7 +159,7 @@ func runPrintWithWriter(ctx context.Context, cmd *cli.Command, writer io.Writer)
 	return nil
 }
 
-// handleConfigurationError returns specific error messages based on the configuration error type.
+// HandleConfigurationError returns specific error messages based on the configuration error type
 // Deprecated: Use FormatErrorWithSuggestion for consistency.
 func handleConfigurationError(err error) {
 	errMsg := err.Error()
@@ -199,7 +197,7 @@ func handleConfigurationError(err error) {
 	}
 }
 
-// handleValidationError returns specific guidance for configuration validation errors.
+// HandleValidationError returns specific guidance for configuration validation errors.
 func handleValidationError(errMsg string) {
 	fmt.Fprintf(os.Stderr, "\nConfiguration validation failed:\n")
 
@@ -245,7 +243,7 @@ func handleValidationError(errMsg string) {
 	fmt.Fprintf(os.Stderr, "Run 'gitprovidersync --help' for more information about configuration.\n\n")
 }
 
-// testAndDisplayConnectivity tests connectivity to configured providers and displays results.
+// TestAndDisplayConnectivity tests connectivity to configured providers and displays results.
 func testAndDisplayConnectivity(ctx context.Context, config gpsconfig.AppConfiguration, outputFormat string, writer io.Writer) error {
 	// Create connectivity adapter
 	connectivityAdapter := validationAdapters.NewConnectivityAdapter(30 * time.Second)
@@ -281,7 +279,7 @@ func testAndDisplayConnectivity(ctx context.Context, config gpsconfig.AppConfigu
 	return nil
 }
 
-// buildHTTPSURL creates an HTTPS URL from a domain.
+// BuildHTTPSURL creates an HTTPS URL from a domain.
 func buildHTTPSURL(domain string) string {
 	if domain == "" {
 		return ""
@@ -290,7 +288,7 @@ func buildHTTPSURL(domain string) string {
 	return "https://" + domain
 }
 
-// displayConnectivityResults formats and displays connectivity test results.
+// DisplayConnectivityResults formats and displays connectivity test results.
 func displayConnectivityResults(results []validation.ConnectivityResult, outputFormat string, writer io.Writer) error {
 	if len(results) == 0 {
 		if _, err := fmt.Fprintln(writer, "\nNo connectivity tests performed."); err != nil {
@@ -310,7 +308,7 @@ func displayConnectivityResults(results []validation.ConnectivityResult, outputF
 	}
 }
 
-// displayConnectivityResultsConsole formats connectivity results for console output.
+// DisplayConnectivityResultsConsole formats connectivity results for console output.
 func displayConnectivityResultsConsole(results []validation.ConnectivityResult, writer io.Writer) error {
 	if err := writeConnectivityHeader(writer); err != nil {
 		return err
@@ -327,7 +325,7 @@ func displayConnectivityResultsConsole(results []validation.ConnectivityResult, 
 	return nil
 }
 
-// writeConnectivityHeader writes the header for connectivity results.
+// WriteConnectivityHeader writes the header for connectivity results.
 func writeConnectivityHeader(writer io.Writer) error {
 	if _, err := fmt.Fprintln(writer, "\nConnectivity Test Results:"); err != nil {
 		return fmt.Errorf("failed to write connectivity results header: %w", err)
@@ -340,7 +338,7 @@ func writeConnectivityHeader(writer io.Writer) error {
 	return nil
 }
 
-// writeConnectivityResults writes individual connectivity test results.
+// WriteConnectivityResults writes individual connectivity test results.
 func writeConnectivityResults(results []validation.ConnectivityResult, writer io.Writer) error {
 	for _, result := range results {
 		if err := writeConnectivityResult(result, writer); err != nil {
@@ -351,7 +349,7 @@ func writeConnectivityResults(results []validation.ConnectivityResult, writer io
 	return nil
 }
 
-// writeConnectivityResult writes a single connectivity test result.
+// WriteConnectivityResult writes a single connectivity test result.
 func writeConnectivityResult(result validation.ConnectivityResult, writer io.Writer) error {
 	status := "✓"
 	if !result.Success {
@@ -363,7 +361,7 @@ func writeConnectivityResult(result validation.ConnectivityResult, writer io.Wri
 	}
 
 	if result.Duration > 0 {
-		if _, err := fmt.Fprintf(writer, " (%.2fms)", float64(result.Duration.Nanoseconds())/1e6); err != nil {
+		if _, err := fmt.Fprintf(writer, " (%dms)", result.Duration.Milliseconds()); err != nil {
 			return fmt.Errorf("failed to write connectivity result duration: %w", err)
 		}
 	}
@@ -381,7 +379,7 @@ func writeConnectivityResult(result validation.ConnectivityResult, writer io.Wri
 	return nil
 }
 
-// writeConnectivitySummary writes the summary of connectivity test results.
+// WriteConnectivitySummary writes the summary of connectivity test results.
 func writeConnectivitySummary(results []validation.ConnectivityResult, writer io.Writer) error {
 	total := len(results)
 	successful := countSuccessfulResults(results)
@@ -393,7 +391,7 @@ func writeConnectivitySummary(results []validation.ConnectivityResult, writer io
 	return nil
 }
 
-// countSuccessfulResults counts the number of successful connectivity results.
+// CountSuccessfulResults counts the number of successful connectivity results.
 func countSuccessfulResults(results []validation.ConnectivityResult) int {
 	successful := 0
 
@@ -406,7 +404,7 @@ func countSuccessfulResults(results []validation.ConnectivityResult) int {
 	return successful
 }
 
-// displayConnectivityResultsPlain formats connectivity results for plain output.
+// DisplayConnectivityResultsPlain formats connectivity results for plain output.
 func displayConnectivityResultsPlain(results []validation.ConnectivityResult, writer io.Writer) error {
 	if _, err := fmt.Fprintln(writer, "\nCONNECTIVITY_RESULTS"); err != nil {
 		return fmt.Errorf("failed to write connectivity results header: %w", err)
@@ -418,11 +416,11 @@ func displayConnectivityResultsPlain(results []validation.ConnectivityResult, wr
 			status = "FAIL"
 		}
 
-		if _, err := fmt.Fprintf(writer, "TEST_%d\t%s\t%s\t%.2f\n",
+		if _, err := fmt.Fprintf(writer, "TEST_%d\t%s\t%s\t%d\n",
 			index+1,
 			status,
 			result.Validation.Description,
-			float64(result.Duration.Nanoseconds())/1e6); err != nil {
+			result.Duration.Milliseconds()); err != nil {
 			return fmt.Errorf("failed to write connectivity result: %w", err)
 		}
 	}
@@ -430,7 +428,7 @@ func displayConnectivityResultsPlain(results []validation.ConnectivityResult, wr
 	return nil
 }
 
-// displayConnectivityResultsJSON formats connectivity results as JSON.
+// DisplayConnectivityResultsJSON formats connectivity results as JSON.
 func displayConnectivityResultsJSON(results []validation.ConnectivityResult, writer io.Writer) error {
 	if err := writeConnectivityJSONHeader(writer); err != nil {
 		return err
@@ -447,7 +445,7 @@ func displayConnectivityResultsJSON(results []validation.ConnectivityResult, wri
 	return nil
 }
 
-// writeConnectivityJSONHeader writes the JSON header for connectivity results.
+// WriteConnectivityJSONHeader writes the JSON header for connectivity results.
 func writeConnectivityJSONHeader(writer io.Writer) error {
 	if _, err := fmt.Fprintln(writer, "\n\"connectivity_results\": ["); err != nil {
 		return fmt.Errorf("failed to write connectivity results JSON header: %w", err)
@@ -456,7 +454,7 @@ func writeConnectivityJSONHeader(writer io.Writer) error {
 	return nil
 }
 
-// writeConnectivityJSONResults writes connectivity results in JSON format.
+// WriteConnectivityJSONResults writes connectivity results in JSON format.
 func writeConnectivityJSONResults(results []validation.ConnectivityResult, writer io.Writer) error {
 	for i, result := range results {
 		if i > 0 {
@@ -473,7 +471,7 @@ func writeConnectivityJSONResults(results []validation.ConnectivityResult, write
 	return nil
 }
 
-// writeConnectivityJSONResult writes a single connectivity result in JSON format.
+// WriteConnectivityJSONResult writes a single connectivity result in JSON format.
 func writeConnectivityJSONResult(result validation.ConnectivityResult, writer io.Writer) error {
 	errorMsg := ""
 	if result.Error != nil {
@@ -492,7 +490,7 @@ func writeConnectivityJSONResult(result validation.ConnectivityResult, writer io
 		return fmt.Errorf("failed to write connectivity result success: %w", err)
 	}
 
-	if _, err := fmt.Fprintf(writer, "    \"duration_ms\": %.2f,\n", float64(result.Duration.Nanoseconds())/1e6); err != nil {
+	if _, err := fmt.Fprintf(writer, "    \"duration_ms\": %d,\n", result.Duration.Milliseconds()); err != nil {
 		return fmt.Errorf("failed to write connectivity result duration: %w", err)
 	}
 
@@ -507,7 +505,7 @@ func writeConnectivityJSONResult(result validation.ConnectivityResult, writer io
 	return nil
 }
 
-// writeConnectivityJSONFooter writes the JSON footer for connectivity results.
+// WriteConnectivityJSONFooter writes the JSON footer for connectivity results.
 func writeConnectivityJSONFooter(writer io.Writer) error {
 	if _, err := fmt.Fprintln(writer, "\n]"); err != nil {
 		return fmt.Errorf("failed to write connectivity results JSON close: %w", err)

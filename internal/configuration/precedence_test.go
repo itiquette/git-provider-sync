@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package configuration
@@ -16,7 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// setupTestEnvironment creates a test environment with files and environment variables.
+// SetupTestEnvironment creates a test environment with files and environment variables.
 func setupTestEnvironment(t *testing.T, setupFiles map[string]string, setupEnv map[string]string) string {
 	t.Helper()
 	tempDir := t.TempDir()
@@ -34,7 +33,7 @@ func setupTestEnvironment(t *testing.T, setupFiles map[string]string, setupEnv m
 
 		// Handle XDG paths
 		if filepath.Base(path) == "config.yaml" {
-			// This is a user config, create proper XDG structure
+			// is a user config, create proper XDG structure
 			xdgPath := filepath.Join(dir, "gitprovidersync")
 			require.NoError(t, os.MkdirAll(xdgPath, 0750))
 			fullPath = filepath.Join(xdgPath, "config.yaml")
@@ -66,7 +65,7 @@ func setupTestEnvironment(t *testing.T, setupFiles map[string]string, setupEnv m
 	return tempDir
 }
 
-// verifyTestResult checks the loaded configuration against expected values.
+// VerifyTestResult checks the loaded configuration against expected values.
 func verifyTestResult(t *testing.T, err error, appConfig *config.AppConfiguration, expectedOwner, description string) {
 	t.Helper()
 
@@ -84,8 +83,8 @@ func verifyTestResult(t *testing.T, err error, appConfig *config.AppConfiguratio
 	}
 }
 
-// TestConfigurationPrecedence verifies that configuration sources are loaded in the correct precedence order.
-// Order (highest to lowest): CLI flags > Environment variables > Project config > User config > System config.
+// TestConfigurationPrecedence verifies that configuration sources are loaded in the correct precedence order
+// Order (highest to lowest): CLI flags > Environment variables > Project config > User config > System config
 //
 //nolint:paralleltest // Cannot use t.Parallel() with t.Setenv()
 func TestConfigurationPrecedence(t *testing.T) {
@@ -246,15 +245,7 @@ gitprovidersync:
 
 // TestXDGConfigFallback verifies that XDG config falls back correctly when XDG_CONFIG_HOME is not set.
 func TestXDGConfigFallback(t *testing.T) {
-	// Save original home
-	originalHome := os.Getenv("HOME")
-
-	defer func() {
-		if originalHome != "" {
-			_ = os.Setenv("HOME", originalHome)
-		}
-	}()
-
+	// Cannot use t.Parallel() with t.Setenv()
 	tests := []struct {
 		name         string
 		xdgHome      string
@@ -283,17 +274,17 @@ func TestXDGConfigFallback(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			// Clear environment
-			_ = os.Unsetenv("XDG_CONFIG_HOME")
-			_ = os.Unsetenv("HOME")
-
-			// Set test environment
+			// Set test environment (t.Setenv handles cleanup)
 			if testCase.xdgHome != "" {
 				t.Setenv("XDG_CONFIG_HOME", testCase.xdgHome)
+			} else {
+				t.Setenv("XDG_CONFIG_HOME", "")
 			}
 
 			if testCase.homeDir != "" {
 				t.Setenv("HOME", testCase.homeDir)
+			} else {
+				t.Setenv("HOME", "")
 			}
 
 			// Test
@@ -304,8 +295,6 @@ func TestXDGConfigFallback(t *testing.T) {
 }
 
 // TestGetUserConfigPath verifies the XDG config path resolution.
-//
-//nolint:paralleltest // Cannot use t.Parallel() with t.Setenv()
 func TestGetUserConfigPath(t *testing.T) {
 	// Cannot use t.Parallel() with t.Setenv()
 	t.Run("with XDG_CONFIG_HOME", func(t *testing.T) {
@@ -318,7 +307,7 @@ func TestGetUserConfigPath(t *testing.T) {
 	t.Run("without XDG_CONFIG_HOME but with HOME", func(t *testing.T) {
 		// Cannot use t.Parallel() with t.Setenv()
 		// Make sure XDG_CONFIG_HOME is not set
-		_ = os.Unsetenv("XDG_CONFIG_HOME")
+		t.Setenv("XDG_CONFIG_HOME", "")
 		// HOME is typically always set in test environments
 		if home := os.Getenv("HOME"); home != "" {
 			expectedPath := filepath.Join(home, ".config", "gitprovidersync", "config.yaml")

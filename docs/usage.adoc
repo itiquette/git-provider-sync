@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: CC0-1.0
 
 = Git Provider Sync: Usage Documentation
-:toc: 
+:toc:
 :toc-title: Table of Contents
 :revdate: {docdatetime}
 :doctype: article
@@ -22,26 +22,14 @@ endif::[]
 
 Common workflows:
 
-* **First-time setup**: link:getting-started.md[Getting Started Guide] 
+* **First-time setup**: link:getting-started.md[Getting Started Guide]
 * **Backup repositories**: See <<_5_1_directory_target>>
 * **Mirror between providers**: See link:configuration.md[Configuration Reference]
 * **Automated CI/CD**: link:ci-examples.md[CI/CD Examples]
 
 == Introduction
 
-This document provides comprehensive usage guidance for advanced features and workflows of Git Provider Sync.
-
-Git Provider Sync enables repository synchronization across different Git providers and storage systems, supporting complex enterprise scenarios and automated workflows.
-
-=== 1.1 Key Features
-
-Git Provider Sync enables:
-
-* Multi-source Git provider configurations
-* Multiple target types per source:
-  - Git provider (user/organization)
-  - Archive storage
-  - Directory storage
+Advanced features and workflows for Git Provider Sync.
 
 
 == 2. Command Line Interface
@@ -50,7 +38,7 @@ Git Provider Sync enables:
 === 2.1 Basic Usage
 
 
-* Example: CLI Help Output 
+* Example: CLI Help Output
 
 .Display available options:
 [source,console]
@@ -101,7 +89,7 @@ gitprovidersync sync --force-push --since=3h --sanitize-names --config-file /pat
 
 For complete configuration reference including sources, file locations, environment variables, and examples, see link:configuration.md[Configuration Reference].
 
-=== Advanced: Using Git Binary Instead of Go Git Library  
+=== Advanced: Using Git Binary Instead of Go Git Library
 
 In certain cases you might want to use the host Git binary instead of the built-in Go Git library. For example, to customize the SSH client with GIT_SSH_COMMAND (Go Git doesn't currently support SSH client customization).
 
@@ -168,7 +156,7 @@ For complete CI/CD integration examples including GitLab CI, GitHub Actions, and
 
 === 7.1 Common Questions
 
-Q: Is dual HTTP/SSH configuration required? 
+Q: Is dual HTTP/SSH configuration required?
 
 A: No. HTTPS with tokens is recommended for simplicity. SSH support is available but requires additional configuration.
 
@@ -182,27 +170,27 @@ Listed is how they will be synced.
 .GitLab Provider Visibility Mappings
 [options="header"]
 |===
-| GitLab    | GitHub   | Gitea     
-| Public    | Public   | Public    
-| Internal  | Private  | Private   
-| Private   | Private  | Private   
+| GitLab    | GitHub   | Gitea
+| Public    | Public   | Public
+| Internal  | Private  | Private
+| Private   | Private  | Private
 |===
 
 .GitHub Provider Visibility Mappings
 [options="header"]
 |===
-| GitHub    | GitLab   | Gitea     
-| Public    | Public   | Public    
-| Private   | Private  | Private   
+| GitHub    | GitLab   | Gitea
+| Public    | Public   | Public
+| Private   | Private  | Private
 |===
 
 .Gitea Provider Visibility Mappings
 [options="header"]
 |===
-| Gitea     | GitLab   | GitHub    
-| Public    | Public   | Public    
-| Private   | Private  | Private   
-| Limited   | Private  | Private   
+| Gitea     | GitLab   | GitHub
+| Public    | Public   | Public
+| Private   | Private  | Private
+| Limited   | Private  | Private
 |===
 
 
@@ -214,7 +202,7 @@ Git Provider Sync follows Unix philosophy: logs go to stderr, output to stdout.
 === Log Levels
 
 * **TRACE** - Detailed execution flow (development)
-* **DEBUG** - Variable values and debugging info (development)  
+* **DEBUG** - Variable values and debugging info (development)
 * **INFO** - Normal operation status (production default)
 * **WARN** - Things to watch, not errors
 * **ERROR** - Actual problems that may abort operations

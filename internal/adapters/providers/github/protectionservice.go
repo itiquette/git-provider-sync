@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package github
@@ -249,7 +248,7 @@ func (ps *ProtectionService) UnprotectAdvanced(ctx context.Context, branch, owne
 	return nil
 }
 
-// disableActions disables GitHub Actions for a repository
+// DisableActions disables GitHub Actions for a repository
 
 func (ps *ProtectionService) disableActions(ctx context.Context, owner, projectName string) error {
 	ps.logger.Debug(ctx, "Disabling GitHub Actions", map[string]any{
@@ -279,7 +278,7 @@ func (ps *ProtectionService) disableActions(ctx context.Context, owner, projectN
 	return nil
 }
 
-// enableBranchProtection enables branch protection using rulesets
+// EnableBranchProtection enables branch protection using rulesets
 
 func (ps *ProtectionService) enableBranchProtection(ctx context.Context, owner, projectName string) error {
 	ps.logger.Debug(ctx, "Enabling GitHub branch protection with rulesets", map[string]any{
@@ -313,7 +312,7 @@ func (ps *ProtectionService) enableBranchProtection(ctx context.Context, owner, 
 	_, _, err := ps.client.Repositories.CreateRuleset(ctx, owner, projectName, ruleset)
 	if err != nil {
 		if strings.Contains(err.Error(), "403") && strings.Contains(err.Error(), "Upgrade to GitHub Pro") {
-			// This is expected for non-Pro repositories, return nil to continue
+			// is expected for non-Pro repositories, return nil to continue
 			ps.logger.Debug(ctx, "GitHub Pro required for rulesets, skipping", map[string]any{
 				"owner":       owner,
 				"projectName": projectName,
@@ -333,7 +332,7 @@ func (ps *ProtectionService) enableBranchProtection(ctx context.Context, owner, 
 	return nil
 }
 
-// enableTagProtection enables tag protection using rulesets
+// EnableTagProtection enables tag protection using rulesets
 
 func (ps *ProtectionService) enableTagProtection(ctx context.Context, owner, projectName string) error {
 	ps.logger.Debug(ctx, "Enabling GitHub tag protection with rulesets", map[string]any{
@@ -363,7 +362,7 @@ func (ps *ProtectionService) enableTagProtection(ctx context.Context, owner, pro
 	_, _, err := ps.client.Repositories.CreateRuleset(ctx, owner, projectName, ruleset)
 	if err != nil {
 		if strings.Contains(err.Error(), "403") && strings.Contains(err.Error(), "Upgrade to GitHub Pro") {
-			// This is expected for non-Pro repositories, return nil to continue
+			// is expected for non-Pro repositories, return nil to continue
 			ps.logger.Debug(ctx, "GitHub Pro required for tag rulesets, skipping", map[string]any{
 				"owner":       owner,
 				"projectName": projectName,
@@ -383,7 +382,7 @@ func (ps *ProtectionService) enableTagProtection(ctx context.Context, owner, pro
 	return nil
 }
 
-// deleteAllRulesets removes all rulesets from a repository
+// DeleteAllRulesets removes all rulesets from a repository
 
 func (ps *ProtectionService) deleteAllRulesets(ctx context.Context, owner, projectName string) error {
 	ps.logger.Debug(ctx, "Deleting all GitHub rulesets", map[string]any{
@@ -396,7 +395,7 @@ func (ps *ProtectionService) deleteAllRulesets(ctx context.Context, owner, proje
 	if err != nil {
 		// Check for upgrade requirement or 404 errors
 		if strings.Contains(err.Error(), "403") && strings.Contains(err.Error(), "Upgrade to GitHub Pro") {
-			// This is expected for non-Pro repositories, return nil to continue
+			// is expected for non-Pro repositories, return nil to continue
 			ps.logger.Debug(ctx, "GitHub Pro required for rulesets, skipping", map[string]any{
 				"owner":       owner,
 				"projectName": projectName,
@@ -424,7 +423,7 @@ func (ps *ProtectionService) deleteAllRulesets(ctx context.Context, owner, proje
 	return nil
 }
 
-// deleteRuleset deletes a single ruleset by ID
+// DeleteRuleset deletes a single ruleset by ID
 
 func (ps *ProtectionService) deleteRuleset(ctx context.Context, owner, projectName string, rulesetID int64) error {
 	ps.logger.Debug(ctx, "Deleting GitHub ruleset", map[string]any{
@@ -448,4 +447,4 @@ func (ps *ProtectionService) deleteRuleset(ctx context.Context, owner, projectNa
 	return nil
 }
 
-// splitProjectPath splits a project path into owner and repository components
+// SplitProjectPath splits a project path into owner and repository components

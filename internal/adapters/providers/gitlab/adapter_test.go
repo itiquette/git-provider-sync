@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package gitlab
@@ -1707,7 +1706,7 @@ func TestConvertVisibility(t *testing.T) {
 			t.Parallel()
 
 			// We can't directly test convertVisibility since it's not exported,
-			// but we can test it indirectly through convertToRepository
+			// But we can test it indirectly through convertToRepository
 			// For now, let's test the behavior through repository conversion
 			assert.NotEmpty(t, testCase.expected) // Basic assertion to satisfy test
 		})

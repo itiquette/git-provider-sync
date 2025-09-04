@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package github
@@ -1075,7 +1074,7 @@ func TestDeleteRepository(t *testing.T) {
 	}
 }
 
-// Test GetProviderInfo method (0% coverage).
+// Test GetProviderInfo method (0% coverage)
 
 // Test CreateRepositoryForPush method (0% coverage).
 func TestCreateRepositoryForPush(t *testing.T) {

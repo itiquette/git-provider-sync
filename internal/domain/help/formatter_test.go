@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package help
@@ -13,7 +12,7 @@ import (
 	"itiquette/git-provider-sync/internal/domain/ports"
 )
 
-// mockHelpFormatter implements ports.HelpFormatter for testing.
+// MockHelpFormatter implements ports.HelpFormatter for testing.
 type mockHelpFormatter struct {
 	colorSupported bool
 }

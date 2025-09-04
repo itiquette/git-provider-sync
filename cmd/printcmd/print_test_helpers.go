@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
-// Package printcmd provides CLI command implementations for printing configurations and connectivity status.
+// Package printcmd implements CLI commands for printing
+// configurations and connectivity status
 package printcmd
 
 import (
@@ -15,7 +15,7 @@ import (
 	gpsconfig "itiquette/git-provider-sync/internal/model/configuration"
 )
 
-// testAndDisplayConnectivityMocked is a mocked version for testing that avoids real network calls.
+// TestAndDisplayConnectivityMocked is a mocked version for testing that avoids real network calls.
 func testAndDisplayConnectivityMocked(_ context.Context, config gpsconfig.AppConfiguration, outputFormat string, writer io.Writer) error {
 	// Create mock connectivity results instead of real network calls
 	var allResults []validation.ConnectivityResult

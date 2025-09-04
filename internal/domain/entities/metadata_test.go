@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package entities_test
@@ -174,7 +173,7 @@ func TestSyncRunMetadata_FinishAndDuration(t *testing.T) {
 	require.GreaterOrEqual(t, duration1, time.Duration(0))
 
 	// Manually set the internal clock forward instead of sleeping
-	// This simulates time passing without actually waiting
+	// simulates time passing without actually waiting
 	metadata.StartTime = startTime.Add(-100 * time.Millisecond)
 
 	// Finish the metadata

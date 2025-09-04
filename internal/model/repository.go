@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package model
@@ -40,8 +39,8 @@ func (r Repository) GoGitRepository() *git.Repository {
 	return r.goGitRepository
 }
 
-// ProjectInfo returns the repository metadata.
-// This includes information such as the repository name, description, and URLs.
+// ProjectInfo returns the repository metadata
+// includes information such as the repository name, description, and URLs.
 func (r Repository) ProjectInfo() *ProjectInfo {
 	return r.ProjectMetaInfo
 }
@@ -61,7 +60,7 @@ func (r Repository) Remote(name string) (Remote, error) {
 	return Remote{URL: urls[0]}, nil
 }
 
-// DeleteRemote removes a remote by name.
+// DeleteRemote removes a remote by name
 // If the remote doesn't exist, this operation is treated as successful.
 func (r Repository) DeleteRemote(name string) error {
 	err := r.goGitRepository.DeleteRemote(name)
@@ -84,4 +83,4 @@ func (r Repository) CreateRemote(name, url string, isMirror bool) error {
 	return nil
 }
 
-// NewRepository creates a new Repository instance.
+// NewRepository creates a new Repository instance

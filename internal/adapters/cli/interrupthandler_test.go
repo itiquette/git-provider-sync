@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package cli
@@ -39,7 +38,7 @@ func TestInterruptHandler_ShowInterruptible(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		// capture range variable
+		// Capture range variable
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -89,7 +88,7 @@ func TestInterruptHandler_ShowProgress(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		// capture range variable
+		// Capture range variable
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 

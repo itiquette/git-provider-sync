@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package gitea
@@ -115,7 +114,7 @@ func (ps *ProtectionService) UnprotectRepository(ctx context.Context, owner, rep
 	return nil
 }
 
-// enableBranchProtection enables branch protection with specified rules.
+// EnableBranchProtection enables branch protection with specified rules.
 func (ps *ProtectionService) enableBranchProtection(ctx context.Context, owner, repositoryName string, rules []BranchProtectionRule) error {
 	// If no rules specified, apply default protection
 	if len(rules) == 0 {
@@ -131,7 +130,7 @@ func (ps *ProtectionService) enableBranchProtection(ctx context.Context, owner, 
 	return nil
 }
 
-// getDefaultBranchProtectionRules returns default branch protection rules.
+// GetDefaultBranchProtectionRules returns default branch protection rules.
 func (ps *ProtectionService) getDefaultBranchProtectionRules() []BranchProtectionRule {
 	return []BranchProtectionRule{
 		{
@@ -151,7 +150,7 @@ func (ps *ProtectionService) getDefaultBranchProtectionRules() []BranchProtectio
 	}
 }
 
-// applyBranchProtectionRule applies a single branch protection rule.
+// ApplyBranchProtectionRule applies a single branch protection rule.
 func (ps *ProtectionService) applyBranchProtectionRule(ctx context.Context, owner, repositoryName string, rule BranchProtectionRule) error {
 	opt := gitea.CreateBranchProtectionOption{
 		BranchName:              rule.BranchName,

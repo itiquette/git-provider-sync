@@ -1,7 +1,6 @@
 //go:build integration
 
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package integrationtest
@@ -23,11 +22,8 @@ import (
 )
 
 // TestCriticalGitHubToGitLabSyncFlow tests the critical GitHub → GitLab sync flow
-// that was failing due to missing remote URL update
+// That was failing due to missing remote URL update
 func TestCriticalGitHubToGitLabSyncFlow(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping critical sync flow integration test in short mode")
-	}
 
 	t.Parallel()
 
@@ -177,9 +173,6 @@ func TestCriticalGitHubToGitLabSyncFlow(t *testing.T) {
 
 // TestRemoteURLUpdateFailure tests what happens when remote update fails
 func TestRemoteURLUpdateFailure(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping remote update failure test in short mode")
-	}
 
 	t.Parallel()
 
@@ -194,7 +187,7 @@ func TestRemoteURLUpdateFailure(t *testing.T) {
 
 	// Mock GPSUPSTREAM setup
 	mockGitRepo.On("Name").Return("test-repo")
-	mockGitRepo.On("Path").Return("/tmp/test-repo")
+	mockGitRepo.On("Path").Return(t.TempDir())
 	mockGitRepo.On("ListRemotes", mock.Anything).Return([]ports.RemoteInfo{
 		{Name: "origin", URL: "https://github.com/user/test-repo.git"},
 	}, nil).Once()
@@ -237,11 +230,9 @@ func TestRemoteURLUpdateFailure(t *testing.T) {
 
 // Helper functions
 
-// NOTE: createGitHubLikeRepository and createGitHubLikeRepositoryWithContent functions
-// have been replaced by the testutil.GitTestEnvironment utility for
-// setting up git test environments.
+// Repository creation functions moved to testutil.GitTestEnvironment
 
-// createGitLabMirrorTarget creates a GitLab mirror target configuration
+// CreateGitLabMirrorTarget creates a GitLab mirror target configuration
 func createGitLabMirrorTarget() entities.MirrorTarget {
 	authConfig := entities.NewAuthConfigWithToken("gitlab-token", "")
 
@@ -256,7 +247,7 @@ func createGitLabMirrorTarget() entities.MirrorTarget {
 	return target
 }
 
-// createGitHubProviderConfig creates a GitHub provider configuration
+// CreateGitHubProviderConfig creates a GitHub provider configuration
 func createGitHubProviderConfig() ports.ProviderConfig {
 	return ports.ProviderConfig{
 		ProviderType: "github",
@@ -268,7 +259,7 @@ func createGitHubProviderConfig() ports.ProviderConfig {
 	}
 }
 
-// createLocalGitLabTarget creates a GitLab mirror target pointing to test environment bare repo
+// CreateLocalGitLabTarget creates a GitLab mirror target pointing to test environment bare repo
 func createLocalGitLabTarget(gitlabBarePath string) entities.MirrorTarget {
 	authConfig := entities.NewAuthConfigWithToken("test-token", "git")
 	builder := entities.NewMirrorTargetBuilder()

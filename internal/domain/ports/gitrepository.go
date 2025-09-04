@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package ports
@@ -69,7 +68,7 @@ type GitStatusOperations interface {
 	Diff(ctx context.Context, options DiffOptions) (string, error)
 }
 
-// GitRepository represents a git repository that can be operated on.
+// GitRepository represents a git repository that can be operated on
 // Composes smaller, focused interfaces following ISP.
 type GitRepository interface {
 	GitRepositoryInfo

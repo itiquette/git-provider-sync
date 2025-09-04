@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package gitlab
@@ -10,12 +9,12 @@ import (
 	"strings"
 )
 
-// Regular expression for valid GitLab repository name characters.
-// It allows names that start with a letter, number, or underscore,
-// followed by any number of letters, numbers, underscores, dots, plus signs, hyphens, or spaces.
+// Regular expression for valid GitLab repository name characters
+// allows names that start with a letter, number, or underscore,
+// Followed by any number of letters, numbers, underscores, dots, plus signs, hyphens, or spaces.
 var gitlabNameRegex = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9.+\- ]*$`)
 
-// invalidGitLabNames is a set of repository names that are not allowed in GitLab.
+// InvalidGitLabNames is a set of repository names that are not allowed in GitLab
 // These names are reserved for GitLab's internal use or have special meanings.
 var invalidGitLabNames = map[string]bool{ //nolint:gochecknoglobals // GitLab name validation constants
 	// Basic reserved names
@@ -78,8 +77,8 @@ var invalidGitLabNames = map[string]bool{ //nolint:gochecknoglobals // GitLab na
 	"uploads":     true,
 }
 
-// ValidateAndCleanGitLabName validates and cleans a GitLab repository name.
-// It returns the cleaned name, whether it's valid, and any validation issues.
+// ValidateAndCleanGitLabName validates and cleans a GitLab repository name
+// returns the cleaned name, whether it's valid, and any validation issues.
 func ValidateAndCleanGitLabName(name string) (string, bool, []string) {
 	var issues []string
 

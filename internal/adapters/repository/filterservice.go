@@ -1,8 +1,6 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
-// Package repository provides repository filtering services for Git Provider Sync.
 package repository
 
 import (
@@ -111,7 +109,7 @@ func (fs *FilterService) ValidateFilterOptions(options FilterOptions) error {
 	return nil
 }
 
-// filterByTimeInterval filters repositories based on their last activity time.
+// FilterByTimeInterval filters repositories based on their last activity time.
 func (fs *FilterService) filterByTimeInterval(
 	ctx context.Context,
 	repositories []entities.Repository,
@@ -153,7 +151,7 @@ func (fs *FilterService) filterByTimeInterval(
 	return filtered, nil
 }
 
-// isInTimeInterval checks if a repository's last activity is within the specified interval.
+// IsInTimeInterval checks if a repository's last activity is within the specified interval
 //
 //	exact IsInInterval logic .
 func (fs *FilterService) isInTimeInterval(repo entities.Repository, threshold time.Time) bool {
@@ -168,7 +166,7 @@ func (fs *FilterService) isInTimeInterval(repo entities.Repository, threshold ti
 	return lastActivity.After(threshold) || lastActivity.Equal(threshold)
 }
 
-// filterByIncludeExclude filters repositories based on inclusion and exclusion lists.
+// FilterByIncludeExclude filters repositories based on inclusion and exclusion lists.
 func (fs *FilterService) filterByIncludeExclude(
 	ctx context.Context,
 	repositories []entities.Repository,
@@ -185,7 +183,7 @@ func (fs *FilterService) filterByIncludeExclude(
 	})
 }
 
-// shouldIncludeRepository determines if a repository should be included based on the inclusion and exclusion lists.
+// ShouldIncludeRepository determines if a repository should be included based on the inclusion and exclusion lists
 //
 //	exact shouldIncludeRepo logic .
 func (fs *FilterService) shouldIncludeRepository(repoName string, includeList, excludeList []string) bool {

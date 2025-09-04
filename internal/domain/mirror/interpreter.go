@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package mirror
@@ -33,9 +32,9 @@ func NewEffectInterpreter(
 	}
 }
 
-// ExecuteOperation executes a pure operation plan by interpreting its effects.
-// The operation parameter contains a sequence of effects to execute with dependency resolution.
-// Uses simple dependency resolution: unsatisfied effects are moved to end of queue for retry.
+// ExecuteOperation executes a pure operation plan by interpreting its effects
+// Operation parameter contains a sequence of effects to execute with dependency resolution
+// Uses simple dependency resolution: unsatisfied effects are moved to end of queue for retry
 // Operations execute in order: CreateRepository before ProtectBranch.
 func (ei *EffectInterpreter) ExecuteOperation(ctx context.Context, operation Operation) OperationResult {
 	start := time.Now()
@@ -71,9 +70,9 @@ func (ei *EffectInterpreter) ExecuteOperation(ctx context.Context, operation Ope
 		}
 	}
 
-	// Execute effects in dependency order using simple dependency resolution algorithm.
-	// Topological sort by moving unsatisfied effects to the end of the queue.
-	// The algorithm retries effects until all dependencies are satisfied or no progress can be made.
+	// Execute effects in dependency order using simple dependency resolution algorithm
+	// Topological sort by moving unsatisfied effects to the end of the queue
+	// Algorithm retries effects until all dependencies are satisfied or no progress can be made
 	completedEffects := make(map[string]bool)
 
 	for effectIndex := 0; effectIndex < len(operation.Effects); effectIndex++ {
@@ -120,7 +119,7 @@ func (ei *EffectInterpreter) ExecuteOperation(ctx context.Context, operation Ope
 	return result
 }
 
-// executeEffect executes a single effect.
+// ExecuteEffect executes a single effect.
 func (ei *EffectInterpreter) executeEffect(ctx context.Context, effect Effect, operation Operation) CompletedEffect {
 	start := time.Now()
 
@@ -135,7 +134,7 @@ func (ei *EffectInterpreter) executeEffect(ctx context.Context, effect Effect, o
 	return completedEffect
 }
 
-// initializeCompletedEffect creates a new CompletedEffect with default values.
+// InitializeCompletedEffect creates a new CompletedEffect with default values.
 func (ei *EffectInterpreter) initializeCompletedEffect(effect Effect) CompletedEffect {
 	return CompletedEffect{
 		Effect:  effect,
@@ -143,7 +142,7 @@ func (ei *EffectInterpreter) initializeCompletedEffect(effect Effect) CompletedE
 	}
 }
 
-// logEffectExecution logs the start of effect execution.
+// LogEffectExecution logs the start of effect execution.
 func (ei *EffectInterpreter) logEffectExecution(ctx context.Context, effect Effect, operation Operation) {
 	ei.logger.Debug(ctx, "Executing effect", map[string]any{
 		"effect_type":  effect.Type,
@@ -152,7 +151,7 @@ func (ei *EffectInterpreter) logEffectExecution(ctx context.Context, effect Effe
 	})
 }
 
-// executeEffectByType dispatches the effect execution based on its type.
+// ExecuteEffectByType dispatches the effect execution based on its type.
 func (ei *EffectInterpreter) executeEffectByType(ctx context.Context, effect Effect, operation Operation, completedEffect *CompletedEffect) {
 	switch effect.Type {
 	case EffectTypeCloneRepository:
@@ -168,7 +167,7 @@ func (ei *EffectInterpreter) executeEffectByType(ctx context.Context, effect Eff
 	}
 }
 
-// executeSecondaryEffects handles secondary effect types.
+// ExecuteSecondaryEffects handles secondary effect types.
 func (ei *EffectInterpreter) executeSecondaryEffects(ctx context.Context, effect Effect, operation Operation, completedEffect *CompletedEffect) {
 	switch effect.Type {
 	case EffectTypeUpdateDescription:
@@ -188,7 +187,7 @@ func (ei *EffectInterpreter) executeSecondaryEffects(ctx context.Context, effect
 	}
 }
 
-// executeUtilityEffects handles utility effect types.
+// ExecuteUtilityEffects handles utility effect types.
 func (ei *EffectInterpreter) executeUtilityEffects(ctx context.Context, effect Effect, operation Operation, completedEffect *CompletedEffect) {
 	switch effect.Type {
 	case EffectTypeCreateDirectories:
@@ -206,7 +205,7 @@ func (ei *EffectInterpreter) executeUtilityEffects(ctx context.Context, effect E
 	}
 }
 
-// finalizeCompletedEffect sets final fields on the completed effect.
+// FinalizeCompletedEffect sets final fields on the completed effect.
 func (ei *EffectInterpreter) finalizeCompletedEffect(completedEffect *CompletedEffect, start time.Time) {
 	if completedEffect.Error != nil {
 		completedEffect.Success = false
@@ -311,7 +310,7 @@ func (ei *EffectInterpreter) executeCreateRepository(ctx context.Context, effect
 	return repo, nil
 }
 
-// getVisibility converts boolean private flag to visibility string.
+// GetVisibility converts boolean private flag to visibility string.
 func getVisibility(isPrivate bool) string {
 	if isPrivate {
 		return "private"
@@ -392,7 +391,7 @@ func (ei *EffectInterpreter) executeUpdateVisibility(ctx context.Context, effect
 		})
 }
 
-// executeRepositoryUpdate is a helper function to reduce code duplication for repository updates.
+// ExecuteRepositoryUpdate is a helper function to reduce code duplication for repository updates.
 func (ei *EffectInterpreter) executeRepositoryUpdate(
 	ctx context.Context,
 	effect Effect,

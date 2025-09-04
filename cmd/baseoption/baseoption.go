@@ -1,8 +1,7 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
-// Package baseoption provides base command option types.
+// Package baseoption defines base command option types
 package baseoption
 
 import (
@@ -56,7 +55,7 @@ func ExtractRootInputOptions(cmd *cli.Command) (entities.CLIConfig, error) {
 	return cliConfig, nil
 }
 
-// hasConflictingLogFlags checks if multiple log level flags are set.
+// HasConflictingLogFlags checks if multiple log level flags are set
 // Returns true if there's a conflict that would be confusing.
 func hasConflictingLogFlags(cmd *cli.Command) bool {
 	count := 0

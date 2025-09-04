@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package configuration
@@ -94,7 +93,7 @@ func processEnvKey(str string, prefix string) string {
 	return strings.ReplaceAll(lowered, "_", ".")
 }
 
-// loadConfigurationSources loads configuration from various file sources.
+// LoadConfigurationSources loads configuration from various file sources
 // Follows standard precedence order (lowest to highest):
 // 1. System config (/etc/gitprovidersync/config.yaml) - NOT IMPLEMENTED YET
 // 2. User config (~/.config/gitprovidersync/config.yaml or XDG_CONFIG_HOME)
@@ -187,7 +186,7 @@ func loadDotEnv(koanfConf *koanf.Koanf) error {
 	return nil
 }
 
-// loadEnvironmentConfiguration loads environment variables into configuration.
+// LoadEnvironmentConfiguration loads environment variables into configuration.
 func loadEnvironmentConfiguration(koanfConf *koanf.Koanf) error {
 	if err := koanfConf.Load(env.Provider("GPS_", ".", func(s string) string {
 		return processEnvKey(s, "GPS_")
@@ -198,7 +197,7 @@ func loadEnvironmentConfiguration(koanfConf *koanf.Koanf) error {
 	return nil
 }
 
-// processRepositoryLists converts comma-separated repository strings to slices.
+// ProcessRepositoryLists converts comma-separated repository strings to slices.
 func processRepositoryLists(koanfConf *koanf.Koanf) {
 	keys := koanfConf.Keys()
 
@@ -209,7 +208,7 @@ func processRepositoryLists(koanfConf *koanf.Koanf) {
 	}
 }
 
-// convertCommaSeparatedToSlice converts a comma-separated string value to a string slice.
+// ConvertCommaSeparatedToSlice converts a comma-separated string value to a string slice.
 func convertCommaSeparatedToSlice(koanfConf *koanf.Koanf, key string) {
 	value := koanfConf.Get(key)
 	if value == nil {
@@ -234,8 +233,8 @@ func convertCommaSeparatedToSlice(koanfConf *koanf.Koanf, key string) {
 	_ = koanfConf.Set(key, repos) // Error ignored - configuration setting failure is not critical
 }
 
-// processTokenFiles reads tokens from files when token_file is specified
-// and applies provider-specific environment variables.
+// ProcessTokenFiles reads tokens from files when token_file is specified
+// And applies provider-specific environment variables
 // More secure than embedding tokens in config.
 func processTokenFiles(appConfig *config.AppConfiguration) error {
 	// Process each environment and source
@@ -279,8 +278,8 @@ func processTokenFiles(appConfig *config.AppConfiguration) error {
 	return nil
 }
 
-// applyProviderTokenFromEnv checks for provider-specific environment variables
-// and applies them with highest precedence.
+// ApplyProviderTokenFromEnv checks for provider-specific environment variables
+// And applies them with highest precedence.
 func applyProviderTokenFromEnv(authConfig *config.AuthConfig, providerType string) {
 	// Check for provider-specific token environment variable
 	// GPS_GITHUB_TOKEN, GPS_GITLAB_TOKEN, GPS_GITEA_TOKEN
@@ -292,7 +291,7 @@ func applyProviderTokenFromEnv(authConfig *config.AuthConfig, providerType strin
 	}
 }
 
-// processAuthTokenFile reads token from file if token_file is specified.
+// ProcessAuthTokenFile reads token from file if token_file is specified.
 func processAuthTokenFile(authConfig *config.AuthConfig) error {
 	// Skip if no token_file specified or token already set
 	if authConfig.TokenFile == "" || authConfig.Token != "" {
@@ -323,7 +322,6 @@ func processAuthTokenFile(authConfig *config.AuthConfig) error {
 // 3. Project config (./gitprovidersync.yaml and ./.env)
 // 4. User config (~/.config/gitprovidersync/config.yaml or XDG_CONFIG_HOME)
 // 5. System config (/etc/gitprovidersync/config.yaml) - NOT IMPLEMENTED
-//
 // Each higher precedence source overrides values from lower precedence sources.
 func ReadConfigurationFile(ctx context.Context, configfile string, configfileOnly bool, appConfiguration *config.AppConfiguration) error {
 	koanfConf := koanf.New(".")
@@ -362,7 +360,7 @@ func ReadConfigurationFile(ctx context.Context, configfile string, configfileOnl
 	return nil
 }
 
-// getUserConfigPath returns the user configuration path following XDG spec.
+// GetUserConfigPath returns the user configuration path following XDG spec
 // Checks XDG_CONFIG_HOME first, then falls back to ~/.config/gitprovidersync/config.yaml
 // For backward compatibility, also checks for gitprovidersync.yaml if config.yaml doesn't exist.
 func getUserConfigPath() string {
@@ -403,7 +401,7 @@ func getUserConfigPath() string {
 	return ""
 }
 
-// getDotEnvPath returns the path to .env file, with test override support.
+// GetDotEnvPath returns the path to .env file, with test override support.
 func getDotEnvPath() string {
 	// Allow test override
 	if testHome := os.Getenv("GPS_TESTCONFIG_HOME"); testHome != "" {

@@ -1,8 +1,6 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
-// Package sync implements repository synchronization logic.
 package sync
 
 import (
@@ -15,14 +13,14 @@ import (
 	"itiquette/git-provider-sync/internal/log"
 )
 
-// FetchSourceRepositoriesUseCase handles fetching repositories from source providers.
+// FetchSourceRepositoriesUseCase handles fetching repositories from source providers
 // Uses hexagonal architecture with context-based logging (functional pattern).
 type FetchSourceRepositoriesUseCase struct {
 	repositoryProvider ports.RepositoryProvider
 	gitOperations      ports.GitOperations
 }
 
-// NewFetchSourceRepositoriesUseCase creates a new fetch source repositories use case.
+// NewFetchSourceRepositoriesUseCase creates a new fetch source repositories use case
 // Uses functional pattern - logger comes from context (idiomatic Go).
 func NewFetchSourceRepositoriesUseCase(
 	repositoryProvider ports.RepositoryProvider,
@@ -100,7 +98,6 @@ func (uc FetchSourceRepositoriesUseCase) Execute(
 		return FetchSourceResponse{}, fmt.Errorf("failed to fetch repositories from provider: %w", err)
 	}
 
-	// DEBUG: Repository fetch results (application state)
 	logger.Debug(ctx, "Repository metadata retrieved from provider", map[string]any{
 		"total_found": len(repositories),
 		"provider":    request.ProviderConfig.ProviderType,
@@ -127,7 +124,6 @@ func (uc FetchSourceRepositoriesUseCase) Execute(
 	response.Repositories = filteredRepos
 	response.SkippedCount = len(repositories) - len(filteredRepos)
 
-	// DEBUG: Filter results (business logic outcome)
 	logger.Debug(ctx, "Repository filtering completed", map[string]any{
 		"total_found":   len(repositories),
 		"after_filters": len(filteredRepos),
@@ -136,7 +132,6 @@ func (uc FetchSourceRepositoriesUseCase) Execute(
 
 	// TRACE: Step 3 - Check dry run mode
 	if request.DryRun {
-		// DEBUG: Conditional branch decision
 		logger.Debug(ctx, "Dry run mode enabled", map[string]any{
 			"skipping_clone":     true,
 			"repositories_count": len(filteredRepos),
@@ -148,7 +143,6 @@ func (uc FetchSourceRepositoriesUseCase) Execute(
 		})
 
 		for _, repo := range filteredRepos {
-			// DEBUG: Repository details that would be cloned
 			logger.Debug(ctx, "Would clone repository", map[string]any{
 				"name":        repo.Name(),
 				"clone_url":   repo.HTTPSURL(),
@@ -170,7 +164,6 @@ func (uc FetchSourceRepositoriesUseCase) Execute(
 	response.ClonedRepos = clonedRepos
 	response.Errors = cloneErrors
 
-	// DEBUG: Clone operation results (final state)
 	logger.Debug(ctx, "Repository cloning completed", map[string]any{
 		"successful_clones": len(clonedRepos),
 		"failed_clones":     len(cloneErrors),
@@ -180,7 +173,6 @@ func (uc FetchSourceRepositoriesUseCase) Execute(
 	if len(cloneErrors) > 0 {
 		response.Success = false
 
-		// DEBUG: Error state details
 		logger.Debug(ctx, "Some repositories failed to clone", map[string]any{
 			"successful_clones": len(clonedRepos),
 			"failed_clones":     len(cloneErrors),
@@ -191,14 +183,12 @@ func (uc FetchSourceRepositoriesUseCase) Execute(
 	return response, nil
 }
 
-// applyFilters applies repository filtering logic with precedence rules.
-//
+// ApplyFilters applies repository filtering logic with precedence rules
 // Filter precedence (performance optimized for sync workflows):
 // 1) Fork exclusion - Most repositories are forks, quick elimination saves processing
 // 2) Visibility (public/private) - Simple metadata check, eliminates access issues early
 // 3) Archive status - Prevents sync attempts on read-only archived repositories
 // 4) Custom criteria - Complex business rules applied last to minimize overhead
-//
 // Repositories must pass ALL applicable filters to be included in results.
 func (uc FetchSourceRepositoriesUseCase) applyFilters(
 	ctx context.Context,
@@ -218,7 +208,6 @@ func (uc FetchSourceRepositoriesUseCase) applyFilters(
 
 	for _, repo := range repositories {
 		if uc.shouldSkipRepo(ctx, repo, filters, includeForks) {
-			// DEBUG: Individual repository skip decision
 			logger.Debug(ctx, "Repository skipped by filters", map[string]any{
 				"name":        repo.Name(),
 				"is_fork":     repo.IsFork(),
@@ -232,7 +221,6 @@ func (uc FetchSourceRepositoriesUseCase) applyFilters(
 		filtered = append(filtered, repo)
 	}
 
-	// DEBUG: Final filtering results (business logic outcome)
 	logger.Debug(ctx, "Repository filtering completed", map[string]any{
 		"input_count":  len(repositories),
 		"output_count": len(filtered),
@@ -242,7 +230,7 @@ func (uc FetchSourceRepositoriesUseCase) applyFilters(
 	return filtered
 }
 
-// shouldSkipRepo determines if a repository should be skipped based on filters.
+// ShouldSkipRepo determines if a repository should be skipped based on filters
 //
 //nolint:cyclop // Multiple filter conditions create logical complexity
 func (uc FetchSourceRepositoriesUseCase) shouldSkipRepo(ctx context.Context, repo entities.Repository, filters ports.FilterOptions, includeForks bool) bool {
@@ -250,7 +238,6 @@ func (uc FetchSourceRepositoriesUseCase) shouldSkipRepo(ctx context.Context, rep
 
 	// Check fork exclusion first (performance optimization)
 	if repo.IsFork() && !includeForks && !filters.IncludeForks {
-		// DEBUG: Filter decision
 		logger.Debug(ctx, "Repository excluded: is fork", map[string]any{
 			"name":          repo.Name(),
 			"include_forks": includeForks,
@@ -261,7 +248,6 @@ func (uc FetchSourceRepositoriesUseCase) shouldSkipRepo(ctx context.Context, rep
 
 	// Check archive status
 	if repo.IsArchived() && !filters.IncludeArchived {
-		// DEBUG: Filter decision
 		logger.Debug(ctx, "Repository excluded: is archived", map[string]any{
 			"name": repo.Name(),
 		})
@@ -271,7 +257,6 @@ func (uc FetchSourceRepositoriesUseCase) shouldSkipRepo(ctx context.Context, rep
 
 	// Check private visibility
 	if repo.IsPrivate() && !filters.IncludePrivate {
-		// DEBUG: Filter decision
 		logger.Debug(ctx, "Repository excluded: is private", map[string]any{
 			"name": repo.Name(),
 		})
@@ -281,7 +266,6 @@ func (uc FetchSourceRepositoriesUseCase) shouldSkipRepo(ctx context.Context, rep
 
 	// Check public visibility
 	if !repo.IsPrivate() && !filters.IncludePublic {
-		// DEBUG: Filter decision
 		logger.Debug(ctx, "Repository excluded: is public", map[string]any{
 			"name": repo.Name(),
 		})
@@ -291,7 +275,6 @@ func (uc FetchSourceRepositoriesUseCase) shouldSkipRepo(ctx context.Context, rep
 
 	// Check name patterns (most complex check last)
 	if !uc.matchesPatterns(ctx, repo.Name(), filters.IncludePatterns, filters.ExcludePatterns) {
-		// DEBUG: Filter decision
 		logger.Debug(ctx, "Repository excluded: pattern mismatch", map[string]any{
 			"name":             repo.Name(),
 			"include_patterns": filters.IncludePatterns,
@@ -304,7 +287,7 @@ func (uc FetchSourceRepositoriesUseCase) shouldSkipRepo(ctx context.Context, rep
 	return false
 }
 
-// matchesPatterns checks if repository name matches include/exclude patterns.
+// MatchesPatterns checks if repository name matches include/exclude patterns.
 func (uc FetchSourceRepositoriesUseCase) matchesPatterns(
 	ctx context.Context,
 	name string,
@@ -326,7 +309,7 @@ func (uc FetchSourceRepositoriesUseCase) matchesPatterns(
 	for _, pattern := range includePatterns {
 		if uc.matchPattern(ctx, name, pattern) {
 			included = true
-			// DEBUG: Pattern match result
+
 			logger.Debug(ctx, "Repository included by pattern", map[string]any{
 				"name":    name,
 				"pattern": pattern,
@@ -337,7 +320,6 @@ func (uc FetchSourceRepositoriesUseCase) matchesPatterns(
 	}
 
 	if !included {
-		// DEBUG: No include pattern matched
 		logger.Debug(ctx, "Repository excluded: no include pattern matched", map[string]any{
 			"name":             name,
 			"include_patterns": includePatterns,
@@ -349,7 +331,6 @@ func (uc FetchSourceRepositoriesUseCase) matchesPatterns(
 	// Check exclude patterns
 	for _, pattern := range excludePatterns {
 		if uc.matchPattern(ctx, name, pattern) {
-			// DEBUG: Excluded by pattern
 			logger.Debug(ctx, "Repository excluded by pattern", map[string]any{
 				"name":    name,
 				"pattern": pattern,
@@ -362,13 +343,12 @@ func (uc FetchSourceRepositoriesUseCase) matchesPatterns(
 	return true
 }
 
-// matchPattern performs simple pattern matching (simplified version).
+// MatchPattern performs simple pattern matching (simplified version).
 func (uc FetchSourceRepositoriesUseCase) matchPattern(ctx context.Context, name, pattern string) bool {
 	logger := log.CreateDomainLogger(ctx)
 
 	// Simple wildcard matching - could be enhanced with proper glob matching
 	if pattern == "*" {
-		// DEBUG: Wildcard match
 		logger.Debug(ctx, "Pattern wildcard match", map[string]any{
 			"name":    name,
 			"pattern": pattern,
@@ -379,7 +359,6 @@ func (uc FetchSourceRepositoriesUseCase) matchPattern(ctx context.Context, name,
 	}
 
 	matches := name == pattern
-	// DEBUG: Exact pattern match result
 	logger.Debug(ctx, "Pattern exact match", map[string]any{
 		"name":    name,
 		"pattern": pattern,
@@ -389,7 +368,7 @@ func (uc FetchSourceRepositoriesUseCase) matchPattern(ctx context.Context, name,
 	return matches
 }
 
-// cloneRepositories clones the repositories using git operations.
+// CloneRepositories clones the repositories using git operations.
 func (uc FetchSourceRepositoriesUseCase) cloneRepositories(
 	ctx context.Context,
 	repositories []entities.Repository,
@@ -415,7 +394,6 @@ func (uc FetchSourceRepositoriesUseCase) cloneRepositories(
 			"clone_url": repo.HTTPSURL(),
 		})
 
-		// DEBUG: Repository clone details (application state)
 		logger.Debug(ctx, "Starting repository clone", map[string]any{
 			"name":           repo.Name(),
 			"clone_url":      repo.HTTPSURL(),
@@ -426,7 +404,6 @@ func (uc FetchSourceRepositoriesUseCase) cloneRepositories(
 		// Get temporary directory path for cloning using GitOperations interface
 		tmpDir, err := uc.gitOperations.GetTmpDirPath(ctx)
 		if err != nil {
-			// DEBUG: Clone failure (error state)
 			logger.Debug(ctx, "Failed to get temp directory for clone", map[string]any{
 				"name":  repo.Name(),
 				"error": err.Error(),
@@ -436,7 +413,6 @@ func (uc FetchSourceRepositoriesUseCase) cloneRepositories(
 			continue
 		}
 
-		// DEBUG: Clone preparation state
 		clonePath := filepath.Join(tmpDir, repo.Name())
 		logger.Debug(ctx, "Prepared clone options", map[string]any{
 			"name":       repo.Name(),
@@ -490,7 +466,6 @@ func (uc FetchSourceRepositoriesUseCase) cloneRepositories(
 		// Clone repository
 		gitRepo, err := uc.gitOperations.Clone(ctx, cloneOptions)
 		if err != nil {
-			// DEBUG: Clone failure (error state)
 			logger.Debug(ctx, "Repository clone failed", map[string]any{
 				"name":  repo.Name(),
 				"url":   repo.HTTPSURL(),
@@ -501,7 +476,6 @@ func (uc FetchSourceRepositoriesUseCase) cloneRepositories(
 			continue
 		}
 
-		// DEBUG: Successful clone (application state)
 		logger.Debug(ctx, "Repository cloned successfully", map[string]any{
 			"name":       repo.Name(),
 			"clone_path": clonePath,
@@ -510,7 +484,6 @@ func (uc FetchSourceRepositoriesUseCase) cloneRepositories(
 		clonedRepos = append(clonedRepos, gitRepo)
 	}
 
-	// DEBUG: Final cloning results (business logic outcome)
 	logger.Debug(ctx, "Repository cloning completed", map[string]any{
 		"total_attempted":   len(repositories),
 		"successful_clones": len(clonedRepos),

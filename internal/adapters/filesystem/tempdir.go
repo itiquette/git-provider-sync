@@ -1,8 +1,6 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
-// Package filesystem provides file system related adapters for the hexagonal architecture.
 package filesystem
 
 import (
@@ -20,7 +18,7 @@ var (
 	ErrInvalidTempDirPath = errors.New("invalid temporary directory path")
 )
 
-// TempDirKey is the key type for storing and retrieving the temporary directory path in the context.
+// TempDirKey is the key type for storing and retrieving the temporary directory path in the context
 // Using a custom type for the key helps prevent collisions with other context values.
 type TempDirKey struct{}
 
@@ -44,7 +42,7 @@ func CreateTmpDir(ctx context.Context, dir, prefix string) (context.Context, err
 	return context.WithValue(ctx, TempDirKey{}, tmpDir), nil
 }
 
-// DeleteTmpDir deletes the temporary directory from context.
+// DeleteTmpDir deletes the temporary directory from context
 // Validates directory before deletion.
 func DeleteTmpDir(ctx context.Context) error {
 	tmpDir, err := GetTmpDirPath(ctx)
@@ -63,7 +61,7 @@ func DeleteTmpDir(ctx context.Context) error {
 	return nil
 }
 
-// isSubdirectoryOfTemp checks if the given path is a subdirectory of the system's temporary directory.
+// IsSubdirectoryOfTemp checks if the given path is a subdirectory of the system's temporary directory
 // Safety measure to prevent accidental deletion of non-temporary directories.
 func isSubdirectoryOfTemp(path string) bool {
 	tempDir, err := filepath.Abs(os.TempDir())

@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package gitbinary
@@ -11,7 +10,7 @@ import (
 	"time"
 )
 
-// ValidateGitBinary validates that git binary is available and working.
+// ValidateGitBinary validates that git binary is available and working
 //
 //	critical git binary validation .
 func ValidateGitBinary(ctx context.Context) (string, error) {
@@ -30,7 +29,7 @@ func ValidateGitBinary(ctx context.Context) (string, error) {
 	return "", ErrGitBinaryNotFound
 }
 
-// SetupSSHCommandEnv sets up SSH environment for git commands.
+// SetupSSHCommandEnv sets up SSH environment for git commands
 //
 //	critical SSH environment setup .
 func SetupSSHCommandEnv(sshcommand, rewriteurlfrom, rewriteurlto string) []string {

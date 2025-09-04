@@ -1,8 +1,6 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
-// Package terminal provides terminal-specific adapters for the hexagonal architecture.
 package terminal
 
 import (
@@ -13,8 +11,8 @@ import (
 	"itiquette/git-provider-sync/internal/domain/ports"
 )
 
-// HelpFormatter implements terminal-specific help text formatting.
-// This adapter handles color support detection and graceful fallbacks.
+// HelpFormatter implements terminal-specific help text formatting
+// adapter handles color support detection and graceful fallbacks.
 type HelpFormatter struct {
 	boldFormatter *color.Color
 	colorEnabled  bool
@@ -46,9 +44,9 @@ func NewHelpFormatterWithColorSupport(colorEnabled bool) *HelpFormatter {
 	return formatter
 }
 
-// Bold formats text as bold/emphasized with graceful fallback.
-// When color is disabled, it returns the text in uppercase for emphasis.
-// This is a pure function with consistent behavior.
+// Bold formats text as bold/emphasized with graceful fallback
+// When color is disabled, it returns the text in uppercase for emphasis
+// is a pure function with consistent behavior.
 func (f *HelpFormatter) Bold(text string) string {
 	// Handle empty strings to avoid unnecessary ANSI sequences
 	if text == "" {
@@ -62,14 +60,14 @@ func (f *HelpFormatter) Bold(text string) string {
 	return strings.ToUpper(text)
 }
 
-// Section formats a section header with consistent styling.
+// Section formats a section header with consistent styling
 // Section creates visually distinct section headers that work across different terminal types.
 func (f *HelpFormatter) Section(title string) string {
 	return f.Bold(title)
 }
 
-// IsColorSupported returns true if the terminal supports color output.
-// This allows callers to make formatting decisions based on capabilities.
+// IsColorSupported returns true if the terminal supports color output
+// allows callers to make formatting decisions based on capabilities.
 func (f *HelpFormatter) IsColorSupported() bool {
 	return f.colorEnabled
 }

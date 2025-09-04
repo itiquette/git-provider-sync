@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package composition
@@ -52,7 +51,7 @@ func NewProviderFactory(httpFactory *transport.HTTPFactory, logger ports.Logger)
 	}
 }
 
-// CreateProvider creates a provider instance based on configuration.
+// CreateProvider creates a provider instance based on configuration
 //
 //nolint:ireturn // Factory method returns interface
 func (pf *ProviderFactory) CreateProvider(
@@ -89,7 +88,7 @@ func (pf *ProviderFactory) CreateProvider(
 	}
 }
 
-// CreateProviderFromConfig creates a provider from ports.ProviderConfig.
+// CreateProviderFromConfig creates a provider from ports.ProviderConfig
 //
 //nolint:ireturn // Factory method returns interface
 func (pf *ProviderFactory) CreateProviderFromConfig(
@@ -112,7 +111,7 @@ func (pf *ProviderFactory) CreateProviderFromConfig(
 	return pf.CreateProvider(ctx, clientConfig)
 }
 
-// ensureHTTPSScheme returns domain with proper HTTPS scheme.
+// EnsureHTTPSScheme returns domain with proper HTTPS scheme.
 func ensureHTTPSScheme(domain string) string {
 	scheme := "https"
 
@@ -171,7 +170,7 @@ func (pf *ProviderFactory) CreateProvidersFromMirrorsWithContext(
 	return providers, nil
 }
 
-// validateConfig validates the provider configuration.
+// ValidateConfig validates the provider configuration.
 func (pf *ProviderFactory) validateConfig(config ProviderConfig) error {
 	if config.ProviderType == "" {
 		return domain.ErrProviderTypeRequired
@@ -196,7 +195,7 @@ func (pf *ProviderFactory) validateConfig(config ProviderConfig) error {
 	return nil
 }
 
-// createHTTPClient creates an HTTP client with proper configuration.
+// CreateHTTPClient creates an HTTP client with proper configuration.
 func (pf *ProviderFactory) createHTTPClient(_ context.Context, config ProviderConfig) (*http.Client, error) {
 	timeout := config.Timeout
 	if timeout == 0 {
@@ -232,7 +231,7 @@ func (pf *ProviderFactory) createHTTPClient(_ context.Context, config ProviderCo
 	return client, nil
 }
 
-// createGitHubProvider creates a GitHub provider.
+// CreateGitHubProvider creates a GitHub provider
 //
 //nolint:ireturn // Factory helper method returns interface
 func (pf *ProviderFactory) createGitHubProvider(
@@ -256,7 +255,7 @@ func (pf *ProviderFactory) createGitHubProvider(
 	return adapter, nil
 }
 
-// createGitLabProvider creates a GitLab provider.
+// CreateGitLabProvider creates a GitLab provider
 //
 //nolint:ireturn // Factory helper method returns interface
 func (pf *ProviderFactory) createGitLabProvider(
@@ -283,7 +282,7 @@ func (pf *ProviderFactory) createGitLabProvider(
 	return adapter, nil
 }
 
-// createGiteaProvider creates a Gitea provider.
+// CreateGiteaProvider creates a Gitea provider
 //
 //nolint:ireturn // Factory helper method returns interface
 func (pf *ProviderFactory) createGiteaProvider(

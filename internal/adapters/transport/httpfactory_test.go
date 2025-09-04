@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package transport
@@ -513,40 +512,6 @@ func TestMiddlewareTransport_addAuthentication_NotAuthenticated(t *testing.T) {
 	transport.addAuthentication(req)
 
 	assert.Empty(t, req.Header.Get("Authorization"))
-}
-
-func TestNewHTTPClientWrapper(t *testing.T) {
-	t.Parallel()
-
-	client := &http.Client{}
-	baseURL := "https://api.example.com"
-
-	wrapper := NewHTTPClientWrapper(client, baseURL)
-
-	require.NotNil(t, wrapper)
-	assert.Equal(t, client, wrapper.client)
-	assert.Equal(t, baseURL, wrapper.baseURL)
-	assert.NotNil(t, wrapper.headers)
-}
-
-func TestHTTPClientWrapper_SetHeader(t *testing.T) {
-	t.Parallel()
-
-	wrapper := NewHTTPClientWrapper(&http.Client{}, "https://api.example.com")
-
-	wrapper.SetHeader("X-Test", "test-value")
-
-	assert.Equal(t, "test-value", wrapper.headers["X-Test"])
-}
-
-func TestHTTPClientWrapper_Close(t *testing.T) {
-	t.Parallel()
-
-	wrapper := NewHTTPClientWrapper(&http.Client{}, "https://api.example.com")
-
-	err := wrapper.Close()
-
-	require.NoError(t, err)
 }
 
 // Mock transport for testing.

@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package entities
@@ -279,7 +278,7 @@ func (s SyncOperation) CreateSyncPlan() SyncPlan {
 	}
 }
 
-// shouldIncludeRepository determines if a repository should be included in sync.
+// ShouldIncludeRepository determines if a repository should be included in sync
 //
 //nolint:cyclop // Complex filtering logic with multiple criteria
 func (s SyncOperation) shouldIncludeRepository(repo Repository) bool {
@@ -478,7 +477,7 @@ func (mc MirrorConfig) WithGitBinary(use bool) MirrorConfig {
 
 // Helper functions
 
-// matchesPattern checks if a name matches a glob-like pattern.
+// MatchesPattern checks if a name matches a glob-like pattern.
 func matchesPattern(name, pattern string) bool {
 	// Use standard library glob matching for consistency
 	matched, err := filepath.Match(pattern, name)

@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package main
@@ -58,7 +57,7 @@ func TestBugReportURLIntegration(t *testing.T) {
 	handler := cli.NewPanicHandler(&buf, "v1.2.3")
 	require.NotNil(t, handler)
 
-	// The generateBugReportURL method is tested in panic_handler_test.go
+	// GenerateBugReportURL method is tested in panic_handler_test.go
 	// Validates that the integration exists
 	assert.Contains(t, "github.com/itiquette/git-provider-sync", "git-provider-sync")
 }

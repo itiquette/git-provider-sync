@@ -1,8 +1,6 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
-// Package github provides GitHub provider implementation.
 package github
 
 import (
@@ -95,7 +93,7 @@ func (b *ProjectOptionsBuilder) BuildEnterpriseOptions(uploadURL string) *github
 	// Configure enterprise-specific settings
 	if uploadURL != "" {
 		// Custom handling for GitHub Enterprise upload URLs would go here
-		// This is typically handled at the client level, not repository level
+		// is typically handled at the client level, not repository level
 		_ = uploadURL // Acknowledge parameter but no action needed at repository level
 	}
 

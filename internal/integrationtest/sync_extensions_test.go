@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 //go:build integration
@@ -21,9 +20,6 @@ import (
 
 // Integration tests with git test environment utility
 func TestEnhancedGitOperationsIntegration(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping enhanced integration test in short mode")
-	}
 
 	t.Parallel()
 
@@ -46,7 +42,7 @@ func TestEnhancedGitOperationsIntegration(t *testing.T) {
 	})
 }
 
-// testCompleteRepositoryLifecycle tests the complete lifecycle of a git repository
+// TestCompleteRepositoryLifecycle tests the complete lifecycle of a git repository
 func testCompleteRepositoryLifecycle(t *testing.T, gitOps ports.GitOperations) {
 	ctx := context.Background()
 
@@ -126,7 +122,7 @@ func testCompleteRepositoryLifecycle(t *testing.T, gitOps ports.GitOperations) {
 		env.GetSourceURL(), env.GetTargetURL())
 }
 
-// testLargeRepositoryOperations tests operations on repositories with multiple files and commits
+// TestLargeRepositoryOperations tests operations on repositories with multiple files and commits
 func testLargeRepositoryOperations(t *testing.T, gitOps ports.GitOperations) {
 	ctx := context.Background()
 
@@ -200,7 +196,7 @@ func testLargeRepositoryOperations(t *testing.T, gitOps ports.GitOperations) {
 	t.Logf("Repository status clean: %t", status.IsClean)
 }
 
-// testRemoteManagementtests remote management scenarios
+// TestRemoteManagementtests remote management scenarios
 func testRemoteManagementComprehensive(t *testing.T, gitOps ports.GitOperations) {
 	ctx := context.Background()
 
@@ -297,5 +293,4 @@ func testRemoteManagementComprehensive(t *testing.T, gitOps ports.GitOperations)
 	t.Logf("   Total remotes tested: %d", len(remoteConfigs)+2) // origin, target, + others
 }
 
-// NOTE: All crude helper functions removed - now using testutil.GitTestEnvironment
-// for safer, cleaner, and more maintainable test setup with automatic cleanup
+// Helper functions moved to testutil.GitTestEnvironment

@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package sync_test
@@ -19,7 +18,7 @@ import (
 	"itiquette/git-provider-sync/internal/domain/sync"
 )
 
-// mustBuildRepository is a test helper to create a repository for testing.
+// MustBuildRepository is a test helper to create a repository for testing.
 func mustBuildRepository(t *testing.T, url string) entities.Repository {
 	t.Helper()
 

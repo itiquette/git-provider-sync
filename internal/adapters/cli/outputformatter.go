@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 //nolint:funcorder // Complex formatter with many helper methods
@@ -33,19 +32,19 @@ var (
 	ErrInvalidSyncResultsType  = errors.New("invalid sync results type")
 )
 
-// OutputFormatter implements ports.OutputFormatter for CLI applications.
+// OutputFormatter implements ports.OutputFormatter for CLI applications
 // Supports console (human-readable), json (structured), and plain (tabular) output formats.
 type OutputFormatter struct {
 	color terminal.Color
 }
 
-// NewOutputFormatter creates a new CLI output formatter with TTY-aware color support.
+// NewOutputFormatter creates a new CLI output formatter with TTY-aware color support
 // Be functional: detect TTY once at creation, immutable thereafter.
 func NewOutputFormatter() ports.OutputFormatter { //nolint:ireturn // Factory function returning interface
 	return NewOutputFormatterWithColorMode(terminal.ColorAuto)
 }
 
-// NewOutputFormatterWithColorMode creates formatter with explicit color mode.
+// NewOutputFormatterWithColorMode creates formatter with explicit color mode
 // Be hexagonal: color mode is injected, not read from global state.
 func NewOutputFormatterWithColorMode(mode terminal.ColorMode) ports.OutputFormatter { //nolint:ireturn // Factory function returning interface
 	isTTY := terminal.IsOutput()
@@ -74,7 +73,7 @@ func (f *OutputFormatter) FormatConfiguration(appCfg model.AppConfiguration, for
 	}
 }
 
-// formatConfigurationConsole renders configuration in structured console format with proper indentation.
+// FormatConfigurationConsole renders configuration in structured console format with proper indentation.
 func (f *OutputFormatter) formatConfigurationConsole(appCfg model.AppConfiguration, writer io.Writer) error {
 	const indentSize = 2
 
@@ -105,7 +104,7 @@ func (f *OutputFormatter) formatConfigurationConsole(appCfg model.AppConfigurati
 	return nil
 }
 
-// printEnvironment renders a single environment section with hierarchical indentation.
+// PrintEnvironment renders a single environment section with hierarchical indentation.
 func (f *OutputFormatter) printEnvironment(name string, env model.Environment, writer io.Writer, level, indentSize int) error {
 	indent := strings.Repeat(" ", level*indentSize)
 
@@ -127,7 +126,7 @@ func (f *OutputFormatter) printEnvironment(name string, env model.Environment, w
 	return nil
 }
 
-// printSyncConfig renders SyncConfig details with structured indentation and validation.
+// PrintSyncConfig renders SyncConfig details with structured indentation and validation.
 func (f *OutputFormatter) printSyncConfig(name string, syncCfg model.SyncConfig, writer io.Writer, level, indentSize int) error {
 	indent := strings.Repeat(" ", level*indentSize)
 
@@ -218,7 +217,7 @@ func (f *OutputFormatter) printMirrorsSection(writer io.Writer, syncCfg model.Sy
 	return nil
 }
 
-// printAuthConfig renders authentication configuration with security token masking.
+// PrintAuthConfig renders authentication configuration with security token masking.
 func (f *OutputFormatter) printAuthConfig(authCfg model.AuthConfig, writer io.Writer, level, indentSize int) error {
 	indent := strings.Repeat(" ", level*indentSize)
 
@@ -241,7 +240,7 @@ func (f *OutputFormatter) printAuthConfig(authCfg model.AuthConfig, writer io.Wr
 	return nil
 }
 
-// printMirrorConfig renders mirror configuration with hierarchical structure validation.
+// PrintMirrorConfig renders mirror configuration with hierarchical structure validation.
 func (f *OutputFormatter) printMirrorConfig(name string, mirrorCfg model.MirrorConfig, writer io.Writer, level, indentSize int) error {
 	indent := strings.Repeat(" ", level*indentSize)
 
@@ -330,7 +329,7 @@ func (f *OutputFormatter) writeMirrorConfigSections(writer io.Writer, mirrorCfg 
 	return nil
 }
 
-// printMirrorSettings renders mirror-specific settings with conditional field display.
+// PrintMirrorSettings renders mirror-specific settings with conditional field display.
 func (f *OutputFormatter) printMirrorSettings(settings model.MirrorSettings, writer io.Writer, level, indentSize int) error {
 	indent := strings.Repeat(" ", level*indentSize)
 
@@ -380,7 +379,7 @@ func (f *OutputFormatter) writeMirrorSettingsFields(writer io.Writer, indent str
 	return nil
 }
 
-// printRepositoriesOption renders repository filter patterns with include/exclude separation.
+// PrintRepositoriesOption renders repository filter patterns with include/exclude separation.
 func (f *OutputFormatter) printRepositoriesOption(opt model.RepositoriesOption, writer io.Writer, level, indentSize int) error {
 	indent := strings.Repeat(" ", level*indentSize)
 	if _, err := fmt.Fprintf(writer, "\n%sRepositories:\n", indent); err != nil {
@@ -440,7 +439,7 @@ func (f *OutputFormatter) isEmptyMirrorSettings(settings model.MirrorSettings) b
 		settings.Visibility == ""
 }
 
-// formatConfigurationJSON outputs configuration as structured JSON.
+// FormatConfigurationJSON outputs configuration as structured JSON.
 func (f *OutputFormatter) formatConfigurationJSON(appCfg model.AppConfiguration, writer io.Writer) error {
 	encoder := json.NewEncoder(writer)
 	encoder.SetIndent("", "  ")
@@ -452,8 +451,8 @@ func (f *OutputFormatter) formatConfigurationJSON(appCfg model.AppConfiguration,
 	return nil
 }
 
-// formatConfigurationPlain outputs configuration as tabular text for pipeline compatibility.
-// One record per line, tab-separated for easy parsing with grep, awk, cut.
+// FormatConfigurationPlain outputs configuration as tabular text for pipeline compatibility
+// One record per line, tab-separated for easy parsing with grep, awk, cut
 // Human-second, machine-first format.
 func (f *OutputFormatter) formatConfigurationPlain(appCfg model.AppConfiguration, writer io.Writer) error {
 	// Tab-separated header for column identification
@@ -494,7 +493,7 @@ func (f *OutputFormatter) formatConfigurationPlain(appCfg model.AppConfiguration
 	return nil
 }
 
-// FormatSyncResults formats sync operation results for output.
+// FormatSyncResults formats sync operation results for output
 // Progress and status information should go to stderr, data to stdout.
 func (f *OutputFormatter) FormatSyncResults(results any, format string, dataWriter, progressWriter io.Writer) error {
 	switch format {
@@ -509,7 +508,7 @@ func (f *OutputFormatter) FormatSyncResults(results any, format string, dataWrit
 	}
 }
 
-// formatSyncResultsConsole outputs human-readable sync results.
+// FormatSyncResultsConsole outputs human-readable sync results.
 func (f *OutputFormatter) formatSyncResultsConsole(results any, dataWriter, progressWriter io.Writer) error {
 	syncResults, ok := results.(*sync.Results)
 	if !ok {
@@ -680,7 +679,7 @@ func (f *OutputFormatter) writeSyncDetailedResult(result sync.Result, dataWriter
 	return nil
 }
 
-// formatSyncResultsJSON outputs structured JSON sync results.
+// FormatSyncResultsJSON outputs structured JSON sync results.
 func (f *OutputFormatter) formatSyncResultsJSON(results any, dataWriter, progressWriter io.Writer) error {
 	syncResults, ok := results.(*sync.Results)
 	if !ok {
@@ -703,8 +702,8 @@ func (f *OutputFormatter) formatSyncResultsJSON(results any, dataWriter, progres
 	return nil
 }
 
-// formatSyncResultsPlain outputs tabular sync results for pipeline compatibility.
-// formatSyncResultsPlain outputs sync results as tab-separated values for pipeline processing.
+// FormatSyncResultsPlain outputs tabular sync results for pipeline compatibility
+// FormatSyncResultsPlain outputs sync results as tab-separated values for pipeline processing
 // Machine-readable format: one record per line, no formatting, suitable for grep/awk.
 func (f *OutputFormatter) formatSyncResultsPlain(results any, dataWriter, _ io.Writer) error {
 	syncResults, ok := results.(*sync.Results)
@@ -809,7 +808,7 @@ func (f *OutputFormatter) writeAuthSSHConfiguration(writer io.Writer, indent str
 	return f.writeSSHFields(writer, indent, authCfg)
 }
 
-// hasSSHConfiguration checks if any SSH configuration fields are set.
+// HasSSHConfiguration checks if any SSH configuration fields are set.
 func (f *OutputFormatter) hasSSHConfiguration(authCfg model.AuthConfig) bool {
 	return authCfg.SSHCommand != "" || authCfg.SSHURLRewriteFrom != "" || authCfg.SSHURLRewriteTo != ""
 }

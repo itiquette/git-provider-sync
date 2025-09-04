@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package validation
@@ -122,7 +121,7 @@ func NewFullValidationService(
 	return NewService(connectivityValidator, fileSystemValidator, config)
 }
 
-// ValidateConfiguration validates the entire configuration.
+// ValidateConfiguration validates the entire configuration
 //
 //nolint:cyclop // Multiple validation types and error paths
 func (s *Service) ValidateConfiguration(ctx context.Context, config ports.AppConfiguration) ComprehensiveResult {
@@ -226,7 +225,7 @@ func (s *Service) validateRepositoryNames(config ports.AppConfiguration) []Repos
 
 	for envName, env := range config.Environments {
 		// Validate source repositories (if we can enumerate them)
-		// This is placeholder logic - in practice, you'd get actual repo names from the provider
+		// is placeholder logic - in practice, you'd get actual repo names from the provider
 		sourceResult := RepositoryResult{
 			RepositoryName: "source-repos-" + envName,
 			ProviderType:   env.Source.ProviderType,
@@ -352,7 +351,7 @@ func HasCriticalErrors(result ComprehensiveResult) bool {
 	return !result.OverallSuccess || result.TotalErrors > 0
 }
 
-// GetValidationErrors extracts all error messages from validation results.
+// GetValidationErrors extracts all error messages from validation results
 //
 //nolint:cyclop // Complex error extraction logic with multiple validation result types
 func GetValidationErrors(result ComprehensiveResult) []string {

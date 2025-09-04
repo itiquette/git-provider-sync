@@ -1,8 +1,7 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
-// Package log provides logging functionality using zerolog.
+// Package log provides logging functionality using zerolog
 package log
 
 import (
@@ -19,10 +18,10 @@ import (
 	"itiquette/git-provider-sync/internal/shared"
 )
 
-// contextKey is a type for context keys to avoid collisions.
+// ContextKey is a type for context keys to avoid collisions.
 type contextKey string
 
-// debugLogPathKey is the context key for storing the debug log file path.
+// DebugLogPathKey is the context key for storing the debug log file path.
 const debugLogPathKey contextKey = "debugLogPath"
 
 // Level represents the available log levels.
@@ -62,7 +61,7 @@ func (l Level) ToZerologLevel() zerolog.Level {
 	}
 }
 
-// setupConsoleWriter creates and configures a console writer with optional debug file tee.
+// SetupConsoleWriter creates and configures a console writer with optional debug file tee.
 func setupConsoleWriter(logLevel string) (io.Writer, string) {
 	consoleWriter := zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}
 
@@ -74,9 +73,8 @@ func setupConsoleWriter(logLevel string) (io.Writer, string) {
 	return consoleWriter, ""
 }
 
-// InitLogger initializes and returns a context with a configured logger.
-// It sets up the logger based on the provided log level and quiet parameters.
-//
+// InitLogger initializes and returns a context with a configured logger
+// sets up the logger based on the provided log level and quiet parameters
 // Parameters:
 //   - ctx: The parent context
 //   - logLevel: The log level string (quiet | brief | verbose | debug | trace)
@@ -84,8 +82,8 @@ func setupConsoleWriter(logLevel string) (io.Writer, string) {
 //   - withCaller: Whether to include caller information in logs
 //   - outputFormat: The output format ("json" or "console")
 //
-// The logger is set up with a console writer for human-readable output.
-// If withCaller is true, it includes the caller information in the log output.
+// Logger is set up with a console writer for human-readable output
+// If withCaller is true, it includes the caller information in the log output
 // For debug/trace levels, output is also written to a debug file.
 func InitLogger(ctx context.Context, logLevel string, quiet bool, withCaller bool, outputFormat string) context.Context {
 	level := getLogLevel(logLevel, quiet)
@@ -131,16 +129,16 @@ func Logger(ctx context.Context) *zerolog.Logger {
 	return zerolog.Ctx(ctx)
 }
 
-// CreateDomainLogger retrieves a domain ports.Logger from the context.
-// This maintains hexagonal architecture by returning the domain interface,
-// not the concrete zerolog implementation.
+// CreateDomainLogger retrieves a domain ports.Logger from the context
+// maintains hexagonal architecture by returning the domain interface,
+// Not the concrete zerolog implementation.
 func CreateDomainLogger(ctx context.Context) ports.Logger {
 	zerologInstance := zerolog.Ctx(ctx)
 
 	return logging.NewZerologAdapter(zerologInstance)
 }
 
-// getLogLevel determines the log level based on command flags.
+// GetLogLevel determines the log level based on command flags.
 func getLogLevel(logLevel string, quiet bool) zerolog.Level {
 	if quiet {
 		return LevelQuiet.ToZerologLevel()
@@ -160,8 +158,8 @@ func GetDebugLogPath(ctx context.Context) string {
 	return ""
 }
 
-// SanitizeError creates a sanitized error that removes credentials from error messages.
-// This should be used when logging errors that might contain URLs with embedded credentials.
+// SanitizeError creates a sanitized error that removes credentials from error messages
+// should be used when logging errors that might contain URLs with embedded credentials.
 func SanitizeError(err error) error {
 	if err == nil {
 		return nil

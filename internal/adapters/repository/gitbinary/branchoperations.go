@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package gitbinary
@@ -12,7 +11,7 @@ import (
 	"itiquette/git-provider-sync/internal/domain/ports"
 )
 
-// BranchOperations provides branch management for git binary operations.
+// BranchOperations provides branch management for git binary operations
 //
 //	CreateTrackingBranches functionality  gitbinary/operation.go.
 type BranchOperations struct {

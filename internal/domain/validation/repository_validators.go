@@ -1,9 +1,8 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
-// Package validation provides pure validation functions for domain entities.
-// All functions are pure with no side effects, making them easily testable.
+// Package validation provides pure validation functions for domain entities
+// All functions are pure with no side effects, making them easily testable
 package validation
 
 import (
@@ -23,14 +22,14 @@ var (
 	ErrInvalidURL    = errors.New("invalid URL")
 )
 
-// Func is a pure function that validates a string value.
-// This is the core building block for composable validation.
+// Func is a pure function that validates a string value
+// is the core building block for composable validation.
 type Func func(string) error
 
 // Option configures validation behavior using functional options.
 type Option func(*validationConfig)
 
-// validationConfig holds validation configuration.
+// ValidationConfig holds validation configuration.
 type validationConfig struct {
 	maxLength      int
 	minLength      int
@@ -82,8 +81,8 @@ func WithRequiredSuffix(suffix string) Option {
 	}
 }
 
-// CreateValidator creates a validation function with the given options.
-// This is a pure function factory that returns a pure validator.
+// CreateValidator creates a validation function with the given options
+// is a pure function factory that returns a pure validator.
 func CreateValidator(opts ...Option) Func {
 	cfg := buildConfig(opts)
 	validators := buildValidators(cfg)
@@ -91,7 +90,7 @@ func CreateValidator(opts ...Option) Func {
 	return Compose(validators...)
 }
 
-// buildConfig applies options to create config.
+// BuildConfig applies options to create config.
 func buildConfig(opts []Option) *validationConfig {
 	cfg := &validationConfig{
 		maxLength: -1,
@@ -104,7 +103,7 @@ func buildConfig(opts []Option) *validationConfig {
 	return cfg
 }
 
-// buildValidators creates validators from config.
+// BuildValidators creates validators from config.
 func buildValidators(cfg *validationConfig) []Func {
 	var validators []Func
 
@@ -135,7 +134,7 @@ func buildValidators(cfg *validationConfig) []Func {
 	return validators
 }
 
-// Compose combines multiple validation functions into one.
+// Compose combines multiple validation functions into one
 // All validators must pass for the composite to pass.
 func Compose(validators ...Func) Func {
 	return func(value string) error {
@@ -149,7 +148,7 @@ func Compose(validators ...Func) Func {
 	}
 }
 
-// Any returns a validator that passes if ANY validator passes.
+// Any returns a validator that passes if ANY validator passes
 // Useful for alternative formats.
 func Any(validators ...Func) Func {
 	return func(value string) error {
@@ -401,10 +400,9 @@ func (b *ValidatorBuilder) Build() Func {
 }
 
 // Example usage with functional options:
-// validator := NewValidatorBuilder().
-//     Required().
-//     Max(100).
-//     Matches(`^[a-z]+$`).
+// Validator := NewValidatorBuilder()
+//     Required()
+//     Max(100)
+//     Matches(`^[a-z]+$`)
 //     Build()
-//
-// err := validator("test")
+// Err := validator("test")

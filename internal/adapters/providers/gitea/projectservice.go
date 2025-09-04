@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package gitea
@@ -180,7 +179,7 @@ func (ps *ProjectService) ValidateProjectName(name string) error {
 	return ps.validateReservedNames(name)
 }
 
-// validateBasicRequirements checks basic naming requirements.
+// ValidateBasicRequirements checks basic naming requirements.
 func (ps *ProjectService) validateBasicRequirements(name string) error {
 	if name == "" {
 		return ErrProjectNameEmpty
@@ -193,7 +192,7 @@ func (ps *ProjectService) validateBasicRequirements(name string) error {
 	return nil
 }
 
-// validateNamingRules checks Gitea naming rules.
+// ValidateNamingRules checks Gitea naming rules.
 func (ps *ProjectService) validateNamingRules(name string) error {
 	// Gitea naming rules
 	if strings.HasPrefix(name, ".") || strings.HasSuffix(name, ".") {
@@ -207,7 +206,7 @@ func (ps *ProjectService) validateNamingRules(name string) error {
 	return nil
 }
 
-// validateCharacters checks for invalid characters.
+// ValidateCharacters checks for invalid characters.
 func (ps *ProjectService) validateCharacters(name string) error {
 	// Check for invalid characters
 	for _, char := range name {
@@ -219,7 +218,7 @@ func (ps *ProjectService) validateCharacters(name string) error {
 	return nil
 }
 
-// validateReservedNames checks against reserved names.
+// ValidateReservedNames checks against reserved names.
 func (ps *ProjectService) validateReservedNames(name string) error {
 	// Reserved names
 	reservedNames := []string{
@@ -237,7 +236,7 @@ func (ps *ProjectService) validateReservedNames(name string) error {
 	return nil
 }
 
-// applyDisabledSettings disables features on a Gitea repository.
+// ApplyDisabledSettings disables features on a Gitea repository.
 func (ps *ProjectService) applyDisabledSettings(ctx context.Context, owner, projectName string) error {
 	ps.logger.Debug(ctx, "Applying disabled settings", map[string]any{
 		"owner": owner,
@@ -262,7 +261,7 @@ func (ps *ProjectService) applyDisabledSettings(ctx context.Context, owner, proj
 	return nil
 }
 
-// convertToRepository converts Gitea repository to domain entity.
+// ConvertToRepository converts Gitea repository to domain entity.
 func (ps *ProjectService) convertToRepository(repo *gitea.Repository) (*entities.Repository, error) {
 	builder := entities.NewRepositoryBuilder()
 
@@ -314,7 +313,7 @@ func (ps *ProjectService) convertToRepository(repo *gitea.Repository) (*entities
 	return &builtRepo, nil
 }
 
-// isValidGiteaRepoChar checks if a character is valid in Gitea repo names.
+// IsValidGiteaRepoChar checks if a character is valid in Gitea repo names.
 func isValidGiteaRepoChar(char rune) bool {
 	return (char >= 'a' && char <= 'z') ||
 		(char >= 'A' && char <= 'Z') ||

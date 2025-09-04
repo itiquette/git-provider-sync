@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package sync_test
@@ -8,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"io/fs"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -413,10 +413,9 @@ func (m *mockFileSystem) TempDir(dir, pattern string) (string, error) {
 
 // Test Suite
 
-// TestSyncRepositoriesUseCase_Execute validates the complete sync process.
-//
+// TestSyncRepositoriesUseCase_Execute validates the complete sync process
 // TEST PURPOSE:
-// This integration test validates the core sync use case end-to-end, ensuring:
+// integration test validates the core sync use case end-to-end, ensuring:
 // 1. Configuration loading and validation from multiple sources
 // 2. Environment selection and processing
 // 3. Temporary directory creation and lifecycle management
@@ -425,13 +424,11 @@ func (m *mockFileSystem) TempDir(dir, pattern string) (string, error) {
 // 6. error handling and recovery
 // 7. Statistics reporting and observability
 // 8. Proper resource cleanup (directories, connections)
-//
 // SCENARIOS COVERED:
 // - Successful sync with single environment configuration
 // - Empty configuration environments (should fail gracefully)
 // - Dry run mode (should simulate operations without side effects)
 // - Various error conditions with proper error propagation
-//
 // Tests coordination between configuration, repository providers, git operations, and logging.
 func TestSyncRepositoriesUseCase_Execute(t *testing.T) {
 	t.Parallel()
@@ -467,7 +464,7 @@ func TestSyncRepositoriesUseCase_Execute(t *testing.T) {
 								"backup": {
 									Enabled:      true,
 									ProviderType: "directory",
-									Path:         "/tmp/backup",
+									Path:         filepath.Join("testdata", "backup"),
 								},
 							},
 						},
@@ -484,7 +481,7 @@ func TestSyncRepositoriesUseCase_Execute(t *testing.T) {
 				// Setup git operations expectations for temporary directory management
 				mockGit.On("CreateTmpDir", mock.Anything, mock.AnythingOfType("string"), mock.AnythingOfType("string")).
 					Return(context.Background(), nil).Maybe()
-				mockGit.On("GetTmpDirPath", mock.Anything).Return("/tmp/test", nil).Maybe()
+				mockGit.On("GetTmpDirPath", mock.Anything).Return(filepath.Join("testdata", "tmp", "test"), nil).Maybe()
 				mockGit.On("DeleteTmpDir", mock.Anything).Return(nil).Maybe()
 
 				// Setup logging expectations - accept any log levels
@@ -520,7 +517,7 @@ func TestSyncRepositoriesUseCase_Execute(t *testing.T) {
 				// Setup git operations expectations for temporary directory management
 				mockGit.On("CreateTmpDir", mock.Anything, mock.AnythingOfType("string"), mock.AnythingOfType("string")).
 					Return(context.Background(), nil).Maybe()
-				mockGit.On("GetTmpDirPath", mock.Anything).Return("/tmp/test", nil).Maybe()
+				mockGit.On("GetTmpDirPath", mock.Anything).Return(filepath.Join("testdata", "tmp", "test"), nil).Maybe()
 				mockGit.On("DeleteTmpDir", mock.Anything).Return(nil).Maybe()
 
 				// Setup logging expectations - accept any log levels
@@ -567,7 +564,7 @@ func TestSyncRepositoriesUseCase_Execute(t *testing.T) {
 				// Setup git operations expectations for temporary directory management
 				mockGit.On("CreateTmpDir", mock.Anything, mock.AnythingOfType("string"), mock.AnythingOfType("string")).
 					Return(context.Background(), nil).Maybe()
-				mockGit.On("GetTmpDirPath", mock.Anything).Return("/tmp/test", nil).Maybe()
+				mockGit.On("GetTmpDirPath", mock.Anything).Return(filepath.Join("testdata", "tmp", "test"), nil).Maybe()
 				mockGit.On("DeleteTmpDir", mock.Anything).Return(nil).Maybe()
 
 				// Setup logging expectations - accept any log levels

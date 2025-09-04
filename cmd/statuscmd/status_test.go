@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package statuscmd
@@ -361,9 +360,13 @@ func TestFormatStatus_JSONOutput_ReturnsValidJSON(t *testing.T) {
 	assert.Contains(t, result, "\"total_warnings\": 1")
 	assert.Contains(t, result, "\"connectivity_required_failed\": 0")
 	assert.Contains(t, result, "\"connectivity_optional_failed\": 1")
-	assert.Contains(t, result, "\"issues\": [\"Issue 1\"]")
-	assert.Contains(t, result, "\"warnings\": [\"Warning 1\"]")
-	assert.Contains(t, result, "\"suggestions\": [\"Suggestion 1\"]")
+	// Check array values are present (format may vary with indentation)
+	assert.Contains(t, result, "\"Issue 1\"")
+	assert.Contains(t, result, "\"Warning 1\"")
+	assert.Contains(t, result, "\"Suggestion 1\"")
+	assert.Contains(t, result, "\"issues\":")
+	assert.Contains(t, result, "\"warnings\":")
+	assert.Contains(t, result, "\"suggestions\":")
 }
 
 func TestFormatStatus_PlainOutput_ReturnsSimpleText(t *testing.T) {
@@ -393,38 +396,6 @@ func TestFormatStatus_PlainOutput_ReturnsSimpleText(t *testing.T) {
 	assert.Contains(t, result, "CONNECTIVITY_OPTIONAL_FAILED\t1")
 	assert.Contains(t, result, "TOTAL_ERRORS\t0")
 	assert.Contains(t, result, "TOTAL_WARNINGS\t1")
-}
-
-func TestFormatJSONOutput(t *testing.T) {
-	t.Parallel()
-
-	testData := map[string]any{
-		"string_field": "test value",
-		"int_field":    42,
-		"bool_field":   true,
-		"array_field":  []string{"item1", "item2"},
-		"nested_field": map[string]any{
-			"nested_string": "nested value",
-			"nested_bool":   false,
-			"nested_array":  []string{"nested1", "nested2"},
-		},
-	}
-
-	result := formatJSONOutput(testData)
-
-	// Check that it produces valid JSON-like output
-	assert.Contains(t, result, "\"string_field\": \"test value\"")
-	assert.Contains(t, result, "\"int_field\": 42")
-	assert.Contains(t, result, "\"bool_field\": true")
-	assert.Contains(t, result, "\"array_field\": [\"item1\", \"item2\"]")
-	assert.Contains(t, result, "\"nested_field\": {")
-	assert.Contains(t, result, "\"nested_string\": \"nested value\"")
-	assert.Contains(t, result, "\"nested_bool\": false")
-	assert.Contains(t, result, "\"nested_array\": [\"nested1\", \"nested2\"]")
-
-	// Check structure
-	assert.True(t, strings.HasPrefix(result, "{\n"))
-	assert.True(t, strings.HasSuffix(result, "}\n"))
 }
 
 func TestHandleStatusError_WithErrorTypes_FormatsCorrectly(t *testing.T) {
@@ -525,56 +496,6 @@ successful=3`,
 		})
 	}
 }
-
-// TestFormatConfigurationStatus tests are commented out - functions refactored
-/*
-func TestFormatConfigurationStatus(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name     string
-		status   SystemStatus
-		contains []string
-	}{
-		{
-			name: "valid config single environment",
-			status: SystemStatus{
-				ConfigurationValid: true,
-				EnvironmentCount:   1,
-			},
-			contains: []string{"✓ Configuration: Valid", "(1 environment)"},
-		},
-		{
-			name: "valid config multiple environments",
-			status: SystemStatus{
-				ConfigurationValid: true,
-				EnvironmentCount:   3,
-			},
-			contains: []string{"✓ Configuration: Valid", "(3 environments)"},
-		},
-		{
-			name: "invalid config",
-			status: SystemStatus{
-				ConfigurationValid: false,
-				EnvironmentCount:   0,
-			},
-			contains: []string{"✗ Configuration: Invalid", "(0 environments)"},
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			t.Parallel()
-
-			result := formatConfigurationStatus(test.status)
-
-			for _, expected := range test.contains {
-				assert.Contains(t, result, expected)
-			}
-		})
-	}
-/* }
-*/
 
 func TestFormatConnectivityStatus(t *testing.T) {
 	t.Parallel()
@@ -776,160 +697,6 @@ func TestFormatSuggestionsSection(t *testing.T) {
 			for _, expected := range test.contains {
 				assert.Contains(t, result, expected)
 			}
-		})
-	}
-}
-
-func TestFormatJSONValue(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name     string
-		key      string
-		value    any
-		indent   string
-		expected string
-	}{
-		{
-			name:     "string value",
-			key:      "test_key",
-			value:    "test_value",
-			indent:   "",
-			expected: "  \"test_key\": \"test_value\",\n",
-		},
-		{
-			name:     "int value",
-			key:      "count",
-			value:    42,
-			indent:   "",
-			expected: "  \"count\": 42,\n",
-		},
-		{
-			name:     "int64 value",
-			key:      "timestamp",
-			value:    int64(1640995200),
-			indent:   "",
-			expected: "  \"timestamp\": 1640995200,\n",
-		},
-		{
-			name:     "bool value",
-			key:      "enabled",
-			value:    true,
-			indent:   "",
-			expected: "  \"enabled\": true,\n",
-		},
-		{
-			name:     "string array",
-			key:      "items",
-			value:    []string{"item1", "item2"},
-			indent:   "",
-			expected: "  \"items\": [\"item1\", \"item2\"],\n",
-		},
-		{
-			name:     "nested object",
-			key:      "nested",
-			value:    map[string]any{"sub_key": "sub_value"},
-			indent:   "",
-			expected: "  \"nested\": {\n    \"sub_key\": \"sub_value\"\n  },\n",
-		},
-		{
-			name:     "unsupported type",
-			key:      "unsupported",
-			value:    struct{}{},
-			indent:   "",
-			expected: "",
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			t.Parallel()
-
-			result := formatJSONValue(test.key, test.value, test.indent)
-			assert.Equal(t, test.expected, result)
-		})
-	}
-}
-
-func TestFormatJSONStringArray(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name     string
-		key      string
-		values   []string
-		indent   string
-		expected string
-	}{
-		{
-			name:     "empty array",
-			key:      "empty",
-			values:   []string{},
-			indent:   "  ",
-			expected: "  \"empty\": [],\n",
-		},
-		{
-			name:     "single item",
-			key:      "single",
-			values:   []string{"item1"},
-			indent:   "  ",
-			expected: "  \"single\": [\"item1\"],\n",
-		},
-		{
-			name:     "multiple items",
-			key:      "multiple",
-			values:   []string{"item1", "item2", "item3"},
-			indent:   "  ",
-			expected: "  \"multiple\": [\"item1\", \"item2\", \"item3\"],\n",
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			t.Parallel()
-
-			result := formatJSONStringArray(test.key, test.values, test.indent)
-			assert.Equal(t, test.expected, result)
-		})
-	}
-}
-
-func TestRemoveTrailingComma(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name     string
-		input    string
-		expected string
-	}{
-		{
-			name:     "with trailing comma",
-			input:    "test content,\n",
-			expected: "test content\n",
-		},
-		{
-			name:     "without trailing comma",
-			input:    "test content\n",
-			expected: "test content\n",
-		},
-		{
-			name:     "short string",
-			input:    "a",
-			expected: "a",
-		},
-		{
-			name:     "empty string",
-			input:    "",
-			expected: "",
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			t.Parallel()
-
-			result := removeTrailingComma(test.input)
-			assert.Equal(t, test.expected, result)
 		})
 	}
 }

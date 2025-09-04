@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package log
@@ -450,7 +449,7 @@ func TestInitLogger_CallerInformation(t *testing.T) { //nolint:paralleltest // C
 	require.NoError(t, err)
 
 	// For console format, we just verify the logger was created successfully
-	// The actual caller information would be complex to test in this context
+	// Actual caller information would be complex to test in this context
 	assert.NotNil(t, logger)
 	assert.Equal(t, zerolog.DebugLevel, logger.GetLevel())
 }

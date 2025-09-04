@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package gitlab
@@ -19,7 +18,7 @@ import (
 	"itiquette/git-provider-sync/internal/domain/ports"
 )
 
-// testGitLabLogger is a simple no-op logger for testing CompleteAdapter.
+// TestGitLabLogger is a simple no-op logger for testing CompleteAdapter.
 type testGitLabLogger struct{}
 
 func (l testGitLabLogger) Trace(_ context.Context, _ string, _ map[string]any) {}
@@ -186,7 +185,7 @@ func TestCompleteAdapter_CreateRepositoryWithAdvancedOptions(t *testing.T) {
 				assert.Nil(t, repo)
 			} else if err != nil {
 				// Due to complexity of mocking all required services, we accept that this may fail
-				// but the important thing is that the function is executed for coverage
+				// But the important thing is that the function is executed for coverage
 				t.Logf("Expected error in test environment: %v", err)
 			}
 		})
@@ -239,7 +238,7 @@ func TestCompleteAdapter_ApplyRepositoryProtection(t *testing.T) {
 	err = adapter.ApplyRepositoryProtection(ctx, providerConfig, "test-repo", protectionOptions)
 
 	// We expect this to fail in test environment due to lack of proper mocking
-	// but the important thing is that the function is executed for coverage
+	// But the important thing is that the function is executed for coverage
 	if err != nil {
 		t.Logf("Expected error in test environment: %v", err)
 	}
@@ -280,7 +279,7 @@ func TestCompleteAdapter_RemoveRepositoryProtection(t *testing.T) {
 	err = adapter.RemoveRepositoryProtection(ctx, providerConfig, "test-repo")
 
 	// We expect this to fail in test environment due to lack of proper mocking
-	// but the important thing is that the function is executed for coverage
+	// But the important thing is that the function is executed for coverage
 	if err != nil {
 		t.Logf("Expected error in test environment: %v", err)
 	}
@@ -328,7 +327,7 @@ func TestCompleteAdapter_FilterRepositoriesWithAdvancedCriteria(t *testing.T) {
 	_, err = adapter.FilterRepositoriesWithAdvancedCriteria(ctx, repositories, filterOptions)
 
 	// We expect this to possibly fail in test environment due to lack of proper service mocking
-	// but the important thing is that the function is executed for coverage
+	// But the important thing is that the function is executed for coverage
 	if err != nil {
 		t.Logf("Expected error in test environment: %v", err)
 	}
@@ -404,7 +403,7 @@ func TestCompleteAdapter_ValidateAndTransformRepositoryName(t *testing.T) {
 			result, err := adapter.ValidateAndTransformRepositoryName(test.input, test.options)
 
 			// We expect this to possibly fail in test environment due to validation logic
-			// but the important thing is that the function is executed for coverage
+			// But the important thing is that the function is executed for coverage
 			if err != nil {
 				t.Logf("Expected error in test environment for input '%s': %v", test.input, err)
 			} else {
@@ -529,7 +528,7 @@ func TestCompleteAdapter_BulkApplyProtection(t *testing.T) {
 	err = adapter.BulkApplyProtection(ctx, providerConfig, repositoryNames, protectionOptions)
 
 	// We expect this to fail in test environment due to lack of proper mocking
-	// but the important thing is that the function is executed for coverage
+	// But the important thing is that the function is executed for coverage
 	if err != nil {
 		t.Logf("Expected error in test environment: %v", err)
 	}
@@ -572,7 +571,7 @@ func TestCompleteAdapter_BulkRemoveProtection(t *testing.T) {
 	err = adapter.BulkRemoveProtection(ctx, providerConfig, repositoryNames)
 
 	// We expect this to fail in test environment due to lack of proper mocking
-	// but the important thing is that the function is executed for coverage
+	// But the important thing is that the function is executed for coverage
 	if err != nil {
 		t.Logf("Expected error in test environment: %v", err)
 	}

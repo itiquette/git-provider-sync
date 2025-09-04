@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package cli
@@ -9,9 +8,9 @@ import (
 	"strings"
 )
 
-// ErrorGroup collects and groups similar errors for better display.
-// Be functional: immutable after Format() is called.
-// Be hexagonal: this is an adapter for presentation, not domain logic.
+// ErrorGroup collects and groups similar errors for better display
+// Be functional: immutable after Format() is called
+// Be hexagonal: this is an adapter for presentation, not domain logic
 //
 //nolint:errname // This is not an error type, it's a container for errors
 type ErrorGroup struct {
@@ -24,7 +23,7 @@ type errorItem struct {
 	err      error
 }
 
-// NewErrorGroup creates a new error group for an operation.
+// NewErrorGroup creates a new error group for an operation
 // Be idiomatic: return pointer for mutable collection phase.
 func NewErrorGroup(operation string) *ErrorGroup {
 	return &ErrorGroup{
@@ -52,7 +51,7 @@ func (eg *ErrorGroup) Count() int {
 	return len(eg.errors)
 }
 
-// GetErrors returns the collected errors as a slice.
+// GetErrors returns the collected errors as a slice
 // Be functional: return copy to prevent external mutation.
 func (eg *ErrorGroup) GetErrors() []error {
 	result := make([]error, 0, len(eg.errors))
@@ -63,7 +62,7 @@ func (eg *ErrorGroup) GetErrors() []error {
 	return result
 }
 
-// Format groups and formats errors for display.
+// Format groups and formats errors for display
 // Don't overengineer: simple grouping by error pattern.
 func (eg *ErrorGroup) Format(symbols Symbols) string {
 	if len(eg.errors) == 0 {
@@ -113,7 +112,7 @@ func (eg *ErrorGroup) Format(symbols Symbols) string {
 	return output.String()
 }
 
-// groupByErrorType groups errors by their type.
+// GroupByErrorType groups errors by their type
 // Be functional: pure function, no side effects.
 func (eg *ErrorGroup) groupByErrorType() map[string][]errorItem {
 	groups := make(map[string][]errorItem)
@@ -126,8 +125,8 @@ func (eg *ErrorGroup) groupByErrorType() map[string][]errorItem {
 	return groups
 }
 
-// classifyError determines the error type from the error message.
-// Be idiomatic: simple string matching, not complex parsing.
+// ClassifyError determines the error type from the error message
+// Be idiomatic: simple string matching, not complex parsing
 //
 //nolint:cyclop // Multiple error types need checking
 func classifyError(err error) string {
@@ -173,7 +172,7 @@ func classifyError(err error) string {
 	}
 }
 
-// getSuggestionForMostCommon returns help for the most common error type.
+// GetSuggestionForMostCommon returns help for the most common error type
 // Be functional: pure function based on input state.
 func (eg *ErrorGroup) getSuggestionForMostCommon(symbols Symbols) string {
 	groups := eg.groupByErrorType()
@@ -217,8 +216,8 @@ func (eg *ErrorGroup) getSuggestionForMostCommon(symbols Symbols) string {
 	}
 }
 
-// Error implements the error interface.
-// This allows ErrorGroup to be used as an error type.
+// Error implements the error interface
+// allows ErrorGroup to be used as an error type.
 func (eg *ErrorGroup) Error() string {
 	if len(eg.errors) == 0 {
 		return ""

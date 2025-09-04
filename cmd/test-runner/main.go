@@ -1,8 +1,7 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
-// Package main provides a test runner for git-provider-sync.
+// Package main provides a test runner for git-provider-sync
 package main
 
 import (
@@ -518,7 +517,7 @@ func (tr *TestRunner) SaveResults(results map[string][]TestResult) error {
 	return nil
 }
 
-// runTestCommand executes a single test command.
+// RunTestCommand executes a single test command.
 func (tr *TestRunner) runTestCommand(ctx context.Context, testCmd TestCommand) TestResult {
 	start := time.Now()
 
@@ -578,7 +577,7 @@ func (tr *TestRunner) runTestCommand(ctx context.Context, testCmd TestCommand) T
 	return result
 }
 
-// countSuccessfulCommands counts successful commands in a suite.
+// CountSuccessfulCommands counts successful commands in a suite.
 func (tr *TestRunner) countSuccessfulCommands(results []TestResult) int {
 	count := 0
 
@@ -591,7 +590,7 @@ func (tr *TestRunner) countSuccessfulCommands(results []TestResult) int {
 	return count
 }
 
-// hasTestFiles checks if directory has test files.
+// HasTestFiles checks if directory has test files.
 func (tr *TestRunner) hasTestFiles(dir string) bool {
 	err := filepath.WalkDir(dir, func(path string, _ fs.DirEntry, err error) error {
 		if err != nil {
@@ -608,7 +607,7 @@ func (tr *TestRunner) hasTestFiles(dir string) bool {
 	return err != nil
 }
 
-// validateTestNaming validates test file naming conventions.
+// ValidateTestNaming validates test file naming conventions.
 func (tr *TestRunner) validateTestNaming() error {
 	testPattern := regexp.MustCompile(`^.*_test\.go$`)
 
@@ -629,7 +628,7 @@ func (tr *TestRunner) validateTestNaming() error {
 	return nil
 }
 
-// commandLineFlags holds all command line flag values.
+// CommandLineFlags holds all command line flag values.
 type commandLineFlags struct {
 	verbose     bool
 	parallel    bool
@@ -643,7 +642,7 @@ type commandLineFlags struct {
 	validate    bool
 }
 
-// parseCommandLineFlags parses and returns command line flags.
+// ParseCommandLineFlags parses and returns command line flags.
 func parseCommandLineFlags() commandLineFlags {
 	var flags commandLineFlags
 
@@ -663,7 +662,7 @@ func parseCommandLineFlags() commandLineFlags {
 	return flags
 }
 
-// setupTestRunner creates and configures a TestRunner instance.
+// SetupTestRunner creates and configures a TestRunner instance.
 func setupTestRunner(flags commandLineFlags) *TestRunner {
 	runner := NewTestRunner()
 	runner.verbose = flags.verbose
@@ -678,7 +677,7 @@ func setupTestRunner(flags commandLineFlags) *TestRunner {
 	return runner
 }
 
-// selectTestSuites determines which test suites should be run based on flags.
+// SelectTestSuites determines which test suites should be run based on flags.
 func selectTestSuites(runner *TestRunner, flags commandLineFlags) []TestSuite {
 	allSuites := runner.GetTestSuites()
 
@@ -689,7 +688,7 @@ func selectTestSuites(runner *TestRunner, flags commandLineFlags) []TestSuite {
 	return filterSuitesByFlags(allSuites, flags)
 }
 
-// selectSpecificSuites returns the requested test suites by name.
+// SelectSpecificSuites returns the requested test suites by name.
 func selectSpecificSuites(allSuites []TestSuite, suiteNames string) []TestSuite {
 	requestedSuites := strings.Split(suiteNames, ",")
 
@@ -712,7 +711,7 @@ func selectSpecificSuites(allSuites []TestSuite, suiteNames string) []TestSuite 
 	return suitesToRun
 }
 
-// filterSuitesByFlags filters test suites based on command line flags.
+// FilterSuitesByFlags filters test suites based on command line flags.
 func filterSuitesByFlags(allSuites []TestSuite, flags commandLineFlags) []TestSuite {
 	var suitesToRun []TestSuite
 
@@ -739,7 +738,7 @@ func filterSuitesByFlags(allSuites []TestSuite, flags commandLineFlags) []TestSu
 	return suitesToRun
 }
 
-// printStartupInfo displays startup information to the user.
+// PrintStartupInfo displays startup information to the user.
 func printStartupInfo(suitesToRun []TestSuite, dryRun bool) {
 	fmt.Printf("Git Provider Sync Test Runner\n")
 	fmt.Printf("Started: %s\n", time.Now().Format(time.RFC3339))
@@ -750,7 +749,7 @@ func printStartupInfo(suitesToRun []TestSuite, dryRun bool) {
 	}
 }
 
-// executeTestSuites runs all the selected test suites.
+// ExecuteTestSuites runs all the selected test suites.
 func executeTestSuites(runner *TestRunner, suitesToRun []TestSuite, flags commandLineFlags) map[string][]TestResult {
 	ctx, cancel := context.WithTimeout(context.Background(), flags.timeout)
 	defer cancel()
@@ -769,7 +768,7 @@ func executeTestSuites(runner *TestRunner, suitesToRun []TestSuite, flags comman
 	return results
 }
 
-// generateOutput creates reports and saves results if not in dry run mode.
+// GenerateOutput creates reports and saves results if not in dry run mode.
 func generateOutput(runner *TestRunner, results map[string][]TestResult, flags commandLineFlags) {
 	if !flags.dryRun {
 		runner.GenerateReport(results)

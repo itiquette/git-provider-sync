@@ -1,12 +1,10 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package auth
 
 import (
 	"context"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -22,25 +20,14 @@ import (
 // Test GetAuthMethod - core security function
 
 func TestService_GetAuthMethod_SSH(t *testing.T) {
-	t.Parallel()
-
-	// Mock SSH agent by setting SSH_AUTH_SOCK environment variable
-	originalSSHAuthSock := os.Getenv("SSH_AUTH_SOCK")
-
-	defer func() {
-		if originalSSHAuthSock != "" {
-			_ = os.Setenv("SSH_AUTH_SOCK", originalSSHAuthSock)
-		} else {
-			_ = os.Unsetenv("SSH_AUTH_SOCK")
-		}
-	}()
+	// Cannot use t.Parallel() with t.Setenv
 
 	// Create a mock socket file in temp directory for test isolation
 	tempDir := t.TempDir()
 	mockSocketPath := tempDir + "/ssh-agent.sock"
 
 	// Set the mock SSH_AUTH_SOCK for this test
-	_ = os.Setenv("SSH_AUTH_SOCK", mockSocketPath)
+	t.Setenv("SSH_AUTH_SOCK", mockSocketPath)
 
 	service := NewService()
 	ctx := context.Background()
@@ -55,7 +42,7 @@ func TestService_GetAuthMethod_SSH(t *testing.T) {
 	authMethod, err := service.GetAuthMethod(ctx, authConfig)
 
 	// We expect this to work since we're testing the method selection logic
-	// The actual SSH agent connection failure is acceptable in tests
+	// Actual SSH agent connection failure is acceptable in tests
 	if err != nil {
 		// SSH agent creation failed as expected with mock - verify error message
 		require.Contains(t, err.Error(), "error creating SSH agent")
@@ -144,8 +131,7 @@ func TestService_GetAuthMethod_InvalidProtocol(t *testing.T) {
 }
 
 func TestService_GetAuthMethod_CaseInsensitive(t *testing.T) {
-	t.Parallel()
-
+	// Cannot use t.Parallel() - subtests use t.Setenv
 	service := NewService()
 	ctx := context.Background()
 
@@ -160,23 +146,13 @@ func TestService_GetAuthMethod_CaseInsensitive(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			t.Parallel()
+			// Cannot use t.Parallel() with t.Setenv
 
 			// Mock SSH environment for SSH tests
 			if strings.ToLower(test.protocol) == protocolSSH {
-				originalSSHAuthSock := os.Getenv("SSH_AUTH_SOCK")
-
-				defer func() {
-					if originalSSHAuthSock != "" {
-						_ = os.Setenv("SSH_AUTH_SOCK", originalSSHAuthSock)
-					} else {
-						_ = os.Unsetenv("SSH_AUTH_SOCK")
-					}
-				}()
-
 				// Set mock SSH_AUTH_SOCK for test isolation
 				mockSocketPath := t.TempDir() + "/ssh-agent.sock"
-				_ = os.Setenv("SSH_AUTH_SOCK", mockSocketPath)
+				t.Setenv("SSH_AUTH_SOCK", mockSocketPath)
 			}
 
 			authConfig := ports.AuthenticationConfiguration{
@@ -478,8 +454,7 @@ func TestAuthenticationAdapter_ValidateAuthConfig_CaseInsensitive(t *testing.T) 
 // Test SupportsSSHAgent
 
 func TestAuthenticationAdapter_SupportsSSHAgent(t *testing.T) {
-	t.Parallel()
-
+	// Cannot use t.Parallel() with t.Setenv
 	adapter := NewAuthenticationAdapter()
 
 	tests := []struct {
@@ -507,23 +482,11 @@ func TestAuthenticationAdapter_SupportsSSHAgent(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			t.Parallel()
-			// Set up environment
-			originalSSHAuthSock := os.Getenv("SSH_AUTH_SOCK")
-
-			defer func() {
-				// Restore original environment
-				if originalSSHAuthSock != "" {
-					_ = os.Setenv("SSH_AUTH_SOCK", originalSSHAuthSock)
-				} else {
-					_ = os.Unsetenv("SSH_AUTH_SOCK")
-				}
-			}()
-
+			// Cannot use t.Parallel() with t.Setenv
 			if test.sshAuthSock != "" {
-				_ = os.Setenv("SSH_AUTH_SOCK", test.sshAuthSock)
+				t.Setenv("SSH_AUTH_SOCK", test.sshAuthSock)
 			} else {
-				_ = os.Unsetenv("SSH_AUTH_SOCK")
+				t.Setenv("SSH_AUTH_SOCK", "")
 			}
 
 			result := adapter.SupportsSSHAgent()
@@ -660,8 +623,7 @@ func TestAuthenticationAdapter_HTTPSWorkflow(t *testing.T) {
 }
 
 func TestAuthenticationAdapter_SSHWorkflow(t *testing.T) {
-	t.Parallel()
-
+	// Cannot use t.Parallel() - subtests use t.Setenv
 	tests := []struct {
 		name       string
 		url        string
@@ -687,22 +649,12 @@ func TestAuthenticationAdapter_SSHWorkflow(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			t.Parallel()
-
-			// Mock SSH environment for workflow tests
-			originalSSHAuthSock := os.Getenv("SSH_AUTH_SOCK")
-
-			defer func() {
-				if originalSSHAuthSock != "" {
-					_ = os.Setenv("SSH_AUTH_SOCK", originalSSHAuthSock)
-				} else {
-					_ = os.Unsetenv("SSH_AUTH_SOCK")
-				}
-			}()
+			// Cannot use t.Parallel() with t.Setenv
 
 			// Set mock SSH_AUTH_SOCK for test isolation
 			mockSocketPath := t.TempDir() + "/ssh-agent.sock"
-			_ = os.Setenv("SSH_AUTH_SOCK", mockSocketPath)
+			t.Setenv("SSH_AUTH_SOCK", mockSocketPath)
+
 			adapter := NewAuthenticationAdapter()
 			ctx := context.Background()
 

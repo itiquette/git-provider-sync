@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package github
@@ -11,11 +10,11 @@ import (
 )
 
 var (
-	// validNameRegex defines the allowed characters in a GitHub repository name.
-	// It allows alphanumeric characters, hyphens, and underscores.
+	// ValidNameRegex defines the allowed characters in a GitHub repository name
+	// allows alphanumeric characters, hyphens, and underscores.
 	validNameRegex = regexp.MustCompile(`^[A-Za-z0-9-_]+$`)
 
-	// invalidNames is a map of repository names that are not allowed by GitHub.
+	// InvalidNames is a map of repository names that are not allowed by GitHub
 	// Currently, it includes "." and ".." which are reserved names.
 	invalidNames = map[string]bool{ //nolint:gochecknoglobals // GitHub name validation constants
 		".":       true,
@@ -24,12 +23,12 @@ var (
 		".github": true,
 	}
 
-	// maxNameLength is the maximum allowed length for a GitHub repository name.
+	// MaxNameLength is the maximum allowed length for a GitHub repository name
 	// GitHub imposes a limit of 100 characters for repository names.
 	maxNameLength = 100 //nolint:gochecknoglobals // GitHub name validation constants
 )
 
-// IsValidGitHubRepositoryName validates GitHub repository names against platform constraints.
+// IsValidGitHubRepositoryName validates GitHub repository names against platform constraints
 // Enforces GitHub's naming rules: alphanumeric/hyphens/underscores only, max 100 chars, no reserved names.
 func IsValidGitHubRepositoryName(name string) bool {
 	return !invalidNames[name] &&
@@ -76,7 +75,7 @@ func ValidateAndCleanName(name string) (string, bool, []string) {
 	return cleanName, isValid, issues
 }
 
-// cleanInvalidCharacters removes or replaces invalid characters in a repository name.
+// CleanInvalidCharacters removes or replaces invalid characters in a repository name.
 func cleanInvalidCharacters(name string) string {
 	result := ""
 
@@ -116,7 +115,7 @@ func GetValidationRules() []string {
 	}
 }
 
-// isValidChar checks if a character is valid for GitHub repository names.
+// IsValidChar checks if a character is valid for GitHub repository names.
 func isValidChar(char rune) bool {
 	return (char >= 'A' && char <= 'Z') ||
 		(char >= 'a' && char <= 'z') ||
@@ -124,7 +123,7 @@ func isValidChar(char rune) bool {
 		char == '-' || char == '_'
 }
 
-// isReplaceable checks if a character should be replaced with a hyphen.
+// IsReplaceable checks if a character should be replaced with a hyphen.
 func isReplaceable(char rune) bool {
 	return char == ' ' || char == '.'
 }

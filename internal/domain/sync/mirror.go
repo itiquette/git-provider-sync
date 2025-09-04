@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package sync
@@ -180,7 +179,7 @@ func (uc ToMirrorsUseCase) Execute(
 	return response, nil
 }
 
-// syncRepositoriesToMirror processes repository batch synchronization for a specific mirror target.
+// SyncRepositoriesToMirror processes repository batch synchronization for a specific mirror target.
 func (uc ToMirrorsUseCase) syncRepositoriesToMirror(
 	ctx context.Context,
 	sourceRepos []ports.GitRepository,
@@ -209,7 +208,7 @@ func (uc ToMirrorsUseCase) syncRepositoriesToMirror(
 	return results
 }
 
-// syncSingleRepositoryToMirror synchronizes a single repository to a mirror target.
+// SyncSingleRepositoryToMirror synchronizes a single repository to a mirror target.
 func (uc ToMirrorsUseCase) syncSingleRepositoryToMirror(
 	ctx context.Context,
 	sourceRepo ports.GitRepository,
@@ -343,7 +342,7 @@ func (uc ToMirrorsUseCase) syncToFileSystem(ctx context.Context, sourceRepo port
 			result.Action = "synced_to_archive"
 		}
 	case entities.ProviderTypeGitHub, entities.ProviderTypeGitLab, entities.ProviderTypeGitea:
-		// This should not happen as git providers are handled separately
+		// should not happen as git providers are handled separately
 		result.Error = errors.New("unexpected git provider type in filesystem sync")
 	default:
 		result.Error = errors.New("unsupported provider type")
@@ -366,7 +365,7 @@ func (uc ToMirrorsUseCase) syncToGitProvider(ctx context.Context, sourceRepo por
 	return result
 }
 
-// validateRepositoryForMirror ensures repository name compatibility with target mirror provider.
+// ValidateRepositoryForMirror ensures repository name compatibility with target mirror provider.
 func (uc ToMirrorsUseCase) validateRepositoryForMirror(
 	ctx context.Context,
 	repoName string,
@@ -384,7 +383,7 @@ func (uc ToMirrorsUseCase) validateRepositoryForMirror(
 	// Validate repository name with provider (main branch logic)
 	if mirrorProvider != nil {
 		if !mirrorProvider.IsValidProjectName(ctx, targetRepoName) {
-			// This matches main branch behavior where invalid names can be ignored
+			// matches main branch behavior where invalid names can be ignored
 			uc.logger.Warn(ctx, "Repository name is invalid for target provider", map[string]any{
 				"repository":  repoName,
 				"target_name": targetRepoName,
@@ -411,7 +410,7 @@ func (uc ToMirrorsUseCase) validateRepositoryForMirror(
 	return nil
 }
 
-// transformRepositoryName applies name transformations for mirror compatibility.
+// TransformRepositoryName applies name transformations for mirror compatibility
 // Supports prefix/suffix addition, case conversion, character replacement, and provider-specific constraints.
 func (uc ToMirrorsUseCase) transformRepositoryName(
 	originalName string,
@@ -435,7 +434,7 @@ func (uc ToMirrorsUseCase) transformRepositoryName(
 	return name
 }
 
-// syncToDirectory implements directory mirror synchronization.
+// SyncToDirectory implements directory mirror synchronization.
 func (uc ToMirrorsUseCase) syncToDirectory(
 	ctx context.Context,
 	sourceRepo ports.GitRepository,
@@ -497,7 +496,7 @@ func (uc ToMirrorsUseCase) syncToDirectory(
 	return nil
 }
 
-// syncToArchive implements archive mirror synchronization.
+// SyncToArchive implements archive mirror synchronization.
 func (uc ToMirrorsUseCase) syncToArchive(
 	ctx context.Context,
 	sourceRepo ports.GitRepository,
@@ -569,7 +568,7 @@ func (uc ToMirrorsUseCase) syncToArchive(
 	return nil
 }
 
-// performGitSync implements git provider mirror synchronization.
+// PerformGitSync implements git provider mirror synchronization.
 func (uc ToMirrorsUseCase) performGitSync(
 	ctx context.Context,
 	sourceRepo ports.GitRepository,
@@ -634,8 +633,8 @@ func (uc ToMirrorsUseCase) performGitSync(
 	return nil
 }
 
-// createRepositoryEntity transforms GitRepository interface into domain entity with fallback handling.
-// This converts the GitRepository from ports to a full entities.Repository for use cases.
+// CreateRepositoryEntity transforms GitRepository interface into domain entity with fallback handling
+// converts the GitRepository from ports to a full entities.Repository for use cases.
 func (uc ToMirrorsUseCase) createRepositoryEntity(ctx context.Context, gitRepo ports.GitRepository) entities.Repository {
 	builder := entities.NewRepositoryBuilder()
 
@@ -695,7 +694,7 @@ func (uc ToMirrorsUseCase) createRepositoryEntity(ctx context.Context, gitRepo p
 	return repo
 }
 
-// syncBranchProtection replicates branch protection rules from source to mirror with provider compatibility checks.
+// SyncBranchProtection replicates branch protection rules from source to mirror with provider compatibility checks.
 func (uc ToMirrorsUseCase) syncBranchProtection(
 	ctx context.Context,
 	sourceRepo ports.GitRepository,
@@ -775,7 +774,7 @@ func (uc ToMirrorsUseCase) syncBranchProtection(
 	return nil
 }
 
-// initMirrorSync initializes sync metadata in the context.
+// InitMirrorSync initializes sync metadata in the context.
 func (uc ToMirrorsUseCase) initMirrorSync(ctx context.Context, mirrorTarget entities.MirrorTarget, repositoryCount int) context.Context {
 	// Create sync metadata (like main branch)
 	meta := entities.NewSyncRunMetadata("", string(mirrorTarget.ProviderType()), "sync", "default")
@@ -793,7 +792,7 @@ func (uc ToMirrorsUseCase) initMirrorSync(ctx context.Context, mirrorTarget enti
 	return ctx
 }
 
-// incrementSyncCount increments the sync count in the context metadata.
+// IncrementSyncCount increments the sync count in the context metadata.
 func (uc ToMirrorsUseCase) incrementSyncCount(ctx context.Context) {
 	if meta, ok := entities.GetMetadataFromContext(ctx); ok {
 		meta.AddSuccess("sync", "repository")
@@ -803,7 +802,7 @@ func (uc ToMirrorsUseCase) incrementSyncCount(ctx context.Context) {
 	}
 }
 
-// syncExistingDirectoryRepository synchronizes an existing directory repository.
+// SyncExistingDirectoryRepository synchronizes an existing directory repository.
 func (uc ToMirrorsUseCase) syncExistingDirectoryRepository(ctx context.Context, fullTargetPath, repoName string) error {
 	// Repository already exists, open it instead of cloning
 	targetRepo, err := uc.gitOperations.Open(ctx, fullTargetPath)
@@ -839,7 +838,7 @@ func (uc ToMirrorsUseCase) syncExistingDirectoryRepository(ctx context.Context, 
 	}
 
 	if err := targetRepo.Pull(ctx, pullOptions); err != nil {
-		// This error is critical for directory mirrors
+		// error is critical for directory mirrors
 		return fmt.Errorf("failed to pull repository for directory target at %s: %w. "+
 			"This is critical for directory mirror synchronization. "+
 			"Common causes: "+

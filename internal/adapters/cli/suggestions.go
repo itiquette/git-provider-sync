@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package cli
@@ -9,8 +8,8 @@ import (
 	"strings"
 )
 
-// GetErrorSuggestion returns helpful suggestions for common errors.
-// Be functional: pure function with no side effects.
+// GetErrorSuggestion returns helpful suggestions for common errors
+// Be functional: pure function with no side effects
 // Don't overengineer: only handle the most common cases.
 func GetErrorSuggestion(err error) string {
 	if err == nil {
@@ -76,8 +75,8 @@ func getPermissionSuggestion() string {
 		"  3. Verify git credentials are configured"
 }
 
-// FormatErrorWithSuggestion formats an error with helpful suggestions.
-// Be idiomatic: follow Go error handling patterns.
+// FormatErrorWithSuggestion formats an error with helpful suggestions
+// Be idiomatic: follow Go error handling patterns
 // Be functional: pure function with no side effects.
 func FormatErrorWithSuggestion(err error, context string, symbols Symbols) string {
 	if err == nil {

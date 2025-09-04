@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package gitbinary
@@ -88,7 +87,7 @@ func (r *GitRepository) Close() error {
 
 // CurrentBranch returns the name of the current branch.
 func (r *GitRepository) CurrentBranch() (string, error) {
-	// This would need implementation in operations service
+	// would need implementation in operations service
 	branch, err := r.adapter.mirrorSvc.operationsSvc.GetCurrentBranch(context.Background(), r.path)
 	if err != nil {
 		return "", fmt.Errorf("failed to get current branch: %w", err)
@@ -240,13 +239,13 @@ func (r *GitRepository) Push(ctx context.Context, options ports.PushOptions) err
 
 // GetCommit retrieves commit information for a specific reference.
 func (r *GitRepository) GetCommit(_ context.Context, _ string) (ports.CommitInfo, error) {
-	// This would need implementation in operations service
+	// would need implementation in operations service
 	return ports.CommitInfo{}, domain.ErrNotYetImplemented
 }
 
 // ListCommits lists commits in the repository.
 func (r *GitRepository) ListCommits(_ context.Context, _ ports.ListCommitsOptions) ([]ports.CommitInfo, error) {
-	// This would need implementation in operations service
+	// would need implementation in operations service
 	return []ports.CommitInfo{}, domain.ErrNotYetImplemented
 }
 
@@ -312,7 +311,7 @@ func (r *GitRepository) Status(ctx context.Context) (ports.StatusResult, error) 
 
 // Diff returns the diff between two commits.
 func (r *GitRepository) Diff(_ context.Context, options ports.DiffOptions) (string, error) {
-	// This would need to capture output from git command
+	// would need to capture output from git command
 	// For now, return placeholder
 	_ = options // Mark as used to satisfy linter
 

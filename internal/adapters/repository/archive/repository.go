@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package archive
@@ -35,9 +34,9 @@ var (
 	ErrDiffNotSupported             = errors.New("diff is not supported for archive repositories")
 )
 
-// Repository represents an archive-based repository.
-// This is a simplified repository that provides basic operations
-// for archive-extracted content.
+// Repository represents an archive-based repository
+// is a simplified repository that provides basic operations
+// For archive-extracted content.
 type Repository struct {
 	path   string
 	config ports.GitConfig
@@ -75,7 +74,7 @@ func (r *Repository) HasChanges() bool {
 	return false
 }
 
-// GetCurrentCommit returns a dummy commit for archive repositories.
+// GetCurrentCommit returns a dummy commit for archive repositories
 // Archive repositories don't have real git history.
 func (r *Repository) GetCurrentCommit(_ context.Context) (ports.CommitInfo, error) {
 	// Return a dummy commit representing the archive extraction time

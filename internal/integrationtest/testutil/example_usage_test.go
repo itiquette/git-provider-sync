@@ -1,10 +1,9 @@
 //go:build integration
 
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
-// Package testutil provides usage examples for the git test environment utility.
+// Package testutil provides usage examples for the git test environment utility
 package testutil
 
 import (
@@ -16,8 +15,8 @@ import (
 
 // ExampleGitTestEnvironment_BasicUsage demonstrates basic usage of the git test environment
 func ExampleGitTestEnvironment_BasicUsage() {
-	// This example shows how to use the git test environment utility
-	// in integration tests for testing real git operations.
+	// example shows how to use the git test environment utility
+	// In integration tests for testing real git operations
 
 	gitOps := gogit.New(ports.GitConfig{
 		UserName:    "Test User",

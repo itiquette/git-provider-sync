@@ -1,8 +1,6 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
-// Package logging provides adapters for logging operations.
 package logging
 
 import (
@@ -115,7 +113,7 @@ func (z *ZerologAdapter) addFields(event *zerolog.Event, fields map[string]any) 
 	}
 }
 
-// sanitizeMessage sanitizes URLs and credentials in log messages.
+// SanitizeMessage sanitizes URLs and credentials in log messages.
 func (z *ZerologAdapter) sanitizeMessage(msg string) string {
 	// Check if message contains URL patterns
 	if shared.ContainsURL(msg) {

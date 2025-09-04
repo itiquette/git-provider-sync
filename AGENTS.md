@@ -7,7 +7,7 @@ SPDX-License-Identifier: CC0-1.0
 
 # Agent Instructions for Git Provider Sync
 
-Comprehensive guidance for AI assistants working with the git-provider-sync codebase.
+AI assistant guide for the git-provider-sync codebase.
 
 ## Core Philosophy
 

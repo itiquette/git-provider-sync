@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package auth
@@ -165,11 +164,4 @@ func TestValidateToken(t *testing.T) {
 			}
 		})
 	}
-}
-
-func TestReadTokenFromStdin(t *testing.T) { //nolint:paralleltest // Cannot parallelize stdin test
-	// Stdin manipulation is complex in Go tests
-	// In a real scenario, we'd use a test harness that can mock stdin
-	// For now, we just ensure the function exists and compiles
-	t.Skip("Stdin testing requires complex test harness")
 }

@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 //nolint:funcorder // Filter with many helper methods
@@ -39,8 +38,8 @@ type FilterRequest struct {
 	Options              FilteringOptions
 }
 
-// FilteringOptions contains domain-specific filtering options.
-// This replaces the CLI-specific model.CLIOption with domain values.
+// FilteringOptions contains domain-specific filtering options
+// replaces the CLI-specific model.CLIOption with domain values.
 type FilteringOptions struct {
 	AlphaNumHyphName  bool
 	IncludeForks      bool
@@ -138,7 +137,7 @@ func (uc FilterRepositoriesUseCase) Execute(
 	return response, nil
 }
 
-// filterByActivity filters repositories based on activity time limits.
+// FilterByActivity filters repositories based on activity time limits.
 func (uc FilterRepositoriesUseCase) filterByActivity(
 	ctx context.Context,
 	repositories []entities.Repository,
@@ -186,7 +185,7 @@ func (uc FilterRepositoriesUseCase) filterByActivity(
 	return filtered, skipped
 }
 
-// filterByIncludeExclude filters repositories based on inclusion and exclusion lists.
+// FilterByIncludeExclude filters repositories based on inclusion and exclusion lists.
 func (uc FilterRepositoriesUseCase) filterByIncludeExclude(
 	ctx context.Context,
 	repositories []entities.Repository,
@@ -228,8 +227,8 @@ func (uc FilterRepositoriesUseCase) filterByIncludeExclude(
 	return filtered, skippedInclusion, skippedExclusion
 }
 
-// shouldIncludeRepository determines if a repository should be included based on inclusion and exclusion lists.
-// This ports the shouldIncludeRepo logic.
+// ShouldIncludeRepository determines if a repository should be included based on inclusion and exclusion lists
+// ports the shouldIncludeRepo logic.
 func (uc FilterRepositoriesUseCase) shouldIncludeRepository(repoName string, included, excluded []string) bool {
 	switch {
 	case len(included) == 0 && len(excluded) == 0:
@@ -244,8 +243,8 @@ func (uc FilterRepositoriesUseCase) shouldIncludeRepository(repoName string, inc
 	}
 }
 
-// filterByPatterns filters repositories based on pattern matching.
-// This enhances the basic pattern matching from the original fetch use case.
+// FilterByPatterns filters repositories based on pattern matching
+// enhances the basic pattern matching from the original fetch use case.
 func (uc FilterRepositoriesUseCase) filterByPatterns(
 	ctx context.Context,
 	repositories []entities.Repository,
@@ -279,8 +278,8 @@ func (uc FilterRepositoriesUseCase) filterByPatterns(
 	return filtered, skipped
 }
 
-// matchesPatterns checks if repository name matches include/exclude patterns.
-// Supports wildcard patterns: "*", "prefix*", "*suffix", "*contains*", "prefix*suffix".
+// MatchesPatterns checks if repository name matches include/exclude patterns
+// Supports wildcard patterns: "*", "prefix*", "*suffix", "*contains*", "prefix*suffix"
 // Include patterns act as allowlist; exclude patterns act as blocklist.
 func (uc FilterRepositoriesUseCase) matchesPatterns(name string, includePatterns, excludePatterns []string) bool {
 	// If no include patterns, assume included
@@ -309,12 +308,10 @@ func (uc FilterRepositoriesUseCase) matchesPatterns(name string, includePatterns
 	return true
 }
 
-// matchPattern performs wildcard pattern matching using finite state automaton approach.
-//
+// MatchPattern performs wildcard pattern matching using finite state automaton approach
 // ALGORITHM OVERVIEW:
 // Uses optimized string operations instead of regex compilation for better performance
-// in repository filtering scenarios. Achieves O(n+m) time complexity where n=name length, m=pattern length.
-//
+// In repository filtering scenarios. Achieves O(n+m) time complexity where n=name length, m=pattern length
 // SUPPORTED PATTERN TYPES:
 //   - "*" matches everything (constant time)
 //   - "prefix*" matches names starting with "prefix" (prefix match)
@@ -329,9 +326,8 @@ func (uc FilterRepositoriesUseCase) matchesPatterns(name string, includePatterns
 // - Contains patterns: O(n*m) - substring search
 // - Boundary patterns: O(n) - prefix + suffix check
 // - Exact match: O(n) - string comparison
-//
-// The algorithm prioritizes performance over regex flexibility, making it suitable
-// for high-volume repository filtering operations in sync pipelines.
+// Algorithm prioritizes performance over regex flexibility, making it suitable
+// For high-volume repository filtering operations in sync pipelines.
 func (uc FilterRepositoriesUseCase) matchPattern(name, pattern string) bool {
 	// Handle wildcard patterns
 	if pattern == "*" {
@@ -362,7 +358,7 @@ func (uc FilterRepositoriesUseCase) matchPattern(name, pattern string) bool {
 	return name == pattern
 }
 
-// filterByAttributes filters repositories based on various attributes.
+// FilterByAttributes filters repositories based on various attributes.
 func (uc FilterRepositoriesUseCase) filterByAttributes(
 	ctx context.Context,
 	repositories []entities.Repository,
@@ -390,7 +386,7 @@ func (uc FilterRepositoriesUseCase) filterByAttributes(
 	return filtered
 }
 
-// shouldIncludeByAttributes checks if repository should be included based on attributes.
+// ShouldIncludeByAttributes checks if repository should be included based on attributes
 //
 //nolint:cyclop // Complex filtering logic with multiple repository attributes
 func (uc FilterRepositoriesUseCase) shouldIncludeByAttributes(

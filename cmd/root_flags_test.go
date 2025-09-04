@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package cmd
@@ -82,7 +81,7 @@ func TestShortFlagAliases(t *testing.T) { //nolint:paralleltest // Cannot run in
 			err := rootCmd.Run(ctx, test.args)
 
 			// For these tests, we expect the command to fail due to missing config
-			// but the flags should still be parsed
+			// But the flags should still be parsed
 			if err == nil || capturedCmd != nil {
 				require.NotNil(t, capturedCmd, "Command should have been captured")
 				test.checkFunc(t, capturedCmd)

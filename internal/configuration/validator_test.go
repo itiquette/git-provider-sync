@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package configuration
@@ -325,7 +324,7 @@ func TestValidateGitBinary(t *testing.T) {
 	defer cancel()
 
 	// Test will pass if git is available on the system
-	// and fail if it's not, which is expected behavior
+	// And fail if it's not, which is expected behavior
 	err := validateGitBinary(ctx)
 
 	// We can't assert success/failure here since it depends on the system

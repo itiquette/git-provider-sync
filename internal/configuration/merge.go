@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package configuration
@@ -19,7 +18,7 @@ type ConfigSource struct {
 	Priority int                      // Higher number = higher precedence
 }
 
-// MergeConfigs merges multiple configuration sources according to priority.
+// MergeConfigs merges multiple configuration sources according to priority
 // Pure function - no side effects, no mutations.
 func MergeConfigs(sources []ConfigSource) *config.AppConfiguration {
 	if len(sources) == 0 {
@@ -50,8 +49,8 @@ func MergeConfigs(sources []ConfigSource) *config.AppConfiguration {
 	return result
 }
 
-// mergeAppConfig merges two AppConfiguration instances.
-// It returns a new instance without modifying inputs.
+// MergeAppConfig merges two AppConfiguration instances
+// returns a new instance without modifying inputs.
 func mergeAppConfig(base, override *config.AppConfiguration) *config.AppConfiguration {
 	if base == nil && override == nil {
 		return &config.AppConfiguration{
@@ -88,7 +87,7 @@ func mergeAppConfig(base, override *config.AppConfiguration) *config.AppConfigur
 	return result
 }
 
-// mergeEnvironments merges two Environment instances.
+// MergeEnvironments merges two Environment instances.
 func mergeEnvironments(base, override config.Environment) config.Environment {
 	result := make(config.Environment)
 
@@ -109,7 +108,7 @@ func mergeEnvironments(base, override config.Environment) config.Environment {
 	return result
 }
 
-// mergeSyncConfigs merges two SyncConfig instances.
+// MergeSyncConfigs merges two SyncConfig instances.
 func mergeSyncConfigs(base, override config.SyncConfig) config.SyncConfig {
 	result := copySyncConfig(base)
 
@@ -133,7 +132,7 @@ func mergeSyncConfigs(base, override config.SyncConfig) config.SyncConfig {
 	return result
 }
 
-// mergeBaseConfigs merges two BaseConfig instances.
+// MergeBaseConfigs merges two BaseConfig instances.
 func mergeBaseConfigs(base, override config.BaseConfig) config.BaseConfig {
 	result := base
 
@@ -163,7 +162,7 @@ func mergeBaseConfigs(base, override config.BaseConfig) config.BaseConfig {
 	return result
 }
 
-// mergeAuthConfigs merges two AuthConfig instances.
+// MergeAuthConfigs merges two AuthConfig instances.
 func mergeAuthConfigs(base, override config.AuthConfig) config.AuthConfig {
 	result := base
 
@@ -186,7 +185,7 @@ func mergeAuthConfigs(base, override config.AuthConfig) config.AuthConfig {
 	return result
 }
 
-// mergeString returns override if not empty, otherwise base.
+// MergeString returns override if not empty, otherwise base.
 func mergeString(base, override string) string {
 	if override != "" {
 		return override
@@ -195,7 +194,7 @@ func mergeString(base, override string) string {
 	return base
 }
 
-// mergeInt returns override if not zero, otherwise base.
+// MergeInt returns override if not zero, otherwise base.
 func mergeInt(base, override int) int {
 	if override != 0 {
 		return override
@@ -204,7 +203,7 @@ func mergeInt(base, override int) int {
 	return base
 }
 
-// mergeRepositoryOptions merges two RepositoriesOption instances.
+// MergeRepositoryOptions merges two RepositoriesOption instances.
 func mergeRepositoryOptions(base, override config.RepositoriesOption) config.RepositoriesOption {
 	result := config.RepositoriesOption{
 		Include: mergeStringSlices(base.Include, override.Include),
@@ -214,7 +213,7 @@ func mergeRepositoryOptions(base, override config.RepositoriesOption) config.Rep
 	return result
 }
 
-// mergeStringSlices merges two string slices.
+// MergeStringSlices merges two string slices
 // Override completely replaces base if not empty.
 func mergeStringSlices(base, override []string) []string {
 	if len(override) > 0 {
@@ -234,7 +233,7 @@ func mergeStringSlices(base, override []string) []string {
 	return []string{}
 }
 
-// mergeMirrors merges two mirror maps.
+// MergeMirrors merges two mirror maps.
 func mergeMirrors(base, override map[string]config.MirrorConfig) map[string]config.MirrorConfig {
 	if base == nil && override == nil {
 		return make(map[string]config.MirrorConfig)
@@ -259,7 +258,7 @@ func mergeMirrors(base, override map[string]config.MirrorConfig) map[string]conf
 	return result
 }
 
-// mergeMirrorConfigs merges two MirrorConfig instances.
+// MergeMirrorConfigs merges two MirrorConfig instances.
 func mergeMirrorConfigs(base, override config.MirrorConfig) config.MirrorConfig {
 	result := copyMirrorConfig(base)
 
@@ -277,15 +276,15 @@ func mergeMirrorConfigs(base, override config.MirrorConfig) config.MirrorConfig 
 	return result
 }
 
-// mergeMirrorSettings merges two MirrorSettings instances.
+// MergeMirrorSettings merges two MirrorSettings instances
 // Note: For booleans, we always take the override value since Go doesn't distinguish
-// between unset and false. In practice, this is handled at the config loading level
-// where only explicitly set values are included in the override config.
+// Between unset and false. In practice, this is handled at the config loading level
+// Where only explicitly set values are included in the override config.
 func mergeMirrorSettings(base, override config.MirrorSettings) config.MirrorSettings {
 	result := base
 
-	// Limitation: Go's zero values can't distinguish unset from false.
-	// Production should use pointers or IsSet fields.
+	// Limitation: Go's zero values can't distinguish unset from false
+	// Production should use pointers or IsSet fields
 	result.AlphaNumHyphName = override.AlphaNumHyphName
 	result.Disabled = override.Disabled
 	result.ForcePush = override.ForcePush
@@ -374,8 +373,8 @@ func copyStringSlice(slice []string) []string {
 	return result
 }
 
-// ProcessRepositoryLists converts comma-separated strings to slices.
-// This is a pure function that returns a new configuration.
+// ProcessRepositoryLists converts comma-separated strings to slices
+// is a pure function that returns a new configuration.
 func ProcessRepositoryLists(cfg *config.AppConfiguration) *config.AppConfiguration {
 	result := copyAppConfig(cfg)
 
@@ -393,7 +392,7 @@ func ProcessRepositoryLists(cfg *config.AppConfiguration) *config.AppConfigurati
 
 			for mirrorName, mirror := range source.Mirrors {
 				// Note: MirrorConfig doesn't have Repositories in the current struct,
-				// but keeping this for completeness
+				// But keeping this for completeness
 				source.Mirrors[mirrorName] = mirror
 			}
 		}
@@ -404,7 +403,7 @@ func ProcessRepositoryLists(cfg *config.AppConfiguration) *config.AppConfigurati
 	return result
 }
 
-// splitCommaSeparated splits a comma-separated string and trims whitespace.
+// SplitCommaSeparated splits a comma-separated string and trims whitespace.
 func splitCommaSeparated(s string) []string {
 	parts := strings.Split(s, ",")
 
@@ -419,8 +418,8 @@ func splitCommaSeparated(s string) []string {
 	return result
 }
 
-// ExpandVariables expands environment variables in configuration.
-// This is a pure function that takes an environment map for expansion.
+// ExpandVariables expands environment variables in configuration
+// is a pure function that takes an environment map for expansion.
 func ExpandVariables(cfg *config.AppConfiguration, envVars map[string]string) *config.AppConfiguration {
 	result := copyAppConfig(cfg)
 
@@ -454,7 +453,7 @@ func ExpandVariables(cfg *config.AppConfiguration, envVars map[string]string) *c
 	return result
 }
 
-// expandVar expands environment variables in a string.
+// ExpandVar expands environment variables in a string
 // Pure function using provided environment map.
 func expandVar(input string, envVars map[string]string) string {
 	if input == "" || !strings.Contains(input, "$") {
@@ -471,8 +470,8 @@ func expandVar(input string, envVars map[string]string) string {
 	})
 }
 
-// ApplyProviderTokens applies provider-specific token overrides.
-// This is a pure function that returns a new configuration.
+// ApplyProviderTokens applies provider-specific token overrides
+// is a pure function that returns a new configuration.
 func ApplyProviderTokens(cfg *config.AppConfiguration, providerTokens map[string]string) *config.AppConfiguration {
 	result := copyAppConfig(cfg)
 

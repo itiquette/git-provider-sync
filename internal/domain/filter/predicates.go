@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package filter
@@ -11,11 +10,11 @@ import (
 	"itiquette/git-provider-sync/internal/domain/entities"
 )
 
-// Predicate is a pure function that tests if a repository matches certain criteria.
+// Predicate is a pure function that tests if a repository matches certain criteria
 // Pure functions with no side effects make testing and composition easier.
 type Predicate func(entities.Repository) bool
 
-// All returns a predicate that matches when ALL provided predicates match (AND logic).
+// All returns a predicate that matches when ALL provided predicates match (AND logic)
 // Example: All(IsPublic, NotArchived, HasActivity).
 func All(predicates ...Predicate) Predicate {
 	return func(repo entities.Repository) bool {
@@ -29,7 +28,7 @@ func All(predicates ...Predicate) Predicate {
 	}
 }
 
-// Any returns a predicate that matches when ANY provided predicate matches (OR logic).
+// Any returns a predicate that matches when ANY provided predicate matches (OR logic)
 // Example: Any(HasTopic("go"), HasTopic("golang")).
 func Any(predicates ...Predicate) Predicate {
 	return func(repo entities.Repository) bool {
@@ -43,7 +42,7 @@ func Any(predicates ...Predicate) Predicate {
 	}
 }
 
-// Not returns a predicate that inverts the result of the given predicate.
+// Not returns a predicate that inverts the result of the given predicate
 // Example: Not(IsArchived).
 func Not(predicate Predicate) Predicate {
 	return func(repo entities.Repository) bool {
@@ -51,7 +50,7 @@ func Not(predicate Predicate) Predicate {
 	}
 }
 
-// None returns a predicate that matches when NONE of the predicates match.
+// None returns a predicate that matches when NONE of the predicates match
 // Equivalent to Not(Any(...)) but more explicit.
 func None(predicates ...Predicate) Predicate {
 	return Not(Any(predicates...))
@@ -168,8 +167,8 @@ func NameNotIn(names []string) Predicate {
 	return Not(NameIn(names))
 }
 
-// Filter applies the predicate to filter a slice of repositories.
-// This is a pure function that returns a new slice without modifying the input.
+// Filter applies the predicate to filter a slice of repositories
+// is a pure function that returns a new slice without modifying the input.
 func Filter(repos []entities.Repository, predicate Predicate) []entities.Repository {
 	if predicate == nil {
 		// Return a copy to maintain immutability
@@ -190,8 +189,8 @@ func Filter(repos []entities.Repository, predicate Predicate) []entities.Reposit
 	return result
 }
 
-// Count returns the number of repositories that match the predicate.
-// This is a pure function with no side effects.
+// Count returns the number of repositories that match the predicate
+// is a pure function with no side effects.
 func Count(repos []entities.Repository, predicate Predicate) int {
 	if predicate == nil {
 		return len(repos)
@@ -208,8 +207,8 @@ func Count(repos []entities.Repository, predicate Predicate) int {
 	return count
 }
 
-// Partition splits repositories into two slices: matching and not matching the predicate.
-// This is a pure function that returns new slices without modifying the input.
+// Partition splits repositories into two slices: matching and not matching the predicate
+// is a pure function that returns new slices without modifying the input.
 func Partition(repos []entities.Repository, predicate Predicate) ([]entities.Repository, []entities.Repository) {
 	matching := make([]entities.Repository, 0, len(repos))
 	notMatching := make([]entities.Repository, 0, len(repos))

@@ -1,15 +1,16 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
-// Package statuscmd provides functionality to display Git Provider Sync system status.
-// It shows configuration validity, provider connectivity, and suggests next actions.
+// Package statuscmd displays Git Provider Sync system status,
+// configuration validity, provider connectivity, and next actions
 package statuscmd
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -27,16 +28,15 @@ import (
 	config "itiquette/git-provider-sync/internal/model/configuration"
 )
 
-// NewStatusCommand creates and returns a new cli.Command for the 'status' subcommand.
-// It displays the current system status including configuration validity,
-// provider connectivity, and suggested next actions.
-//
+// NewStatusCommand creates and returns a new cli.Command for the 'status' subcommand
+// displays the current system status including configuration validity,
+// Provider connectivity, and suggested next actions
 // Example usage:
 //
 //	gitprovidersync status
 //	gitprovidersync status --connectivity-check
 //
-// The command shows configuration status, provider reachability, and actionable suggestions.
+// Command shows configuration status, provider reachability, and actionable suggestions.
 func NewStatusCommand() *cli.Command {
 	cmd := &cli.Command{
 		Name:  "status",
@@ -63,7 +63,7 @@ This helps you understand what needs attention and what commands to run next.`,
 	return cmd
 }
 
-// runStatus executes the status command logic.
+// RunStatus executes the status command logic.
 func runStatus(ctx context.Context, cmd *cli.Command) error {
 	logger := log.Logger(ctx)
 
@@ -87,7 +87,7 @@ func runStatus(ctx context.Context, cmd *cli.Command) error {
 	outputFormat := cliConfig.OutputFormat()
 	ctx = log.InitLogger(ctx, logLevel, quiet, false, outputFormat)
 
-	// → Reading configuration...
+	// → Reading configuration..
 	logger.Info().Msg("→ Reading configuration...")
 
 	configLoaderInstance := configuration.DefaultConfigLoader{}
@@ -159,7 +159,22 @@ type SystemStatus struct {
 	Suggestions         []string
 }
 
-// createSystemStatus creates a system status from the configuration.
+// StatusJSON represents the JSON output structure for status command.
+type StatusJSON struct {
+	OverallSuccess             bool     `json:"overall_success"`
+	ConfigurationValid         bool     `json:"configuration_valid"`
+	EnvironmentCount           int      `json:"environment_count"`
+	TotalErrors                int      `json:"total_errors"`
+	TotalWarnings              int      `json:"total_warnings"`
+	ConnectivityChecked        bool     `json:"connectivity_checked"`
+	ConnectivityRequiredFailed *int     `json:"connectivity_required_failed,omitempty"`
+	ConnectivityOptionalFailed *int     `json:"connectivity_optional_failed,omitempty"`
+	Issues                     []string `json:"issues"`
+	Warnings                   []string `json:"warnings"`
+	Suggestions                []string `json:"suggestions"`
+}
+
+// CreateSystemStatus creates a system status from the configuration.
 func createSystemStatus(config config.AppConfiguration, connectivityCheck bool) SystemStatus {
 	// Count environments
 	envCount := 0
@@ -187,7 +202,7 @@ func createSystemStatus(config config.AppConfiguration, connectivityCheck bool) 
 	return status
 }
 
-// testProviderConnectivity tests connectivity to providers in the configuration.
+// TestProviderConnectivity tests connectivity to providers in the configuration.
 func testProviderConnectivity(ctx context.Context, config config.AppConfiguration, adapter *validationAdapters.ConnectivityAdapter) []validation.ConnectivityResult {
 	var results []validation.ConnectivityResult
 
@@ -215,7 +230,7 @@ func testProviderConnectivity(ctx context.Context, config config.AppConfiguratio
 	return results
 }
 
-// buildHTTPSURL creates an HTTPS URL from a domain.
+// BuildHTTPSURL creates an HTTPS URL from a domain.
 func buildHTTPSURL(domain string) string {
 	if domain == "" {
 		return ""
@@ -224,7 +239,7 @@ func buildHTTPSURL(domain string) string {
 	return "https://" + domain
 }
 
-// formatSystemStatus creates formatted output for the system status.
+// FormatSystemStatus creates formatted output for the system status.
 func formatSystemStatus(status SystemStatus, _ /* connectivityChecked */, skipSuggestions bool, outputFormat string) string {
 	switch outputFormat {
 	case "json":
@@ -239,7 +254,7 @@ func formatSystemStatus(status SystemStatus, _ /* connectivityChecked */, skipSu
 	}
 }
 
-// formatStatusConsole creates human-readable console output.
+// FormatStatusConsole creates human-readable console output.
 func formatStatusConsole(status SystemStatus, skipSuggestions bool) string {
 	// Get appropriate symbols based on terminal capabilities
 	// Default to auto mode - honors NO_COLOR environment variable
@@ -293,7 +308,7 @@ func formatStatusConsole(status SystemStatus, skipSuggestions bool) string {
 	return output.String()
 }
 
-// formatConnectivityWithSymbols formats connectivity status with appropriate symbols.
+// FormatConnectivityWithSymbols formats connectivity status with appropriate symbols.
 func formatConnectivityWithSymbols(status SystemStatus, symbols cliAdapters.Symbols) string {
 	_, requiredFailed, optionalFailed := validation.CountConnectivityFailures(status.ConnectivityResults)
 
@@ -314,7 +329,7 @@ func formatConnectivityWithSymbols(status SystemStatus, symbols cliAdapters.Symb
 	return output.String()
 }
 
-// formatIssuesWithSymbols formats issues with appropriate symbols.
+// FormatIssuesWithSymbols formats issues with appropriate symbols.
 func formatIssuesWithSymbols(status SystemStatus, symbols cliAdapters.Symbols) string {
 	var output strings.Builder
 
@@ -331,7 +346,7 @@ func formatIssuesWithSymbols(status SystemStatus, symbols cliAdapters.Symbols) s
 	return output.String()
 }
 
-// formatNextSteps provides actionable next steps based on status.
+// FormatNextSteps suggests next actions based on status.
 func formatNextSteps(status SystemStatus, symbols cliAdapters.Symbols) string {
 	var output strings.Builder
 
@@ -360,7 +375,7 @@ func formatNextSteps(status SystemStatus, symbols cliAdapters.Symbols) string {
 	return output.String()
 }
 
-// formatStatusPlain creates plain text output for pipelines.
+// FormatStatusPlain creates plain text output for pipelines.
 func formatStatusPlain(status SystemStatus, _ /* skipSuggestions */ bool) string {
 	statusText := "OK"
 	if status.HasCriticalIssues {
@@ -369,140 +384,55 @@ func formatStatusPlain(status SystemStatus, _ /* skipSuggestions */ bool) string
 		statusText = "WARNING"
 	}
 
-	output := fmt.Sprintf("STATUS\t%s\n", statusText)
-	output += fmt.Sprintf("CONFIG_VALID\t%v\n", status.ConfigurationValid)
-	output += fmt.Sprintf("ENVIRONMENTS\t%d\n", status.EnvironmentCount)
+	var output strings.Builder
+	fmt.Fprintf(&output, "STATUS\t%s\n", statusText)
+	fmt.Fprintf(&output, "CONFIG_VALID\t%v\n", status.ConfigurationValid)
+	fmt.Fprintf(&output, "ENVIRONMENTS\t%d\n", status.EnvironmentCount)
 
 	if status.ConnectivityChecked {
 		_, requiredFailed, optionalFailed := validation.CountConnectivityFailures(status.ConnectivityResults)
-		output += fmt.Sprintf("CONNECTIVITY_REQUIRED_FAILED\t%d\n", requiredFailed)
-		output += fmt.Sprintf("CONNECTIVITY_OPTIONAL_FAILED\t%d\n", optionalFailed)
+		fmt.Fprintf(&output, "CONNECTIVITY_REQUIRED_FAILED\t%d\n", requiredFailed)
+		fmt.Fprintf(&output, "CONNECTIVITY_OPTIONAL_FAILED\t%d\n", optionalFailed)
 	}
 
-	output += fmt.Sprintf("TOTAL_ERRORS\t%d\n", len(status.Issues))
-	output += fmt.Sprintf("TOTAL_WARNINGS\t%d\n", len(status.Warnings))
+	fmt.Fprintf(&output, "TOTAL_ERRORS\t%d\n", len(status.Issues))
+	fmt.Fprintf(&output, "TOTAL_WARNINGS\t%d\n", len(status.Warnings))
 
-	return output
+	return output.String()
 }
 
-// formatStatusJSON creates JSON output for programmatic use.
+// FormatStatusJSON creates JSON output for programmatic use.
 func formatStatusJSON(status SystemStatus) string {
-	// Create a simplified JSON structure
-	statusMap := map[string]any{
-		"overall_success":      !status.HasCriticalIssues,
-		"configuration_valid":  status.ConfigurationValid,
-		"environment_count":    status.EnvironmentCount,
-		"total_errors":         len(status.Issues),
-		"total_warnings":       len(status.Warnings),
-		"connectivity_checked": status.ConnectivityChecked,
-		"issues":               status.Issues,
-		"warnings":             status.Warnings,
-		"suggestions":          status.Suggestions,
+	// Create properly typed JSON structure
+	jsonStatus := StatusJSON{
+		OverallSuccess:      !status.HasCriticalIssues,
+		ConfigurationValid:  status.ConfigurationValid,
+		EnvironmentCount:    status.EnvironmentCount,
+		TotalErrors:         len(status.Issues),
+		TotalWarnings:       len(status.Warnings),
+		ConnectivityChecked: status.ConnectivityChecked,
+		Issues:              status.Issues,
+		Warnings:            status.Warnings,
+		Suggestions:         status.Suggestions,
 	}
 
 	if status.ConnectivityChecked {
 		_, requiredFailed, optionalFailed := validation.CountConnectivityFailures(status.ConnectivityResults)
-		statusMap["connectivity_required_failed"] = requiredFailed
-		statusMap["connectivity_optional_failed"] = optionalFailed
+		jsonStatus.ConnectivityRequiredFailed = &requiredFailed
+		jsonStatus.ConnectivityOptionalFailed = &optionalFailed
 	}
 
-	// Simple JSON formatting (avoiding external dependencies)
-	return formatJSONOutput(statusMap)
-}
-
-// formatJSONOutput creates basic JSON output without external dependencies.
-func formatJSONOutput(data map[string]any) string {
-	output := "{\n"
-
-	for key, value := range data {
-		output += formatJSONValue(key, value, "")
+	// Use standard library JSON marshaling with indentation
+	jsonBytes, err := json.MarshalIndent(jsonStatus, "", "  ")
+	if err != nil {
+		// This should never happen with a properly typed struct
+		return fmt.Sprintf(`{"error": "failed to format JSON: %s"}`, err.Error())
 	}
 
-	// Remove trailing comma
-	output = removeTrailingComma(output)
-	output += "}\n"
-
-	return output
+	return string(jsonBytes) + "\n"
 }
 
-// formatJSONValue formats a single JSON key-value pair with proper indentation.
-func formatJSONValue(key string, value any, indent string) string {
-	baseIndent := "  " + indent
-
-	switch typedValue := value.(type) {
-	case string:
-		return fmt.Sprintf("%s\"%s\": \"%s\",\n", baseIndent, key, typedValue)
-	case int:
-		return fmt.Sprintf("%s\"%s\": %d,\n", baseIndent, key, typedValue)
-	case int64:
-		return fmt.Sprintf("%s\"%s\": %d,\n", baseIndent, key, typedValue)
-	case bool:
-		return fmt.Sprintf("%s\"%s\": %v,\n", baseIndent, key, typedValue)
-	case []string:
-		return formatJSONStringArray(key, typedValue, baseIndent)
-	case map[string]any:
-		return formatJSONObject(key, typedValue, baseIndent)
-	default:
-		return ""
-	}
-}
-
-// formatJSONStringArray formats a string array as JSON.
-func formatJSONStringArray(key string, values []string, indent string) string {
-	output := fmt.Sprintf("%s\"%s\": [", indent, key)
-
-	for index, item := range values {
-		if index > 0 {
-			output += ", "
-		}
-
-		output += fmt.Sprintf("\"%s\"", item)
-	}
-
-	output += "],\n"
-
-	return output
-}
-
-// formatJSONObject formats a nested object as JSON.
-func formatJSONObject(key string, objValue map[string]any, indent string) string {
-	output := fmt.Sprintf("%s\"%s\": {\n", indent, key)
-
-	for subKey, subValue := range objValue {
-		output += formatJSONObjectValue(subKey, subValue, indent+"  ")
-	}
-
-	// Remove trailing comma
-	output = removeTrailingComma(output)
-	output += indent + "},\n"
-
-	return output
-}
-
-// formatJSONObjectValue formats a value within a nested object.
-func formatJSONObjectValue(key string, value any, indent string) string {
-	switch typedValue := value.(type) {
-	case string:
-		return fmt.Sprintf("%s\"%s\": \"%s\",\n", indent, key, typedValue)
-	case bool:
-		return fmt.Sprintf("%s\"%s\": %v,\n", indent, key, typedValue)
-	case []string:
-		return formatJSONStringArray(key, typedValue, indent)
-	default:
-		return ""
-	}
-}
-
-// removeTrailingComma removes trailing comma and newline from JSON output.
-func removeTrailingComma(output string) string {
-	if len(output) > 2 && output[len(output)-2:] == ",\n" {
-		return output[:len(output)-2] + "\n"
-	}
-
-	return output
-}
-
-// handleStatusError provides specific error messages for status command failures.
+// HandleStatusError returns specific error messages for status command failures.
 func handleStatusError(err error, outputFormat string) {
 	errMsg := err.Error()
 
@@ -526,7 +456,22 @@ func handleStatusError(err error, outputFormat string) {
 	fmt.Printf("  • Run 'gitprovidersync --help' for more information\n\n")
 }
 
-// getLastSyncInfoFromPath reads simple last sync info from a specific file path.
+// parseSyncInfoLine parses a single line from the sync info file.
+func parseSyncInfoLine(line string) (string, int64) {
+	parts := strings.SplitN(line, "=", 2)
+	if len(parts) != 2 {
+		return "", 0
+	}
+
+	val, err := strconv.ParseInt(parts[1], 10, 64)
+	if err != nil {
+		return "", 0
+	}
+
+	return parts[0], val
+}
+
+// GetLastSyncInfoFromPath reads simple last sync info from a specific file path
 // Testable with custom file paths.
 func getLastSyncInfoFromPath(filePath string) string {
 	content, err := os.ReadFile(filePath) //nolint:gosec // File path is controlled and validated
@@ -534,24 +479,19 @@ func getLastSyncInfoFromPath(filePath string) string {
 		return ""
 	}
 
-	// Simple parsing
-	var timestamp int64
-
-	var repos, successful, failed, skipped int
+	// Parse sync info using simple key=value format
+	var timestamp, repos, successful int64
 
 	lines := strings.Split(string(content), "\n")
 	for _, line := range lines {
-		switch {
-		case strings.HasPrefix(line, "timestamp="):
-			_, _ = fmt.Sscanf(line, "timestamp=%d", &timestamp)
-		case strings.HasPrefix(line, "repos="):
-			_, _ = fmt.Sscanf(line, "repos=%d", &repos)
-		case strings.HasPrefix(line, "successful="):
-			_, _ = fmt.Sscanf(line, "successful=%d", &successful)
-		case strings.HasPrefix(line, "failed="):
-			_, _ = fmt.Sscanf(line, "failed=%d", &failed)
-		case strings.HasPrefix(line, "skipped="):
-			_, _ = fmt.Sscanf(line, "skipped=%d", &skipped)
+		key, val := parseSyncInfoLine(line)
+		switch key {
+		case "timestamp":
+			timestamp = val
+		case "repos":
+			repos = val
+		case "successful":
+			successful = val
 		}
 	}
 
@@ -565,7 +505,7 @@ func getLastSyncInfoFromPath(filePath string) string {
 	return ""
 }
 
-// Legacy functions kept for tests - to be refactored.
+// Legacy functions kept for tests - to be refactored
 //
 //nolint:unused // Used in tests
 func formatConfigurationStatus(_ SystemStatus) string {

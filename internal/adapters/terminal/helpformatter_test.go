@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package terminal
@@ -87,7 +86,7 @@ func TestHelpFormatterColorDetection(t *testing.T) {
 	// Test automatic color detection
 	formatter := NewHelpFormatter()
 
-	// The formatter should detect color support based on environment
+	// Formatter should detect color support based on environment
 	require.NotNil(t, formatter, "Formatter should be created successfully")
 
 	// Test that Bold and Section methods work without panicking

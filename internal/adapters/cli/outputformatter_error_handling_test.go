@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package cli
@@ -16,7 +15,7 @@ import (
 	model "itiquette/git-provider-sync/internal/model/configuration"
 )
 
-// errorWriter is a writer that always returns an error.
+// ErrorWriter is a writer that always returns an error.
 type errorWriter struct{}
 
 func (w errorWriter) Write(_ []byte) (int, error) {

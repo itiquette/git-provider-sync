@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package logging
@@ -21,7 +20,7 @@ type DebugWriter struct {
 	mu       sync.Mutex
 }
 
-// NewDebugWriter creates a new debug writer that writes to both console and file.
+// NewDebugWriter creates a new debug writer that writes to both console and file
 // Returns the original writer if debug mode is not enabled or file creation fails.
 func NewDebugWriter(console io.Writer, enabled bool) (io.Writer, string, error) {
 	if !enabled {
@@ -108,8 +107,8 @@ func (w *DebugWriter) Close() error {
 	return nil
 }
 
-// TeeWriter creates a writer that tees output to a debug file when enabled.
-// This is a convenience function for setting up debug logging.
+// TeeWriter creates a writer that tees output to a debug file when enabled
+// is a convenience function for setting up debug logging.
 func TeeWriter(console io.Writer, logLevel string) (io.Writer, string) {
 	// Enable debug file for debug and trace levels
 	enabled := logLevel == "debug" || logLevel == "trace"

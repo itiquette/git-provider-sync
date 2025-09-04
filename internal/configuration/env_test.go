@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package configuration
@@ -314,7 +313,7 @@ func TestProxyEnvironmentVariables(t *testing.T) {
 	t.Parallel()
 
 	// Note: We can't actually test that the HTTP clients use these,
-	// but we can verify they're available in the environment
+	// But we can verify they're available in the environment
 	tests := []struct {
 		name     string
 		envVars  map[string]string

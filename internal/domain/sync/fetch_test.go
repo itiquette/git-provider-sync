@@ -1,11 +1,11 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package sync
 
 import (
 	"context"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -21,6 +21,12 @@ import (
 //nolint:cyclop,maintidx // Test function with multiple test cases
 func TestFetchSourceRepositoriesUseCase_Execute(t *testing.T) {
 	t.Parallel()
+
+	// Use consistent test paths for mocks
+	testTmpDir := filepath.Join("testdata", "tmp", "fetch_test")
+	testRepoPath := func(name string) string {
+		return filepath.Join(testTmpDir, name)
+	}
 
 	tests := []struct {
 		name           string
@@ -41,13 +47,13 @@ func TestFetchSourceRepositoriesUseCase_Execute(t *testing.T) {
 				provider.On("ListRepositories", mock.Anything, mock.AnythingOfType("ports.ProviderConfig")).Return(repos, nil)
 
 				// Mock git operations for temporary directory
-				gitOps.On("GetTmpDirPath", mock.Anything).Return("/tmp/fetch_test", nil)
+				gitOps.On("GetTmpDirPath", mock.Anything).Return(testTmpDir, nil)
 
 				// Mock git cloning for each repository
 				for _, repo := range repos {
 					mockRepo := &SharedMockGitRepository{}
 					mockRepo.On("Name").Return(repo.Name())
-					mockRepo.On("Path").Return("/tmp/" + repo.Name())
+					mockRepo.On("Path").Return(testRepoPath(repo.Name()))
 					gitOps.On("Clone", mock.Anything, mock.MatchedBy(func(opts ports.CloneOptions) bool {
 						return opts.URL == repo.HTTPSURL()
 					})).Return(mockRepo, nil)
@@ -115,12 +121,12 @@ func TestFetchSourceRepositoriesUseCase_Execute(t *testing.T) {
 				provider.On("ListRepositories", mock.Anything, mock.AnythingOfType("ports.ProviderConfig")).Return(repos, nil)
 
 				// Mock git operations for temporary directory
-				gitOps.On("GetTmpDirPath", mock.Anything).Return("/tmp/fetch_test", nil)
+				gitOps.On("GetTmpDirPath", mock.Anything).Return(testTmpDir, nil)
 
 				// Only one repository should be cloned (normal-repo)
 				mockRepo := &SharedMockGitRepository{}
 				mockRepo.On("Name").Return("normal-repo")
-				mockRepo.On("Path").Return("/tmp/normal-repo")
+				mockRepo.On("Path").Return(testRepoPath("normal-repo"))
 				gitOps.On("Clone", mock.Anything, mock.MatchedBy(func(opts ports.CloneOptions) bool {
 					return opts.URL == "https://github.com/test/normal-repo.git"
 				})).Return(mockRepo, nil)
@@ -175,12 +181,12 @@ func TestFetchSourceRepositoriesUseCase_Execute(t *testing.T) {
 				provider.On("ListRepositories", mock.Anything, mock.AnythingOfType("ports.ProviderConfig")).Return(repos, nil)
 
 				// Mock git operations for temporary directory
-				gitOps.On("GetTmpDirPath", mock.Anything).Return("/tmp/fetch_test", nil)
+				gitOps.On("GetTmpDirPath", mock.Anything).Return(testTmpDir, nil)
 
 				// Mock successful clone for first repo
 				mockRepo := &SharedMockGitRepository{}
 				mockRepo.On("Name").Return("success-repo")
-				mockRepo.On("Path").Return("/tmp/success-repo")
+				mockRepo.On("Path").Return(testRepoPath("success-repo"))
 				gitOps.On("Clone", mock.Anything, mock.MatchedBy(func(opts ports.CloneOptions) bool {
 					return opts.URL == "https://github.com/test/success-repo.git"
 				})).Return(mockRepo, nil)

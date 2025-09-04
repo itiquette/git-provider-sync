@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package filesystem
@@ -11,8 +10,8 @@ import (
 	"itiquette/git-provider-sync/internal/domain/ports"
 )
 
-// OSFileSystem implements FileSystem port using standard OS operations.
-// This adapter isolates all OS-specific file operations from the domain.
+// OSFileSystem implements FileSystem port using standard OS operations
+// adapter isolates all OS-specific file operations from the domain.
 type OSFileSystem struct{}
 
 // NewOSFileSystem creates a new OS-based file system adapter.

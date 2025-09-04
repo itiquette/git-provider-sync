@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package mirror
@@ -17,7 +16,7 @@ import (
 	"itiquette/git-provider-sync/internal/domain/ports"
 )
 
-// Mock implementations for testing.
+// Mock implementations for testing
 
 type mockGitOps struct{}
 
@@ -190,7 +189,7 @@ func (m *mockLogger) Warn(_ context.Context, _ string, _ map[string]any)  {}
 func (m *mockLogger) Fatal(_ context.Context, _ string, _ map[string]any) {}
 func (m *mockLogger) IsLevelEnabled(_ ports.LogLevel) bool                { return true }
 
-// Test Service constructors.
+// Test Service constructors
 
 func TestNewService(t *testing.T) {
 	t.Parallel()
@@ -256,7 +255,7 @@ func TestNewDryRunMirrorService(t *testing.T) {
 	assert.False(t, service.config.ForceByDefault)
 }
 
-// Test Service operations.
+// Test Service operations
 
 func TestService_MirrorRepository(t *testing.T) {
 	t.Parallel()
@@ -308,7 +307,7 @@ func TestService_MirrorRepository(t *testing.T) {
 
 	result := service.MirrorRepository(ctx, source, sourceAuth, target, targetAuth)
 
-	// The result should be successful (mocked operations succeed)
+	// Result should be successful (mocked operations succeed)
 	assert.True(t, result.Success)
 	require.NoError(t, result.Error)
 	assert.Equal(t, OperationTypeCloneAndMirror, result.Operation.Type)
@@ -557,7 +556,7 @@ func TestService_PlanMirrorOperation(t *testing.T) {
 	assert.NotEmpty(t, operation.Validations)
 }
 
-// Test helper methods.
+// Test helper methods
 
 func TestService_extractOwnerFromURL(t *testing.T) {
 	t.Parallel()
@@ -699,7 +698,7 @@ func TestService_buildOperationOptions(t *testing.T) {
 
 	service := NewService(&mockGitOps{}, &mockRepoProvider{}, &mockLogger{}, config)
 
-	// Test with no options.
+	// Test with no options
 	options := service.buildOperationOptions()
 
 	assert.True(t, options.DryRun)
@@ -709,7 +708,7 @@ func TestService_buildOperationOptions(t *testing.T) {
 	assert.Equal(t, 2*time.Second, options.RetryPolicy.Delay)
 	assert.Equal(t, BackoffStrategyExponential, options.RetryPolicy.Backoff)
 
-	// Test with custom options.
+	// Test with custom options
 	customOptions := service.buildOperationOptions(
 		WithDryRun(false),
 		WithForce(false),
@@ -721,7 +720,7 @@ func TestService_buildOperationOptions(t *testing.T) {
 	assert.Equal(t, 10*time.Minute, customOptions.Timeout)
 }
 
-// Test validation functions.
+// Test validation functions
 
 func TestValidateRepositoryNames(t *testing.T) {
 	t.Parallel()

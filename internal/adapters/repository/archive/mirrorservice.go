@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package archive
@@ -154,7 +153,7 @@ func (ms *MirrorService) Mirror(ctx context.Context, request MirrorRequest) (*Mi
 	return result, nil
 }
 
-// performDryRun simulates an archive mirror operation.
+// PerformDryRun simulates an archive mirror operation.
 func (ms *MirrorService) performDryRun(ctx context.Context, request MirrorRequest, result *MirrorResult) *MirrorResult {
 	ms.logger.Info(ctx, "Performing archive dry run", map[string]any{
 		"source": request.SourceRepository.HTTPSURL(),
@@ -179,7 +178,7 @@ func (ms *MirrorService) performDryRun(ctx context.Context, request MirrorReques
 	return result
 }
 
-// createWorkingDirectory creates a temporary working directory.
+// CreateWorkingDirectory creates a temporary working directory.
 func (ms *MirrorService) createWorkingDirectory(ctx context.Context) (string, error) {
 	workDir := filepath.Join(ms.tempDir, "archive-mirror-"+generateTimestamp())
 
@@ -194,7 +193,7 @@ func (ms *MirrorService) createWorkingDirectory(ctx context.Context) (string, er
 	return workDir, nil
 }
 
-// cleanupWorkingDirectory removes the temporary working directory.
+// CleanupWorkingDirectory removes the temporary working directory.
 func (ms *MirrorService) cleanupWorkingDirectory(ctx context.Context, workDir string) {
 	if err := os.RemoveAll(workDir); err != nil {
 		ms.logger.Warn(ctx, "Failed to cleanup working directory", map[string]any{
@@ -208,7 +207,7 @@ func (ms *MirrorService) cleanupWorkingDirectory(ctx context.Context, workDir st
 	}
 }
 
-// downloadSource downloads the source repository to the working directory.
+// DownloadSource downloads the source repository to the working directory.
 func (ms *MirrorService) downloadSource(ctx context.Context, request MirrorRequest, workDir string) (string, error) {
 	ms.logger.Debug(ctx, "Downloading source repository", map[string]any{
 		"source":   request.SourceRepository.HTTPSURL(),
@@ -229,7 +228,7 @@ func (ms *MirrorService) downloadSource(ctx context.Context, request MirrorReque
 	return sourceDir, nil
 }
 
-// cloneRepository performs the actual git clone operation.
+// CloneRepository performs the actual git clone operation.
 func (ms *MirrorService) cloneRepository(ctx context.Context, request MirrorRequest, sourceDir string) error {
 	ms.logger.Debug(ctx, "Cloning repository", map[string]any{
 		"url":        request.SourceRepository.HTTPSURL(),
@@ -258,7 +257,7 @@ func (ms *MirrorService) cloneRepository(ctx context.Context, request MirrorRequ
 	return nil
 }
 
-// createRealisticRepositoryStructure creates a realistic repository structure for demonstration.
+// CreateRealisticRepositoryStructure creates a realistic repository structure for demonstration.
 func (ms *MirrorService) createRealisticRepositoryStructure(sourceDir string, repo entities.Repository) error {
 	// Create realistic repository structure based on repo name and type
 	repoName := repo.Name()
@@ -353,7 +352,7 @@ clean:
 	return nil
 }
 
-// createArchive creates an archive from the source directory.
+// CreateArchive creates an archive from the source directory.
 func (ms *MirrorService) createArchive(ctx context.Context, sourceDir, archivePath string, request MirrorRequest, result *MirrorResult) error {
 	ms.logger.Debug(ctx, "Creating archive", map[string]any{
 		"source_dir":   sourceDir,
@@ -377,7 +376,7 @@ func (ms *MirrorService) createArchive(ctx context.Context, sourceDir, archivePa
 	}
 }
 
-// createTarGzArchive creates a tar.gz archive.
+// CreateTarGzArchive creates a tar.gz archive.
 func (ms *MirrorService) createTarGzArchive(_ /* ctx */ context.Context, sourceDir, archivePath string, request MirrorRequest, result *MirrorResult) error {
 	// #nosec G304 - Archive path comes from controlled mirror operations
 	file, err := os.Create(archivePath)
@@ -419,7 +418,7 @@ func (ms *MirrorService) createTarGzArchive(_ /* ctx */ context.Context, sourceD
 	return ms.walkAndAddToTar(sourceDir, tarWriter, request, result)
 }
 
-// createTarArchive creates a tar archive (without compression).
+// CreateTarArchive creates a tar archive (without compression).
 func (ms *MirrorService) createTarArchive(_ /* ctx */ context.Context, sourceDir, archivePath string, request MirrorRequest, result *MirrorResult) error {
 	// #nosec G304 - Archive path comes from controlled mirror operations
 	file, err := os.Create(archivePath)
@@ -448,7 +447,7 @@ func (ms *MirrorService) createTarArchive(_ /* ctx */ context.Context, sourceDir
 	return ms.walkAndAddToTar(sourceDir, tarWriter, request, result)
 }
 
-// walkAndAddToTar walks the source directory and adds files to the tar archive.
+// WalkAndAddToTar walks the source directory and adds files to the tar archive.
 func (ms *MirrorService) walkAndAddToTar(sourceDir string, tarWriter *tar.Writer, request MirrorRequest, result *MirrorResult) error { //nolint:gocognit,cyclop // Complex archive processing logic
 	err := filepath.WalkDir(sourceDir, func(filePath string, dirEntry fs.DirEntry, err error) error {
 		if err != nil {
@@ -544,7 +543,7 @@ func (ms *MirrorService) walkAndAddToTar(sourceDir string, tarWriter *tar.Writer
 	return nil
 }
 
-// shouldSkipFile determines if a file should be skipped based on patterns.
+// ShouldSkipFile determines if a file should be skipped based on patterns.
 func (ms *MirrorService) shouldSkipFile(filePath string, includePatterns, excludePatterns []string) bool {
 	// Check exclude patterns first
 	for _, pattern := range excludePatterns {
@@ -568,7 +567,7 @@ func (ms *MirrorService) shouldSkipFile(filePath string, includePatterns, exclud
 	return true // Not in include patterns
 }
 
-// matchesPattern checks if a file path matches a pattern.
+// MatchesPattern checks if a file path matches a pattern.
 func (ms *MirrorService) matchesPattern(filePath, pattern string) bool {
 	// For file paths in archives, support both glob and substring matching
 	// First try glob matching for patterns with wildcards
@@ -581,11 +580,11 @@ func (ms *MirrorService) matchesPattern(filePath, pattern string) bool {
 	}
 
 	// For simple strings, use substring matching (original behavior)
-	// This allows pattern "test" to match "src/test.go"
+	// allows pattern "test" to match "src/test.go"
 	return strings.Contains(filePath, pattern)
 }
 
-// generateArchiveName generates a name for the archive file.
+// GenerateArchiveName generates a name for the archive file.
 func (ms *MirrorService) generateArchiveName(request MirrorRequest) string {
 	if request.ArchiveNamePattern != "" {
 		// Simple pattern substitution for repository name
@@ -610,7 +609,7 @@ func (ms *MirrorService) generateArchiveName(request MirrorRequest) string {
 	}
 }
 
-// generateTimestamp generates a timestamp string for temporary directories.
+// GenerateTimestamp generates a timestamp string for temporary directories.
 func generateTimestamp() string {
 	return time.Now().Format("20060102-150405.000")
 }

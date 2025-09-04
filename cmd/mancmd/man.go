@@ -1,8 +1,7 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
-// Package mancmd provides manual/help command functionality.
+// Package mancmd generates manual pages and help documentation
 package mancmd
 
 import (
@@ -13,9 +12,9 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-// NewManCommand creates and returns a new cli.Command for the 'man' subcommand.
-// This command generates man pages in markdown format.
-// The command is hidden from normal help output as it's primarily used for build processes.
+// NewManCommand creates and returns a new cli.Command for the 'man' subcommand
+// command generates man pages in markdown format
+// Command is hidden from normal help output as it's primarily used for build processes.
 func NewManCommand() *cli.Command {
 	cmd := &cli.Command{
 		Name:   "man",
@@ -27,8 +26,8 @@ func NewManCommand() *cli.Command {
 	return cmd
 }
 
-// runManGeneration generates man page content.
-// This outputs basic man page content.
+// RunManGeneration generates man page content
+// outputs basic man page content
 // In a full implementation, this would generate markdown that gets converted to man format.
 func runManGeneration(_ context.Context, _ *cli.Command) error {
 	// Basic man page content output

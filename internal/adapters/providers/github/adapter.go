@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package github
@@ -217,7 +216,7 @@ func (a *Adapter) DeleteRepository(ctx context.Context, config ports.ProviderCon
 }
 
 // Note: Repository filtering is handled by domain.FilterRepositoriesUseCase
-// This adapter focuses only on GitHub API interactions
+// adapter focuses only on GitHub API interactions
 
 // ValidateRepositoryName validates a repository name for GitHub.
 func (a *Adapter) ValidateRepositoryName(name string) error {
@@ -239,9 +238,9 @@ func (a *Adapter) ValidateRepositoryName(name string) error {
 	return nil
 }
 
-// TransformRepositoryName transforms a repository name according to transformation rules.
-// The options parameter supports prefix/suffix addition, case conversion,
-// character replacement, and length constraints for GitHub provider compatibility.
+// TransformRepositoryName transforms a repository name according to transformation rules
+// Options parameter supports prefix/suffix addition, case conversion,
+// Character replacement, and length constraints for GitHub provider compatibility.
 func (a *Adapter) TransformRepositoryName(name string, options ports.NameTransformOptions) string {
 	result := name
 
@@ -554,7 +553,7 @@ func (a *Adapter) convertToRepository(repo *github.Repository) (entities.Reposit
 	return builtRepo, nil
 }
 
-// setRepositoryStringFields uses the common helper to set string fields.
+// SetRepositoryStringFields uses the common helper to set string fields.
 func (a *Adapter) setRepositoryStringFields(repo *github.Repository, builder *entities.RepositoryBuilder) error {
 	return setRepositoryStringFields(repo, builder)
 }

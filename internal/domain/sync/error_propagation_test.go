@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package sync
@@ -16,7 +15,7 @@ import (
 	"itiquette/git-provider-sync/internal/domain/ports"
 )
 
-// mockFailingProvider simulates provider failures for testing error propagation.
+// MockFailingProvider simulates provider failures for testing error propagation.
 type mockFailingProvider struct {
 	failOnList   bool
 	failOnCreate bool
@@ -213,7 +212,7 @@ func TestErrorPropagation_CascadingFailures(t *testing.T) {
 		// When context is cancelled, operations should fail fast
 		select {
 		case <-ctx.Done():
-			// This is the expected path - context cancelled
+			// is the expected path - context cancelled
 			err := ctx.Err()
 			require.Error(t, err)
 			assert.Equal(t, context.Canceled, err)
@@ -350,7 +349,5 @@ func TestErrorPropagation_ErrorWrapping(t *testing.T) {
 
 		// In real implementation, errors would be wrapped
 		// Example of what production code should do:
-		// wrappedErr := fmt.Errorf("failed to create repository %s: %w", options.Name, baseError)
-		// assert.True(t, errors.Is(wrappedErr, baseError))
 	})
 }

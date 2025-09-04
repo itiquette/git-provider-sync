@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package cli
@@ -116,7 +115,7 @@ func TestFormatConfiguration_WriterError(t *testing.T) {
 	assert.Contains(t, err.Error(), "write failed")
 }
 
-// erroringWriter is a test helper that always returns an error on Write.
+// ErroringWriter is a test helper that always returns an error on Write.
 type erroringWriter struct {
 	err error
 }

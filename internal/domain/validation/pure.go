@@ -1,8 +1,7 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
-// Package validation provides pure functional validation logic.
+// Package validation provides pure functional validation logic
 package validation
 
 import (
@@ -204,7 +203,7 @@ func ValidateSourceConfiguration(source ports.SourceConfiguration) Results {
 	}
 }
 
-// ValidateMirrorConfiguration validates mirror target configuration.
+// ValidateMirrorConfiguration validates mirror target configuration
 //
 //nolint:cyclop // Complex validation logic with multiple mirror configuration checks
 func ValidateMirrorConfiguration(mirror ports.MirrorConfiguration) Results {

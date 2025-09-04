@@ -1,8 +1,6 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
-// Package config provides configuration file loading and parsing adapters.
 package config
 
 import (
@@ -207,7 +205,7 @@ func (a *FileAdapter) GetVersion() string {
 
 // Private helper methods
 
-// loadSource loads a single configuration source.
+// LoadSource loads a single configuration source.
 func (a *FileAdapter) loadSource(source ports.ConfigurationSource) error {
 	switch source.Type {
 	case ports.SourceTypeFile:
@@ -221,7 +219,7 @@ func (a *FileAdapter) loadSource(source ports.ConfigurationSource) error {
 	}
 }
 
-// loadFileSource loads configuration from a file.
+// LoadFileSource loads configuration from a file.
 func (a *FileAdapter) loadFileSource(source ports.ConfigurationSource) error {
 	if err := a.checkFileExists(source); err != nil {
 		// If it's an optional file that doesn't exist, skip it
@@ -246,7 +244,7 @@ func (a *FileAdapter) loadFileSource(source ports.ConfigurationSource) error {
 	return nil
 }
 
-// checkFileExists checks if the configuration file exists and handles optional/required logic.
+// CheckFileExists checks if the configuration file exists and handles optional/required logic.
 func (a *FileAdapter) checkFileExists(source ports.ConfigurationSource) error {
 	if _, err := os.Stat(source.Location); errors.Is(err, fs.ErrNotExist) {
 		if source.Required {
@@ -259,7 +257,7 @@ func (a *FileAdapter) checkFileExists(source ports.ConfigurationSource) error {
 	return nil
 }
 
-// determineFileFormat determines the configuration format based on source format or file extension.
+// DetermineFileFormat determines the configuration format based on source format or file extension.
 func (a *FileAdapter) determineFileFormat(source ports.ConfigurationSource) ports.ConfigurationFormat {
 	if source.Format != "" {
 		return source.Format
@@ -278,7 +276,7 @@ func (a *FileAdapter) determineFileFormat(source ports.ConfigurationSource) port
 	}
 }
 
-// createParser creates the appropriate parser for the given format.
+// CreateParser creates the appropriate parser for the given format.
 func (a *FileAdapter) createParser(format ports.ConfigurationFormat) (koanfpkg.Parser, error) { //nolint:ireturn
 	switch format {
 	case ports.ConfigurationFormatYAML:
@@ -292,7 +290,7 @@ func (a *FileAdapter) createParser(format ports.ConfigurationFormat) (koanfpkg.P
 	}
 }
 
-// loadFileWithParser loads the configuration file using the specified parser.
+// LoadFileWithParser loads the configuration file using the specified parser.
 func (a *FileAdapter) loadFileWithParser(location string, parser koanfpkg.Parser) error {
 	err := a.koanf.Load(file.Provider(location), parser)
 	if err != nil {
@@ -302,7 +300,7 @@ func (a *FileAdapter) loadFileWithParser(location string, parser koanfpkg.Parser
 	return nil
 }
 
-// loadEnvironmentSource loads configuration from environment variables.
+// LoadEnvironmentSource loads configuration from environment variables.
 func (a *FileAdapter) loadEnvironmentSource(source ports.ConfigurationSource) error {
 	prefix := source.Location
 	if prefix == "" {
@@ -325,7 +323,7 @@ func (a *FileAdapter) loadEnvironmentSource(source ports.ConfigurationSource) er
 	return nil
 }
 
-// parseConfiguration parses the loaded configuration into AppConfiguration.
+// ParseConfiguration parses the loaded configuration into AppConfiguration.
 func (a *FileAdapter) parseConfiguration() (ports.AppConfiguration, error) {
 	config := ports.NewAppConfiguration()
 
@@ -369,7 +367,7 @@ func (a *FileAdapter) parseConfiguration() (ports.AppConfiguration, error) {
 	return config, nil
 }
 
-// parseEnvironment parses a single environment configuration.
+// ParseEnvironment parses a single environment configuration.
 func (a *FileAdapter) parseEnvironment(name string, data any) (ports.EnvironmentConfiguration, error) {
 	env := ports.EnvironmentConfiguration{
 		Name:    name,
@@ -401,7 +399,7 @@ func (a *FileAdapter) parseEnvironment(name string, data any) (ports.Environment
 	return env, nil
 }
 
-// parseSourceConfiguration parses source configuration.
+// ParseSourceConfiguration parses source configuration.
 func (a *FileAdapter) parseSourceConfiguration(data any) (ports.SourceConfiguration, error) {
 	var source ports.SourceConfiguration
 
@@ -442,7 +440,7 @@ func (a *FileAdapter) parseSourceConfiguration(data any) (ports.SourceConfigurat
 	return source, nil
 }
 
-// parseMirrorConfiguration parses mirror configuration.
+// ParseMirrorConfiguration parses mirror configuration.
 func (a *FileAdapter) parseMirrorConfiguration(name string, data any) (ports.MirrorConfiguration, error) {
 	mirror := ports.MirrorConfiguration{
 		Name:    name,
@@ -465,7 +463,7 @@ func (a *FileAdapter) parseMirrorConfiguration(name string, data any) (ports.Mir
 	return mirror, nil
 }
 
-// parseMirrorBasicFields parses the basic fields of a mirror configuration.
+// ParseMirrorBasicFields parses the basic fields of a mirror configuration.
 func (a *FileAdapter) parseMirrorBasicFields(mirror *ports.MirrorConfiguration, mirrorMap map[string]any) error { //nolint:unparam // Error return reserved for future validation
 	// Define field mappings for type-safe parsing
 	stringFields := map[string]*string{
@@ -494,7 +492,7 @@ func (a *FileAdapter) parseMirrorBasicFields(mirror *ports.MirrorConfiguration, 
 	return nil
 }
 
-// parseMirrorAuthenticationField parses the authentication field of a mirror configuration.
+// ParseMirrorAuthenticationField parses the authentication field of a mirror configuration.
 func (a *FileAdapter) parseMirrorAuthenticationField(mirror *ports.MirrorConfiguration, mirrorMap map[string]any) error {
 	if authData, exists := mirrorMap["authentication"]; exists {
 		auth, err := a.parseAuthConfiguration(authData)
@@ -508,7 +506,7 @@ func (a *FileAdapter) parseMirrorAuthenticationField(mirror *ports.MirrorConfigu
 	return nil
 }
 
-// parseAuthConfiguration parses authentication configuration.
+// ParseAuthConfiguration parses authentication configuration.
 func (a *FileAdapter) parseAuthConfiguration(data any) (ports.AuthenticationConfiguration, error) {
 	var auth ports.AuthenticationConfiguration
 
@@ -523,7 +521,7 @@ func (a *FileAdapter) parseAuthConfiguration(data any) (ports.AuthenticationConf
 	return auth, nil
 }
 
-// validateEnvironment validates a single environment.
+// ValidateEnvironment validates a single environment.
 func (a *FileAdapter) validateEnvironment(envName string, env ports.EnvironmentConfiguration) []ports.ConfigurationError {
 	var validationErrors []ports.ConfigurationError
 
@@ -570,7 +568,7 @@ func (a *FileAdapter) validateEnvironment(envName string, env ports.EnvironmentC
 	return validationErrors
 }
 
-// validateMirror validates a single mirror configuration.
+// ValidateMirror validates a single mirror configuration.
 func (a *FileAdapter) validateMirror(envName, mirrorName string, mirror ports.MirrorConfiguration) []ports.ConfigurationError {
 	var validationErrors []ports.ConfigurationError
 
@@ -607,7 +605,7 @@ func (a *FileAdapter) validateMirror(envName, mirrorName string, mirror ports.Mi
 	return validationErrors
 }
 
-// validateGlobalSettings validates global settings.
+// ValidateGlobalSettings validates global settings.
 func (a *FileAdapter) validateGlobalSettings(settings ports.GlobalSettings) []ports.ConfigurationError {
 	var validationErrors []ports.ConfigurationError
 
@@ -643,7 +641,7 @@ func (a *FileAdapter) validateGlobalSettings(settings ports.GlobalSettings) []po
 	return validationErrors
 }
 
-// calculateChecksum calculates a checksum of the current configuration.
+// CalculateChecksum calculates a checksum of the current configuration.
 func (a *FileAdapter) calculateChecksum() string {
 	data := a.koanf.Sprint()
 	hash := sha256.Sum256([]byte(data))
@@ -651,7 +649,7 @@ func (a *FileAdapter) calculateChecksum() string {
 	return hex.EncodeToString(hash[:])
 }
 
-// parseEnvironmentEnabled parses the enabled flag for an environment.
+// ParseEnvironmentEnabled parses the enabled flag for an environment.
 func (a *FileAdapter) parseEnvironmentEnabled(env *ports.EnvironmentConfiguration, envMap map[string]any) error { //nolint:unparam // Error return reserved for future validation
 	if enabled, exists := envMap["enabled"]; exists {
 		if enabledBool, ok := enabled.(bool); ok {
@@ -662,7 +660,7 @@ func (a *FileAdapter) parseEnvironmentEnabled(env *ports.EnvironmentConfiguratio
 	return nil
 }
 
-// parseEnvironmentSource parses the source configuration for an environment.
+// ParseEnvironmentSource parses the source configuration for an environment.
 func (a *FileAdapter) parseEnvironmentSource(env *ports.EnvironmentConfiguration, envMap map[string]any) error {
 	if sourceData, exists := envMap["source"]; exists {
 		source, err := a.parseSourceConfiguration(sourceData)
@@ -676,7 +674,7 @@ func (a *FileAdapter) parseEnvironmentSource(env *ports.EnvironmentConfiguration
 	return nil
 }
 
-// parseEnvironmentMirrors parses the mirrors configuration for an environment.
+// ParseEnvironmentMirrors parses the mirrors configuration for an environment.
 func (a *FileAdapter) parseEnvironmentMirrors(env *ports.EnvironmentConfiguration, envMap map[string]any) error {
 	if mirrorsData, exists := envMap["mirrors"]; exists {
 		mirrorsMap, ok := mirrorsData.(map[string]any)
@@ -697,7 +695,7 @@ func (a *FileAdapter) parseEnvironmentMirrors(env *ports.EnvironmentConfiguratio
 	return nil
 }
 
-// parseEnvironmentOptions parses the options configuration for an environment.
+// ParseEnvironmentOptions parses the options configuration for an environment.
 func (a *FileAdapter) parseEnvironmentOptions(env *ports.EnvironmentConfiguration, envMap map[string]any) error { //nolint:unparam // Error return reserved for future validation
 	if optionsData, exists := envMap["options"]; exists {
 		var options ports.EnvironmentOptions
@@ -709,7 +707,7 @@ func (a *FileAdapter) parseEnvironmentOptions(env *ports.EnvironmentConfiguratio
 	return nil
 }
 
-// parseAuthType parses the authentication type field.
+// ParseAuthType parses the authentication type field.
 func (a *FileAdapter) parseAuthType(auth *ports.AuthenticationConfiguration, authMap map[string]any) {
 	if authType, exists := authMap["type"]; exists {
 		if at, ok := authType.(string); ok {
@@ -718,7 +716,7 @@ func (a *FileAdapter) parseAuthType(auth *ports.AuthenticationConfiguration, aut
 	}
 }
 
-// parseAuthCredentials parses authentication credential fields.
+// ParseAuthCredentials parses authentication credential fields.
 func (a *FileAdapter) parseAuthCredentials(auth *ports.AuthenticationConfiguration, authMap map[string]any) {
 	if token, exists := authMap["token"]; exists {
 		if t, ok := token.(string); ok {

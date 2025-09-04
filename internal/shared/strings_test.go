@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package shared
@@ -495,10 +494,6 @@ func TestLinebreakReplacer(t *testing.T) {
 
 func TestStringFunctions_LargeInputs(t *testing.T) {
 	t.Parallel()
-
-	if testing.Short() {
-		t.Skip("skipping benchmarks in short mode")
-	}
 
 	// These are not actual benchmarks but test that functions work with large inputs
 	tests := []struct {

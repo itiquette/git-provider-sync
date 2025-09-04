@@ -6,9 +6,9 @@ gitprovidersync - synchronize Git repositories between providers
 
 ## SYNOPSIS
 
-**gitprovidersync** [*OPTION*...] *COMMAND* [*args*...]  
-**gitprovidersync** [*OPTION*...] **sync** [*OPTION*...] 
-**gitprovidersync** [*OPTION*...] **print** [*OPTION*...]  
+**gitprovidersync** [*OPTION*...] *COMMAND* [*args*...]
+**gitprovidersync** [*OPTION*...] **sync** [*OPTION*...]
+**gitprovidersync** [*OPTION*...] **print** [*OPTION*...]
 **gitprovidersync** [*OPTION*...] **man** [*OPTION*...]
 
 ## DESCRIPTION
@@ -176,7 +176,7 @@ Example configuration:
 Configuration sections:
 
 - **providers**: Define Git provider connections
-- **synchronizations**: Specify sync operations between providers  
+- **synchronizations**: Specify sync operations between providers
 - **settings**: Global and per-sync configuration options
 - **filters**: Include/exclude patterns for repositories and branches
 

@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package github
@@ -23,7 +22,7 @@ const (
 	testProtectionAPIPath = "/api/v3/repos/testowner/test-repo/branches/main/protection"
 )
 
-// testCompleteLogger is a simple no-op logger for testing CompleteAdapter.
+// TestCompleteLogger is a simple no-op logger for testing CompleteAdapter.
 type testCompleteLogger struct{}
 
 func (l testCompleteLogger) Trace(_ context.Context, _ string, _ map[string]any) {}
@@ -154,7 +153,7 @@ func TestCompleteAdapter_CreateRepositoryWithAdvancedOptions(t *testing.T) {
 				assert.Nil(t, repo)
 			} else if err != nil {
 				// Due to complexity of mocking all required services, we accept that this may fail
-				// but the important thing is that the function is executed for coverage
+				// But the important thing is that the function is executed for coverage
 				t.Logf("Expected error in test environment: %v", err)
 			}
 		})
@@ -302,7 +301,7 @@ func TestCompleteAdapter_FilterRepositoriesWithAdvancedCriteria(t *testing.T) {
 	result, err := adapter.FilterRepositoriesWithAdvancedCriteria(ctx, repositories, filterOptions)
 
 	// We expect this to possibly fail in test environment due to lack of proper service mocking
-	// but the important thing is that the function is executed for coverage
+	// But the important thing is that the function is executed for coverage
 	if err != nil {
 		t.Logf("Expected error in test environment: %v", err)
 	} else {
@@ -365,7 +364,7 @@ func TestCompleteAdapter_ValidateAndTransformRepositoryName(t *testing.T) {
 			result, err := adapter.ValidateAndTransformRepositoryName(test.input, test.options)
 
 			// We expect this to possibly fail in test environment due to validation logic
-			// but the important thing is that the function is executed for coverage
+			// But the important thing is that the function is executed for coverage
 			if err != nil {
 				t.Logf("Expected error in test environment for input '%s': %v", test.input, err)
 			} else {

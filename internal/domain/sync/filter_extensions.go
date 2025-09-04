@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package sync
@@ -100,7 +99,7 @@ func (uc EnhancedFilterUseCase) ExecuteFunctional(
 	return response, nil
 }
 
-// CreateActivityPredicate creates a pure predicate for activity filtering.
+// CreateActivityPredicate creates a pure predicate for activity filtering
 // Extracted as a pure function for testing and reuse.
 func CreateActivityPredicate(activeFromLimit string) (filter.Predicate, error) {
 	if activeFromLimit == "" {

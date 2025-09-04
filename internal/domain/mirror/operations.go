@@ -1,8 +1,7 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
-// Package mirror provides pure functional mirror operations.
+// Package mirror provides pure functional mirror operations
 package mirror
 
 import (

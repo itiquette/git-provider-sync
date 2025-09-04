@@ -1,12 +1,11 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package terminal
 
 import "os"
 
-// ColorMode represents when to use colors in output.
+// ColorMode represents when to use colors in output
 // Be idiomatic: use standard naming from tools like ls, grep.
 type ColorMode string
 
@@ -19,7 +18,7 @@ const (
 	ColorNever ColorMode = "never"
 )
 
-// Color provides minimal ANSI color codes for terminal output.
+// Color provides minimal ANSI color codes for terminal output
 // Be functional and idiomatic: immutable color codes determined at startup.
 type Color struct {
 	Red   string
@@ -28,8 +27,8 @@ type Color struct {
 	Reset string
 }
 
-// NewColor creates color codes based on color mode and TTY detection.
-// Returns empty strings if colors should be disabled.
+// NewColor creates color codes based on color mode and TTY detection
+// Returns empty strings if colors should be disabled
 // Don't overengineer: just 3 colors for essential highlighting.
 func NewColor(mode ColorMode, isTTY bool) Color {
 	if !shouldUseColor(mode, isTTY) {
@@ -44,9 +43,9 @@ func NewColor(mode ColorMode, isTTY bool) Color {
 	}
 }
 
-// shouldUseColor determines if colors should be used.
-// Be functional: pure function with explicit inputs.
-// Respects NO_COLOR environment variable per https://no-color.org.
+// ShouldUseColor determines if colors should be used
+// Be functional: pure function with explicit inputs
+// Respects NO_COLOR environment variable per https://no-color.org
 func shouldUseColor(mode ColorMode, isTTY bool) bool {
 	// NO_COLOR takes precedence over everything
 	if os.Getenv("NO_COLOR") != "" {

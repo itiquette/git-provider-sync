@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package cli
@@ -225,16 +224,16 @@ func TestConfigContext_Propagation(t *testing.T) {
 	config2, found2 := ConfigFromContext(ctx2)
 	config3, found3 := ConfigFromContext(ctx3)
 
-	// ctx1 (base) should not have config
+	// Ctx1 (base) should not have config
 	assert.False(t, found1)
 
-	// ctx2 (with config) should have config
+	// Ctx2 (with config) should have config
 	require.True(t, found2)
 	assert.Equal(t, config.ConfigFilePath(), config2.ConfigFilePath())
 	assert.Equal(t, config.OutputFormat(), config2.OutputFormat())
 	assert.Equal(t, config.Quiet(), config2.Quiet())
 
-	// ctx3 (derived from ctx2) should inherit the same config
+	// Ctx3 (derived from ctx2) should inherit the same config
 	require.True(t, found3)
 	assert.Equal(t, config2.ConfigFilePath(), config3.ConfigFilePath())
 	assert.Equal(t, config2.OutputFormat(), config3.OutputFormat())

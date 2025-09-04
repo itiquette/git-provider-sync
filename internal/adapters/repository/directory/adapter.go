@@ -1,8 +1,6 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
-// Package directory provides filesystem-based repository operations.
 package directory
 
 import (
@@ -18,9 +16,9 @@ import (
 	"itiquette/git-provider-sync/internal/domain/ports"
 )
 
-// Adapter implements the GitOperations interface for directory-based operations.
-// This adapter provides a simpler interface for basic directory management
-// without full git functionality, useful for file-based repositories or backups.
+// Adapter implements the GitOperations interface for directory-based operations
+// adapter provides a simpler interface for basic directory management
+// Without full git functionality, useful for file-based repositories or backups.
 type Adapter struct {
 	config ports.GitConfig
 }
@@ -32,7 +30,7 @@ func New(config ports.GitConfig) *Adapter {
 	}
 }
 
-// Clone creates a directory copy from source to destination.
+// Clone creates a directory copy from source to destination
 // For directory adapter, this means copying files rather than git cloning.
 func (a *Adapter) Clone(_ /* ctx */ context.Context, options ports.CloneOptions) (ports.GitRepository, error) { //nolint:ireturn
 	// Ensure destination directory exists
@@ -333,7 +331,7 @@ func (r *Repository) Close() error {
 
 // Helper methods
 
-// copyDirectory recursively copies a directory from src to dst.
+// CopyDirectory recursively copies a directory from src to dst.
 func (a *Adapter) copyDirectory(src, dst string) error {
 	err := filepath.WalkDir(src, func(path string, dirEntry fs.DirEntry, err error) error {
 		if err != nil {
@@ -368,7 +366,7 @@ func (a *Adapter) copyDirectory(src, dst string) error {
 	return nil
 }
 
-// copyFile copies a single file from src to dst.
+// CopyFile copies a single file from src to dst.
 func (a *Adapter) copyFile(src, dst string) error {
 	// Read source file
 	// #nosec G304 - Source path comes from trusted directory walking

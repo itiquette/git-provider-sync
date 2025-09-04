@@ -1,9 +1,8 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
-// Package entities contains core domain entities with business logic and behavior.
-// These entities are pure domain models with no external dependencies.
+// Package entities contains core domain entities with business logic and behavior
+// These entities are pure domain models with no external dependencies
 package entities
 
 import (

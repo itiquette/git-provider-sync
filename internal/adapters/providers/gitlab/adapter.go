@@ -1,8 +1,6 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
-// Package gitlab provides GitLab provider adapter for Git Provider Sync.
 package gitlab
 
 import (
@@ -243,7 +241,7 @@ func (a *Adapter) DeleteRepository(ctx context.Context, config ports.ProviderCon
 }
 
 // Note: Repository filtering is handled by domain.FilterRepositoriesUseCase
-// This adapter focuses only on GitLab API interactions
+// adapter focuses only on GitLab API interactions
 
 // ValidateRepositoryName validates a repository name for GitLab.
 func (a *Adapter) ValidateRepositoryName(name string) error {
@@ -265,9 +263,9 @@ func (a *Adapter) ValidateRepositoryName(name string) error {
 	return nil
 }
 
-// TransformRepositoryName transforms a repository name according to transformation rules.
-// The options parameter supports prefix/suffix addition, case conversion,
-// character replacement, and length constraints for GitLab provider compatibility.
+// TransformRepositoryName transforms a repository name according to transformation rules
+// Options parameter supports prefix/suffix addition, case conversion,
+// Character replacement, and length constraints for GitLab provider compatibility.
 func (a *Adapter) TransformRepositoryName(name string, options ports.NameTransformOptions) string {
 	result := name
 

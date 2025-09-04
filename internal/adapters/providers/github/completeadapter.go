@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package github
@@ -20,7 +19,7 @@ import (
 type CompleteAdapter struct {
 	*Adapter // Embed the basic adapter
 
-	// service layers
+	// Service layers
 	projectService    *ProjectService
 	protectionService *ProtectionService
 	filterService     *FilterService

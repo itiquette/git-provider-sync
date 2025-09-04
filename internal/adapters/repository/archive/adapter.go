@@ -1,8 +1,6 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
-// Package archive provides archive-based repository operations for Git Provider Sync.
 package archive
 
 import (
@@ -34,9 +32,9 @@ var (
 	ErrFileTooLargeInArchive    = errors.New("file too large in archive")
 )
 
-// Adapter implements the GitOperations interface for archive-based operations.
-// This adapter provides functionality for creating and extracting tar.gz archives
-// of repositories, useful for backup and distribution purposes.
+// Adapter implements the GitOperations interface for archive-based operations
+// adapter provides functionality for creating and extracting tar.gz archives
+// Of repositories, useful for backup and distribution purposes.
 type Adapter struct {
 	config ports.GitConfig
 }
@@ -48,7 +46,7 @@ func New(config ports.GitConfig) *Adapter {
 	}
 }
 
-// Clone extracts an archive to a destination directory.
+// Clone extracts an archive to a destination directory
 // For archive adapter, this means extracting a tar.gz archive.
 func (a *Adapter) Clone(_ context.Context, options ports.CloneOptions) (ports.GitRepository, error) { //nolint:ireturn
 	// Ensure destination directory exists
@@ -68,7 +66,7 @@ func (a *Adapter) Clone(_ context.Context, options ports.CloneOptions) (ports.Gi
 	}, nil
 }
 
-// extractFromURL handles extraction from different URL types.
+// ExtractFromURL handles extraction from different URL types.
 func (a *Adapter) extractFromURL(url, destinationPath string) error {
 	if !strings.HasPrefix(url, "file://") {
 		return ErrArchiveOnlySupportsFile
@@ -86,12 +84,12 @@ func (a *Adapter) extractFromURL(url, destinationPath string) error {
 	return nil
 }
 
-// isSupportedArchiveFormat checks if the file extension is supported.
+// IsSupportedArchiveFormat checks if the file extension is supported.
 func isSupportedArchiveFormat(path string) bool {
 	return strings.HasSuffix(path, ".tar.gz") || strings.HasSuffix(path, ".tgz")
 }
 
-// Push creates an archive from the repository.
+// Push creates an archive from the repository
 // For archive adapter, this means creating a tar.gz archive.
 func (a *Adapter) Push(_ context.Context, repo ports.GitRepository, _ ports.PushOptions) error {
 	// Get the repository path
@@ -135,7 +133,7 @@ func (a *Adapter) Init(_ context.Context, _ string, _ ports.InitOptions) (ports.
 // Cleanup removes temporary files or performs cleanup for archive operations.
 func (a *Adapter) Cleanup(_ context.Context, _ string) error {
 	// For archive operations, we might want to clean up extracted files
-	// This is a no-op for now, but could be extended for temporary extractions
+	// is a no-op for now, but could be extended for temporary extractions
 	return nil
 }
 
@@ -187,7 +185,7 @@ func (a *Adapter) DeleteTmpDir(ctx context.Context) error {
 
 // Helper methods
 
-// extractArchive extracts a tar.gz archive to the specified destination.
+// ExtractArchive extracts a tar.gz archive to the specified destination.
 func (a *Adapter) extractArchive(archivePath, destPath string) error {
 	tarReader, cleanupFunc, err := a.openArchiveForReading(archivePath)
 	if err != nil {
@@ -198,7 +196,7 @@ func (a *Adapter) extractArchive(archivePath, destPath string) error {
 	return a.extractTarContents(tarReader, destPath)
 }
 
-// openArchiveForReading opens a tar.gz archive and returns the tar reader and cleanup function.
+// OpenArchiveForReading opens a tar.gz archive and returns the tar reader and cleanup function.
 func (a *Adapter) openArchiveForReading(archivePath string) (*tar.Reader, func(), error) {
 	// #nosec G304 - Archive path is from controlled repository operations
 	file, err := os.Open(archivePath)
@@ -228,7 +226,7 @@ func (a *Adapter) openArchiveForReading(archivePath string) (*tar.Reader, func()
 	return tar.NewReader(gzipReader), cleanupFunc, nil
 }
 
-// extractTarContents extracts the contents of a tar reader to the destination path.
+// ExtractTarContents extracts the contents of a tar reader to the destination path.
 func (a *Adapter) extractTarContents(tarReader *tar.Reader, destPath string) error {
 	for {
 		header, err := tarReader.Next()
@@ -253,7 +251,7 @@ func (a *Adapter) extractTarContents(tarReader *tar.Reader, destPath string) err
 	return nil
 }
 
-// validateAndBuildTargetPath validates the path and builds the target path.
+// ValidateAndBuildTargetPath validates the path and builds the target path.
 func (a *Adapter) validateAndBuildTargetPath(name, destPath string) (string, error) {
 	// Handle empty or current directory paths
 	if strings.TrimSpace(name) == "" || name == "." {
@@ -276,7 +274,7 @@ func (a *Adapter) validateAndBuildTargetPath(name, destPath string) (string, err
 	return targetPath, nil
 }
 
-// extractEntry extracts a single entry from the tar archive.
+// ExtractEntry extracts a single entry from the tar archive.
 func (a *Adapter) extractEntry(tarReader *tar.Reader, header *tar.Header, targetPath string) error {
 	switch header.Typeflag {
 	case tar.TypeDir:
@@ -289,7 +287,7 @@ func (a *Adapter) extractEntry(tarReader *tar.Reader, header *tar.Header, target
 	}
 }
 
-// extractDirectory creates a directory with safe permissions.
+// ExtractDirectory creates a directory with safe permissions.
 func (a *Adapter) extractDirectory(targetPath string) error {
 	err := os.MkdirAll(targetPath, 0750)
 	if err != nil {
@@ -299,7 +297,7 @@ func (a *Adapter) extractDirectory(targetPath string) error {
 	return nil
 }
 
-// extractFile extracts a single file from the tar archive.
+// ExtractFile extracts a single file from the tar archive.
 func (a *Adapter) extractFile(tarReader *tar.Reader, header *tar.Header, targetPath string) error {
 	// Ensure parent directory exists
 	err := os.MkdirAll(filepath.Dir(targetPath), 0750)
@@ -340,7 +338,7 @@ func (a *Adapter) extractFile(tarReader *tar.Reader, header *tar.Header, targetP
 	return nil
 }
 
-// createArchive creates a tar.gz archive from the specified source directory.
+// CreateArchive creates a tar.gz archive from the specified source directory.
 func (a *Adapter) createArchive(sourcePath, archivePath string) error {
 	tarWriter, cleanupFunc, err := a.createArchiveWriters(archivePath)
 	if err != nil {
@@ -351,7 +349,7 @@ func (a *Adapter) createArchive(sourcePath, archivePath string) error {
 	return a.walkAndAddToArchive(sourcePath, tarWriter)
 }
 
-// createArchiveWriters creates the output file and writer chain for the archive.
+// CreateArchiveWriters creates the output file and writer chain for the archive.
 func (a *Adapter) createArchiveWriters(archivePath string) (*tar.Writer, func(), error) {
 	// Create the archive file
 	// #nosec G304 - Archive path is from controlled operations
@@ -383,7 +381,7 @@ func (a *Adapter) createArchiveWriters(archivePath string) (*tar.Writer, func(),
 	return tarWriter, cleanupFunc, nil
 }
 
-// walkAndAddToArchive walks the source directory and adds files to the archive.
+// WalkAndAddToArchive walks the source directory and adds files to the archive.
 func (a *Adapter) walkAndAddToArchive(sourcePath string, tarWriter *tar.Writer) error {
 	if err := filepath.WalkDir(sourcePath, func(path string, dirEntry fs.DirEntry, err error) error {
 		if err != nil {
@@ -404,7 +402,7 @@ func (a *Adapter) walkAndAddToArchive(sourcePath string, tarWriter *tar.Writer) 
 	return nil
 }
 
-// addFileToArchive adds a single file or directory to the archive.
+// AddFileToArchive adds a single file or directory to the archive.
 func (a *Adapter) addFileToArchive(sourcePath, path string, info os.FileInfo, tarWriter *tar.Writer) error {
 	// Skip the root directory itself
 	if path == sourcePath {
@@ -445,7 +443,7 @@ func (a *Adapter) addFileToArchive(sourcePath, path string, info os.FileInfo, ta
 	return nil
 }
 
-// writeFileContent writes a file's content to the tar archive.
+// WriteFileContent writes a file's content to the tar archive.
 func (a *Adapter) writeFileContent(path string, tarWriter *tar.Writer) error {
 	// #nosec G304 - Path comes from controlled directory walking
 	file, err := os.Open(path)

@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package gitlab
@@ -208,7 +207,7 @@ func (fs *FilterService) GetFilterStatistics(original, filtered []entities.Repos
 	return stats
 }
 
-// shouldIncludeRepository determines if a repository should be included.
+// ShouldIncludeRepository determines if a repository should be included.
 func (fs *FilterService) shouldIncludeRepository(ctx context.Context, repo entities.Repository, request FilterRepositoriesRequest) bool {
 	if !fs.passesBasicFilters(repo, request) {
 		return false
@@ -229,7 +228,7 @@ func (fs *FilterService) shouldIncludeRepository(ctx context.Context, repo entit
 	return true
 }
 
-// matchesPattern checks if a repository name matches a pattern.
+// MatchesPattern checks if a repository name matches a pattern.
 func (fs *FilterService) matchesPattern(name, pattern string) bool {
 	// Convert to lowercase for case-insensitive matching
 	name = strings.ToLower(name)
@@ -252,7 +251,7 @@ func (fs *FilterService) matchesPattern(name, pattern string) bool {
 	return matched
 }
 
-// isActiveRepository checks if repository meets activity requirements.
+// IsActiveRepository checks if repository meets activity requirements.
 func (fs *FilterService) isActiveRepository(ctx context.Context, repo entities.Repository, activeFromLimit string) bool {
 	if activeFromLimit == "" {
 		return true
@@ -278,33 +277,33 @@ func (fs *FilterService) isActiveRepository(ctx context.Context, repo entities.R
 	return lastActivity.After(cutoffTime)
 }
 
-// matchesLanguageFilter checks if repository matches language filter.
+// MatchesLanguageFilter checks if repository matches language filter.
 func (fs *FilterService) matchesLanguageFilter(_ entities.Repository, _ []string) bool {
-	// This would require additional metadata about repository languages
+	// would require additional metadata about repository languages
 	// For now, we'll assume all repositories match if no specific language data is available
 	// In a real implementation, this would check the repository's primary language
 	return true
 }
 
-// matchesTopicFilter checks if repository matches topic filter.
+// MatchesTopicFilter checks if repository matches topic filter.
 func (fs *FilterService) matchesTopicFilter(_ entities.Repository, _ []string) bool {
-	// This would require additional metadata about repository topics
+	// would require additional metadata about repository topics
 	// For now, we'll assume all repositories match if no specific topic data is available
 	// In a real implementation, this would check the repository's topics/tags
 	return true
 }
 
-// matchesLicenseFilter checks if repository matches license filter.
+// MatchesLicenseFilter checks if repository matches license filter.
 func (fs *FilterService) matchesLicenseFilter(_ entities.Repository, _ []string) bool {
-	// This would require additional metadata about repository license
+	// would require additional metadata about repository license
 	// For now, we'll assume all repositories match if no specific license data is available
 	// In a real implementation, this would check the repository's license
 	return true
 }
 
-// matchesMembershipFilter checks if repository matches membership filter.
+// MatchesMembershipFilter checks if repository matches membership filter.
 func (fs *FilterService) matchesMembershipFilter(_ entities.Repository, _ *MembershipFilter) bool {
-	// This would require additional metadata about user's relationship to the repository
+	// would require additional metadata about user's relationship to the repository
 	// For now, we'll assume all repositories match if no specific membership data is available
 	// In a real implementation, this would check:
 	// - If user owns the repository
@@ -314,17 +313,17 @@ func (fs *FilterService) matchesMembershipFilter(_ entities.Repository, _ *Membe
 	return true
 }
 
-// matchesActivityFilter checks if repository matches activity filter.
+// MatchesActivityFilter checks if repository matches activity filter.
 func (fs *FilterService) matchesActivityFilter(_ entities.Repository, _ *ActivityFilter) bool {
-	// This would require additional metadata about stars, forks, issues, MRs, etc.
+	// would require additional metadata about stars, forks, issues, MRs, etc
 	// For now, we'll assume all repositories match if no specific activity data is available
 	// In a real implementation, this would check the repository's activity metrics
 	return true
 }
 
-// matchesSecurityFilter checks if repository matches security filter.
+// MatchesSecurityFilter checks if repository matches security filter.
 func (fs *FilterService) matchesSecurityFilter(_ entities.Repository, _ *SecurityFilter) bool {
-	// This would require additional metadata about security features
+	// would require additional metadata about security features
 	// For now, we'll assume all repositories match if no specific security data is available
 	// In a real implementation, this would check:
 	// - Security scanning results
@@ -334,7 +333,7 @@ func (fs *FilterService) matchesSecurityFilter(_ entities.Repository, _ *Securit
 	return true
 }
 
-// matchesArchiveFilter checks if repository matches archive filter.
+// MatchesArchiveFilter checks if repository matches archive filter.
 func (fs *FilterService) matchesArchiveFilter(repo entities.Repository, filter *ArchiveFilter) bool {
 	isArchived := repo.IsArchived()
 
@@ -356,7 +355,7 @@ func (fs *FilterService) matchesArchiveFilter(repo entities.Repository, filter *
 	return true
 }
 
-// passesBasicFilters checks basic filters like archive and visibility.
+// PassesBasicFilters checks basic filters like archive and visibility.
 func (fs *FilterService) passesBasicFilters(repo entities.Repository, request FilterRepositoriesRequest) bool {
 	// Check archive filter first
 	if request.ArchiveFilter != nil {
@@ -378,7 +377,7 @@ func (fs *FilterService) passesBasicFilters(repo entities.Repository, request Fi
 	return true
 }
 
-// passesPatternFilters checks include and exclude patterns.
+// PassesPatternFilters checks include and exclude patterns.
 func (fs *FilterService) passesPatternFilters(ctx context.Context, repo entities.Repository, request FilterRepositoriesRequest) bool {
 	// Check exclude patterns first
 	if len(request.ExcludePatterns) > 0 {
@@ -414,7 +413,7 @@ func (fs *FilterService) passesPatternFilters(ctx context.Context, repo entities
 	return true
 }
 
-// passesContentFilters checks content-based filters like language, topic, license.
+// PassesContentFilters checks content-based filters like language, topic, license.
 func (fs *FilterService) passesContentFilters(repo entities.Repository, request FilterRepositoriesRequest) bool {
 	// Check language filter
 	if len(request.LanguageFilter) > 0 {
@@ -440,7 +439,7 @@ func (fs *FilterService) passesContentFilters(repo entities.Repository, request 
 	return true
 }
 
-// passesAdvancedFilters checks activity, membership, and security filters.
+// PassesAdvancedFilters checks activity, membership, and security filters.
 func (fs *FilterService) passesAdvancedFilters(ctx context.Context, repo entities.Repository, request FilterRepositoriesRequest) bool {
 	// Check activity filter
 	if request.ActiveFromLimit != "" {

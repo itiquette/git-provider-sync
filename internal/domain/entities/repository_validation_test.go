@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package entities_test
@@ -14,7 +13,7 @@ import (
 	"itiquette/git-provider-sync/internal/domain/entities"
 )
 
-// TestRepositoryNameValidation consolidates all repository name validation tests.
+// TestRepositoryNameValidation consolidates all repository name validation tests
 // Tests business rules for valid repository names across different providers.
 func TestRepositoryNameValidation(t *testing.T) {
 	t.Parallel()
@@ -129,7 +128,7 @@ func TestRepositoryNameValidation(t *testing.T) {
 	}
 }
 
-// TestRepositoryNameCleaning tests the business logic for cleaning repository names.
+// TestRepositoryNameCleaning tests the business logic for cleaning repository names
 // Names can be automatically fixed for different provider requirements.
 func TestRepositoryNameCleaning(t *testing.T) {
 	t.Parallel()
@@ -206,8 +205,8 @@ func TestRepositoryNameCleaning(t *testing.T) {
 	}
 }
 
-// TestRepositoryBuilderValidation tests the builder's validation behavior.
-// The builder enforces business rules during construction.
+// TestRepositoryBuilderValidation tests the builder's validation behavior
+// Builder enforces business rules during construction.
 func TestRepositoryBuilderValidation(t *testing.T) {
 	t.Parallel()
 

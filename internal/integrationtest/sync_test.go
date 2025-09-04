@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 //go:build integration
@@ -14,16 +13,13 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"itiquette/git-provider-sync/internal/adapters/repository/gogit"
-	"itiquette/git-provider-sync/internal/integrationtest/testutil"
 	"itiquette/git-provider-sync/internal/domain/entities"
 	"itiquette/git-provider-sync/internal/domain/ports"
+	"itiquette/git-provider-sync/internal/integrationtest/testutil"
 )
 
 // TestGitRepositoryCreationIntegration tests real git repository creation and basic operations
 func TestGitRepositoryCreationIntegration(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	t.Parallel()
 
@@ -38,7 +34,7 @@ func TestGitRepositoryCreationIntegration(t *testing.T) {
 	})
 }
 
-// testGitRepositoryCreationAndFileOperations tests actual git repository creation with file system
+// TestGitRepositoryCreationAndFileOperations tests actual git repository creation with file system
 func testGitRepositoryCreationAndFileOperations(t *testing.T, gitOps ports.GitOperations) {
 	ctx := context.Background()
 
@@ -47,7 +43,7 @@ func testGitRepositoryCreationAndFileOperations(t *testing.T, gitOps ports.GitOp
 		SourceRepoName:  "git-ops-test",
 		WorkingRepoName: "git-ops-test",
 		InitialFiles: map[string]string{
-			"README.md": "# git-ops-test\n\nTest repository for integration testing",
+			"README.md":   "# git-ops-test\n\nTest repository for integration testing",
 			"src/main.go": "package main\n\nfunc main() {\n\tprintln(\"Integration test!\")\n}",
 		},
 		AddRemotes: map[string]string{
@@ -88,10 +84,9 @@ func testGitRepositoryCreationAndFileOperations(t *testing.T, gitOps ports.GitOp
 	require.Len(t, remotes, 3, "Should have three remotes now")
 }
 
-// NOTE: Manual createTestSourceRepository function removed - now using testutil.GitTestEnvironment
-// for safer, cleaner, and more maintainable test setup with automatic cleanup
+// Test repository creation moved to testutil.GitTestEnvironment
 
-// minimalMockProvider provides minimal implementation for integration tests
+// MinimalMockProvider provides minimal implementation for integration tests
 type minimalMockProvider struct{}
 
 func (m *minimalMockProvider) ProjectExists(context.Context, string, string) (bool, string, error) {

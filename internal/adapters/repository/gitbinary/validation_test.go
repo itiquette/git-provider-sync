@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package gitbinary
@@ -60,7 +59,7 @@ func TestValidateGitBinary(t *testing.T) {
 				assert.Empty(t, path)
 			} else {
 				// Git may not be available in all test environments
-				// so we test both success and failure cases
+				// So we test both success and failure cases
 				if err != nil {
 					assert.Equal(t, ErrGitBinaryNotFound, err)
 					assert.Empty(t, path)

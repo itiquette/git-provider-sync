@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package entities
@@ -11,8 +10,8 @@ import (
 	"itiquette/git-provider-sync/internal/domain"
 )
 
-// PushOptions represents immutable push operation configuration as domain value object.
-// This replaces model.PushOption with proper domain design and immutability.
+// PushOptions represents immutable push operation configuration as domain value object
+// replaces model.PushOption with proper domain design and immutability.
 type PushOptions struct {
 	targetURL    string
 	refSpecs     []string
@@ -216,7 +215,7 @@ func (po PushOptions) GetSanitizedURL() string {
 	return sanitizeURLForLogging(po.targetURL)
 }
 
-// sanitizeURLForLogging removes authentication information from URLs.
+// SanitizeURLForLogging removes authentication information from URLs.
 func sanitizeURLForLogging(url string) string {
 	if !strings.Contains(url, "@") {
 		return url

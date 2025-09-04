@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package gitea
@@ -15,7 +14,7 @@ import (
 	"itiquette/git-provider-sync/internal/domain/ports"
 )
 
-// testGiteaProjectLogger is a simple no-op logger for testing ProjectService.
+// TestGiteaProjectLogger is a simple no-op logger for testing ProjectService.
 type testGiteaProjectLogger struct{}
 
 func (l testGiteaProjectLogger) Trace(_ context.Context, _ string, _ map[string]any) {
@@ -33,7 +32,7 @@ func (l testGiteaProjectLogger) Fatal(_ context.Context, _ string, _ map[string]
 func (l testGiteaProjectLogger) IsLevelEnabled(_ ports.LogLevel) bool { return true }
 
 // Removed TestNewProjectService - constructor test with nil dependency adds no value
-// The actual service behavior is tested in TestProjectService_ValidateProjectName
+// Actual service behavior is tested in TestProjectService_ValidateProjectName
 
 func TestProjectService_ValidateProjectName(t *testing.T) {
 	t.Parallel()

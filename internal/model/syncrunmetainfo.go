@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package model
@@ -9,36 +8,36 @@ import (
 	"strings"
 )
 
-// SyncRunMetainfoKey is used as a key for context values.
-// It allows SyncRunMetainfo to be stored and retrieved from a context.Context.
+// SyncRunMetainfoKey is used as a key for context values
+// allows SyncRunMetainfo to be stored and retrieved from a context.Context.
 type SyncRunMetainfoKey struct{}
 
-// SyncRunMetainfo holds metadata about a synchronization run.
-// It captures essential information about the synchronization process,
-// including source and target identifiers, total items processed,
-// and any failures encountered during the process.
+// SyncRunMetainfo holds metadata about a synchronization run
+// captures essential information about the synchronization process,
+// Including source and target identifiers, total items processed,
+// And any failures encountered during the process.
 type SyncRunMetainfo struct {
-	// CtxID is a unique identifier for the synchronization context.
+	// CtxID is a unique identifier for the synchronization context
 	CtxID int
 
-	// Source represents the identifier or location of the data source.
+	// Source represents the identifier or location of the data source
 	Source string
 
-	// Target represents the identifier or location of the data target.
+	// Target represents the identifier or location of the data target
 	Target string
 
-	// Total is the total number of items processed during the synchronization.
+	// Total is the total number of items processed during the synchronization
 	Total int
 
-	// Fail is a map that stores any failures encountered during synchronization.
-	// The key is typically an identifier for the failure type or location,
-	// and the value is a slice of strings providing details about the failures.
+	// Fail is a map that stores any failures encountered during synchronization
+	// Key is typically an identifier for the failure type or location,
+	// And the value is a slice of strings providing details about the failures
 	Fail *map[string][]string
 }
 
-// String provides a string representation of SyncRunMetainfo.
-// It formats all the fields of SyncRunMetainfo into a human-readable string,
-// including a detailed representation of any failures.
+// String provides a string representation of SyncRunMetainfo
+// formats all the fields of SyncRunMetainfo into a human-readable string,
+// Including a detailed representation of any failures.
 func (s SyncRunMetainfo) String() string {
 	var failInfo string
 

@@ -1,8 +1,7 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
-// Package domain defines core domain errors and constants for git-provider-sync.
+// Package domain defines core domain errors and constants for git-provider-sync
 package domain
 
 import (
@@ -246,8 +245,8 @@ func NewErrorHandler(logger Logger) ErrorHandler {
 	return ErrorHandler{logger: logger}
 }
 
-// HandleFatalError handles fatal errors and returns appropriate exit information.
-// This is a pure function that returns what should be done rather than doing it.
+// HandleFatalError handles fatal errors and returns appropriate exit information
+// is a pure function that returns what should be done rather than doing it.
 func (h ErrorHandler) HandleFatalError(ctx context.Context, err error) (bool, int, string) {
 	if err == nil {
 		return false, 0, ""
@@ -267,7 +266,7 @@ func (h ErrorHandler) HandleFatalError(ctx context.Context, err error) (bool, in
 	return true, exitCode, err.Error()
 }
 
-// mapErrorToExitCode maps specific error types to appropriate exit codes.
+// MapErrorToExitCode maps specific error types to appropriate exit codes.
 func (h ErrorHandler) mapErrorToExitCode(err error) int {
 	errMsg := err.Error()
 
@@ -293,8 +292,8 @@ func (h ErrorHandler) mapErrorToExitCode(err error) int {
 	}
 }
 
-// CreateUserFriendlyMessage creates user-friendly messages for specific error types.
-// This is a pure function with no side effects.
+// CreateUserFriendlyMessage creates user-friendly messages for specific error types
+// is a pure function with no side effects.
 func (h ErrorHandler) createUserFriendlyMessage(err error) string {
 	errMsg := err.Error()
 
@@ -308,8 +307,8 @@ func (h ErrorHandler) createUserFriendlyMessage(err error) string {
 	}
 }
 
-// ExitIfError is a helper that calls os.Exit if the error is fatal.
-// This is only used at the application boundary (main function).
+// ExitIfError is a helper that calls os.Exit if the error is fatal
+// is only used at the application boundary (main function).
 func ExitIfError(ctx context.Context, logger Logger, err error) {
 	if err == nil {
 		return

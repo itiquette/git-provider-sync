@@ -1,8 +1,7 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
-// Package shared provides common utilities used across the application.
+// Package shared provides common utilities used across the application
 package shared
 
 import (
@@ -16,7 +15,7 @@ var (
 	doubleHyphenRegex    = regexp.MustCompile(`-{2,}`)
 	nonAlphanumericRegex = regexp.MustCompile(`[^a-zA-Z0-9-]|^-|-$`)
 
-	// linebreak replacer for all Unicode linebreak types.
+	// Linebreak replacer for all Unicode linebreak types.
 	linebreakReplacer = strings.NewReplacer( //nolint:gochecknoglobals // Shared string processing utility
 		"\r\n", " ", "\r", " ", "\n", " ", "\v", " ",
 		"\f", " ", "\u0085", " ", "\u2028", " ", "\u2029", " ",

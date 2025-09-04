@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package github
@@ -392,7 +391,7 @@ func (ps *ProjectService) SetDefaultBranch(ctx context.Context, owner string, pr
 	return nil
 }
 
-// buildRepositoryOptions builds GitHub repository options from request.
+// BuildRepositoryOptions builds GitHub repository options from request.
 func (ps *ProjectService) buildRepositoryOptions(request CreateProjectRequest) *github.Repository {
 	opts := &github.Repository{
 		Name:        github.Ptr(request.Name),
@@ -427,7 +426,7 @@ func (ps *ProjectService) buildRepositoryOptions(request CreateProjectRequest) *
 	return opts
 }
 
-// convertToRepository converts GitHub repository to domain entity.
+// ConvertToRepository converts GitHub repository to domain entity.
 func (ps *ProjectService) convertToRepository(repo *github.Repository) (*entities.Repository, error) {
 	builder := entities.NewRepositoryBuilder()
 
@@ -446,12 +445,12 @@ func (ps *ProjectService) convertToRepository(repo *github.Repository) (*entitie
 	return &builtRepo, nil
 }
 
-// setRepositoryStringFields uses the common helper to set string fields.
+// SetRepositoryStringFields uses the common helper to set string fields.
 func (ps *ProjectService) setRepositoryStringFields(repo *github.Repository, builder *entities.RepositoryBuilder) error {
 	return setRepositoryStringFields(repo, builder)
 }
 
-// setRepositoryMetadata sets repository metadata fields.
+// SetRepositoryMetadata sets repository metadata fields.
 func (ps *ProjectService) setRepositoryMetadata(repo *github.Repository, builder *entities.RepositoryBuilder) {
 	if repo.Description != nil {
 		*builder = builder.WithDescription(*repo.Description)
@@ -471,7 +470,7 @@ func (ps *ProjectService) setRepositoryMetadata(repo *github.Repository, builder
 	*builder = builder.WithProviderType("github")
 }
 
-// setRepositoryFlags sets boolean flag fields for the repository.
+// SetRepositoryFlags sets boolean flag fields for the repository.
 func (ps *ProjectService) setRepositoryFlags(repo *github.Repository, builder *entities.RepositoryBuilder) {
 	if repo.Private != nil {
 		*builder = builder.WithPrivate(*repo.Private)
@@ -486,7 +485,7 @@ func (ps *ProjectService) setRepositoryFlags(repo *github.Repository, builder *e
 	}
 }
 
-// makeAlphaNumeric converts a string to alphanumeric only (plus hyphens).
+// MakeAlphaNumeric converts a string to alphanumeric only (plus hyphens).
 func (ps *ProjectService) makeAlphaNumeric(input string) string {
 	var result strings.Builder
 
@@ -504,7 +503,7 @@ func (ps *ProjectService) makeAlphaNumeric(input string) string {
 	return result.String()
 }
 
-// sanitizeProjectName attempts to fix common naming issues.
+// SanitizeProjectName attempts to fix common naming issues.
 func (ps *ProjectService) sanitizeProjectName(name string) string {
 	// Remove leading/trailing periods and hyphens
 	name = strings.Trim(name, ".-")
@@ -522,7 +521,7 @@ func (ps *ProjectService) sanitizeProjectName(name string) string {
 	return name
 }
 
-// fetchAllRepositories fetches all repositories for the given owner.
+// FetchAllRepositories fetches all repositories for the given owner.
 func (ps *ProjectService) fetchAllRepositories(ctx context.Context, owner string, isOrganization bool, includeForks bool) ([]*github.Repository, error) {
 	listType := "sources"
 	if includeForks {
@@ -536,7 +535,7 @@ func (ps *ProjectService) fetchAllRepositories(ctx context.Context, owner string
 	return ps.fetchUserRepositories(ctx, listType)
 }
 
-// fetchOrganizationRepositories fetches repositories for an organization.
+// FetchOrganizationRepositories fetches repositories for an organization.
 func (ps *ProjectService) fetchOrganizationRepositories(ctx context.Context, owner, listType string) ([]*github.Repository, error) {
 	var allRepos []*github.Repository
 
@@ -564,7 +563,7 @@ func (ps *ProjectService) fetchOrganizationRepositories(ctx context.Context, own
 	return allRepos, nil
 }
 
-// fetchUserRepositories fetches repositories for a user.
+// FetchUserRepositories fetches repositories for a user.
 func (ps *ProjectService) fetchUserRepositories(ctx context.Context, _ /* listType */ string) ([]*github.Repository, error) {
 	var allRepos []*github.Repository
 
@@ -593,7 +592,7 @@ func (ps *ProjectService) fetchUserRepositories(ctx context.Context, _ /* listTy
 	return allRepos, nil
 }
 
-// convertAndFilterRepositories converts GitHub repositories to domain entities and applies filtering.
+// ConvertAndFilterRepositories converts GitHub repositories to domain entities and applies filtering.
 func (ps *ProjectService) convertAndFilterRepositories(ctx context.Context, allRepos []*github.Repository, includeForks bool) []*entities.Repository {
 	repositories := make([]*entities.Repository, 0, len(allRepos))
 
@@ -619,7 +618,7 @@ func (ps *ProjectService) convertAndFilterRepositories(ctx context.Context, allR
 	return repositories
 }
 
-// convertGitHubRepoToEntity converts GitHub repository to domain entity with all metadata.
+// ConvertGitHubRepoToEntity converts GitHub repository to domain entity with all metadata
 
 func (ps *ProjectService) convertGitHubRepoToEntity(repo *github.Repository) (*entities.Repository, error) {
 	builder := entities.NewRepositoryBuilder()
@@ -640,7 +639,7 @@ func (ps *ProjectService) convertGitHubRepoToEntity(repo *github.Repository) (*e
 	return &entity, nil
 }
 
-// setEntityStringFields sets all string-based entity fields that can return errors.
+// SetEntityStringFields sets all string-based entity fields that can return errors.
 func (ps *ProjectService) setEntityStringFields(repo *github.Repository, builder *entities.RepositoryBuilder) error {
 	if repo.Name != nil {
 		var err error
@@ -681,7 +680,7 @@ func (ps *ProjectService) setEntityStringFields(repo *github.Repository, builder
 	return nil
 }
 
-// setEntityMetadata sets entity metadata fields.
+// SetEntityMetadata sets entity metadata fields.
 func (ps *ProjectService) setEntityMetadata(repo *github.Repository, builder *entities.RepositoryBuilder) {
 	if repo.Description != nil {
 		*builder = builder.WithDescription(*repo.Description)
@@ -705,7 +704,7 @@ func (ps *ProjectService) setEntityMetadata(repo *github.Repository, builder *en
 	}
 }
 
-// setEntityFlags sets boolean flag fields for the entity.
+// SetEntityFlags sets boolean flag fields for the entity.
 func (ps *ProjectService) setEntityFlags(repo *github.Repository, builder *entities.RepositoryBuilder) {
 	if repo.Fork != nil {
 		*builder = builder.WithFork(*repo.Fork)
@@ -716,8 +715,8 @@ func (ps *ProjectService) setEntityFlags(repo *github.Repository, builder *entit
 	}
 }
 
-// getValueOrEmpty returns the value of a string pointer if it's not nil,
-// or "N/A" otherwise.
+// GetValueOrEmpty returns the value of a string pointer if it's not nil,
+// Or "N/A" otherwise.
 func getValueOrEmpty(s *string) string {
 	if s != nil {
 		return *s

@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package directory
@@ -323,7 +322,7 @@ func TestRepository_BehavesAsCleanDirectoryRepository(t *testing.T) {
 	t.Parallel()
 
 	// Test that a directory repository correctly identifies its state
-	// and can be used for directory-based operations
+	// And can be used for directory-based operations
 	tempDir := createTempDirWithFiles(t)
 
 	defer func() { _ = os.RemoveAll(tempDir) }()

@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package composition
@@ -21,8 +20,8 @@ import (
 	"itiquette/git-provider-sync/internal/domain/sync"
 )
 
-// Container holds all application dependencies wired together.
-// It follows immutable design - once created, dependencies cannot be changed.
+// Container holds all application dependencies wired together
+// follows immutable design - once created, dependencies cannot be changed
 // Use cases are created on-demand with proper dependency injection.
 type Container struct {
 	config          ports.AppConfiguration
@@ -44,7 +43,7 @@ type ContainerConfig struct {
 	MaxConcurrency int
 }
 
-// NewContainer creates a new dependency injection container.
+// NewContainer creates a new dependency injection container
 // All dependencies are wired explicitly without service locator patterns.
 func NewContainer(ctx context.Context, containerConfig ContainerConfig) (*Container, error) {
 	// 1. Load configuration
@@ -163,7 +162,7 @@ func (c *Container) Close() error {
 
 // Private helper functions for configuration
 
-// getHTTPConfig extracts HTTP configuration from app configuration.
+// GetHTTPConfig extracts HTTP configuration from app configuration.
 func getHTTPConfig(appConfig ports.AppConfiguration, containerConfig ContainerConfig) transport.HTTPConfig {
 	httpConfig := transport.GetDefaultHTTPConfig()
 
@@ -181,7 +180,7 @@ func getHTTPConfig(appConfig ports.AppConfiguration, containerConfig ContainerCo
 	return httpConfig
 }
 
-// getGitConfig extracts git configuration from app configuration.
+// GetGitConfig extracts git configuration from app configuration.
 func getGitConfig(appConfig ports.AppConfiguration, containerConfig ContainerConfig) ports.GitConfig {
 	// Get git timeout from first environment's configuration if available
 	gitTimeout := 5 * time.Minute // Default 5 minutes
@@ -205,7 +204,7 @@ func getGitConfig(appConfig ports.AppConfiguration, containerConfig ContainerCon
 	}
 }
 
-// convertLogLevel converts domain LogLevel to zerolog.Level.
+// ConvertLogLevel converts domain LogLevel to zerolog.Level.
 func convertLogLevel(level ports.LogLevel) zerolog.Level {
 	switch level {
 	case ports.LogLevelTrace:

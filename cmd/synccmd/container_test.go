@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package synccmd
@@ -61,7 +60,7 @@ func TestSyncHexagonalTmpDirCreation(t *testing.T) {
 		},
 	}
 
-	// This will fail at container creation but should successfully create temp dir
+	// will fail at container creation but should successfully create temp dir
 	err := performSync(ctx, cfg)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to initialize application services")
@@ -173,7 +172,7 @@ func TestSyncHexagonal_WithoutCLIConfig_ReturnsError(t *testing.T) {
 		GitProviderSyncConfs: map[string]gpsconfig.Environment{},
 	}
 
-	// This should fail when trying to access CLI options
+	// should fail when trying to access CLI options
 	err := performSync(ctx, cfg)
 	require.Error(t, err)
 	// Should fail early when trying to create temp dir or access CLI options
@@ -188,7 +187,7 @@ func TestCreateContainerWithoutCLIConfig(t *testing.T) {
 
 	cfg := &gpsconfig.AppConfiguration{}
 
-	// This should fail when trying to access CLI options
+	// should fail when trying to access CLI options
 	container, err := createContainerWithConfig(ctx, cfg)
 	require.Error(t, err)
 	assert.Nil(t, container)

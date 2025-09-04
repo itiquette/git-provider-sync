@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package directory
@@ -259,7 +258,7 @@ func (ms *MirrorService) DeleteMirror(ctx context.Context, targetPath string) er
 	return nil
 }
 
-// performMirror performs the actual mirroring operation.
+// PerformMirror performs the actual mirroring operation.
 func (ms *MirrorService) performMirror(_ /* ctx */ context.Context, request MirrorRequest, result *MirrorResult) error {
 	sourcePath := request.SourceRepository.Path()
 
@@ -318,7 +317,7 @@ func (ms *MirrorService) performMirror(_ /* ctx */ context.Context, request Mirr
 	return nil
 }
 
-// shouldExclude checks if a path should be excluded.
+// ShouldExclude checks if a path should be excluded.
 func (ms *MirrorService) shouldExclude(path string, options MirrorOptions) bool {
 	if !options.IncludeHidden && ms.isHidden(path) {
 		return true
@@ -337,7 +336,7 @@ func (ms *MirrorService) shouldExclude(path string, options MirrorOptions) bool 
 	return false
 }
 
-// shouldInclude checks if a path should be included.
+// ShouldInclude checks if a path should be included.
 func (ms *MirrorService) shouldInclude(path string, options MirrorOptions) bool {
 	if len(options.IncludePatterns) == 0 {
 		return true
@@ -356,12 +355,12 @@ func (ms *MirrorService) shouldInclude(path string, options MirrorOptions) bool 
 	return false
 }
 
-// isHidden checks if a path represents a hidden file or directory.
+// IsHidden checks if a path represents a hidden file or directory.
 func (ms *MirrorService) isHidden(path string) bool {
 	return filepath.Base(path)[0] == '.'
 }
 
-// copyFile copies a file from source to target.
+// CopyFile copies a file from source to target.
 func (ms *MirrorService) copyFile(sourcePath, targetPath string) error {
 	// #nosec G304 - Source path comes from controlled directory mirroring
 	sourceFile, err := os.Open(sourcePath)
@@ -413,9 +412,9 @@ func (ms *MirrorService) copyFile(sourcePath, targetPath string) error {
 	return nil
 }
 
-// createMetadataFile creates a metadata file for the mirror.
+// CreateMetadataFile creates a metadata file for the mirror.
 func (ms *MirrorService) createMetadataFile(_ /* ctx */ context.Context, targetPath string, metadata MirrorMetadata) error {
-	// This would create a JSON metadata file
+	// would create a JSON metadata file
 	// For now, we'll just create a simple text file
 	metadataPath := filepath.Join(targetPath, ".mirror-metadata.txt")
 
@@ -431,9 +430,9 @@ func (ms *MirrorService) createMetadataFile(_ /* ctx */ context.Context, targetP
 	return nil
 }
 
-// createArchive creates an archive of the mirrored directory.
+// CreateArchive creates an archive of the mirrored directory.
 func (ms *MirrorService) createArchive(ctx context.Context, targetPath string, options MirrorOptions) error {
-	// This would create an archive based on the specified format
+	// would create an archive based on the specified format
 	// For now, we'll skip the implementation and return an error
 	ms.logger.Debug(ctx, "Archive creation requested but not implemented", map[string]any{
 		"target_path": targetPath,
@@ -443,7 +442,7 @@ func (ms *MirrorService) createArchive(ctx context.Context, targetPath string, o
 	return fmt.Errorf("archive creation not implemented for format: %s", options.ArchiveFormat)
 }
 
-// pathExists checks if a path exists.
+// PathExists checks if a path exists.
 func (ms *MirrorService) pathExists(path string) bool {
 	_, err := os.Stat(path)
 

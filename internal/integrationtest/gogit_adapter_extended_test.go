@@ -1,7 +1,6 @@
 //go:build integration
 
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package integrationtest
@@ -22,9 +21,6 @@ import (
 // TestGoGitAdapterExtendedIntegration tests GoGit adapter operations
 // Moved from internal/adapters/repository/gogit/adapter_test.go:375
 func TestGoGitAdapterExtendedIntegration(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping extended GoGit integration tests in short mode")
-	}
 
 	t.Parallel()
 
@@ -72,7 +68,7 @@ func TestGoGitAdapterExtendedIntegration(t *testing.T) {
 	}
 }
 
-// testGoGitInitAndBasicOperations tests repository initialization and basic operations
+// TestGoGitInitAndBasicOperations tests repository initialization and basic operations
 func testGoGitInitAndBasicOperations(t *testing.T, adapter *gogit.Adapter) {
 	t.Helper()
 
@@ -135,7 +131,7 @@ func testGoGitInitAndBasicOperations(t *testing.T, adapter *gogit.Adapter) {
 	t.Logf("   Bare repository: %s", bareRepoPath)
 }
 
-// testGoGitRemoteManagement tests remote operations using test environment
+// TestGoGitRemoteManagement tests remote operations using test environment
 func testGoGitRemoteManagement(t *testing.T, adapter *gogit.Adapter) {
 	t.Helper()
 
@@ -215,7 +211,7 @@ func testGoGitRemoteManagement(t *testing.T, adapter *gogit.Adapter) {
 	t.Logf("   Target URL: %s", env.GetTargetURL())
 }
 
-// testGoGitBranchOperations tests branch management operations
+// TestGoGitBranchOperations tests branch management operations
 func testGoGitBranchOperations(t *testing.T, adapter *gogit.Adapter) {
 	t.Helper()
 
@@ -272,7 +268,7 @@ func testGoGitBranchOperations(t *testing.T, adapter *gogit.Adapter) {
 	t.Logf("   Working repo: %s", env.WorkingRepo.Path)
 }
 
-// testGoGitFileOperations tests file operations within repository
+// TestGoGitFileOperations tests file operations within repository
 func testGoGitFileOperations(t *testing.T, adapter *gogit.Adapter) {
 	t.Helper()
 
@@ -333,7 +329,7 @@ func testGoGitFileOperations(t *testing.T, adapter *gogit.Adapter) {
 	t.Logf("   Working directory: %s", env.WorkingRepo.Path)
 }
 
-// testGoGitErrorHandling tests error handling scenarios
+// TestGoGitErrorHandling tests error handling scenarios
 func testGoGitErrorHandling(t *testing.T, adapter *gogit.Adapter) {
 	t.Helper()
 
@@ -367,7 +363,7 @@ func testGoGitErrorHandling(t *testing.T, adapter *gogit.Adapter) {
 	t.Logf("   All error scenarios handled correctly")
 }
 
-// testGoGitRepositoryInfo tests repository information retrieval
+// TestGoGitRepositoryInfo tests repository information retrieval
 func testGoGitRepositoryInfo(t *testing.T, adapter *gogit.Adapter) {
 	t.Helper()
 

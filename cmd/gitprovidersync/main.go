@@ -1,8 +1,7 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
-// Package main is the entry point for the git-provider-sync application.
+// Package main is the entry point for the git-provider-sync application
 package main
 
 import (

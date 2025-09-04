@@ -1,13 +1,12 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
-// Package ports defines interfaces for hexagonal architecture adapters.
+// Package ports defines interfaces for hexagonal architecture adapters
 package ports
 
-// HelpFormatter provides terminal-independent text formatting capabilities.
-// This port allows the domain layer to format help text without knowing
-// about specific terminal implementations.
+// HelpFormatter provides terminal-independent text formatting capabilities
+// port allows the domain layer to format help text without knowing
+// About specific terminal implementations.
 type HelpFormatter interface {
 	// Bold formats text as bold/emphasized, falling back gracefully
 	Bold(text string) string
@@ -19,8 +18,8 @@ type HelpFormatter interface {
 	IsColorSupported() bool
 }
 
-// HelpContent represents structured help information in the domain layer.
-// This is a pure data structure with no formatting logic.
+// HelpContent represents structured help information in the domain layer
+// is a pure data structure with no formatting logic.
 type HelpContent struct {
 	Title       string
 	Description string

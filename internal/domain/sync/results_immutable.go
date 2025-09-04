@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package sync
@@ -53,8 +52,8 @@ func (ir ImmutableResults) WithResult(result Result) ImmutableResults {
 	return newIR
 }
 
-// WithResults returns a new ImmutableResults with multiple results added.
-// This is more efficient than calling WithResult multiple times.
+// WithResults returns a new ImmutableResults with multiple results added
+// is more efficient than calling WithResult multiple times.
 func (ir ImmutableResults) WithResults(results ...Result) ImmutableResults {
 	if len(results) == 0 {
 		return ir

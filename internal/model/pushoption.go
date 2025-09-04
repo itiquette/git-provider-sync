@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package model
@@ -24,7 +23,7 @@ type PushOption struct {
 	Target   string   // The URL of the target repository
 }
 
-// NewPushOption creates a new PushOption with appropriate RefSpecs.
+// NewPushOption creates a new PushOption with appropriate RefSpecs
 // Automatically sets up correct reference specifications based on force push setting.
 func NewPushOption(target string, prune, force bool, authCfg model.AuthConfig) PushOption {
 	refSpecs := []string{"refs/heads/*:refs/heads/*", "refs/tags/*:refs/tags/*"} // Standard refspecs for push

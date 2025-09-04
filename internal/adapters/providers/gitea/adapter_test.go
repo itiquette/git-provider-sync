@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package gitea
@@ -71,7 +70,7 @@ const (
 	emptyReposJSON    = `[]`
 )
 
-// createFastHTTPClient creates an HTTP client with reasonable timeouts for testing.
+// CreateFastHTTPClient creates an HTTP client with reasonable timeouts for testing.
 func createFastHTTPClient() *http.Client {
 	return &http.Client{
 		Timeout: 5 * time.Second, // Reasonable timeout for unit tests

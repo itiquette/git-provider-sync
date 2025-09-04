@@ -1,8 +1,7 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
-// Package synccmd implements the sync command.
+// Package synccmd implements the sync command
 package synccmd
 
 import (
@@ -66,7 +65,7 @@ It allows for various options to control the synchronization process.`,
 	return cmd
 }
 
-// runSync executes sync using simple functional approach .
+// RunSync executes sync using simple functional approach.
 func runSync(ctx context.Context, cmd *cli.Command) error {
 	cliConfig, err := baseOpt.ExtractRootInputOptions(cmd)
 	if err != nil {
@@ -123,7 +122,7 @@ func runSync(ctx context.Context, cmd *cli.Command) error {
 	return nil
 }
 
-// mergeSyncOptionsWithCLIConfig merges sync-specific flags with existing CLI config.
+// MergeSyncOptionsWithCLIConfig merges sync-specific flags with existing CLI config.
 func mergeSyncOptionsWithCLIConfig(cliConfig entities.CLIConfig, cmd *cli.Command) entities.CLIConfig {
 	// Extract sync flags directly from command and merge with existing CLI config
 	return entities.NewCLIConfigBuilder().
@@ -140,7 +139,7 @@ func mergeSyncOptionsWithCLIConfig(cliConfig entities.CLIConfig, cmd *cli.Comman
 		Build()
 }
 
-// initLogger initializes logging with CLI options .
+// InitLogger initializes logging with CLI options.
 func initLogger(ctx context.Context, cmd *cli.Command) context.Context {
 	cliConfig, ok := cliAdapters.ConfigFromContext(ctx)
 	if !ok {
@@ -160,7 +159,7 @@ func initLogger(ctx context.Context, cmd *cli.Command) context.Context {
 	return ctx
 }
 
-// extractLogLevel determines the effective log level from various flags.
+// ExtractLogLevel determines the effective log level from various flags
 // Duplicated here to avoid circular dependency with baseoption.
 func extractLogLevel(cmd *cli.Command) string {
 	// Handle nil command
@@ -189,8 +188,8 @@ func extractLogLevel(cmd *cli.Command) string {
 	return "brief" // default
 }
 
-// confirmDangerousOperations checks if dangerous operations need confirmation.
-// Returns true if operation should proceed, false if cancelled.
+// ConfirmDangerousOperations checks if dangerous operations need confirmation
+// Returns true if operation should proceed, false if cancelled
 // Follows idiomatic patterns: explicit, simple, no magic.
 func confirmDangerousOperations(ctx context.Context, cmd *cli.Command) bool {
 	// Skip confirmation if in dry-run mode (always safe)

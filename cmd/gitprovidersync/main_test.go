@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package main
@@ -18,11 +17,11 @@ import (
 	"itiquette/git-provider-sync/cmd"
 )
 
-// testVersionString is the version string used in tests to avoid goconst issues.
+// TestVersionString is the version string used in tests to avoid goconst issues.
 const testVersionString = "dev (Commit SHA: test-commit, Build date: test-date)"
 
-// createTestRootCommand creates a root command for testing without executing binary.
-// This avoids the 1.5s startup time per test by testing the CLI directly.
+// CreateTestRootCommand creates a root command for testing without executing binary
+// avoids the 1.5s startup time per test by testing the CLI directly.
 func createTestRootCommand(ctx context.Context, versionString string) *cli.Command {
 	return cmd.NewRootCommandForTesting(ctx, versionString)
 }
@@ -296,7 +295,7 @@ func TestMain_ConfigLoading_IntegratesWithCLI(t *testing.T) { //nolint:parallelt
 			// Note: The real CLI commands may write to os.Stdout/Stderr directly
 			// So the output might not be captured in our buffer
 			// For integration testing, this is acceptable since we're testing CLI behavior
-			// The test output shows the commands are working correctly
+			// Test output shows the commands are working correctly
 			outputStr := strings.ToLower(output.String())
 			if len(outputStr) > 0 {
 				for _, expected := range testCase.expectOutput {

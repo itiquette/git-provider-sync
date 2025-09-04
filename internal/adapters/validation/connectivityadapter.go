@@ -1,8 +1,6 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
-// Package validation provides adapters for validation operations.
 package validation
 
 import (
@@ -71,7 +69,7 @@ func (c *ConnectivityAdapter) ValidateConnectivity(ctx context.Context, val vali
 	return result
 }
 
-// validateHTTP tests HTTP connectivity to a URL.
+// ValidateHTTP tests HTTP connectivity to a URL.
 func (c *ConnectivityAdapter) validateHTTP(ctx context.Context, target string) (bool, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodHead, target, nil)
 	if err != nil {
@@ -98,7 +96,7 @@ func (c *ConnectivityAdapter) validateHTTP(ctx context.Context, target string) (
 	return false, fmt.Errorf("%w: %d", domain.ErrHTTPRequestFailed, resp.StatusCode)
 }
 
-// validateProvider tests provider API connectivity.
+// ValidateProvider tests provider API connectivity.
 func (c *ConnectivityAdapter) validateProvider(ctx context.Context, target string) (bool, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, target, nil)
 	if err != nil {
@@ -126,14 +124,14 @@ func (c *ConnectivityAdapter) validateProvider(ctx context.Context, target strin
 	return false, fmt.Errorf("%w: %d", domain.ErrProviderAPIServerError, resp.StatusCode)
 }
 
-// validateGit tests Git connectivity (simplified - just HTTP check).
+// ValidateGit tests Git connectivity (simplified - just HTTP check).
 func (c *ConnectivityAdapter) validateGit(ctx context.Context, target string) (bool, error) {
 	// For Git validation, we'll do a HEAD request to the Git URL
-	// This is a simplified check - a full implementation might try git ls-remote
+	// is a simplified check - a full implementation might try git ls-remote
 	return c.validateHTTP(ctx, target)
 }
 
-// validateSSH tests SSH connectivity to a host.
+// ValidateSSH tests SSH connectivity to a host.
 func (c *ConnectivityAdapter) validateSSH(ctx context.Context, target string) (bool, error) {
 	// Extract host from git@host format and add port
 	var host string
@@ -199,7 +197,7 @@ func (f *FileSystemAdapter) ValidateFileSystem(_ context.Context, val validation
 	return result
 }
 
-// validateDirectory validates directory access.
+// ValidateDirectory validates directory access.
 func (f *FileSystemAdapter) validateDirectory(path string, needsWritable bool) (bool, bool, bool, bool, error) {
 	info, err := statPath(path)
 	if err != nil {
@@ -218,7 +216,7 @@ func (f *FileSystemAdapter) validateDirectory(path string, needsWritable bool) (
 	return success, true, readable, writable, nil
 }
 
-// validateFile validates file access.
+// ValidateFile validates file access.
 func (f *FileSystemAdapter) validateFile(path string, needsWritable bool) (bool, bool, bool, bool, error) {
 	info, err := statPath(path)
 	if err != nil {
@@ -237,7 +235,7 @@ func (f *FileSystemAdapter) validateFile(path string, needsWritable bool) (bool,
 	return success, true, readable, writable, nil
 }
 
-// validateArchive validates archive file access.
+// ValidateArchive validates archive file access.
 func (f *FileSystemAdapter) validateArchive(path string) (bool, bool, bool, bool, error) {
 	// For archive validation, check if file exists and is readable
 	return f.validateFile(path, false)

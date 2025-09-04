@@ -1,8 +1,7 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
-// Package help provides pure functional help text formatting services.
+// Package help provides pure functional help text formatting services
 package help
 
 import (
@@ -13,21 +12,21 @@ import (
 	"itiquette/git-provider-sync/internal/domain/ports"
 )
 
-// Service provides pure functional help formatting operations.
+// Service provides pure functional help formatting operations
 // All functions in this service are pure - they have no side effects
-// and produce the same output for the same input.
+// And produce the same output for the same input.
 type Service struct {
 	formatter ports.HelpFormatter
 }
 
-// NewService creates a new help formatting service.
-// This is a pure constructor function.
+// NewService creates a new help formatting service
+// is a pure constructor function.
 func NewService(formatter ports.HelpFormatter) Service {
 	return Service{formatter: formatter}
 }
 
-// FormatHelp converts structured help content into formatted text.
-// This is a pure function that performs no I/O or side effects.
+// FormatHelp converts structured help content into formatted text
+// is a pure function that performs no I/O or side effects.
 func (s Service) FormatHelp(content ports.HelpContent) string {
 	var sections []string
 
@@ -68,7 +67,7 @@ func (s Service) FormatHelp(content ports.HelpContent) string {
 	return strings.Join(sections, "\n\n")
 }
 
-// formatUsageSection creates a formatted usage section.
+// FormatUsageSection creates a formatted usage section
 // Pure function with no side effects.
 func (s Service) formatUsageSection(usage string) string {
 	header := s.formatter.Section("USAGE")
@@ -76,7 +75,7 @@ func (s Service) formatUsageSection(usage string) string {
 	return fmt.Sprintf("%s\n  %s", header, usage)
 }
 
-// formatExamplesSection creates a formatted examples section.
+// FormatExamplesSection creates a formatted examples section
 // Pure function that sorts examples consistently.
 func (s Service) formatExamplesSection(examples []ports.HelpExample) string {
 	header := s.formatter.Section("QUICK START")
@@ -91,7 +90,7 @@ func (s Service) formatExamplesSection(examples []ports.HelpExample) string {
 	return fmt.Sprintf("%s\n%s", header, strings.Join(lines, "\n"))
 }
 
-// formatCommandsSection creates a formatted commands section.
+// FormatCommandsSection creates a formatted commands section
 // Pure function that groups commands logically.
 func (s Service) formatCommandsSection(commands []ports.HelpCommand) string {
 	header := s.formatter.Section("COMMANDS")
@@ -113,7 +112,7 @@ func (s Service) formatCommandsSection(commands []ports.HelpCommand) string {
 	return fmt.Sprintf("%s\n%s", header, strings.Join(lines, "\n"))
 }
 
-// formatFlagsSection creates a formatted flags section with grouping.
+// FormatFlagsSection creates a formatted flags section with grouping
 // Pure function that separates common and advanced flags.
 func (s Service) formatFlagsSection(flags []ports.HelpFlag) string {
 	commonFlags := filterFlags(flags, true)
@@ -136,7 +135,7 @@ func (s Service) formatFlagsSection(flags []ports.HelpFlag) string {
 	return strings.Join(sections, "\n\n")
 }
 
-// formatFlagList formats a list of flags consistently.
+// FormatFlagList formats a list of flags consistently
 // Pure function with consistent formatting rules.
 func (s Service) formatFlagList(flags []ports.HelpFlag) []string {
 	lines := make([]string, 0, len(flags))
@@ -149,7 +148,7 @@ func (s Service) formatFlagList(flags []ports.HelpFlag) []string {
 	return lines
 }
 
-// formatSupportSection creates a formatted support section.
+// FormatSupportSection creates a formatted support section
 // Pure function that handles optional support information.
 func (s Service) formatSupportSection(support ports.HelpSupport) string {
 	header := s.formatter.Section("SUPPORT")
@@ -173,7 +172,7 @@ func (s Service) formatSupportSection(support ports.HelpSupport) string {
 
 // Helper functions (all pure)
 
-// filterFlags separates flags by their common/advanced status.
+// FilterFlags separates flags by their common/advanced status
 // Pure function that creates new slices without modifying input.
 func filterFlags(flags []ports.HelpFlag, isCommon bool) []ports.HelpFlag {
 	var filtered []ports.HelpFlag
@@ -187,7 +186,7 @@ func filterFlags(flags []ports.HelpFlag, isCommon bool) []ports.HelpFlag {
 	return filtered
 }
 
-// isEmptySupport checks if support information is empty.
+// IsEmptySupport checks if support information is empty
 // Pure predicate function.
 func isEmptySupport(support ports.HelpSupport) bool {
 	return support.Documentation == "" &&

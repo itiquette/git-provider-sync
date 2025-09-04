@@ -1,9 +1,8 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
-// Package ports defines interfaces (ports) for the hexagonal architecture.
-// These interfaces represent the boundaries between the domain and external systems.
+// Package ports defines interfaces (ports) for the hexagonal architecture
+// These interfaces represent the boundaries between the domain and external systems
 package ports
 
 import (
@@ -61,9 +60,9 @@ type ProviderCapabilitiesPort interface {
 	SupportsFeature(feature ProviderFeature) bool
 }
 
-// RepositoryProvider defines the interface for git provider operations (secondary port).
-// This port is implemented by adapters that connect to external git providers like GitHub, GitLab, Gitea.
-// It composes smaller, focused interfaces following the Interface Segregation Principle.
+// RepositoryProvider defines the interface for git provider operations (secondary port)
+// port is implemented by adapters that connect to external git providers like GitHub, GitLab, Gitea
+// composes smaller, focused interfaces following the Interface Segregation Principle.
 type RepositoryProvider interface {
 	RepositoryDiscovery
 	RepositoryLifecycle

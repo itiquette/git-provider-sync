@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package entities
@@ -8,8 +7,8 @@ import (
 	"fmt"
 )
 
-// CLIConfig represents command-line interface configuration as a pure domain entity.
-// This replaces the legacy model.CLIOption with proper domain design.
+// CLIConfig represents command-line interface configuration as a pure domain entity
+// replaces the legacy model.CLIOption with proper domain design.
 type CLIConfig struct {
 	alphaNumHyphName    bool
 	activeFromLimit     string
@@ -291,4 +290,4 @@ func (c CLIConfig) String() string {
 }
 
 // Context functions moved to internal/adapters/cli/config_context.go
-// This maintains clean separation - domain entities should not handle infrastructure concerns like context manipulation.
+// maintains clean separation - domain entities should not handle infrastructure concerns like context manipulation

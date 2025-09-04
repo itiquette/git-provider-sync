@@ -1,8 +1,6 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
-// Package cli provides command-line interface adapters for the hexagonal architecture.
 package cli
 
 import (
@@ -19,14 +17,14 @@ const (
 	commandSync = "sync"
 )
 
-// HelpRenderer adapts urfave/cli commands to our hexagonal help formatting system.
-// This adapter bridges the gap between urfave/cli's command structure and our domain model.
+// HelpRenderer adapts urfave/cli commands to our hexagonal help formatting system
+// adapter bridges the gap between urfave/cli's command structure and our domain model.
 type HelpRenderer struct {
 	helpService help.Service
 }
 
-// NewHelpRenderer creates a new help renderer with terminal-aware formatting.
-// This constructor sets up the complete hexagonal architecture for help formatting.
+// NewHelpRenderer creates a new help renderer with terminal-aware formatting
+// constructor sets up the complete hexagonal architecture for help formatting.
 func NewHelpRenderer() *HelpRenderer {
 	formatter := terminal.NewHelpFormatter()
 	helpService := help.NewService(formatter)
@@ -36,8 +34,8 @@ func NewHelpRenderer() *HelpRenderer {
 	}
 }
 
-// NewHelpRendererWithFormatter creates a renderer with a custom formatter.
-// This constructor allows dependency injection for testing purposes.
+// NewHelpRendererWithFormatter creates a renderer with a custom formatter
+// constructor allows dependency injection for testing purposes.
 func NewHelpRendererWithFormatter(formatter ports.HelpFormatter) *HelpRenderer {
 	helpService := help.NewService(formatter)
 
@@ -60,7 +58,7 @@ func (r *HelpRenderer) RenderSubcommandHelp(cmd *cli.Command) string {
 	return r.helpService.FormatHelp(content)
 }
 
-// extractRootHelpContent extracts structured help content from a root command.
+// ExtractRootHelpContent extracts structured help content from a root command
 // Pure function that transforms urfave/cli structures to domain models.
 func (r *HelpRenderer) extractRootHelpContent(cmd *cli.Command) ports.HelpContent {
 	return ports.HelpContent{
@@ -74,7 +72,7 @@ func (r *HelpRenderer) extractRootHelpContent(cmd *cli.Command) ports.HelpConten
 	}
 }
 
-// extractSubcommandHelpContent extracts help content from a subcommand.
+// ExtractSubcommandHelpContent extracts help content from a subcommand
 // Pure function specialized for subcommand formatting.
 func (r *HelpRenderer) extractSubcommandHelpContent(cmd *cli.Command) ports.HelpContent {
 	return ports.HelpContent{
@@ -88,7 +86,7 @@ func (r *HelpRenderer) extractSubcommandHelpContent(cmd *cli.Command) ports.Help
 	}
 }
 
-// extractDescription extracts the long description, falling back to usage.
+// ExtractDescription extracts the long description, falling back to usage
 // Pure function with consistent fallback behavior.
 func (r *HelpRenderer) extractDescription(cmd *cli.Command) string {
 	if cmd.Description != "" {
@@ -102,7 +100,7 @@ func (r *HelpRenderer) extractDescription(cmd *cli.Command) string {
 	return cmd.Usage
 }
 
-// extractUsage creates a clean usage line.
+// ExtractUsage creates a clean usage line
 // Pure function that formats usage consistently.
 func (r *HelpRenderer) extractUsage(cmd *cli.Command) string {
 	if cmd.Action != nil {
@@ -112,7 +110,7 @@ func (r *HelpRenderer) extractUsage(cmd *cli.Command) string {
 	return cmd.Name + " [command]"
 }
 
-// extractRootExamples returns quick start examples for the root command.
+// ExtractRootExamples returns quick start examples for the root command.
 func (r *HelpRenderer) extractRootExamples() []ports.HelpExample {
 	return []ports.HelpExample{
 		{Description: "verify configuration", Command: "gitprovidersync print"},
@@ -121,7 +119,7 @@ func (r *HelpRenderer) extractRootExamples() []ports.HelpExample {
 	}
 }
 
-// extractSubcommandExamples extracts examples from subcommand descriptions.
+// ExtractSubcommandExamples extracts examples from subcommand descriptions
 // Pure function that parses examples from command descriptions.
 func (r *HelpRenderer) extractSubcommandExamples(cmd *cli.Command) []ports.HelpExample {
 	// For sync command
@@ -143,7 +141,7 @@ func (r *HelpRenderer) extractSubcommandExamples(cmd *cli.Command) []ports.HelpE
 	return []ports.HelpExample{}
 }
 
-// extractCommands extracts available subcommands.
+// ExtractCommands extracts available subcommands
 // Pure function that filters and sorts commands.
 func (r *HelpRenderer) extractCommands(cmd *cli.Command) []ports.HelpCommand {
 	var commands []ports.HelpCommand
@@ -160,7 +158,7 @@ func (r *HelpRenderer) extractCommands(cmd *cli.Command) []ports.HelpCommand {
 	return commands
 }
 
-// extractRootFlags extracts and categorizes root command flags.
+// ExtractRootFlags extracts and categorizes root command flags
 // Pure function that determines common vs advanced flags.
 func (r *HelpRenderer) extractRootFlags(cmd *cli.Command) []ports.HelpFlag {
 	flags := make([]ports.HelpFlag, 0, len(cmd.Flags))
@@ -201,7 +199,7 @@ func (r *HelpRenderer) extractRootFlags(cmd *cli.Command) []ports.HelpFlag {
 	return flags
 }
 
-// extractSubcommandFlags extracts flags from a subcommand.
+// ExtractSubcommandFlags extracts flags from a subcommand
 // Pure function with subcommand-specific flag categorization.
 func (r *HelpRenderer) extractSubcommandFlags(cmd *cli.Command) []ports.HelpFlag {
 	flags := make([]ports.HelpFlag, 0, len(cmd.Flags))
@@ -249,7 +247,7 @@ func (r *HelpRenderer) extractSubcommandFlags(cmd *cli.Command) []ports.HelpFlag
 	return flags
 }
 
-// extractSupportInfo returns support and documentation links.
+// ExtractSupportInfo returns support and documentation links.
 func (r *HelpRenderer) extractSupportInfo() ports.HelpSupport {
 	return ports.HelpSupport{
 		Documentation: "https://github.com/itiquette/git-provider-sync/blob/main/README.adoc",
@@ -258,7 +256,7 @@ func (r *HelpRenderer) extractSupportInfo() ports.HelpSupport {
 	}
 }
 
-// extractDocumentationLink returns subcommand-specific documentation links.
+// ExtractDocumentationLink returns subcommand-specific documentation links.
 func (r *HelpRenderer) extractDocumentationLink(cmd *cli.Command) ports.HelpSupport {
 	baseURL := "https://github.com/itiquette/git-provider-sync/blob/main/docs/usage.adoc"
 
@@ -280,7 +278,7 @@ func (r *HelpRenderer) extractDocumentationLink(cmd *cli.Command) ports.HelpSupp
 
 // Helper functions
 
-// isHiddenFlag checks if a flag is hidden by examining its concrete type.
+// IsHiddenFlag checks if a flag is hidden by examining its concrete type.
 func isHiddenFlag(flag cli.Flag) bool {
 	// Use type assertion to check common flag types for Hidden field
 	switch typedFlag := flag.(type) {
@@ -303,7 +301,7 @@ func isHiddenFlag(flag cli.Flag) bool {
 	}
 }
 
-// getFlagUsage extracts usage string from flag.
+// GetFlagUsage extracts usage string from flag.
 func getFlagUsage(flag cli.Flag) string {
 	// Use type assertion to get usage from common flag types
 	switch typedFlag := flag.(type) {
@@ -326,7 +324,7 @@ func getFlagUsage(flag cli.Flag) string {
 	}
 }
 
-// splitIntoLines splits text into lines, handling different line endings.
+// SplitIntoLines splits text into lines, handling different line endings
 // Pure function for consistent text processing.
 func splitIntoLines(text string) []string {
 	// Split on common line endings and filter empty lines

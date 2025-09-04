@@ -1,9 +1,6 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
-// Package transport provides HTTP client factories and transport layer abstractions
-// for git provider API communication with configurable timeouts, proxies, and security.
 package transport
 
 import (
@@ -257,7 +254,7 @@ func GetProviderHTTPConfig(provider string) HTTPConfig {
 
 // Private helper methods
 
-// wrapWithMiddleware wraps the HTTP client with provider-specific middleware.
+// WrapWithMiddleware wraps the HTTP client with provider-specific middleware.
 func (f *HTTPFactory) wrapWithMiddleware(client *http.Client, options HTTPClientOptions) *http.Client {
 	// Create a new transport that wraps the existing one
 	transport := &middlewareTransport{
@@ -272,12 +269,12 @@ func (f *HTTPFactory) wrapWithMiddleware(client *http.Client, options HTTPClient
 	}
 }
 
-// getProxy returns the proxy URL if configured.
+// GetProxy returns the proxy URL if configured.
 func (f *HTTPFactory) getProxy(_ /* req */ *http.Request) (*url.URL, error) {
 	return f.proxyURL, nil
 }
 
-// exponentialBackoff implements exponential backoff strategy.
+// ExponentialBackoff implements exponential backoff strategy.
 func (f *HTTPFactory) exponentialBackoff(minDelay, maxDelay time.Duration, attemptNum int, _ /* resp */ *http.Response) time.Duration {
 	// Prevent integer overflow by capping attempt number
 	const maxAttempts = 10 // Reasonable cap to prevent overflow
@@ -304,7 +301,7 @@ func (f *HTTPFactory) exponentialBackoff(minDelay, maxDelay time.Duration, attem
 	return sleep
 }
 
-// retryPolicy determines when to retry requests.
+// RetryPolicy determines when to retry requests.
 func (f *HTTPFactory) retryPolicy(ctx context.Context, resp *http.Response, err error) (bool, error) {
 	// Don't retry on context cancellation
 	if ctx != nil && ctx.Err() != nil {
@@ -335,7 +332,7 @@ func (f *HTTPFactory) retryPolicy(ctx context.Context, resp *http.Response, err 
 	return false, nil
 }
 
-// middlewareTransport wraps HTTP transport with additional functionality.
+// MiddlewareTransport wraps HTTP transport with additional functionality.
 type middlewareTransport struct {
 	base    http.RoundTripper
 	factory *HTTPFactory
@@ -364,7 +361,7 @@ func (t *middlewareTransport) RoundTrip(req *http.Request) (*http.Response, erro
 	return resp, nil
 }
 
-// addProviderHeaders adds provider-specific headers.
+// AddProviderHeaders adds provider-specific headers.
 func (t *middlewareTransport) addProviderHeaders(req *http.Request) {
 	if custom, ok := t.options.Custom["accept"].(string); ok {
 		req.Header.Set("Accept", custom)
@@ -375,7 +372,7 @@ func (t *middlewareTransport) addProviderHeaders(req *http.Request) {
 	}
 }
 
-// addAuthentication adds authentication to the request.
+// AddAuthentication adds authentication to the request.
 func (t *middlewareTransport) addAuthentication(req *http.Request) {
 	if !t.options.Authenticated {
 		return
@@ -398,80 +395,4 @@ func (t *middlewareTransport) addAuthentication(req *http.Request) {
 			req.Header.Set("Authorization", "Bearer "+t.options.Token)
 		}
 	}
-}
-
-// HTTPClientWrapper provides additional functionality around HTTP clients.
-type HTTPClientWrapper struct {
-	client  *http.Client
-	baseURL string
-	headers map[string]string
-}
-
-// NewHTTPClientWrapper creates a new HTTP client wrapper.
-func NewHTTPClientWrapper(client *http.Client, baseURL string) *HTTPClientWrapper {
-	return &HTTPClientWrapper{
-		client:  client,
-		baseURL: baseURL,
-		headers: make(map[string]string),
-	}
-}
-
-// SetHeader sets a default header for all requests.
-func (w *HTTPClientWrapper) SetHeader(key, value string) {
-	w.headers[key] = value
-}
-
-// Get performs a GET request.
-func (w *HTTPClientWrapper) Get(path string) (*http.Response, error) {
-	return w.request(http.MethodGet, path, nil)
-}
-
-// Post performs a POST request.
-func (w *HTTPClientWrapper) Post(path string, body any) (*http.Response, error) {
-	return w.request(http.MethodPost, path, body)
-}
-
-// Put performs a PUT request.
-func (w *HTTPClientWrapper) Put(path string, body any) (*http.Response, error) {
-	return w.request(http.MethodPut, path, body)
-}
-
-// Delete performs a DELETE request.
-func (w *HTTPClientWrapper) Delete(path string) (*http.Response, error) {
-	return w.request(http.MethodDelete, path, nil)
-}
-
-// Close closes the HTTP client wrapper (cleanup if needed).
-func (w *HTTPClientWrapper) Close() error {
-	// HTTP clients don't need explicit closing, but this provides
-	// a cleanup hook for future implementations
-	return nil
-}
-
-// request performs an HTTP request with the wrapped client.
-func (w *HTTPClientWrapper) request(method, path string, _ /* body */ any) (*http.Response, error) {
-	fullURL := w.baseURL + path
-
-	var req *http.Request
-
-	var err error
-
-	// In a real implementation, this would handle JSON marshaling for body
-	// For now, both cases create the same request
-	req, err = http.NewRequestWithContext(context.Background(), method, fullURL, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-
-	// Add default headers
-	for key, value := range w.headers {
-		req.Header.Set(key, value)
-	}
-
-	resp, err := w.client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("HTTP client request failed: %w", err)
-	}
-
-	return resp, nil
 }

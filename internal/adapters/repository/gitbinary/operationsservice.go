@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package gitbinary
@@ -24,7 +23,7 @@ type Remote struct {
 	URL  string
 }
 
-// OperationServiceInterface defines git operations like fetch and branch management.
+// OperationServiceInterface defines git operations like fetch and branch management
 //
 //	git operations .
 //
@@ -52,7 +51,7 @@ type OperationServiceInterface interface { //nolint:interfacebloat // Required f
 	GetStatus(ctx context.Context, repoPath string) (ports.StatusResult, error)
 }
 
-// operationService implements git operations.
+// OperationService implements git operations.
 type operationService struct {
 	executor ExecutorService
 	logger   ports.Logger
@@ -119,7 +118,7 @@ func (b *operationService) CreateTrackingBranches(ctx context.Context, targetPat
 	return b.ProcessTrackingBranches(ctx, targetPath, output)
 }
 
-// ProcessTrackingBranches processes git branch -r output to create tracking branches.
+// ProcessTrackingBranches processes git branch -r output to create tracking branches
 //
 //	branch processing .
 func (b *operationService) ProcessTrackingBranches(ctx context.Context, targetPath string, output []byte) error {
@@ -306,7 +305,7 @@ func (b *operationService) GetStatus(ctx context.Context, repoPath string) (port
 	return result, nil
 }
 
-// parseStatusLines processes git status output lines and populates the result.
+// ParseStatusLines processes git status output lines and populates the result.
 func (b *operationService) parseStatusLines(lines []string, result *ports.StatusResult) {
 	for _, line := range lines {
 		if !b.isValidStatusLine(line) {
@@ -320,12 +319,12 @@ func (b *operationService) parseStatusLines(lines []string, result *ports.Status
 	}
 }
 
-// isValidStatusLine checks if a status line is valid for processing.
+// IsValidStatusLine checks if a status line is valid for processing.
 func (b *operationService) isValidStatusLine(line string) bool {
 	return line != "" && len(line) >= 3
 }
 
-// categorizeFileStatus categorizes a file based on its git status.
+// CategorizeFileStatus categorizes a file based on its git status.
 func (b *operationService) categorizeFileStatus(status, filename string, result *ports.StatusResult) {
 	switch {
 	case b.isModified(status):
@@ -343,37 +342,37 @@ func (b *operationService) categorizeFileStatus(status, filename string, result 
 	}
 }
 
-// isModified checks if the status indicates a modified file.
+// IsModified checks if the status indicates a modified file.
 func (b *operationService) isModified(status string) bool {
 	return status[0] == 'M' || status[1] == 'M'
 }
 
-// isAdded checks if the status indicates an added file.
+// IsAdded checks if the status indicates an added file.
 func (b *operationService) isAdded(status string) bool {
 	return status[0] == 'A'
 }
 
-// isDeleted checks if the status indicates a deleted file.
+// IsDeleted checks if the status indicates a deleted file.
 func (b *operationService) isDeleted(status string) bool {
 	return status[0] == 'D' || status[1] == 'D'
 }
 
-// isRenamed checks if the status indicates a renamed file.
+// IsRenamed checks if the status indicates a renamed file.
 func (b *operationService) isRenamed(status string) bool {
 	return status[0] == 'R'
 }
 
-// isUntracked checks if the status indicates an untracked file.
+// IsUntracked checks if the status indicates an untracked file.
 func (b *operationService) isUntracked(status string) bool {
 	return status[0] == '?' && status[1] == '?'
 }
 
-// isConflicted checks if the status indicates a conflicted file.
+// IsConflicted checks if the status indicates a conflicted file.
 func (b *operationService) isConflicted(status string) bool {
 	return status[0] == 'U' || status[1] == 'U' || status == "AA" || status == "DD"
 }
 
-// handleTrackingBranchResult handles the result of creating a tracking branch.
+// HandleTrackingBranchResult handles the result of creating a tracking branch.
 func (b *operationService) handleTrackingBranchResult(ctx context.Context, err error, branch string) {
 	if err != nil {
 		// Don't fail if branch already exists - this is expected

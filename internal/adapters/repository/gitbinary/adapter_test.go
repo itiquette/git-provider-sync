@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package gitbinary
@@ -621,7 +620,7 @@ func TestMirrorService_getRepositoryName(t *testing.T) {
 	logger := logging.NewZerologAdapter(&zerologInstance)
 	service := &MirrorService{logger: logger}
 
-	// This is a placeholder implementation that returns "unknown"
+	// is a placeholder implementation that returns "unknown"
 	result := service.getRepositoryName(entities.Repository{})
 	assert.Equal(t, "unknown", result)
 }
@@ -640,7 +639,7 @@ func TestMirrorService_createRepositoryEntity(t *testing.T) {
 		MirrorType: "full",
 	}
 
-	// This is a placeholder implementation that returns empty Repository
+	// is a placeholder implementation that returns empty Repository
 	result := service.createRepositoryEntity(ctx, "/tmp/test-repo", config)
 	assert.NotNil(t, result)
 }

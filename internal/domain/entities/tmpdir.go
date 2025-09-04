@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package entities
@@ -14,12 +13,12 @@ import (
 	"itiquette/git-provider-sync/internal/domain"
 )
 
-// TmpDirKey is the key type for storing and retrieving the temporary directory path in the context.
+// TmpDirKey is the key type for storing and retrieving the temporary directory path in the context
 // Using a custom type for the key helps prevent collisions with other context values.
 type TmpDirKey struct{}
 
-// TmpDir represents a temporary directory with immutable properties.
-// This is a value object in DDD terms - it's defined by its value, not identity.
+// TmpDir represents a temporary directory with immutable properties
+// is a value object in DDD terms - it's defined by its value, not identity.
 type TmpDir struct {
 	path string
 }
@@ -60,8 +59,8 @@ func (t TmpDir) String() string {
 	return fmt.Sprintf("TmpDir{path: %q}", t.path)
 }
 
-// GetTmpDirPath retrieves the temporary directory path from the context.
-// It ensures that the path exists and is not empty before returning.
+// GetTmpDirPath retrieves the temporary directory path from the context
+// ensures that the path exists and is not empty before returning.
 func GetTmpDirPath(ctx context.Context) (string, error) {
 	tmpDir, ok := ctx.Value(TmpDirKey{}).(string)
 	if !ok || tmpDir == "" {
@@ -71,8 +70,8 @@ func GetTmpDirPath(ctx context.Context) (string, error) {
 	return tmpDir, nil
 }
 
-// CreateTmpDir creates a new temporary directory and stores its path in the context.
-// The directory is created using os.MkdirTemp, ensuring a unique name.
+// CreateTmpDir creates a new temporary directory and stores its path in the context
+// Directory is created using os.MkdirTemp, ensuring a unique name.
 func CreateTmpDir(ctx context.Context, dir, prefix string) (context.Context, error) {
 	tmpDir, err := os.MkdirTemp(dir, prefix+".*")
 	if err != nil {
@@ -82,8 +81,8 @@ func CreateTmpDir(ctx context.Context, dir, prefix string) (context.Context, err
 	return context.WithValue(ctx, TmpDirKey{}, tmpDir), nil
 }
 
-// DeleteTmpDir removes the temporary directory stored in the context.
-// It safely handles the case where the directory might not exist or the context value is missing.
+// DeleteTmpDir removes the temporary directory stored in the context
+// safely handles the case where the directory might not exist or the context value is missing.
 func DeleteTmpDir(ctx context.Context) error {
 	tmpDir, err := GetTmpDirPath(ctx)
 	if err != nil {
@@ -98,8 +97,8 @@ func DeleteTmpDir(ctx context.Context) error {
 	return nil
 }
 
-// WithTmpDir adds a temporary directory path to the context without creating it.
-// This is useful when you want to use an existing directory.
+// WithTmpDir adds a temporary directory path to the context without creating it
+// is useful when you want to use an existing directory.
 func WithTmpDir(ctx context.Context, tmpDir string) context.Context {
 	return context.WithValue(ctx, TmpDirKey{}, tmpDir)
 }

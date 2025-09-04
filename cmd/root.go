@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package cmd
@@ -20,7 +19,7 @@ import (
 	"itiquette/git-provider-sync/internal/log"
 )
 
-// NewRootCommand returns the root CLI command.
+// NewRootCommand returns the root CLI command
 // Exported for testing purposes.
 func NewRootCommand(_ context.Context, versionString string) *cli.Command {
 	return newRootCommandWithOptions(versionString, true)
@@ -31,7 +30,7 @@ func NewRootCommandForTesting(_ context.Context, versionString string) *cli.Comm
 	return newRootCommandWithOptions(versionString, false)
 }
 
-// newRootCommandWithOptions creates the root command with configurable suggestion behavior.
+// NewRootCommandWithOptions creates the root command with configurable suggestion behavior.
 func newRootCommandWithOptions(versionString string, enableSuggestions bool) *cli.Command {
 	rootCmd := &cli.Command{
 		Name:    "gitprovidersync",
@@ -146,8 +145,8 @@ Allows syncing to multiple mirror destinations.`,
 	return rootCmd
 }
 
-// RunApplication runs the root command with the provided version information.
-// This is the application boundary where errors can cause program exit.
+// RunApplication runs the root command with the provided version information
+// is the application boundary where errors can cause program exit.
 func RunApplication(version, commitSHA, buildDate string) {
 	ctx := context.Background()
 
@@ -173,7 +172,7 @@ func RunApplication(version, commitSHA, buildDate string) {
 	showDebugLogPath(ctx)
 }
 
-// showDebugLogPath displays the debug log file path if debug logging was enabled.
+// ShowDebugLogPath displays the debug log file path if debug logging was enabled.
 func showDebugLogPath(ctx context.Context) {
 	// Use the GetDebugLogPath helper from the log package
 	if debugPath := log.GetDebugLogPath(ctx); debugPath != "" {

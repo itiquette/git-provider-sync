@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package cli
@@ -14,7 +13,7 @@ import (
 	"itiquette/git-provider-sync/internal/domain/ports"
 )
 
-// InterruptHandler provides user feedback for interruptible operations.
+// InterruptHandler provides user feedback for interruptible operations
 // Simple, functional, idiomatic - no overengineering.
 type InterruptHandler struct {
 	writer       io.Writer

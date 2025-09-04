@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package configuration
@@ -80,7 +79,7 @@ func validateConfiguration(ctx context.Context, appCfg *config.AppConfiguration)
 	return nil
 }
 
-// validateEnvironmentSpecific validates environment-specific aspects not covered by domain validation.
+// ValidateEnvironmentSpecific validates environment-specific aspects not covered by domain validation.
 func validateEnvironmentSpecific(ctx context.Context, envName string, env config.Environment) error {
 	if len(env) == 0 {
 		return fmt.Errorf("%w: %s", domain.ErrNoSyncConfigInEnvironment, envName)
@@ -95,7 +94,7 @@ func validateEnvironmentSpecific(ctx context.Context, envName string, env config
 	return nil
 }
 
-// validateSyncConfigSpecific validates file-specific configuration aspects.
+// ValidateSyncConfigSpecific validates file-specific configuration aspects.
 func validateSyncConfigSpecific(ctx context.Context, _ string, syncCfg config.SyncConfig) error {
 	// Only validate aspects not covered by domain validation
 	validators := []struct {
@@ -117,7 +116,7 @@ func validateSyncConfigSpecific(ctx context.Context, _ string, syncCfg config.Sy
 	return nil
 }
 
-// convertToAppConfiguration converts file configuration to domain configuration.
+// ConvertToAppConfiguration converts file configuration to domain configuration.
 func convertToAppConfiguration(appCfg *config.AppConfiguration) ports.AppConfiguration {
 	// Convert global settings
 	globalSettings := ports.GlobalSettings{
@@ -153,7 +152,7 @@ func convertToAppConfiguration(appCfg *config.AppConfiguration) ports.AppConfigu
 	}
 }
 
-// convertToSourceConfiguration converts sync config to source configuration.
+// ConvertToSourceConfiguration converts sync config to source configuration.
 func convertToSourceConfiguration(syncCfg config.SyncConfig) ports.SourceConfiguration {
 	return ports.SourceConfiguration{
 		ProviderType:   syncCfg.ProviderType,
@@ -163,13 +162,13 @@ func convertToSourceConfiguration(syncCfg config.SyncConfig) ports.SourceConfigu
 	}
 }
 
-// convertToMirrorConfigurations converts mirror configs to domain mirror configurations.
+// ConvertToMirrorConfigurations converts mirror configs to domain mirror configurations.
 func convertToMirrorConfigurations(mirrors map[string]config.MirrorConfig) map[string]ports.MirrorConfiguration {
 	result := make(map[string]ports.MirrorConfiguration)
 
 	for name, mirror := range mirrors {
 		// For local providers (archive/directory), use a placeholder path to avoid validation errors
-		// since the current config structure doesn't have path fields
+		// Since the current config structure doesn't have path fields
 		path := ""
 		if mirror.ProviderType == "archive" || mirror.ProviderType == "directory" {
 			path = "/tmp" // Placeholder to satisfy domain validation
@@ -188,7 +187,7 @@ func convertToMirrorConfigurations(mirrors map[string]config.MirrorConfig) map[s
 	return result
 }
 
-// convertToAuthenticationConfiguration converts auth config to domain authentication configuration.
+// ConvertToAuthenticationConfiguration converts auth config to domain authentication configuration.
 func convertToAuthenticationConfiguration(authCfg config.AuthConfig) ports.AuthenticationConfiguration {
 	// Determine auth type based on what's configured
 	authType := ports.AuthenticationTypeNone
@@ -234,7 +233,7 @@ func validateDuration(limit string) error {
 	return nil
 }
 
-// validateSSHAuthIfNeeded validates SSH-specific authentication configuration.
+// ValidateSSHAuthIfNeeded validates SSH-specific authentication configuration.
 func validateSSHAuthIfNeeded(ctx context.Context, authCfg config.AuthConfig) error {
 	if authCfg.Protocol == config.SSH {
 		if err := checkSSHAgent(ctx); err != nil {
@@ -251,7 +250,7 @@ func validateSSHAuthIfNeeded(ctx context.Context, authCfg config.AuthConfig) err
 	return validateSSHCommand(authCfg.SSHCommand)
 }
 
-// validatePathsIfSet validates file paths if they are configured.
+// ValidatePathsIfSet validates file paths if they are configured.
 func validatePathsIfSet(authCfg config.AuthConfig) error {
 	if authCfg.ProxyURL != "" {
 		if err := validateURL(authCfg.ProxyURL); err != nil {
@@ -354,7 +353,7 @@ func validateSSHCommand(sshCommand string) error {
 
 // These functions are now handled by domain validation and no longer needed
 
-// validateGitBinary validates that git binary is available and functional.
+// ValidateGitBinary validates that git binary is available and functional.
 func validateGitBinary(ctx context.Context) error {
 	// Check if git command exists
 	if _, err := exec.LookPath("git"); err != nil {
@@ -374,4 +373,4 @@ func validateGitBinary(ctx context.Context) error {
 }
 
 // Configuration validation is now consolidated - this function removed as
-// it duplicates domain validation logic
+// duplicates domain validation logic

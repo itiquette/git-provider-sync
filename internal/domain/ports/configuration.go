@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package ports
@@ -12,8 +11,8 @@ import (
 	"itiquette/git-provider-sync/internal/domain"
 )
 
-// Configuration defines the interface for configuration management (secondary port).
-// This port is implemented by adapters that handle configuration loading from files, environment, etc.
+// Configuration defines the interface for configuration management (secondary port)
+// port is implemented by adapters that handle configuration loading from files, environment, etc.
 type Configuration interface {
 	// Configuration loading
 	Load(ctx context.Context, source ConfigurationSource) (AppConfiguration, error)
@@ -298,11 +297,11 @@ type ConfigurationValidator interface {
 	ValidateGlobal(global GlobalSettings) error
 }
 
-// ConfigurationBuilder interface removed: was unused (22 methods with zero implementations).
-// The codebase uses concrete value types with functional options instead.
-// See internal/domain/config/immutable.go for the actual implementation pattern.
+// ConfigurationBuilder interface removed: was unused (22 methods with zero implementations)
+// Codebase uses concrete value types with functional options instead
+// See internal/domain/config/immutable.go for the actual implementation pattern
 
-// ConfigurationProvider provides configurations for different scenarios.
+// ConfigurationProvider returns configurations for different scenarios.
 type ConfigurationProvider interface {
 	// Preset configurations
 	GetDefaultConfiguration() AppConfiguration

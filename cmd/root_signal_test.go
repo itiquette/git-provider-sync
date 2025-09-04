@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package cmd
@@ -15,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestSetupSignalContext tests that signal context is properly configured.
+// TestSetupSignalContext tests that signal context is properly configured
 // Idiomatic Go testing - table driven, clear assertions, no overengineering.
 func TestSetupSignalContext(t *testing.T) {
 	t.Parallel()
@@ -41,7 +40,7 @@ func TestSetupSignalContext(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		// capture range variable
+		// Capture range variable
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 			// Create base context

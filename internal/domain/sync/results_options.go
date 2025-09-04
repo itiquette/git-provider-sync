@@ -1,13 +1,12 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package sync
 
 import "time"
 
-// ResultsOption is a functional option for configuring Results.
-// This follows the idiomatic Go functional options pattern.
+// ResultsOption is a functional option for configuring Results
+// follows the idiomatic Go functional options pattern.
 type ResultsOption func(*Results) *Results
 
 // NewFunctionalResults creates Results using functional options.
@@ -43,7 +42,7 @@ func WithStartTime(t time.Time) ResultsOption {
 	}
 }
 
-// WithResult adds a single result and updates counters.
+// WithResult adds a single result and updates counters
 // Returns a new Results instance (immutable pattern).
 func (r Results) WithResult(result Result) Results {
 	// Create a new slice to avoid mutation
@@ -66,7 +65,7 @@ func (r Results) WithResult(result Result) Results {
 	return r
 }
 
-// WithResults adds multiple results at once.
+// WithResults adds multiple results at once
 // More efficient than calling WithResult multiple times.
 func (r Results) WithResults(results ...Result) Results {
 	if len(results) == 0 {

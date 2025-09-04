@@ -1,9 +1,6 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
-// Package transport provides HTTP client factory and transport utilities for Git Provider Sync.
-//
 //nolint:funcorder // HTTP client factory with many helper methods
 package transport
 
@@ -148,7 +145,7 @@ func (f *HTTPClientFactory) CreateHTTPClient(ctx context.Context, config HTTPCli
 	return client, nil
 }
 
-// createHTTPTransport creates an HTTP transport with production-ready settings.
+// CreateHTTPTransport creates an HTTP transport with production-ready settings.
 func (f *HTTPClientFactory) createHTTPTransport(
 	ctx context.Context,
 	proxyFunc ProxyFunc,
@@ -206,7 +203,7 @@ func (f *HTTPClientFactory) createHTTPTransport(
 	}
 }
 
-// createTLSConfig creates a TLS configuration with security best practices.
+// CreateTLSConfig creates a TLS configuration with security best practices.
 func (f *HTTPClientFactory) createTLSConfig(
 	ctx context.Context,
 	caCertPool *x509.CertPool,
@@ -230,7 +227,7 @@ func (f *HTTPClientFactory) createTLSConfig(
 	}
 }
 
-// setupProxy configures the proxy function.
+// SetupProxy configures the proxy function.
 func (f *HTTPClientFactory) setupProxy(ctx context.Context, proxyURL string) (ProxyFunc, error) {
 	f.logger.Debug(ctx, "Setting up proxy configuration", map[string]any{
 		"proxy_url": proxyURL,
@@ -255,7 +252,7 @@ func (f *HTTPClientFactory) setupProxy(ctx context.Context, proxyURL string) (Pr
 	return http.ProxyURL(parsedURL), nil
 }
 
-// loadCertificates loads custom CA certificates from a directory.
+// LoadCertificates loads custom CA certificates from a directory.
 func (f *HTTPClientFactory) loadCertificates(ctx context.Context, dirPath string) (*x509.CertPool, error) {
 	f.logger.Debug(ctx, "Loading custom certificates", map[string]any{
 		"cert_dir_path": dirPath,
@@ -299,7 +296,7 @@ func (f *HTTPClientFactory) loadCertificates(ctx context.Context, dirPath string
 	return caCertPool, nil
 }
 
-// processCertificateFile handles loading a single certificate file.
+// ProcessCertificateFile handles loading a single certificate file.
 func (f *HTTPClientFactory) processCertificateFile(
 	ctx context.Context,
 	entry os.DirEntry,
@@ -333,7 +330,7 @@ func (f *HTTPClientFactory) processCertificateFile(
 	return nil
 }
 
-// isCertFile checks if the filename has a certificate extension.
+// IsCertFile checks if the filename has a certificate extension.
 func (f *HTTPClientFactory) isCertFile(filename string) bool {
 	ext := filepath.Ext(filename)
 
@@ -394,7 +391,7 @@ func (f *HTTPClientFactory) ValidateConfig(config HTTPClientConfig) error {
 	return nil
 }
 
-// validateTimeouts validates timeout-related configuration.
+// ValidateTimeouts validates timeout-related configuration.
 func (f *HTTPClientFactory) validateTimeouts(config HTTPClientConfig) error {
 	if config.RequestTimeout <= 0 {
 		return domain.ErrRequestTimeoutMustBePositive
@@ -415,7 +412,7 @@ func (f *HTTPClientFactory) validateTimeouts(config HTTPClientConfig) error {
 	return nil
 }
 
-// validateConnectionLimits validates connection limit configuration.
+// ValidateConnectionLimits validates connection limit configuration.
 func (f *HTTPClientFactory) validateConnectionLimits(config HTTPClientConfig) error {
 	if config.MaxIdleConns <= 0 {
 		return domain.ErrMaxIdleConnectionsMustBePositive
@@ -432,7 +429,7 @@ func (f *HTTPClientFactory) validateConnectionLimits(config HTTPClientConfig) er
 	return nil
 }
 
-// validatePaths validates path and URL configuration.
+// ValidatePaths validates path and URL configuration.
 func (f *HTTPClientFactory) validatePaths(config HTTPClientConfig) error {
 	if config.CertDirPath != "" {
 		if _, err := os.Stat(config.CertDirPath); errors.Is(err, fs.ErrNotExist) {

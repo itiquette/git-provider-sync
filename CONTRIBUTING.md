@@ -163,7 +163,7 @@ Security reports are **greatly** appreciated.
 
 ## Development Guidelines
 
-For comprehensive development setup, build instructions, code style requirements, and testing guidelines, see the [DEVELOPMENT Guide](./DEVELOPMENT.adoc).
+For development setup, build instructions, and testing guidelines, see the [DEVELOPMENT Guide](./DEVELOPMENT.adoc).
 
 ## Writing style and Translations
 

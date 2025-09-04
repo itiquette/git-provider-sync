@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package gitlab
@@ -224,7 +223,7 @@ func (ps *ProjectService) TransformProjectName(name string, options ports.NameTr
 	return result
 }
 
-// validateBasicRequirements checks basic naming requirements.
+// ValidateBasicRequirements checks basic naming requirements.
 func (ps *ProjectService) validateBasicRequirements(name string) error {
 	if name == "" {
 		return domain.ErrProjectNameEmpty
@@ -237,7 +236,7 @@ func (ps *ProjectService) validateBasicRequirements(name string) error {
 	return nil
 }
 
-// validateNamingRules checks GitLab naming rules.
+// ValidateNamingRules checks GitLab naming rules.
 func (ps *ProjectService) validateNamingRules(name string) error {
 	// GitLab project naming rules
 	if strings.HasPrefix(name, ".") || strings.HasSuffix(name, ".") {
@@ -251,7 +250,7 @@ func (ps *ProjectService) validateNamingRules(name string) error {
 	return nil
 }
 
-// validateCharacters checks for invalid characters.
+// ValidateCharacters checks for invalid characters.
 func (ps *ProjectService) validateCharacters(name string) error {
 	// Check for invalid characters
 	for _, char := range name {
@@ -263,7 +262,7 @@ func (ps *ProjectService) validateCharacters(name string) error {
 	return nil
 }
 
-// validateReservedNames checks against reserved names.
+// ValidateReservedNames checks against reserved names.
 func (ps *ProjectService) validateReservedNames(name string) error {
 	// Reserved names
 	reservedNames := []string{".", "..", ".git", ".well-known", "admin", "api", "root", "help"}
@@ -276,7 +275,7 @@ func (ps *ProjectService) validateReservedNames(name string) error {
 	return nil
 }
 
-// buildProjectOptions builds GitLab project options from request.
+// BuildProjectOptions builds GitLab project options from request.
 func (ps *ProjectService) buildProjectOptions(request CreateProjectRequest) *gitlab.CreateProjectOptions {
 	opts := ps.buildBasicProjectOptions(request)
 	ps.setProjectNamespace(opts, request)
@@ -286,7 +285,7 @@ func (ps *ProjectService) buildProjectOptions(request CreateProjectRequest) *git
 	return opts
 }
 
-// buildBasicProjectOptions builds the basic project options.
+// BuildBasicProjectOptions builds the basic project options.
 func (ps *ProjectService) buildBasicProjectOptions(request CreateProjectRequest) *gitlab.CreateProjectOptions {
 	opts := &gitlab.CreateProjectOptions{
 		Name:        &request.Name,
@@ -313,14 +312,14 @@ func (ps *ProjectService) buildBasicProjectOptions(request CreateProjectRequest)
 	return opts
 }
 
-// setProjectNamespace sets the namespace for organization projects.
+// SetProjectNamespace sets the namespace for organization projects.
 func (ps *ProjectService) setProjectNamespace(opts *gitlab.CreateProjectOptions, request CreateProjectRequest) {
 	if request.IsOrganization {
 		opts.NamespaceID = ps.getNamespaceID(request.Owner)
 	}
 }
 
-// setProjectFeatures sets feature access levels for the project.
+// SetProjectFeatures sets feature access levels for the project.
 func (ps *ProjectService) setProjectFeatures(opts *gitlab.CreateProjectOptions, request CreateProjectRequest) {
 	ps.setIssuesAccess(opts, request.IssuesEnabled)
 	ps.setWikiAccess(opts, request.WikiEnabled)
@@ -330,7 +329,7 @@ func (ps *ProjectService) setProjectFeatures(opts *gitlab.CreateProjectOptions, 
 	ps.setContainerRegistryAccess(opts, request.ContainerRegistryEnabled)
 }
 
-// setProjectSettings sets additional project settings.
+// SetProjectSettings sets additional project settings.
 func (ps *ProjectService) setProjectSettings(opts *gitlab.CreateProjectOptions, request CreateProjectRequest) {
 	if request.SharedRunnersEnabled != nil {
 		opts.SharedRunnersEnabled = request.SharedRunnersEnabled
@@ -349,7 +348,7 @@ func (ps *ProjectService) setProjectSettings(opts *gitlab.CreateProjectOptions, 
 	_ = request.PagesAccessLevel
 }
 
-// setIssuesAccess sets the issues access level.
+// SetIssuesAccess sets the issues access level.
 func (ps *ProjectService) setIssuesAccess(opts *gitlab.CreateProjectOptions, enabled *bool) {
 	if enabled != nil {
 		if *enabled {
@@ -360,7 +359,7 @@ func (ps *ProjectService) setIssuesAccess(opts *gitlab.CreateProjectOptions, ena
 	}
 }
 
-// setWikiAccess sets the wiki access level.
+// SetWikiAccess sets the wiki access level.
 func (ps *ProjectService) setWikiAccess(opts *gitlab.CreateProjectOptions, enabled *bool) {
 	if enabled != nil {
 		if *enabled {
@@ -371,7 +370,7 @@ func (ps *ProjectService) setWikiAccess(opts *gitlab.CreateProjectOptions, enabl
 	}
 }
 
-// setSnippetsAccess sets the snippets access level.
+// SetSnippetsAccess sets the snippets access level.
 func (ps *ProjectService) setSnippetsAccess(opts *gitlab.CreateProjectOptions, enabled *bool) {
 	if enabled != nil {
 		if *enabled {
@@ -382,7 +381,7 @@ func (ps *ProjectService) setSnippetsAccess(opts *gitlab.CreateProjectOptions, e
 	}
 }
 
-// setMergeRequestsAccess sets the merge requests access level.
+// SetMergeRequestsAccess sets the merge requests access level.
 func (ps *ProjectService) setMergeRequestsAccess(opts *gitlab.CreateProjectOptions, enabled *bool) {
 	if enabled != nil {
 		if *enabled {
@@ -393,7 +392,7 @@ func (ps *ProjectService) setMergeRequestsAccess(opts *gitlab.CreateProjectOptio
 	}
 }
 
-// setBuildsAccess sets the builds/jobs access level.
+// SetBuildsAccess sets the builds/jobs access level.
 func (ps *ProjectService) setBuildsAccess(opts *gitlab.CreateProjectOptions, enabled *bool) {
 	if enabled != nil {
 		if *enabled {
@@ -404,7 +403,7 @@ func (ps *ProjectService) setBuildsAccess(opts *gitlab.CreateProjectOptions, ena
 	}
 }
 
-// setContainerRegistryAccess sets the container registry access level.
+// SetContainerRegistryAccess sets the container registry access level.
 func (ps *ProjectService) setContainerRegistryAccess(opts *gitlab.CreateProjectOptions, enabled *bool) {
 	if enabled != nil {
 		if *enabled {
@@ -415,7 +414,7 @@ func (ps *ProjectService) setContainerRegistryAccess(opts *gitlab.CreateProjectO
 	}
 }
 
-// applyDisabledSettings disables features on a GitLab project.
+// ApplyDisabledSettings disables features on a GitLab project.
 func (ps *ProjectService) applyDisabledSettings(ctx context.Context, projectID int, projectName string) error {
 	ps.logger.Debug(ctx, "Applying disabled settings", map[string]any{
 		"project_id":   projectID,
@@ -444,7 +443,7 @@ func (ps *ProjectService) applyDisabledSettings(ctx context.Context, projectID i
 	return nil
 }
 
-// convertToRepository converts GitLab project to domain entity.
+// ConvertToRepository converts GitLab project to domain entity.
 func (ps *ProjectService) convertToRepository(project *gitlab.Project) (*entities.Repository, error) {
 	builder := entities.NewRepositoryBuilder()
 
@@ -493,14 +492,14 @@ func (ps *ProjectService) convertToRepository(project *gitlab.Project) (*entitie
 	return &builtRepo, nil
 }
 
-// getNamespaceID resolves namespace ID from owner name.
+// GetNamespaceID resolves namespace ID from owner name.
 func (ps *ProjectService) getNamespaceID(_ string) *int {
-	// This would require an API call to resolve the namespace
+	// would require an API call to resolve the namespace
 	// For now, we'll return nil and let GitLab handle the default
 	return nil
 }
 
-// convertToGitLabVisibility converts standard visibility to GitLab visibility.
+// ConvertToGitLabVisibility converts standard visibility to GitLab visibility.
 func (ps *ProjectService) convertToGitLabVisibility(visibility string) gitlab.VisibilityValue {
 	switch strings.ToLower(visibility) {
 	case "private":
@@ -514,7 +513,7 @@ func (ps *ProjectService) convertToGitLabVisibility(visibility string) gitlab.Vi
 	}
 }
 
-// convertFromGitLabVisibility converts GitLab visibility to standard format.
+// ConvertFromGitLabVisibility converts GitLab visibility to standard format.
 func (ps *ProjectService) convertFromGitLabVisibility(visibility gitlab.VisibilityValue) string {
 	switch visibility {
 	case gitlab.PrivateVisibility:
@@ -528,7 +527,7 @@ func (ps *ProjectService) convertFromGitLabVisibility(visibility gitlab.Visibili
 	}
 }
 
-// makeAlphaNumeric converts a string to alphanumeric only (plus hyphens).
+// MakeAlphaNumeric converts a string to alphanumeric only (plus hyphens).
 func (ps *ProjectService) makeAlphaNumeric(input string) string {
 	var result strings.Builder
 
@@ -546,7 +545,7 @@ func (ps *ProjectService) makeAlphaNumeric(input string) string {
 	return result.String()
 }
 
-// sanitizeProjectName attempts to fix common naming issues.
+// SanitizeProjectName attempts to fix common naming issues.
 func (ps *ProjectService) sanitizeProjectName(name string) string {
 	// Remove leading/trailing periods and hyphens
 	name = strings.Trim(name, ".-")
@@ -564,7 +563,7 @@ func (ps *ProjectService) sanitizeProjectName(name string) string {
 	return name
 }
 
-// isValidGitLabProjectChar checks if a character is valid in GitLab project names.
+// IsValidGitLabProjectChar checks if a character is valid in GitLab project names.
 func isValidGitLabProjectChar(char rune) bool {
 	return (char >= 'a' && char <= 'z') ||
 		(char >= 'A' && char <= 'Z') ||
@@ -574,8 +573,8 @@ func isValidGitLabProjectChar(char rune) bool {
 		char == '.'
 }
 
-// Note: Access level constants not available in this client version.
-// func (ps *ProjectService) convertToGitLabAccessLevel(level string) string {
+// Note: Access level constants not available in this client version
+// Func (ps *ProjectService) convertToGitLabAccessLevel(level string) string {
 // 	switch strings.ToLower(level) {
 // 	case "disabled":
 // 		return "disabled"

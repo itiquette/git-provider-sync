@@ -1,17 +1,15 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package terminal
 
 import (
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestIsError_BehaviorInTestEnvironment(t *testing.T) {
+func TestIsError_InNonTTYEnvironment(t *testing.T) {
 	t.Parallel()
 
 	// Test that IsError correctly detects stderr is not a terminal in test environment
@@ -19,7 +17,7 @@ func TestIsError_BehaviorInTestEnvironment(t *testing.T) {
 	assert.False(t, result, "stderr should not be detected as terminal in test environment")
 }
 
-func TestIsInput_BehaviorInTestEnvironment(t *testing.T) {
+func TestIsInput_InNonTTYEnvironment(t *testing.T) {
 	t.Parallel()
 
 	// Test that IsInput correctly detects stdin is not a terminal in test environment
@@ -241,7 +239,7 @@ func TestColorModeHandling(t *testing.T) {
 	}
 }
 
-func TestColorModeWithEnvironmentVariables(t *testing.T) { //nolint:paralleltest // Cannot run in parallel due to environment variable modification
+func TestColorModeWithEnvironmentVariables(t *testing.T) {
 	tests := []struct {
 		name      string
 		mode      ColorMode
@@ -284,26 +282,12 @@ func TestColorModeWithEnvironmentVariables(t *testing.T) { //nolint:paralleltest
 		},
 	}
 
-	for _, testCase := range tests { //nolint:paralleltest // Cannot run in parallel due to environment variable modification
+	for _, testCase := range tests {
 		testCase := testCase //nolint:copyloopvar // Keep for Go compatibility
 		t.Run(testCase.name, func(t *testing.T) {
-			// Save original env value
-			originalValue := os.Getenv(testCase.envVar)
-
-			defer func() {
-				if originalValue == "" {
-					_ = os.Unsetenv(testCase.envVar)
-				} else {
-					_ = os.Setenv(testCase.envVar, originalValue)
-				}
-			}()
-
-			// Set test env value
-			if testCase.envValue == "" {
-				_ = os.Unsetenv(testCase.envVar)
-			} else {
-				_ = os.Setenv(testCase.envVar, testCase.envValue)
-			}
+			// Cannot use t.Parallel() with t.Setenv
+			// Set test env value using t.Setenv for automatic cleanup
+			t.Setenv(testCase.envVar, testCase.envValue)
 
 			// Test color creation
 			color := NewColor(testCase.mode, testCase.isTTY)

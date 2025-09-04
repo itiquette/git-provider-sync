@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package github
@@ -12,8 +11,8 @@ import (
 	"itiquette/git-provider-sync/internal/domain/entities"
 )
 
-// setRepositoryStringFields sets all string-based repository fields that can return errors.
-// This helper eliminates code duplication between adapter.go and projectservice.go.
+// SetRepositoryStringFields sets all string-based repository fields that can return errors
+// helper eliminates code duplication between adapter.go and projectservice.go.
 func setRepositoryStringFields(repo *github.Repository, builder *entities.RepositoryBuilder) error {
 	if repo.Name != nil {
 		var err error

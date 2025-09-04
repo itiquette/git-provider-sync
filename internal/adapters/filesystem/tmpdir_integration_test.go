@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package filesystem
@@ -194,10 +193,7 @@ func testSymlinkHandling(t *testing.T, baseDir string) {
 	symlinkPath := filepath.Join(baseDir, "symlink")
 
 	err := os.Symlink(targetDir, symlinkPath)
-	if err != nil {
-		// Skip if symlinks not supported on this system
-		t.Skip("Symlinks not supported on this system")
-	}
+	require.NoError(t, err, "Failed to create symlink - OS may not support symlinks")
 
 	// Verify symlink points to target
 	linkTarget, err := os.Readlink(symlinkPath)

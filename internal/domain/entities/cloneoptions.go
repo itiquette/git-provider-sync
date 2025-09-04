@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package entities
@@ -11,8 +10,8 @@ import (
 	"itiquette/git-provider-sync/internal/domain"
 )
 
-// CloneOptions represents immutable clone operation configuration as domain value object.
-// This replaces model.CloneOption with proper domain design and immutability.
+// CloneOptions represents immutable clone operation configuration as domain value object
+// replaces model.CloneOption with proper domain design and immutability.
 type CloneOptions struct {
 	repositoryName string
 	sourceURL      string

@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package gogit
@@ -149,7 +148,7 @@ func (ms *MirrorService) Mirror(ctx context.Context, request MirrorRequest) (*Mi
 	return result, nil
 }
 
-// performDryRun simulates a mirror operation without making changes.
+// PerformDryRun simulates a mirror operation without making changes.
 func (ms *MirrorService) performDryRun(ctx context.Context, request MirrorRequest, result *MirrorResult) *MirrorResult {
 	ms.logger.Info(ctx, "Performing dry run analysis", map[string]any{
 		"source": request.SourceRepository.HTTPSURL(),
@@ -173,7 +172,7 @@ func (ms *MirrorService) performDryRun(ctx context.Context, request MirrorReques
 	return result
 }
 
-// createWorkingDirectory creates a temporary working directory.
+// CreateWorkingDirectory creates a temporary working directory.
 func (ms *MirrorService) createWorkingDirectory(ctx context.Context) (string, error) {
 	workDir := filepath.Join(ms.tempDir, "gogit-mirror-"+generateRandomID())
 
@@ -188,7 +187,7 @@ func (ms *MirrorService) createWorkingDirectory(ctx context.Context) (string, er
 	return workDir, nil
 }
 
-// cleanupWorkingDirectory removes the temporary working directory.
+// CleanupWorkingDirectory removes the temporary working directory.
 func (ms *MirrorService) cleanupWorkingDirectory(ctx context.Context, workDir string) {
 	if err := os.RemoveAll(workDir); err != nil {
 		ms.logger.Warn(ctx, "Failed to cleanup working directory", map[string]any{
@@ -202,7 +201,7 @@ func (ms *MirrorService) cleanupWorkingDirectory(ctx context.Context, workDir st
 	}
 }
 
-// cloneSourceRepository clones the source repository to the working directory.
+// CloneSourceRepository clones the source repository to the working directory.
 func (ms *MirrorService) cloneSourceRepository(ctx context.Context, request MirrorRequest, workDir string) (*git.Repository, error) {
 	ms.logger.Debug(ctx, "Cloning source repository", map[string]any{
 		"source":   request.SourceRepository.HTTPSURL(),
@@ -236,7 +235,7 @@ func (ms *MirrorService) cloneSourceRepository(ctx context.Context, request Mirr
 	return repo, nil
 }
 
-// analyzeSourceRepository analyzes the source repository to gather information.
+// AnalyzeSourceRepository analyzes the source repository to gather information.
 func (ms *MirrorService) analyzeSourceRepository(ctx context.Context, repo *git.Repository, result *MirrorResult) error {
 	ms.logger.Debug(ctx, "Analyzing source repository", nil)
 
@@ -266,7 +265,7 @@ func (ms *MirrorService) analyzeSourceRepository(ctx context.Context, repo *git.
 	return nil
 }
 
-// filterReferences filters branches and tags based on the request criteria.
+// FilterReferences filters branches and tags based on the request criteria.
 func (ms *MirrorService) filterReferences(ctx context.Context, repo *git.Repository, request MirrorRequest) (map[string]plumbing.ReferenceName, error) {
 	ms.logger.Debug(ctx, "Filtering references", map[string]any{
 		"include_branches": request.IncludeBranches,
@@ -315,7 +314,7 @@ func (ms *MirrorService) filterReferences(ctx context.Context, repo *git.Reposit
 	return filteredRefs, nil
 }
 
-// shouldIncludeBranch determines if a branch should be included.
+// ShouldIncludeBranch determines if a branch should be included.
 func (ms *MirrorService) shouldIncludeBranch(branchName string, includePatterns, excludePatterns []string) bool {
 	// Check exclude patterns first
 	for _, pattern := range excludePatterns {
@@ -339,7 +338,7 @@ func (ms *MirrorService) shouldIncludeBranch(branchName string, includePatterns,
 	return false
 }
 
-// shouldIncludeTag determines if a tag should be included.
+// ShouldIncludeTag determines if a tag should be included.
 func (ms *MirrorService) shouldIncludeTag(tagName string, includePatterns, excludePatterns []string) bool {
 	// Check exclude patterns first
 	for _, pattern := range excludePatterns {
@@ -363,10 +362,10 @@ func (ms *MirrorService) shouldIncludeTag(tagName string, includePatterns, exclu
 	return false
 }
 
-// matchesPattern checks if a name matches a pattern (supports wildcards).
+// MatchesPattern checks if a name matches a pattern (supports wildcards).
 func (ms *MirrorService) matchesPattern(name, pattern string) bool {
 	// For branch/tag patterns, handle special case where * should match path separators
-	// e.g., "feature/*" should match "feature/ABC-123/description"
+	// E.g., "feature/*" should match "feature/ABC-123/description"
 	if strings.Contains(pattern, "*") && strings.Contains(name, "/") {
 		// Check if pattern is a prefix pattern like "feature/*"
 		if strings.HasSuffix(pattern, "/*") {
@@ -392,7 +391,7 @@ func (ms *MirrorService) matchesPattern(name, pattern string) bool {
 	return matched
 }
 
-// pushToTarget pushes the filtered references to the target repository.
+// PushToTarget pushes the filtered references to the target repository.
 func (ms *MirrorService) pushToTarget(ctx context.Context, repo *git.Repository, request MirrorRequest, refs map[string]plumbing.ReferenceName, result *MirrorResult) error {
 	ms.logger.Debug(ctx, "Pushing to target repository", map[string]any{
 		"target":    request.TargetRepository.HTTPSURL(),
@@ -454,7 +453,7 @@ func (ms *MirrorService) pushToTarget(ctx context.Context, repo *git.Repository,
 	return nil
 }
 
-// generateRandomID generates a random ID for temporary directories.
+// GenerateRandomID generates a random ID for temporary directories.
 func generateRandomID() string {
 	// Simple implementation - in production, use crypto/rand
 	return strconv.Itoa(os.Getpid())

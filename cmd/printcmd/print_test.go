@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 package printcmd
 
@@ -27,8 +26,8 @@ import (
 	model "itiquette/git-provider-sync/internal/model/configuration"
 )
 
-// setupTestCommand creates a completely new and isolated command for each test.
-// This prevents race conditions in urfave/cli v3 by ensuring no shared state.
+// SetupTestCommand creates a completely new and isolated command for each test
+// prevents race conditions in urfave/cli v3 by ensuring no shared state.
 func setupTestCommand(writer io.Writer) *cli.Command {
 	// Create completely independent flags for each test to avoid races
 	configFileFlag := &cli.StringFlag{
@@ -73,7 +72,7 @@ func setupTestCommand(writer io.Writer) *cli.Command {
 	return cmd
 }
 
-// setupTestContext creates a context with zerolog logger writing to provided buffer.
+// SetupTestContext creates a context with zerolog logger writing to provided buffer.
 func setupTestContext(output *bytes.Buffer) context.Context {
 	logger := zerolog.New(output).With().Timestamp().Logger()
 	ctx := logger.WithContext(context.Background())
@@ -433,13 +432,13 @@ func TestPrintCommand_ConfigErrors(t *testing.T) { //nolint:paralleltest // Cann
 				}
 			} else {
 				// For error cases, we need to capture the actual stderr output from our error handler
-				// The errorBuffer contains the logger output (JSON), but our error messages go directly to stderr
+				// ErrorBuffer contains the logger output (JSON), but our error messages go directly to stderr
 				// We'll check if the error handling was triggered by checking if error was logged
 				stderrContent := errorBuffer.String()
 				require.Contains(t, stderrContent, "Failed to load configuration",
 					"Expected error to be logged")
 
-				// The actual user-friendly error messages are printed directly to stderr in the real execution
+				// Actual user-friendly error messages are printed directly to stderr in the real execution
 				// For testing purposes, we'll verify the error type can be identified from the logged error
 				if strings.Contains(test.configContent, "[ # Invalid syntax") { //nolint:gocritic // if-else chain is more readable for different string condition checks
 					require.Contains(t, stderrContent, "error loading",
@@ -641,7 +640,7 @@ func TestErrorHandling_Robustness(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
-			// This should not panic
+			// should not panic
 			require.NotPanics(t, func() {
 				handleConfigurationError(test.err)
 			}, "Error handling should not panic with edge case inputs")
@@ -650,7 +649,6 @@ func TestErrorHandling_Robustness(t *testing.T) {
 }
 
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 func TestDisplayConnectivityResults(t *testing.T) {
@@ -1026,7 +1024,7 @@ func TestConnectivityConsoleFormatting(t *testing.T) {
 	}
 }
 
-// errorWriter is a test helper that always returns an error when writing.
+// ErrorWriter is a test helper that always returns an error when writing.
 type errorWriter struct{}
 
 func (e *errorWriter) Write(_ []byte) (int, error) {

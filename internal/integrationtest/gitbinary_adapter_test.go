@@ -1,7 +1,6 @@
 //go:build integration
 
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package integrationtest
@@ -18,25 +17,15 @@ import (
 
 	"itiquette/git-provider-sync/internal/adapters/logging"
 	"itiquette/git-provider-sync/internal/adapters/repository/gitbinary"
-	"itiquette/git-provider-sync/internal/integrationtest/testutil"
 	"itiquette/git-provider-sync/internal/domain/ports"
+	"itiquette/git-provider-sync/internal/integrationtest/testutil"
 )
 
 // TestGitBinaryAdapterIntegration tests GitBinary adapter operations
 // Moved from internal/adapters/repository/gitbinary/adapter_test.go:350
 func TestGitBinaryAdapterIntegration(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping GitBinary integration tests in short mode")
-	}
 
 	t.Parallel()
-
-	// Skip if git binary is not available
-	if _, err := os.Stat("/usr/bin/git"); err != nil {
-		if _, err := os.Stat("/usr/local/bin/git"); err != nil {
-			t.Skip("Git binary not available - skipping integration tests")
-		}
-	}
 
 	config := ports.GitConfig{
 		UserName:  "GitBinary Integration Test",
@@ -82,7 +71,7 @@ func TestGitBinaryAdapterIntegration(t *testing.T) {
 	}
 }
 
-// testGitBinaryInitRepository tests repository initialization using git binary
+// TestGitBinaryInitRepository tests repository initialization using git binary
 func testGitBinaryInitRepository(t *testing.T, adapter *gitbinary.Adapter) {
 	t.Helper()
 
@@ -132,7 +121,7 @@ func testGitBinaryInitRepository(t *testing.T, adapter *gitbinary.Adapter) {
 	t.Logf("   Bare repo: %s", bareRepoPath)
 }
 
-// testGitBinaryOpenRepository tests opening existing repositories
+// TestGitBinaryOpenRepository tests opening existing repositories
 func testGitBinaryOpenRepository(t *testing.T, adapter *gitbinary.Adapter) {
 	t.Helper()
 
@@ -183,7 +172,7 @@ func testGitBinaryOpenRepository(t *testing.T, adapter *gitbinary.Adapter) {
 	t.Logf("   Remotes found: %d", len(remotes))
 }
 
-// testGitBinaryCloneOperations tests clone operations with git binary
+// TestGitBinaryCloneOperations tests clone operations with git binary
 func testGitBinaryCloneOperations(t *testing.T, adapter *gitbinary.Adapter) {
 	t.Helper()
 
@@ -193,10 +182,10 @@ func testGitBinaryCloneOperations(t *testing.T, adapter *gitbinary.Adapter) {
 		TargetRepoName:  "clone-target",
 		WorkingRepoName: "clone-workspace",
 		InitialFiles: map[string]string{
-			"README.md":     "# Clone Test Repository\n\nContent for cloning test",
-			"src/app.py":    "print('Hello from GitBinary clone test!')",
-			"config.json":   "{\"app\": \"gitbinary-test\", \"version\": \"1.0.0\"}",
-			"docs/help.md":  "# Help Documentation\n\nHow to use this application",
+			"README.md":    "# Clone Test Repository\n\nContent for cloning test",
+			"src/app.py":   "print('Hello from GitBinary clone test!')",
+			"config.json":  "{\"app\": \"gitbinary-test\", \"version\": \"1.0.0\"}",
+			"docs/help.md": "# Help Documentation\n\nHow to use this application",
 		},
 		AddRemotes: map[string]string{
 			"origin": "",
@@ -216,17 +205,17 @@ func testGitBinaryCloneOperations(t *testing.T, adapter *gitbinary.Adapter) {
 	})
 
 	// Clone might fail if source repository is empty (no commits)
-	// This is expected behavior for empty bare repositories
+	// is expected behavior for empty bare repositories
 	if err != nil {
 		t.Logf("Clone failed as expected (empty bare repo): %v", err)
-		
+
 		// Test that the error is reasonable
 		assert.Contains(t, err.Error(), "repository is empty", "Clone should fail gracefully for empty repo")
-		
+
 		// Still verify adapter properties work
 		assert.Equal(t, "git-binary", adapter.GetName())
 		assert.True(t, adapter.SupportsURL(env.GetSourceURL()))
-		
+
 		t.Logf("✅ GitBinary clone operations tested (empty repo scenario)")
 		return
 	}
@@ -239,7 +228,7 @@ func testGitBinaryCloneOperations(t *testing.T, adapter *gitbinary.Adapter) {
 	t.Logf("Cloned repo name: %s", clonedRepo.Name())
 	t.Logf("Cloned repo path: %s", clonedRepo.Path())
 	t.Logf("Cloned repo bare status: %t", clonedRepo.IsBare())
-	
+
 	// GitBinary adapter may create repos in different locations
 	assert.NotEmpty(t, clonedRepo.Name())
 	assert.NotEmpty(t, clonedRepo.Path())
@@ -261,7 +250,7 @@ func testGitBinaryCloneOperations(t *testing.T, adapter *gitbinary.Adapter) {
 	t.Logf("   Clone path: %s", clonePath)
 }
 
-// testGitBinaryErrorHandling tests error handling scenarios
+// TestGitBinaryErrorHandling tests error handling scenarios
 func testGitBinaryErrorHandling(t *testing.T, adapter *gitbinary.Adapter) {
 	t.Helper()
 

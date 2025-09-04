@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package configuration
@@ -63,29 +62,27 @@ func TestReadConfigFile_MergedSources_Success(t *testing.T) {
 		fmt.Println(err)
 	}
 
-	//	require.Len(appConfiguration.GitProviderSyncConfs["env1"], 6)
-
-	// a xdg file only defined conf
+	// A xdg file only defined conf
 	require.Equal("xdgconfdomain", appConfiguration.GitProviderSyncConfs["env1"]["confxdg"].GetDomain())
 
-	// a local file only defined conf
+	// A local file only defined conf
 	require.Equal("localconfdomain", appConfiguration.GitProviderSyncConfs["env1"]["conflocal"].GetDomain())
 
-	// a dotenv file only defined conf
+	// A dotenv file only defined conf
 	require.Equal("dotenvdomain", appConfiguration.GitProviderSyncConfs["env1"]["confdotenv"].Domain)
 
-	// a env var only defined conf
+	// A env var only defined conf
 	require.Equal("confenvdomain", appConfiguration.GitProviderSyncConfs["env1"]["confenv"].Domain)
 
-	// local confile prop without overriding
-	// local conffile, which overrides a xdg prop
+	// Local confile prop without overriding
+	// Local conffile, which overrides a xdg prop
 	require.Equal("conf1domain", appConfiguration.GitProviderSyncConfs["env1"]["conf1"].GetDomain())
 	require.Equal("gitea", appConfiguration.GitProviderSyncConfs["env1"]["conf2"].ProviderType)
 
-	// a prop was overridden from xdg to local then by .env file
+	// A prop was overridden from xdg to local then by .env file
 	require.Equal("dotenvprovider", appConfiguration.GitProviderSyncConfs["env1"]["conf1"].Mirrors["atarget"].ProviderType)
 
-	// a prop was overridden from xdg to local then by .env then by env var
+	// A prop was overridden from xdg to local then by .env then by env var
 	require.Equal("envdomain", appConfiguration.GitProviderSyncConfs["env1"]["conf1"].Mirrors["anothertarget"].Domain)
 }
 func TestLoadConfiguration_InvalidConfig(t *testing.T) {
@@ -203,7 +200,7 @@ func TestDefaultConfigLoader_LoadConfiguration_NoCLIContext(t *testing.T) {
 
 	var configLoader ConfigLoader = DefaultConfigLoader{}
 
-	// This should work because the loader uses defaults when CLI config is not found
+	// should work because the loader uses defaults when CLI config is not found
 	appConfig, err := configLoader.LoadConfiguration(ctx)
 
 	// With defaults, this should fail because minimal_config.yaml doesn't exist in current directory
@@ -592,7 +589,7 @@ func TestReadConfigurationFile_RepositoryLists_ParsesVariousFormats(t *testing.T
 	}
 }
 
-// copyDir recursively copies a directory from src to dst for test isolation.
+// CopyDir recursively copies a directory from src to dst for test isolation.
 func copyDir(src, dst string) error {
 	if err := filepath.WalkDir(src, func(path string, dirEntry fs.DirEntry, err error) error {
 		if err != nil {
@@ -629,7 +626,7 @@ func copyDir(src, dst string) error {
 	return nil
 }
 
-// copyFile copies a single file from src to dst for test isolation.
+// CopyFile copies a single file from src to dst for test isolation.
 func copyFile(src, dst string) error {
 	// Create destination directory if needed
 	dstDir := filepath.Dir(dst)

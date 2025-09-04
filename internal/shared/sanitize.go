@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package shared
@@ -17,16 +16,16 @@ var (
 	gitCredPattern = regexp.MustCompile(`(https?://)([^:/@]+):([^@]+)@`)
 	// Basic auth in URL pattern.
 	basicAuthPattern = regexp.MustCompile(`(https?://)([^:]+):([^@]+)@`)
-	// SSH URL pattern - preserve user but hide key info.
-	// sshPattern = regexp.MustCompile(`(ssh://)?([^@]+)@([^:]+):(.+)`) // Currently unused
+	// SSH URL pattern - preserve user but hide key info
+	// SshPattern = regexp.MustCompile(`(ssh://)?([^@]+)@([^:]+):(.+)`) // Currently unused
 	// Authorization header pattern.
 	authHeaderPattern = regexp.MustCompile(`(?i)(authorization|auth|api[_-]?key|x-api-key|x-auth-token):\s*[^\n\r]*`)
 	// Token in query parameters.
 	queryTokenPattern = regexp.MustCompile(`([?&])(token|api[_-]?key|access[_-]?token|auth|key)=([^&\s]+)`)
 )
 
-// SanitizeURL removes sensitive credentials from URLs.
-// It handles:
+// SanitizeURL removes sensitive credentials from URLs
+// handles:
 // - Basic auth (https://user:pass@domain.com -> https://***:***@domain.com)
 // - OAuth tokens in URLs
 // - Git credentials
@@ -61,7 +60,7 @@ func SanitizeURL(rawURL string) string {
 	return sanitizePatterns(rawURL)
 }
 
-// sanitizeQueryParams removes sensitive parameters from query strings.
+// SanitizeQueryParams removes sensitive parameters from query strings.
 func sanitizeQueryParams(query string) string {
 	params, err := url.ParseQuery(query)
 	if err != nil {
@@ -96,7 +95,7 @@ func sanitizeQueryParams(query string) string {
 	return params.Encode()
 }
 
-// sanitizePatterns applies regex patterns to sanitize various credential formats.
+// SanitizePatterns applies regex patterns to sanitize various credential formats.
 func sanitizePatterns(str string) string {
 	// Replace basic auth credentials
 	str = basicAuthPattern.ReplaceAllString(str, "${1}***:***@")
@@ -145,7 +144,7 @@ func SanitizeStringMap(inputMap map[string]any) map[string]any {
 	return result
 }
 
-// sanitizeMapValue sanitizes a single map value based on its key and type.
+// SanitizeMapValue sanitizes a single map value based on its key and type.
 func sanitizeMapValue(key string, value any) any {
 	// Check if key suggests it contains sensitive data
 	lowerKey := strings.ToLower(key)
@@ -163,7 +162,7 @@ func sanitizeMapValue(key string, value any) any {
 	}
 }
 
-// sanitizeStringValue sanitizes a string value that might contain sensitive data.
+// SanitizeStringValue sanitizes a string value that might contain sensitive data.
 func sanitizeStringValue(val string) string {
 	switch {
 	case looksLikeURL(val) || containsCredentials(val):
@@ -175,7 +174,7 @@ func sanitizeStringValue(val string) string {
 	}
 }
 
-// containsSensitiveKey checks if a key name suggests sensitive data.
+// ContainsSensitiveKey checks if a key name suggests sensitive data.
 func containsSensitiveKey(key string) bool {
 	// Exact matches for common sensitive field names
 	exactMatches := []string{
@@ -212,7 +211,7 @@ func containsSensitiveKey(key string) bool {
 	return false
 }
 
-// looksLikeURL checks if a string appears to be a URL.
+// LooksLikeURL checks if a string appears to be a URL.
 func looksLikeURL(str string) bool {
 	return strings.HasPrefix(str, "http://") ||
 		strings.HasPrefix(str, "https://") ||
@@ -228,7 +227,7 @@ func ContainsURL(str string) bool {
 		strings.Contains(str, "@") && (strings.Contains(str, "git@") || strings.Contains(str, ":"))
 }
 
-// containsCredentials checks if a string contains credential patterns.
+// ContainsCredentials checks if a string contains credential patterns.
 func containsCredentials(str string) bool {
 	// Check for basic auth pattern
 	if strings.Contains(str, "@") && strings.Contains(str, ":") {
@@ -258,7 +257,7 @@ func containsCredentials(str string) bool {
 	return false
 }
 
-// looksLikeToken checks if a string appears to be a token.
+// LooksLikeToken checks if a string appears to be a token.
 func looksLikeToken(str string) bool {
 	// Tokens are typically long random strings
 	// Check if it's a long string with mixed alphanumeric characters

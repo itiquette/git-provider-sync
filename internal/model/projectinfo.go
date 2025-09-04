@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package model
@@ -14,28 +13,28 @@ import (
 
 // ProjectInfo holds metadata about a repository.
 type ProjectInfo struct {
-	// OriginalName is the repository's name as it appears in the source system.
+	// OriginalName is the repository's name as it appears in the source system
 	OriginalName string
 
 	CleanName string
 
-	// HTTPSURL is the HTTPS URL for cloning the repository.
+	// HTTPSURL is the HTTPS URL for cloning the repository
 	HTTPSURL string
 
-	// SSHURL is the SSH URL for cloning the repository.
+	// SSHURL is the SSH URL for cloning the repository
 	SSHURL string
 
-	// DefaultBranch is the name of the repository's default branch.
+	// DefaultBranch is the name of the repository's default branch
 	DefaultBranch string
 
-	// Description is a brief summary of the repository's purpose or contents.
+	// Description is a brief summary of the repository's purpose or contents
 	Description string
 
-	// Visibility indicates whether the repository is public or private.
+	// Visibility indicates whether the repository is public or private
 	Visibility string
 
-	// LastActivityAt is a pointer to the time of the last activity in the repository.
-	// It's a pointer to allow for nil values, indicating no activity data is available.
+	// LastActivityAt is a pointer to the time of the last activity in the repository
+	// It's a pointer to allow for nil values, indicating no activity data is available
 	LastActivityAt *time.Time
 
 	ProjectID string
@@ -53,7 +52,7 @@ func (rm *ProjectInfo) SetCleanName(name string) {
 	rm.CleanName = name
 }
 
-// Name returns the repository name, optionally cleaned up based on CLI options.
+// Name returns the repository name, optionally cleaned up based on CLI options
 // If ASCIIName is enabled, returns the cleaned name, otherwise returns the original name.
 func (rm ProjectInfo) Name(_ context.Context) string {
 	if rm.ASCIIName {

@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package sync
@@ -14,8 +13,8 @@ import (
 	"itiquette/git-provider-sync/internal/domain/ports"
 )
 
-// ValidateSyncUseCase validates synchronization operations before execution.
-// This is a pure functional validator that ensures sync operations will succeed.
+// ValidateSyncUseCase validates synchronization operations before execution
+// ValidateSyncUseCase validates sync operations before execution.
 type ValidateSyncUseCase struct {
 	repositoryProvider ports.RepositoryProvider
 	config             ports.Configuration
@@ -196,7 +195,7 @@ func (uc ValidateSyncUseCase) Execute(
 	return response, nil
 }
 
-// validateSourceConfig validates the source provider configuration.
+// ValidateSourceConfig validates the source provider configuration.
 func (uc ValidateSyncUseCase) validateSourceConfig(config ports.ProviderConfig) []ValidationError {
 	var errors []ValidationError
 
@@ -261,7 +260,7 @@ func (uc ValidateSyncUseCase) validateSourceConfig(config ports.ProviderConfig) 
 	return errors
 }
 
-// validateMirrorTargets validates all mirror target configurations.
+// ValidateMirrorTargets validates all mirror target configurations.
 func (uc ValidateSyncUseCase) validateMirrorTargets(mirrors []entities.MirrorTarget) ([]ValidationError, []ValidationWarning) {
 	var errors []ValidationError
 
@@ -329,7 +328,7 @@ func (uc ValidateSyncUseCase) validateMirrorTargets(mirrors []entities.MirrorTar
 	return errors, warnings
 }
 
-// validateSingleMirror validates a single mirror target.
+// ValidateSingleMirror validates a single mirror target.
 func (uc ValidateSyncUseCase) validateSingleMirror(mirror entities.MirrorTarget, index int) []ValidationError {
 	var errors []ValidationError
 
@@ -396,7 +395,7 @@ func (uc ValidateSyncUseCase) validateSingleMirror(mirror entities.MirrorTarget,
 	return errors
 }
 
-// validateConnectivity validates connectivity to source and mirror providers.
+// ValidateConnectivity validates connectivity to source and mirror providers.
 func (uc ValidateSyncUseCase) validateConnectivity(
 	ctx context.Context,
 	source ports.ProviderConfig,
@@ -435,7 +434,7 @@ func (uc ValidateSyncUseCase) validateConnectivity(
 	return errors
 }
 
-// validateAuthentication validates authentication for all providers.
+// ValidateAuthentication validates authentication for all providers.
 func (uc ValidateSyncUseCase) validateAuthentication(
 	ctx context.Context,
 	source ports.ProviderConfig,
@@ -474,7 +473,7 @@ func (uc ValidateSyncUseCase) validateAuthentication(
 	return errors
 }
 
-// estimateRepositoryCount estimates the number of repositories to sync.
+// EstimateRepositoryCount estimates the number of repositories to sync.
 func (uc ValidateSyncUseCase) estimateRepositoryCount(
 	ctx context.Context,
 	config ports.ProviderConfig,
@@ -487,7 +486,7 @@ func (uc ValidateSyncUseCase) estimateRepositoryCount(
 	return len(repositories), nil
 }
 
-// generateRecommendations generates actionable recommendations.
+// GenerateRecommendations generates actionable recommendations
 //
 //nolint:cyclop // Complex recommendation generation logic with multiple validation types
 func (uc ValidateSyncUseCase) generateRecommendations(
@@ -537,7 +536,7 @@ func (uc ValidateSyncUseCase) generateRecommendations(
 	return recommendations
 }
 
-// calculateEstimatedDuration calculates estimated sync duration.
+// CalculateEstimatedDuration calculates estimated sync duration.
 func (uc ValidateSyncUseCase) calculateEstimatedDuration(repoCount, mirrorCount int) string {
 	// Simple estimation: 30 seconds per repository per mirror
 	totalOperations := repoCount * mirrorCount
@@ -559,7 +558,7 @@ func (uc ValidateSyncUseCase) calculateEstimatedDuration(repoCount, mirrorCount 
 
 // Helper functions
 
-// isValidProviderType checks if a provider type is valid.
+// IsValidProviderType checks if a provider type is valid.
 func isValidProviderType(providerType string) bool {
 	validTypes := map[string]bool{
 		"github": true,
@@ -570,7 +569,7 @@ func isValidProviderType(providerType string) bool {
 	return validTypes[strings.ToLower(providerType)]
 }
 
-// isValidDomain checks if a domain is valid.
+// IsValidDomain checks if a domain is valid.
 func isValidDomain(domain string) bool {
 	// Simple domain validation
 	domainRegex := regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]*\.([a-zA-Z]{2,}|[a-zA-Z]{2,}\.[a-zA-Z]{2,})$`)
@@ -578,7 +577,7 @@ func isValidDomain(domain string) bool {
 	return domainRegex.MatchString(domain)
 }
 
-// isValidOwnerName checks if an owner name is valid.
+// IsValidOwnerName checks if an owner name is valid.
 func isValidOwnerName(owner string) bool {
 	if owner == "" {
 		return false
@@ -590,36 +589,36 @@ func isValidOwnerName(owner string) bool {
 	return ownerRegex.MatchString(owner) && len(owner) <= 39
 }
 
-// isValidDirectoryPath checks if a directory path is valid.
+// IsValidDirectoryPath checks if a directory path is valid.
 func isValidDirectoryPath(path string) bool {
 	return path != "" && !strings.Contains(path, "..")
 }
 
-// isValidArchivePath checks if an archive path is valid.
+// IsValidArchivePath checks if an archive path is valid.
 func isValidArchivePath(path string) bool {
 	return path != "" && !strings.Contains(path, "..")
 }
 
-// hasValidAuthentication checks if authentication configuration is valid.
+// HasValidAuthentication checks if authentication configuration is valid.
 func hasValidAuthentication(auth ports.AuthenticationConfig) bool {
 	return auth.Token != "" || auth.SSHKeyPath != "" || auth.SSHKey != ""
 }
 
-// testProviderConnectivity tests connectivity to a provider.
+// TestProviderConnectivity tests connectivity to a provider.
 func (uc ValidateSyncUseCase) testProviderConnectivity(_ context.Context, _ ports.ProviderConfig) bool {
-	// This would implement actual connectivity testing
+	// would implement actual connectivity testing
 	// For now, return true as a placeholder
 	return true
 }
 
-// testProviderAuthentication tests authentication to a provider.
+// TestProviderAuthentication tests authentication to a provider.
 func (uc ValidateSyncUseCase) testProviderAuthentication(_ context.Context, _ ports.ProviderConfig) bool {
-	// This would implement actual authentication testing
+	// would implement actual authentication testing
 	// For now, return true as a placeholder
 	return true
 }
 
-// convertMirrorAuth converts mirror auth config to provider auth config.
+// ConvertMirrorAuth converts mirror auth config to provider auth config.
 func convertMirrorAuth(auth entities.AuthConfig) ports.AuthenticationConfig {
 	return ports.AuthenticationConfig{
 		Token:      auth.Token(),
@@ -629,7 +628,7 @@ func convertMirrorAuth(auth entities.AuthConfig) ports.AuthenticationConfig {
 	}
 }
 
-// convertMirrorToProviderConfig converts mirror target to provider config.
+// ConvertMirrorToProviderConfig converts mirror target to provider config.
 func convertMirrorToProviderConfig(mirror entities.MirrorTarget) ports.ProviderConfig {
 	return ports.ProviderConfig{
 		ProviderType: string(mirror.ProviderType()),

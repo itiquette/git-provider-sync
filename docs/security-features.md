@@ -21,7 +21,7 @@ Git Provider Sync includes several security features to ensure the integrity and
 
 **File format**: `gitprovidersync_vX.Y.Z_linux_amd64.sbom.json`
 
-**Why it's important**:  
+**Why it's important**:
 - Transparency: You can see exactly what's in the software
 - Security: Helps identify if any components have known vulnerabilities
 - Compliance: Useful for organizations that need to track software components
@@ -43,7 +43,7 @@ Git Provider Sync includes several security features to ensure the integrity and
 
 - Used with Cosign for advanced verification
 
-**Why they're important**:  
+**Why they're important**:
 - Integrity: Ensures your download hasn't been tampered with
 - Authenticity: Confirms the software comes from the legitimate source
 
@@ -63,12 +63,12 @@ Git Provider Sync includes several security features to ensure the integrity and
 - Tamper Protection: Makes it extremely difficult for attackers to insert malicious code during the build process
 - Traceability: Provides a verifiable record of how, when, and where the software was built
 
-**What Level 3 means**:  
+**What Level 3 means**:
 - The build process is fully scripted/automated and hermetic
 - The source is version controlled and checked for reviews
 - The build generates provenance explaining how the artifact was created
 
-**How to use it**:  
+**How to use it**:
 - Advanced users can use SLSA verification tools to check the provenance and ensure it meets Level 3 requirements
 - This is particularly important for enterprise environments or security-conscious users
 

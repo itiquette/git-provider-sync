@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package sync
@@ -16,7 +15,7 @@ import (
 	"itiquette/git-provider-sync/internal/domain/ports"
 )
 
-// testLogger is a simple no-op logger for testing.
+// TestLogger is a simple no-op logger for testing.
 type testLogger struct{}
 
 func (l testLogger) Trace(_ context.Context, _ string, _ map[string]any) {}

@@ -1,8 +1,7 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
-// Package configuration loads and validates application configuration.
+// Package configuration loads and validates application configuration
 package configuration
 
 import (
@@ -37,7 +36,7 @@ func PrintConfiguration(appCfg model.AppConfiguration, writer io.Writer) {
 	}
 }
 
-// printEnvironment writes a single environment section with proper indentation.
+// PrintEnvironment writes a single environment section with proper indentation.
 func printEnvironment(name string, env model.Environment, writer io.Writer, level int) {
 	indent := strings.Repeat(" ", level*indentSize)
 	if _, err := fmt.Fprintf(writer, "\n%sEnvironment: %s\n", indent, name); err != nil {
@@ -55,7 +54,7 @@ func printEnvironment(name string, env model.Environment, writer io.Writer, leve
 	}
 }
 
-// printSyncConfig writes the details of a single SyncConfig with proper indentation.
+// PrintSyncConfig writes the details of a single SyncConfig with proper indentation.
 func printSyncConfig(name string, syncCfg model.SyncConfig, writer io.Writer, level int) { //nolint:cyclop // Configuration printing logic
 	indent := strings.Repeat(" ", level*indentSize)
 	if _, err := fmt.Fprintf(writer, "\n%sSync Configuration: %s\n", indent, name); err != nil {
@@ -116,7 +115,7 @@ func printSyncConfig(name string, syncCfg model.SyncConfig, writer io.Writer, le
 	}
 }
 
-// printAuthConfig writes authentication configuration details with proper indentation.
+// PrintAuthConfig writes authentication configuration details with proper indentation.
 func printAuthConfig(authCfg model.AuthConfig, writer io.Writer, level int) { //nolint:cyclop // Auth configuration printing logic
 	indent := strings.Repeat(" ", level*indentSize)
 	_, _ = fmt.Fprintf(writer, "\n%sAuthentication:\n", indent)
@@ -165,7 +164,7 @@ func printAuthConfig(authCfg model.AuthConfig, writer io.Writer, level int) { //
 	}
 }
 
-// printMirrorConfig writes the details of a mirror configuration with proper indentation.
+// PrintMirrorConfig writes the details of a mirror configuration with proper indentation.
 func printMirrorConfig(name string, mirrorCfg model.MirrorConfig, writer io.Writer, level int) {
 	indent := strings.Repeat(" ", level*indentSize)
 	_, _ = fmt.Fprintf(writer, "\n%sMirror: %s\n", indent, name)
@@ -206,7 +205,7 @@ func printMirrorConfig(name string, mirrorCfg model.MirrorConfig, writer io.Writ
 	}
 }
 
-// printMirrorSettings writes mirror-specific settings with proper indentation.
+// PrintMirrorSettings writes mirror-specific settings with proper indentation.
 func printMirrorSettings(settings model.MirrorSettings, writer io.Writer, level int) {
 	indent := strings.Repeat(" ", level*indentSize)
 	_, _ = fmt.Fprintf(writer, "\n%sSettings:\n", indent)
@@ -241,7 +240,7 @@ func printMirrorSettings(settings model.MirrorSettings, writer io.Writer, level 
 	}
 }
 
-// printRepositoriesOption writes repository configuration options with proper indentation.
+// PrintRepositoriesOption writes repository configuration options with proper indentation.
 func printRepositoriesOption(opt model.RepositoriesOption, writer io.Writer, level int) {
 	// Only print if there are actually repositories to show
 	if len(opt.Include) == 0 && len(opt.Exclude) == 0 {

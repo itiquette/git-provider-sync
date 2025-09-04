@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package directory
@@ -254,7 +253,7 @@ func (mr *mockRepository) Close() error {
 	return nil
 }
 
-// Helper functions for testing.
+// Helper functions for testing
 
 func createTestSourceRepo(t *testing.T) (ports.GitRepository, string) {
 	t.Helper()
@@ -277,7 +276,7 @@ func createTestSourceRepo(t *testing.T) (ports.GitRepository, string) {
 	return &mockRepository{path: tempDir}, tempDir
 }
 
-// Test MirrorService constructor.
+// Test MirrorService constructor
 
 func TestNewMirrorService(t *testing.T) {
 	t.Parallel()
@@ -292,7 +291,7 @@ func TestNewMirrorService(t *testing.T) {
 	assert.Equal(t, logger, service.logger)
 }
 
-// Test CreateMirror operation.
+// Test CreateMirror operation
 
 func TestMirrorService_CreateMirror_Success(t *testing.T) {
 	t.Parallel()
@@ -603,7 +602,7 @@ func TestMirrorService_CreateMirror_CreateTargetDirectoryError(t *testing.T) {
 	assert.Contains(t, err.Error(), "failed to create target directory")
 }
 
-// Test UpdateMirror operation.
+// Test UpdateMirror operation
 
 func TestMirrorService_UpdateMirror_TargetExists(t *testing.T) {
 	t.Parallel()
@@ -686,7 +685,7 @@ func TestMirrorService_UpdateMirror_TargetNotExists(t *testing.T) {
 	require.NoError(t, err)
 }
 
-// Test VerifyMirror operation.
+// Test VerifyMirror operation
 
 func TestMirrorService_VerifyMirror_ValidMirror(t *testing.T) {
 	t.Parallel()
@@ -779,7 +778,7 @@ func TestMirrorService_VerifyMirror_WithWarnings(t *testing.T) {
 	_ = os.Chmod(inaccessibleDir, 0750) //nolint:gosec // G302: Restore permissions for test cleanup
 }
 
-// Test DeleteMirror operation.
+// Test DeleteMirror operation
 
 func TestMirrorService_DeleteMirror_Success(t *testing.T) {
 	t.Parallel()
@@ -823,7 +822,7 @@ func TestMirrorService_DeleteMirror_NonExistentPath(t *testing.T) {
 	require.ErrorIs(t, err, domain.ErrTargetPathDoesNotExist)
 }
 
-// Test helper methods.
+// Test helper methods
 
 func TestMirrorService_shouldExclude(t *testing.T) {
 	t.Parallel()
@@ -1117,7 +1116,7 @@ func TestMirrorService_createArchive(t *testing.T) {
 		ArchiveFormat: "tar.gz",
 	}
 
-	// This is a placeholder implementation that returns an error
+	// is a placeholder implementation that returns an error
 	err := service.createArchive(context.Background(), targetDir, options)
 
 	require.Error(t, err)
@@ -1142,7 +1141,7 @@ func TestMirrorService_pathExists(t *testing.T) {
 	assert.False(t, service.pathExists("/non-existent-path"))
 }
 
-// Edge cases and error conditions.
+// Edge cases and error conditions
 
 func TestMirrorService_CreateMirror_SourceWalkError(t *testing.T) {
 	t.Parallel()
@@ -1185,7 +1184,7 @@ func TestMirrorService_CreateMirror_SourceWalkError(t *testing.T) {
 	_ = os.Chmod(inaccessibleDir, 0750) //nolint:gosec // G302: Restore permissions for test cleanup
 }
 
-// Benchmark tests for performance regression detection.
+// Benchmark tests for performance regression detection
 
 func BenchmarkMirrorService_CreateMirror(b *testing.B) {
 	adapter := New(createMockGitConfig())

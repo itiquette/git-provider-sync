@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package synccmd
@@ -459,13 +458,13 @@ gitprovidersync:
 
 			testCase.setFlags(cmd)
 
-			// This will likely fail due to missing dependencies in test environment
-			// but should fail gracefully without panicking
+			// will likely fail due to missing dependencies in test environment
+			// But should fail gracefully without panicking
 			err := runSync(ctx, cmd)
 			if err != nil {
 				t.Logf("Expected error in test environment: %v", err)
 			}
-			// The test passes if it doesn't panic
+			// Test passes if it doesn't panic
 		})
 	}
 }

@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
-//
 // SPDX-License-Identifier: EUPL-1.2
 
 package model
@@ -27,7 +26,7 @@ type StderrErrorHandler struct {
 	Writer io.Writer
 }
 
-// HandleError implements ErrorHandler interface for stderr output.
+// HandleError writes error message to stderr.
 func (h *StderrErrorHandler) HandleError(_ context.Context, err error) {
 	writer := h.Writer
 	if writer == nil {
