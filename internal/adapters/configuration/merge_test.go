@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"itiquette/git-provider-sync/internal/adapters/configuration"
-	"itiquette/git-provider-sync/internal/application/dto"
+	"itiquette/git-provider-sync/internal/adapters/configuration/dto"
 )
 
 func TestMergeConfigs_Priority(t *testing.T) {

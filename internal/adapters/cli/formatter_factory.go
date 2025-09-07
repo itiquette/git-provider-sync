@@ -27,26 +27,28 @@ func (f *FormatterFactory) CreateFormatter(config entities.CLIConfig, verbosity 
 	}
 
 	// If quiet mode is explicitly set, use quiet formatter
-	if config.Quiet() || verbosity == "quiet" {
+	if config.Quiet() || verbosity == VerbosityQuiet {
 		return NewQuietFormatter(writer)
 	}
 
 	// Select formatter based on output format
 	switch config.OutputFormat() {
-	case "json":
+	case FormatJSON:
 		return NewJSONFormatter(writer, verbosity)
 
-	case "plain":
+	case FormatPlain:
 		return NewPlainFormatter(writer, verbosity)
 
-	case "console":
+	case FormatConsole:
 		// Check if NO_COLOR is set or if colors should be disabled
-		noColor := os.Getenv("NO_COLOR") != "" || config.ColorMode() == "never"
+		noColor := os.Getenv("NO_COLOR") != "" || config.ColorMode() == ColorModeNever
+
 		return NewConsoleFormatter(writer, verbosity, noColor)
 
 	default:
 		// Default to console formatter
-		noColor := os.Getenv("NO_COLOR") != "" || config.ColorMode() == "never"
+		noColor := os.Getenv("NO_COLOR") != "" || config.ColorMode() == ColorModeNever
+
 		return NewConsoleFormatter(writer, verbosity, noColor)
 	}
 }

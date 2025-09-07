@@ -13,8 +13,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"itiquette/git-provider-sync/internal/adapters/repository/gogit"
-	"itiquette/git-provider-sync/internal/integrationtest/testutil"
 	"itiquette/git-provider-sync/internal/domain/ports"
+	"itiquette/git-provider-sync/internal/integrationtest/testutil"
 )
 
 // TestGoGitAdapterRealGitIntegration tests gogit adapter with real git operations
@@ -51,9 +51,9 @@ func testRealGitRemoteOperations(t *testing.T, adapter *gogit.Adapter) {
 		TargetRepoName:  "gogit-target",
 		WorkingRepoName: "gogit-workspace",
 		InitialFiles: map[string]string{
-			"README.md":     "# GoGit Real Git Integration Test\n\nTesting real git operations",
-			"src/main.go":   "package main\n\nfunc main() {\n\tprintln(\"Hello from gogit integration!\")\n}",
-			".gitignore":    "*.tmp\n*.log\n",
+			"README.md":   "# GoGit Real Git Integration Test\n\nTesting real git operations",
+			"src/main.go": "package main\n\nfunc main() {\n\tprintln(\"Hello from gogit integration!\")\n}",
+			".gitignore":  "*.tmp\n*.log\n",
 		},
 		AddRemotes: map[string]string{
 			"origin": "", // Will use source bare repo
@@ -135,10 +135,10 @@ func testRealGitCloneAndPushOperations(t *testing.T, adapter *gogit.Adapter) {
 		TargetRepoName:  "clone-target",
 		WorkingRepoName: "clone-workspace",
 		InitialFiles: map[string]string{
-			"README.md":         "# Clone Test Repository\n\nContent for cloning test",
-			"src/app.js":        "console.log('Hello from clone test!');",
-			"package.json":      "{\n  \"name\": \"clone-test\",\n  \"version\": \"1.0.0\"\n}",
-			"docs/guide.md":     "# User Guide\n\nHow to use this application",
+			"README.md":           "# Clone Test Repository\n\nContent for cloning test",
+			"src/app.js":          "console.log('Hello from clone test!');",
+			"package.json":        "{\n  \"name\": \"clone-test\",\n  \"version\": \"1.0.0\"\n}",
+			"docs/guide.md":       "# User Guide\n\nHow to use this application",
 			"config/settings.yml": "app:\n  name: clone-test\n  debug: true",
 		},
 		AddRemotes: map[string]string{
@@ -162,14 +162,14 @@ func testRealGitCloneAndPushOperations(t *testing.T, adapter *gogit.Adapter) {
 	// is expected behavior for empty bare repositories
 	if err != nil {
 		t.Logf("Clone failed as expected (empty bare repo): %v", err)
-		
+
 		// Test that the error is reasonable
 		assert.Contains(t, err.Error(), "repository is empty", "Clone should fail gracefully for empty repo")
-		
+
 		// Still verify adapter properties work
 		assert.Equal(t, "go-git", adapter.GetName())
 		assert.True(t, adapter.SupportsURL(env.GetSourceURL()))
-		
+
 		t.Logf("✅ Clone operations tested (empty repo scenario)")
 		return
 	}
@@ -229,7 +229,7 @@ func testRealGitBranchOperations(t *testing.T, adapter *gogit.Adapter) {
 		t.Logf("Create branch failed (expected for empty repo): %v", err)
 	} else {
 		t.Log("Successfully created feature branch")
-		
+
 		// Test checkout if creation succeeded
 		err = repo.CheckoutBranch(ctx, "feature/test")
 		if err != nil {

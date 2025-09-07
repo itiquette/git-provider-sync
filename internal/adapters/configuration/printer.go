@@ -7,7 +7,7 @@ package configuration
 import (
 	"fmt"
 	"io"
-	"itiquette/git-provider-sync/internal/application/dto"
+	"itiquette/git-provider-sync/internal/adapters/configuration/dto"
 	"strings"
 )
 

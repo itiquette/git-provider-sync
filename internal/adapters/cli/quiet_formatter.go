@@ -30,75 +30,76 @@ func NewQuietFormatter(writer io.Writer) ports.SyncOutputFormatter {
 }
 
 // StartEnvironment - silent in quiet mode.
-func (f *QuietFormatter) StartEnvironment(env string) {
-	// Silent
+func (f *QuietFormatter) StartEnvironment(_ string) {
+	// Silent in quiet mode
 }
 
 // StartSync - silent in quiet mode.
-func (f *QuietFormatter) StartSync(env, config, sourceProvider string) {
-	// Silent
+func (f *QuietFormatter) StartSync(_, _, _ string) {
+	// Silent in quiet mode
 }
 
 // SourceFetching - silent in quiet mode.
-func (f *QuietFormatter) SourceFetching(provider, domain, owner string) {
-	// Silent
+func (f *QuietFormatter) SourceFetching(_, _, _ string) {
+	// Silent in quiet mode
 }
 
 // SourceFetched - silent in quiet mode.
-func (f *QuietFormatter) SourceFetched(count int, duration time.Duration) {
-	// Silent
+func (f *QuietFormatter) SourceFetched(_ int, _ time.Duration) {
+	// Silent in quiet mode
 }
 
 // MirrorSyncing - silent in quiet mode.
-func (f *QuietFormatter) MirrorSyncing(name, provider, domain, owner string) {
-	// Silent
+func (f *QuietFormatter) MirrorSyncing(_, _, _, _ string) {
+	// Silent in quiet mode
 }
 
 // MirrorSynced - silent in quiet mode.
-func (f *QuietFormatter) MirrorSynced(name string, synced, failed, skipped int, duration time.Duration) {
-	// Silent
+func (f *QuietFormatter) MirrorSynced(_ string, _, _, _ int, _ time.Duration) {
+	// Silent in quiet mode
 }
 
 // RepositorySynced - silent in quiet mode.
-func (f *QuietFormatter) RepositorySynced(name string, success bool, message string) {
+func (f *QuietFormatter) RepositorySynced(_ string, _ bool, _ string) {
 	// Silent
 }
 
 // SyncCompleted shows only the essential summary.
 func (f *QuietFormatter) SyncCompleted(results ports.SyncResults) {
 	if results.DryRun {
-		fmt.Fprintf(f.writer, "DRY RUN: Would sync %d repositories\n", results.TotalRepositories)
+		_, _ = fmt.Fprintf(f.writer, "DRY RUN: Would sync %d repositories\n", results.TotalRepositories)
 	} else {
 		if results.FailedSyncs > 0 {
-			fmt.Fprintf(f.writer, "FAILED: %d/%d repositories\n",
+			_, _ = fmt.Fprintf(f.writer, "FAILED: %d/%d repositories\n",
 				results.FailedSyncs, results.TotalRepositories)
 		} else {
-			fmt.Fprintf(f.writer, "SUCCESS: %d repositories synced\n", results.SuccessfulSyncs)
+			_, _ = fmt.Fprintf(f.writer, "SUCCESS: %d repositories synced\n", results.SuccessfulSyncs)
 		}
 	}
 }
 
 // Error always outputs in quiet mode.
 func (f *QuietFormatter) Error(message string, err error) {
-	fmt.Fprintf(f.writer, "ERROR: %s", message)
+	_, _ = fmt.Fprintf(f.writer, "ERROR: %s", message)
 	if err != nil {
-		fmt.Fprintf(f.writer, " - %v", err)
+		_, _ = fmt.Fprintf(f.writer, " - %v", err)
 	}
-	fmt.Fprintln(f.writer)
+
+	_, _ = fmt.Fprintln(f.writer)
 }
 
 // Warning - silent in quiet mode.
-func (f *QuietFormatter) Warning(message string) {
-	// Silent - only errors in quiet mode
+func (f *QuietFormatter) Warning(_ string) {
+	// Silent in quiet mode
 }
 
 // Info - silent in quiet mode.
-func (f *QuietFormatter) Info(message string) {
-	// Silent
+func (f *QuietFormatter) Info(_ string) {
+	// Silent in quiet mode
 }
 
 // Debug - silent in quiet mode.
-func (f *QuietFormatter) Debug(message string) {
+func (f *QuietFormatter) Debug(_ string) {
 	// Silent
 }
 

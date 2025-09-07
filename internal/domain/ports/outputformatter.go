@@ -5,8 +5,6 @@ package ports
 
 import (
 	"io"
-
-	"itiquette/git-provider-sync/internal/application/dto"
 )
 
 // OutputFormatter defines the contract for formatting and outputting data
@@ -14,7 +12,7 @@ import (
 type OutputFormatter interface {
 	// FormatConfiguration formats application configuration for output
 	// Supports console (human-readable), json (structured), and plain (tabular text) formats
-	FormatConfiguration(appCfg dto.AppConfiguration, format string, writer io.Writer) error
+	FormatConfiguration(appCfg interface{}, format string, writer io.Writer) error
 
 	// FormatSyncResults formats sync operation results for output
 	// Progress and status information should go to stderr, data to stdout

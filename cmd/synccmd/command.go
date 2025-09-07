@@ -22,6 +22,14 @@ import (
 	"itiquette/git-provider-sync/internal/domain/entities"
 )
 
+// contextKey is a custom type for context keys to avoid collisions..
+type contextKey string
+
+const (
+	// logLevelKey is the context key for log level..
+	logLevelKey contextKey = "logLevel"
+)
+
 // NewSyncCommand creates the sync command for repository mirroring.
 func NewSyncCommand() *cli.Command {
 	cmd := &cli.Command{
@@ -151,11 +159,11 @@ func initLogger(ctx context.Context, cmd *cli.Command) context.Context {
 
 	// Extract log level using the new helper
 	logLevel := extractLogLevel(cmd)
-	quiet := logLevel == "quiet"
+	quiet := logLevel == VerbosityQuiet
 
 	ctx = log.InitLogger(ctx, logLevel, quiet, withCaller, outputFormat)
 	// Store log level in context for container configuration
-	ctx = context.WithValue(ctx, "logLevel", logLevel)
+	ctx = context.WithValue(ctx, logLevelKey, logLevel)
 	log.Logger(ctx).Trace().Msg("Logger initialized")
 
 	return ctx
@@ -166,7 +174,7 @@ func initLogger(ctx context.Context, cmd *cli.Command) context.Context {
 func extractLogLevel(cmd *cli.Command) string {
 	// Handle nil command
 	if cmd == nil {
-		return "brief"
+		return VerbosityBrief
 	}
 
 	// Explicit log-level takes highest precedence
@@ -176,14 +184,14 @@ func extractLogLevel(cmd *cli.Command) string {
 
 	// Then check shortcuts (most specific first)
 	if cmd.Bool("quiet") {
-		return "quiet"
+		return VerbosityQuiet
 	}
 
 	if cmd.Bool("debug") {
-		return "debug"
+		return VerbosityDebug
 	}
 
-	return "brief" // default
+	return VerbosityBrief // default
 }
 
 // ConfirmDangerousOperations checks if dangerous operations need confirmation

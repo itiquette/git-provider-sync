@@ -102,6 +102,7 @@ func (f *JSONFormatter) RepositorySynced(name string, success bool, message stri
 	if message != "" {
 		data["message"] = message
 	}
+
 	f.emitEvent("repository_synced", data)
 }
 
@@ -118,12 +119,15 @@ func (f *JSONFormatter) SyncCompleted(results ports.SyncResults) {
 		if repo.ErrorMessage != "" {
 			repoData["error"] = repo.ErrorMessage
 		}
+
 		if !repo.LastUpdated.IsZero() {
 			repoData["last_updated"] = repo.LastUpdated.Format(time.RFC3339)
 		}
+
 		if repo.Size > 0 {
 			repoData["size_bytes"] = repo.Size
 		}
+
 		repos = append(repos, repoData)
 	}
 
@@ -148,6 +152,7 @@ func (f *JSONFormatter) Error(message string, err error) {
 	if err != nil {
 		data["error"] = err.Error()
 	}
+
 	f.emitEvent("error", data)
 }
 
@@ -163,6 +168,7 @@ func (f *JSONFormatter) Info(message string) {
 	if f.verbosity == "quiet" || f.verbosity == "brief" {
 		return
 	}
+
 	f.emitEvent("info", map[string]interface{}{
 		"message": message,
 	})
@@ -170,9 +176,10 @@ func (f *JSONFormatter) Info(message string) {
 
 // Debug outputs a debug message (only with --debug).
 func (f *JSONFormatter) Debug(message string) {
-	if f.verbosity != "debug" && f.verbosity != "trace" {
+	if f.verbosity != VerbosityDebug && f.verbosity != VerbosityTrace {
 		return
 	}
+
 	f.emitEvent("debug", map[string]interface{}{
 		"message": message,
 	})
@@ -197,5 +204,6 @@ func (f *JSONFormatter) emitEvent(eventType string, data map[string]interface{})
 	// For now, emit immediately (could batch later)
 	encoder := json.NewEncoder(f.writer)
 	encoder.SetIndent("", "  ")
-	_ = encoder.Encode(event)
+	// Explicitly ignore error as we're writing to a writer that doesn't typically fail
+	_ = encoder.Encode(event) //nolint:errchkjson
 }

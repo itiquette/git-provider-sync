@@ -1,0 +1,30 @@
+# SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
+#
+# SPDX-License-Identifier: CC0-1.0
+# Example with one source and multiple mirrors
+gitprovidersync:
+  production:
+    github-source:
+      provider_type: github
+      domain: github.com
+      owner: mycompany
+      owner_type: group
+      repositories:
+        include:
+          - api-service
+          - web-frontend
+          - mobile-app
+      mirrors:
+        gitlab-backup:
+          provider_type: gitlab
+          domain: gitlab.com
+          owner: mycompany-backup
+          owner_type: group
+        gitea-internal:
+          provider_type: gitea
+          domain: git.internal.company.com
+          owner: engineering
+          owner_type: group
+        local-archive:
+          provider_type: directory
+          path: /backups/git-archives

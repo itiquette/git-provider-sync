@@ -14,7 +14,7 @@ import (
 	"testing"
 
 	"itiquette/git-provider-sync/internal/adapters/cli"
-	"itiquette/git-provider-sync/internal/application/dto"
+	"itiquette/git-provider-sync/internal/adapters/configuration/dto"
 	"itiquette/git-provider-sync/internal/domain/entities"
 
 	"github.com/stretchr/testify/require"

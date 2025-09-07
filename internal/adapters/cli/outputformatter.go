@@ -11,8 +11,8 @@ import (
 	"io"
 	"strings"
 
+	"itiquette/git-provider-sync/internal/adapters/configuration/dto"
 	"itiquette/git-provider-sync/internal/adapters/terminal"
-	"itiquette/git-provider-sync/internal/application/dto"
 	"itiquette/git-provider-sync/internal/domain/ports"
 	sync "itiquette/git-provider-sync/internal/domain/sync"
 )
@@ -60,14 +60,19 @@ func (f *OutputFormatter) SupportedFormats() []string {
 }
 
 // FormatConfiguration formats application configuration for output.
-func (f *OutputFormatter) FormatConfiguration(appCfg dto.AppConfiguration, format string, writer io.Writer) error {
+func (f *OutputFormatter) FormatConfiguration(appCfg interface{}, format string, writer io.Writer) error {
+	cfg, ok := appCfg.(dto.AppConfiguration)
+	if !ok {
+		return errors.New("invalid configuration type: expected dto.AppConfiguration")
+	}
+
 	switch format {
 	case formatConsole:
-		return f.formatConfigurationConsole(appCfg, writer)
+		return f.formatConfigurationConsole(cfg, writer)
 	case FormatJSON:
-		return f.formatConfigurationJSON(appCfg, writer)
+		return f.formatConfigurationJSON(cfg, writer)
 	case formatPlain:
-		return f.formatConfigurationPlain(appCfg, writer)
+		return f.formatConfigurationPlain(cfg, writer)
 	default:
 		return fmt.Errorf("%w: %s (supported: %s)", ErrUnsupportedOutputFormat, format, strings.Join(f.SupportedFormats(), ", "))
 	}

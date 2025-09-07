@@ -20,10 +20,10 @@ import (
 	"itiquette/git-provider-sync/cmd/baseoption"
 	cliAdapters "itiquette/git-provider-sync/internal/adapters/cli"
 	"itiquette/git-provider-sync/internal/adapters/configuration"
+	"itiquette/git-provider-sync/internal/adapters/configuration/dto"
 	"itiquette/git-provider-sync/internal/adapters/log"
 	"itiquette/git-provider-sync/internal/adapters/terminal"
 	validationAdapters "itiquette/git-provider-sync/internal/adapters/validation"
-	"itiquette/git-provider-sync/internal/application/dto"
 	"itiquette/git-provider-sync/internal/domain"
 	"itiquette/git-provider-sync/internal/domain/validation"
 )
@@ -507,10 +507,6 @@ func getLastSyncInfoFromPath(filePath string) string {
 
 // Legacy functions kept for tests - to be refactored
 //
-//nolint:unused // Used in tests
-func formatConfigurationStatus(_ SystemStatus) string {
-	return "" // Stub for tests
-}
 
 func formatConnectivityStatus(status SystemStatus) string {
 	if !status.ConnectivityChecked {

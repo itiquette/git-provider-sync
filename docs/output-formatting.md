@@ -1,3 +1,10 @@
+<!--
+SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
+
+SPDX-License-Identifier: CC0-1.0
+
+-->
+
 # Output Formatting
 
 Git Provider Sync provides flexible output formatting to support different use cases, from interactive terminal usage to CI/CD automation.
@@ -76,31 +83,41 @@ Features:
 Control the amount of information displayed:
 
 ### Quiet Mode
+
 Completely silent except for errors:
+
 ```bash
 gitprovidersync --quiet sync --dry-run
 ```
 
 ### Brief Mode (Default)
+
 Standard output with progress and results:
+
 ```bash
 gitprovidersync sync --dry-run
 ```
 
 ### Verbose Mode
+
 Additional information about operations:
+
 ```bash
 gitprovidersync --verbose sync --dry-run
 ```
 
 ### Debug Mode
+
 Detailed debug logs to stderr:
+
 ```bash
 gitprovidersync --log-level=debug sync --dry-run
 ```
 
 ### Trace Mode
+
 Maximum verbosity for troubleshooting:
+
 ```bash
 gitprovidersync --log-level=trace sync --dry-run
 ```
@@ -117,6 +134,7 @@ Control when colors are used in output:
 ## Usage Examples
 
 ### Separate Streams
+
 ```bash
 # Capture results to file, errors to screen
 gitprovidersync sync > results.txt
@@ -129,6 +147,7 @@ gitprovidersync sync > results.txt 2> errors.log
 ```
 
 ### CI/CD Pipeline
+
 ```bash
 # JSON output for parsing
 gitprovidersync sync --format=json | process-results
@@ -141,6 +160,7 @@ gitprovidersync --quiet sync
 ```
 
 ### Debugging
+
 ```bash
 # Debug logs to stderr, results to stdout
 gitprovidersync --log-level=debug sync 2> debug.log
@@ -154,19 +174,22 @@ gitprovidersync --log-level=trace sync &> full-output.log
 The output formatting system follows hexagonal architecture:
 
 1. **Domain Layer** (`internal/domain/ports/sync_formatter.go`):
-   - Defines the `SyncOutputFormatter` interface
-   - Pure domain concept, no implementation details
+
+- Defines the `SyncOutputFormatter` interface
+- Pure domain concept, no implementation details
 
 2. **Adapter Layer** (`internal/adapters/cli/`):
-   - `console_formatter.go`: TTY-friendly output
-   - `plain_formatter.go`: Simple text output
-   - `json_formatter.go`: Structured JSON
-   - `quiet_formatter.go`: Minimal output
-   - `formatter_factory.go`: Creates appropriate formatter
+
+- `console_formatter.go`: TTY-friendly output
+- `plain_formatter.go`: Simple text output
+- `json_formatter.go`: Structured JSON
+- `quiet_formatter.go`: Minimal output
+- `formatter_factory.go`: Creates appropriate formatter
 
 3. **Integration** (`cmd/synccmd/formatter_integration.go`):
-   - Connects formatters to sync command
-   - Handles formatter selection based on environment
+
+- Connects formatters to sync command
+- Handles formatter selection based on environment
 
 ## Implementation Notes
 

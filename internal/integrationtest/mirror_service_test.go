@@ -13,10 +13,10 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"itiquette/git-provider-sync/internal/adapters/repository/gogit"
-	"itiquette/git-provider-sync/internal/integrationtest/testutil"
 	"itiquette/git-provider-sync/internal/domain/entities"
-	"itiquette/git-provider-sync/internal/domain/ports"
 	"itiquette/git-provider-sync/internal/domain/mirror"
+	"itiquette/git-provider-sync/internal/domain/ports"
+	"itiquette/git-provider-sync/internal/integrationtest/testutil"
 )
 
 // TestMirrorServiceIntegration tests mirror service operations with real git environments
@@ -53,11 +53,11 @@ func testCompleteMirrorOperation(t *testing.T, gitOps ports.GitOperations) {
 		TargetRepoName:  "mirror-target",
 		WorkingRepoName: "mirror-workspace",
 		InitialFiles: map[string]string{
-			"README.md":           "# Mirror Test Repository\n\nOriginal content for mirroring test",
-			"src/main.go":         "package main\n\nfunc main() {\n\tprintln(\"Hello from mirror source!\")\n}",
+			"README.md":            "# Mirror Test Repository\n\nOriginal content for mirroring test",
+			"src/main.go":          "package main\n\nfunc main() {\n\tprintln(\"Hello from mirror source!\")\n}",
 			"docs/architecture.md": "# Architecture\n\nSystem design documentation",
-			"config/app.yaml":     "app:\n  name: mirror-test\n  version: 1.0.0",
-			".gitignore":          "*.log\n*.tmp\nbuild/\n",
+			"config/app.yaml":      "app:\n  name: mirror-test\n  version: 1.0.0",
+			".gitignore":           "*.log\n*.tmp\nbuild/\n",
 		},
 		AddRemotes: map[string]string{
 			"origin": "", // Will use source bare repo
@@ -97,7 +97,7 @@ func testCompleteMirrorOperation(t *testing.T, gitOps ports.GitOperations) {
 
 	// Test mirror operation planning (this tests the pure functional parts)
 	planResult := service.PlanMirrorOperation(sourceRepo, sourceAuth, targetRepo, targetAuth)
-	
+
 	// Verify the operation plan
 	assert.Equal(t, mirror.OperationTypeCloneAndMirror, planResult.Type)
 	assert.Equal(t, "mirror-source", planResult.Source.Name)
@@ -122,22 +122,22 @@ func testMirrorRepositoryWithFilesAndRemotes(t *testing.T, gitOps ports.GitOpera
 
 	// Create complex repository with multiple directories and files
 	complexFiles := make(map[string]string)
-	
+
 	// Application structure
 	complexFiles["src/cmd/main.go"] = "package main\n\nimport \"fmt\"\n\nfunc main() {\n\tfmt.Println(\"Mirror application\")\n}"
 	complexFiles["src/pkg/config/config.go"] = "package config\n\ntype Config struct {\n\tApp string `yaml:\"app\"`\n}"
 	complexFiles["src/pkg/handlers/http.go"] = "package handlers\n\nimport \"net/http\"\n\nfunc Handle(w http.ResponseWriter, r *http.Request) {}"
-	
+
 	// Documentation
 	complexFiles["docs/README.md"] = "# Documentation\n\nproject documentation"
 	complexFiles["docs/api/endpoints.md"] = "# API Endpoints\n\n## GET /health"
 	complexFiles["docs/deployment/docker.md"] = "# Docker Deployment\n\nContainerization guide"
-	
+
 	// Configuration files
 	complexFiles["config/development.yaml"] = "env: development\nlog_level: debug"
 	complexFiles["config/production.yaml"] = "env: production\nlog_level: info"
 	complexFiles["docker-compose.yml"] = "version: '3.8'\nservices:\n  app:\n    build: ."
-	
+
 	// Scripts and tools
 	complexFiles["scripts/build.sh"] = "#!/bin/bash\ngo build -o bin/app src/cmd/main.go"
 	complexFiles["scripts/test.sh"] = "#!/bin/bash\ngo test ./..."
@@ -146,7 +146,7 @@ func testMirrorRepositoryWithFilesAndRemotes(t *testing.T, gitOps ports.GitOpera
 
 	opts := testutil.GitTestOptions{
 		SourceRepoName:  "complex-mirror-source",
-		TargetRepoName:  "complex-mirror-target", 
+		TargetRepoName:  "complex-mirror-target",
 		WorkingRepoName: "complex-mirror-workspace",
 		InitialFiles:    complexFiles,
 		AddRemotes: map[string]string{
@@ -182,14 +182,14 @@ func testMirrorRepositoryWithFilesAndRemotes(t *testing.T, gitOps ports.GitOpera
 		DryRunByDefault: false,
 	})
 
-	// Create repositories for mirror operation  
+	// Create repositories for mirror operation
 	sourceRepo := createMirrorTestRepository("complex-mirror-source", "")
 	targetRepo := createMirrorTestRepository("complex-mirror-target", "")
 
 	// Test planning of complex mirror operation
-	planResult := service.PlanMirrorOperation(sourceRepo, 
-		mirror.AuthSpec{Type: ports.AuthTypeToken, Token: "test-token"}, 
-		targetRepo, 
+	planResult := service.PlanMirrorOperation(sourceRepo,
+		mirror.AuthSpec{Type: ports.AuthTypeToken, Token: "test-token"},
+		targetRepo,
 		mirror.AuthSpec{Type: ports.AuthTypeToken, Token: "test-token"})
 
 	// Verify complex mirror operation planning
@@ -232,30 +232,30 @@ func testMirrorOperationValidation(t *testing.T, gitOps ports.GitOperations) {
 		expectedErrors int
 	}{
 		{
-			name:       "valid mirror repositories",
-			sourceRepo: createMirrorTestRepository("valid-source", env.GetSourceURL()),
-			targetRepo: createMirrorTestRepository("valid-target", env.GetTargetURL()),
-			sourceAuth: mirror.AuthSpec{Type: ports.AuthTypeNone},
-			targetAuth: mirror.AuthSpec{Type: ports.AuthTypeNone},
-			expectValid: true,
+			name:           "valid mirror repositories",
+			sourceRepo:     createMirrorTestRepository("valid-source", env.GetSourceURL()),
+			targetRepo:     createMirrorTestRepository("valid-target", env.GetTargetURL()),
+			sourceAuth:     mirror.AuthSpec{Type: ports.AuthTypeNone},
+			targetAuth:     mirror.AuthSpec{Type: ports.AuthTypeNone},
+			expectValid:    true,
 			expectedErrors: 0,
 		},
 		{
-			name:       "invalid source repository",
-			sourceRepo: createInvalidMirrorTestRepository(),
-			targetRepo: createMirrorTestRepository("valid-target", env.GetTargetURL()),
-			sourceAuth: mirror.AuthSpec{Type: ports.AuthTypeNone},
-			targetAuth: mirror.AuthSpec{Type: ports.AuthTypeNone},
-			expectValid: false,
+			name:           "invalid source repository",
+			sourceRepo:     createInvalidMirrorTestRepository(),
+			targetRepo:     createMirrorTestRepository("valid-target", env.GetTargetURL()),
+			sourceAuth:     mirror.AuthSpec{Type: ports.AuthTypeNone},
+			targetAuth:     mirror.AuthSpec{Type: ports.AuthTypeNone},
+			expectValid:    false,
 			expectedErrors: 3, // URL, Name, Provider validation errors
 		},
 		{
-			name:       "invalid target repository",
-			sourceRepo: createMirrorTestRepository("valid-source", env.GetSourceURL()),
-			targetRepo: createInvalidMirrorTestRepository(),
-			sourceAuth: mirror.AuthSpec{Type: ports.AuthTypeNone},
-			targetAuth: mirror.AuthSpec{Type: ports.AuthTypeNone},
-			expectValid: false,
+			name:           "invalid target repository",
+			sourceRepo:     createMirrorTestRepository("valid-source", env.GetSourceURL()),
+			targetRepo:     createInvalidMirrorTestRepository(),
+			sourceAuth:     mirror.AuthSpec{Type: ports.AuthTypeNone},
+			targetAuth:     mirror.AuthSpec{Type: ports.AuthTypeNone},
+			expectValid:    false,
 			expectedErrors: 3, // URL, Name, Provider validation errors
 		},
 	}
@@ -263,7 +263,7 @@ func testMirrorOperationValidation(t *testing.T, gitOps ports.GitOperations) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			// Test repository pair validation
-			validationResult := service.ValidateRepositoryPair(ctx, 
+			validationResult := service.ValidateRepositoryPair(ctx,
 				test.sourceRepo, test.sourceAuth,
 				test.targetRepo, test.targetAuth)
 
@@ -284,12 +284,12 @@ func testMirrorOperationValidation(t *testing.T, gitOps ports.GitOperations) {
 func createMirrorTestRepository(name, url string) entities.Repository {
 	builder := entities.NewRepositoryBuilder()
 	builder, _ = builder.WithName(name)
-	
+
 	// For mirror service tests, use test HTTPS URLs rather than file:// URLs
 	// Mirror service validation expects proper HTTPS URLs for GitHub/GitLab providers
 	testHTTPSURL := "https://test-provider.com/test/" + name + ".git"
 	builder, _ = builder.WithHTTPSURL(testHTTPSURL)
-	
+
 	builder = builder.WithProviderType("github")
 	builder, _ = builder.WithDefaultBranch("main")
 	builder = builder.WithPrivate(false)
@@ -299,15 +299,15 @@ func createMirrorTestRepository(name, url string) entities.Repository {
 	return repo
 }
 
-// Removed createMirrorTestRepositoryWithFileURL as we're focusing on 
+// Removed createMirrorTestRepositoryWithFileURL as we're focusing on
 // Testing the pure functional parts of the mirror service
 
 func createInvalidMirrorTestRepository() entities.Repository {
 	// Create repository with invalid/empty fields to trigger validation errors
 	builder := entities.NewRepositoryBuilder()
-	builder, _ = builder.WithName("")          // Invalid: empty name
-	builder, _ = builder.WithHTTPSURL("")      // Invalid: empty URL
-	builder = builder.WithProviderType("")    // Invalid: empty provider
+	builder, _ = builder.WithName("")      // Invalid: empty name
+	builder, _ = builder.WithHTTPSURL("")  // Invalid: empty URL
+	builder = builder.WithProviderType("") // Invalid: empty provider
 	repo, _ := builder.Build()
 	return repo
 }
@@ -353,14 +353,14 @@ func (m *testMirrorProvider) RemoveBranchProtection(context.Context, ports.Provi
 func (m *testMirrorProvider) ListProtectedBranches(context.Context, ports.ProviderConfig, string) ([]string, error) {
 	return nil, nil
 }
-func (m *testMirrorProvider) GetProviderInfo() ports.ProviderInfo { return ports.ProviderInfo{} }
+func (m *testMirrorProvider) GetProviderInfo() ports.ProviderInfo        { return ports.ProviderInfo{} }
 func (m *testMirrorProvider) SupportsFeature(ports.ProviderFeature) bool { return true }
 func (m *testMirrorProvider) ProjectExists(context.Context, string, string) (bool, string, error) {
 	return true, "test-project", nil
 }
 func (m *testMirrorProvider) Protect(context.Context, string, string, string) error { return nil }
-func (m *testMirrorProvider) Unprotect(context.Context, string, string) error { return nil }
-func (m *testMirrorProvider) IsValidProjectName(context.Context, string) bool { return true }
+func (m *testMirrorProvider) Unprotect(context.Context, string, string) error       { return nil }
+func (m *testMirrorProvider) IsValidProjectName(context.Context, string) bool       { return true }
 func (m *testMirrorProvider) TransformRepositoryName(name string, _ ports.NameTransformOptions) string {
 	return name
 }
@@ -373,4 +373,4 @@ func (l *testMirrorLogger) Error(context.Context, string, map[string]any) {}
 func (l *testMirrorLogger) Trace(context.Context, string, map[string]any) {}
 func (l *testMirrorLogger) Warn(context.Context, string, map[string]any)  {}
 func (l *testMirrorLogger) Fatal(context.Context, string, map[string]any) {}
-func (l *testMirrorLogger) IsLevelEnabled(ports.LogLevel) bool { return true }
+func (l *testMirrorLogger) IsLevelEnabled(ports.LogLevel) bool            { return true }

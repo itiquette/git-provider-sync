@@ -39,7 +39,7 @@ func NewConsoleFormatter(writer io.Writer, verbosity string, noColor bool) ports
 	}
 
 	// Initialize colors (automatically disabled if NO_COLOR env var is set)
-	f := &ConsoleFormatter{
+	formatter := &ConsoleFormatter{
 		writer:    writer,
 		verbosity: verbosity,
 		noColor:   noColor,
@@ -57,227 +57,136 @@ func NewConsoleFormatter(writer io.Writer, verbosity string, noColor bool) ports
 		color.NoColor = true
 	}
 
-	return f
+	return formatter
 }
 
 // StartEnvironment indicates the start of syncing an environment.
 func (f *ConsoleFormatter) StartEnvironment(env string) {
-	f.bold.Fprintf(f.writer, "\n↻ Syncing environment: %s\n\n", env)
+	_, _ = f.bold.Fprintf(f.writer, "\n↻ Syncing environment: %s\n\n", env)
 }
 
 // StartSync indicates the start of a sync configuration.
 func (f *ConsoleFormatter) StartSync(env, config, sourceProvider string) {
 	f.currentSync = fmt.Sprintf("%s/%s", env, config)
 	// Only show this in verbose mode
-	if f.verbosity == "verbose" || f.verbosity == "debug" || f.verbosity == "trace" {
-		f.dim.Fprintf(f.writer, "  Starting sync: %s (%s)\n", config, sourceProvider)
+	if f.verbosity == VerbosityVerbose || f.verbosity == VerbosityDebug || f.verbosity == VerbosityTrace {
+		_, _ = f.dim.Fprintf(f.writer, "  Starting sync: %s (%s)\n", config, sourceProvider)
 	}
 }
 
 // SourceFetching indicates fetching from source is starting.
 func (f *ConsoleFormatter) SourceFetching(provider, domain, owner string) {
-	f.blue.Fprintf(f.writer, "  Source: ")
-	fmt.Fprintf(f.writer, "%s/%s", domain, owner)
-	f.dim.Fprintf(f.writer, " (%s)\n", provider)
+	_, _ = f.blue.Fprintf(f.writer, "  Source: ")
+	_, _ = fmt.Fprintf(f.writer, "%s/%s", domain, owner)
+	_, _ = f.dim.Fprintf(f.writer, " (%s)\n", provider)
 }
 
 // SourceFetched indicates source fetch completed.
-func (f *ConsoleFormatter) SourceFetched(count int, duration time.Duration) {
+func (f *ConsoleFormatter) SourceFetched(_ int, _ time.Duration) {
 	// Don't show "Found X repositories" - it's confusing
 	// The summary will show what actually matters
-	f.dim.Fprintf(f.writer, "\n")
+	_, _ = f.dim.Fprintf(f.writer, "\n")
 }
 
 // MirrorSyncing indicates starting sync to a mirror.
-func (f *ConsoleFormatter) MirrorSyncing(name, provider, domain, owner string) {
-	f.cyan.Fprintf(f.writer, "  Mirror: ")
-	fmt.Fprintf(f.writer, "%s/%s", domain, owner)
-	f.dim.Fprintf(f.writer, " (%s)\n", name)
+func (f *ConsoleFormatter) MirrorSyncing(name, _, domain, owner string) {
+	_, _ = f.cyan.Fprintf(f.writer, "  Mirror: ")
+	_, _ = fmt.Fprintf(f.writer, "%s/%s", domain, owner)
+	_, _ = f.dim.Fprintf(f.writer, " (%s)\n", name)
 }
 
 // MirrorSynced indicates mirror sync completed.
-func (f *ConsoleFormatter) MirrorSynced(name string, synced, failed, skipped int, duration time.Duration) {
+func (f *ConsoleFormatter) MirrorSynced(_ string, _, _, _ int, _ time.Duration) {
 	// Don't show confusing "No changes" here
 	// The repository list in the summary will show the actual status
-	f.dim.Fprintf(f.writer, "\n")
+	_, _ = f.dim.Fprintf(f.writer, "\n")
 }
 
 // RepositorySynced indicates a single repository was synced.
 func (f *ConsoleFormatter) RepositorySynced(name string, success bool, message string) {
 	// Only show in verbose mode
-	if f.verbosity != "verbose" && f.verbosity != "debug" && f.verbosity != "trace" {
+	if f.verbosity != VerbosityVerbose && f.verbosity != VerbosityDebug && f.verbosity != VerbosityTrace {
 		return
 	}
 
 	if success {
-		f.green.Fprintf(f.writer, "        ✓ %s", name)
+		_, _ = f.green.Fprintf(f.writer, "        ✓ %s", name)
 	} else {
-		f.red.Fprintf(f.writer, "        ✗ %s", name)
+		_, _ = f.red.Fprintf(f.writer, "        ✗ %s", name)
 	}
 
 	if message != "" {
-		f.dim.Fprintf(f.writer, " - %s", message)
+		_, _ = f.dim.Fprintf(f.writer, " - %s", message)
 	}
-	fmt.Fprintln(f.writer)
+
+	_, _ = fmt.Fprintln(f.writer)
 }
 
 // SyncCompleted shows the final summary.
+//
+// SyncCompleted shows the final summary of the sync operation.
 func (f *ConsoleFormatter) SyncCompleted(results ports.SyncResults) {
 	// Skip summary if nothing was done
 	if results.TotalRepositories == 0 && !results.DryRun {
 		return
 	}
 
-	// Draw separator
-	f.drawSeparator()
-
-	// Title
-	if results.DryRun {
-		f.bold.Fprintf(f.writer, "%s\n", f.centerText("DRY RUN SUMMARY", 60))
-	} else {
-		f.bold.Fprintf(f.writer, "%s\n", f.centerText("SYNC COMPLETE", 60))
-	}
-	f.drawSeparator()
-	fmt.Fprintln(f.writer)
-
-	// Summary stats
-	if results.DryRun {
-		if results.TotalRepositories == 1 {
-			fmt.Fprintf(f.writer, "  Repository:  1\n")
-		} else {
-			fmt.Fprintf(f.writer, "  Repositories: %d\n", results.TotalRepositories)
-		}
-		fmt.Fprintf(f.writer, "  Action:      Would sync\n")
-	} else {
-		if results.SuccessfulSyncs > 0 {
-			f.green.Fprintf(f.writer, "  ✓ Synced:    ")
-			fmt.Fprintf(f.writer, "%d repositories\n", results.SuccessfulSyncs)
-		}
-		if results.FailedSyncs > 0 {
-			f.red.Fprintf(f.writer, "  ✗ Failed:    ")
-			fmt.Fprintf(f.writer, "%d repositories\n", results.FailedSyncs)
-		}
-		if results.SkippedSyncs > 0 {
-			f.yellow.Fprintf(f.writer, "  ⚠ Skipped:   ")
-			fmt.Fprintf(f.writer, "%d repositories\n", results.SkippedSyncs)
-		}
-	}
-
-	f.dim.Fprintf(f.writer, "  Duration:    %s\n", f.formatDuration(results.Duration))
+	f.printSyncHeader(results.DryRun)
+	f.printSyncStats(results)
+	_, _ = f.dim.Fprintf(f.writer, "  Duration:    %s\n", f.formatDuration(results.Duration))
 
 	if results.DryRun {
-		fmt.Fprintln(f.writer)
-		f.yellow.Fprintln(f.writer, "  ↓ DRY RUN MODE - No changes made")
+		_, _ = fmt.Fprintln(f.writer)
+		_, _ = f.yellow.Fprintln(f.writer, "  ↓ DRY RUN MODE - No changes made")
 	}
-	fmt.Fprintln(f.writer)
+
+	_, _ = fmt.Fprintln(f.writer)
 
 	// Show repository details with their sync status
-	if !results.DryRun && len(results.Repositories) > 0 {
-		fmt.Fprintln(f.writer)
-		f.bold.Fprintln(f.writer, "  Repositories:")
-
-		if len(results.Repositories) <= 10 {
-			// Show individual repos with their status
-			for _, repo := range results.Repositories {
-				if repo.Success {
-					f.green.Fprintf(f.writer, "    ✓ %s", repo.Name)
-					// Add status info if available
-					if repo.ErrorMessage == "" {
-						f.dim.Fprintf(f.writer, " (up to date)")
-					}
-					fmt.Fprintln(f.writer)
-				} else if repo.Skipped {
-					f.yellow.Fprintf(f.writer, "    - %s", repo.Name)
-					f.dim.Fprintf(f.writer, " (skipped)")
-					if repo.ErrorMessage != "" {
-						f.dim.Fprintf(f.writer, " - %s", repo.ErrorMessage)
-					}
-					fmt.Fprintln(f.writer)
-				} else {
-					f.red.Fprintf(f.writer, "    ✗ %s", repo.Name)
-					if repo.ErrorMessage != "" {
-						f.dim.Fprintf(f.writer, " - %s", repo.ErrorMessage)
-					}
-					fmt.Fprintln(f.writer)
-				}
-			}
-		} else {
-			// For many repos, show summary
-			successCount := 0
-			failedCount := 0
-			skippedCount := 0
-			for _, repo := range results.Repositories {
-				if repo.Success {
-					successCount++
-				} else if repo.Skipped {
-					skippedCount++
-				} else {
-					failedCount++
-				}
-			}
-
-			if successCount > 0 {
-				f.green.Fprintf(f.writer, "    ✓ %d synced successfully\n", successCount)
-			}
-			if failedCount > 0 {
-				f.red.Fprintf(f.writer, "    ✗ %d failed\n", failedCount)
-			}
-			if skippedCount > 0 {
-				f.yellow.Fprintf(f.writer, "    - %d skipped\n", skippedCount)
-			}
-		}
-		fmt.Fprintln(f.writer)
-	}
+	f.printRepositoryDetails(results)
 
 	// Next steps
-	if results.DryRun {
-		f.bold.Fprintln(f.writer, "  Next steps:")
-		fmt.Fprintln(f.writer, "    • Run without --dry-run to perform sync")
-		fmt.Fprintln(f.writer, "    • Add --verbose to see detailed operations")
-		fmt.Fprintln(f.writer)
-		f.cyan.Fprintln(f.writer, "  $ gitprovidersync sync")
-	} else if results.FailedSyncs > 0 {
-		f.bold.Fprintln(f.writer, "  Next steps:")
-		fmt.Fprintln(f.writer, "    • Check error messages above")
-		fmt.Fprintln(f.writer, "    • Run with --verbose for more details")
-		fmt.Fprintln(f.writer, "    • Fix issues and retry")
-	}
+	f.printNextSteps(results)
 
 	f.drawSeparator()
-	fmt.Fprintln(f.writer)
+	_, _ = fmt.Fprintln(f.writer)
 }
 
 // Error outputs an error message.
 func (f *ConsoleFormatter) Error(message string, err error) {
-	f.red.Fprintf(f.writer, "✗ Error: ")
-	fmt.Fprintf(f.writer, "%s", message)
+	_, _ = f.red.Fprintf(f.writer, "✗ Error: ")
+
+	_, _ = fmt.Fprintf(f.writer, "%s", message)
 	if err != nil {
-		f.dim.Fprintf(f.writer, " - %v", err)
+		_, _ = f.dim.Fprintf(f.writer, " - %v", err)
 	}
-	fmt.Fprintln(f.writer)
+
+	_, _ = fmt.Fprintln(f.writer)
 }
 
 // Warning outputs a warning message.
 func (f *ConsoleFormatter) Warning(message string) {
-	f.yellow.Fprintf(f.writer, "⚠ Warning: ")
-	fmt.Fprintln(f.writer, message)
+	_, _ = f.yellow.Fprintf(f.writer, "⚠ Warning: ")
+	_, _ = fmt.Fprintln(f.writer, message)
 }
 
 // Info outputs an info message (respects verbosity).
 func (f *ConsoleFormatter) Info(message string) {
-	if f.verbosity == "quiet" || f.verbosity == "brief" {
+	if f.verbosity == VerbosityQuiet || f.verbosity == VerbosityBrief {
 		return
 	}
-	f.blue.Fprintf(f.writer, "ℹ ")
-	fmt.Fprintln(f.writer, message)
+
+	_, _ = f.blue.Fprintf(f.writer, "ℹ ")
+	_, _ = fmt.Fprintln(f.writer, message)
 }
 
 // Debug outputs a debug message (only with --debug).
 func (f *ConsoleFormatter) Debug(message string) {
-	if f.verbosity != "debug" && f.verbosity != "trace" {
+	if f.verbosity != VerbosityDebug && f.verbosity != VerbosityTrace {
 		return
 	}
-	f.dim.Fprintf(f.writer, "[DEBUG] %s\n", message)
+
+	_, _ = f.dim.Fprintf(f.writer, "[DEBUG] %s\n", message)
 }
 
 // Writer returns the underlying writer.
@@ -287,46 +196,186 @@ func (f *ConsoleFormatter) Writer() io.Writer {
 
 // Helper methods
 
-func (f *ConsoleFormatter) formatDuration(d time.Duration) string {
-	if d < time.Second {
-		return fmt.Sprintf("%.0fms", d.Seconds()*1000)
-	}
-	if d < time.Minute {
-		return fmt.Sprintf("%.1fs", d.Seconds())
-	}
-	return fmt.Sprintf("%dm %ds", int(d.Minutes()), int(d.Seconds())%60)
-}
-
-func (f *ConsoleFormatter) formatTimeAgo(t time.Time) string {
-	if t.IsZero() {
-		return "never"
+func (f *ConsoleFormatter) formatDuration(duration time.Duration) string {
+	if duration < time.Second {
+		return fmt.Sprintf("%.0fms", duration.Seconds()*1000)
 	}
 
-	ago := time.Since(t)
-	if ago < time.Hour {
-		return fmt.Sprintf("%d minutes ago", int(ago.Minutes()))
+	if duration < time.Minute {
+		return fmt.Sprintf("%.1fs", duration.Seconds())
 	}
-	if ago < 24*time.Hour {
-		return fmt.Sprintf("%d hours ago", int(ago.Hours()))
-	}
-	if ago < 7*24*time.Hour {
-		return fmt.Sprintf("%d days ago", int(ago.Hours()/24))
-	}
-	if ago < 30*24*time.Hour {
-		return fmt.Sprintf("%d weeks ago", int(ago.Hours()/(24*7)))
-	}
-	return fmt.Sprintf("%d months ago", int(ago.Hours()/(24*30)))
+
+	return fmt.Sprintf("%dm %ds", int(duration.Minutes()), int(duration.Seconds())%60)
 }
 
 func (f *ConsoleFormatter) drawSeparator() {
 	line := strings.Repeat("═", 60)
-	f.dim.Fprintln(f.writer, line)
+	_, _ = f.dim.Fprintln(f.writer, line)
 }
 
 func (f *ConsoleFormatter) centerText(text string, width int) string {
 	if len(text) >= width {
 		return text
 	}
+
 	padding := (width - len(text)) / 2
+
 	return strings.Repeat(" ", padding) + text
+}
+
+// printSyncHeader prints the header for sync completion.
+func (f *ConsoleFormatter) printSyncHeader(isDryRun bool) {
+	f.drawSeparator()
+
+	if isDryRun {
+		_, _ = f.bold.Fprintf(f.writer, "%s\n", f.centerText("DRY RUN SUMMARY", 60))
+	} else {
+		_, _ = f.bold.Fprintf(f.writer, "%s\n", f.centerText("SYNC COMPLETE", 60))
+	}
+
+	f.drawSeparator()
+	_, _ = fmt.Fprintln(f.writer)
+}
+
+// printSyncStats prints the sync statistics.
+func (f *ConsoleFormatter) printSyncStats(results ports.SyncResults) {
+	if results.DryRun {
+		f.printDryRunStats(results.TotalRepositories)
+	} else {
+		f.printRealSyncStats(results)
+	}
+}
+
+// printDryRunStats prints stats for dry run mode.
+func (f *ConsoleFormatter) printDryRunStats(totalRepos int) {
+	if totalRepos == 1 {
+		_, _ = fmt.Fprintf(f.writer, "  Repository:  1\n")
+	} else {
+		_, _ = fmt.Fprintf(f.writer, "  Repositories: %d\n", totalRepos)
+	}
+
+	_, _ = fmt.Fprintf(f.writer, "  Action:      Would sync\n")
+}
+
+// printRealSyncStats prints stats for actual sync.
+func (f *ConsoleFormatter) printRealSyncStats(results ports.SyncResults) {
+	if results.SuccessfulSyncs > 0 {
+		_, _ = f.green.Fprintf(f.writer, "  ✓ Synced:    ")
+		_, _ = fmt.Fprintf(f.writer, "%d repositories\n", results.SuccessfulSyncs)
+	}
+
+	if results.FailedSyncs > 0 {
+		_, _ = f.red.Fprintf(f.writer, "  ✗ Failed:    ")
+		_, _ = fmt.Fprintf(f.writer, "%d repositories\n", results.FailedSyncs)
+	}
+
+	if results.SkippedSyncs > 0 {
+		_, _ = f.yellow.Fprintf(f.writer, "  ⚠ Skipped:   ")
+		_, _ = fmt.Fprintf(f.writer, "%d repositories\n", results.SkippedSyncs)
+	}
+}
+
+// printRepositoryDetails prints individual repository statuses.
+func (f *ConsoleFormatter) printRepositoryDetails(results ports.SyncResults) {
+	if results.DryRun || len(results.Repositories) == 0 {
+		return
+	}
+
+	_, _ = fmt.Fprintln(f.writer)
+	_, _ = f.bold.Fprintln(f.writer, "  Repositories:")
+
+	if len(results.Repositories) <= 10 {
+		f.printDetailedRepos(results.Repositories)
+	} else {
+		f.printRepoSummary(results.Repositories)
+	}
+
+	_, _ = fmt.Fprintln(f.writer)
+}
+
+// printDetailedRepos prints detailed info for each repository.
+func (f *ConsoleFormatter) printDetailedRepos(repos []ports.RepositoryResult) {
+	for _, repo := range repos {
+		f.printSingleRepo(repo)
+	}
+}
+
+// printSingleRepo prints a single repository status.
+func (f *ConsoleFormatter) printSingleRepo(repo ports.RepositoryResult) {
+	switch {
+	case repo.Success:
+		_, _ = f.green.Fprintf(f.writer, "    ✓ %s", repo.Name)
+		if repo.ErrorMessage == "" {
+			_, _ = f.dim.Fprintf(f.writer, " (up to date)")
+		}
+
+		_, _ = fmt.Fprintln(f.writer)
+	case repo.Skipped:
+		_, _ = f.yellow.Fprintf(f.writer, "    - %s", repo.Name)
+
+		_, _ = f.dim.Fprintf(f.writer, " (skipped)")
+		if repo.ErrorMessage != "" {
+			_, _ = f.dim.Fprintf(f.writer, " - %s", repo.ErrorMessage)
+		}
+
+		_, _ = fmt.Fprintln(f.writer)
+	default:
+		_, _ = f.red.Fprintf(f.writer, "    ✗ %s", repo.Name)
+		if repo.ErrorMessage != "" {
+			_, _ = f.dim.Fprintf(f.writer, " - %s", repo.ErrorMessage)
+		}
+
+		_, _ = fmt.Fprintln(f.writer)
+	}
+}
+
+// printRepoSummary prints a summary when there are many repositories.
+func (f *ConsoleFormatter) printRepoSummary(repos []ports.RepositoryResult) {
+	successCount, failedCount, skippedCount := f.countRepoStatuses(repos)
+
+	if successCount > 0 {
+		_, _ = f.green.Fprintf(f.writer, "    ✓ %d synced successfully\n", successCount)
+	}
+
+	if failedCount > 0 {
+		_, _ = f.red.Fprintf(f.writer, "    ✗ %d failed\n", failedCount)
+	}
+
+	if skippedCount > 0 {
+		_, _ = f.yellow.Fprintf(f.writer, "    - %d skipped\n", skippedCount)
+	}
+}
+
+// countRepoStatuses counts repositories by status.
+func (f *ConsoleFormatter) countRepoStatuses(repos []ports.RepositoryResult) (int, int, int) {
+	var success, failed, skipped int
+
+	for _, repo := range repos {
+		switch {
+		case repo.Success:
+			success++
+		case repo.Skipped:
+			skipped++
+		default:
+			failed++
+		}
+	}
+
+	return success, failed, skipped
+}
+
+// printNextSteps prints suggested next actions.
+func (f *ConsoleFormatter) printNextSteps(results ports.SyncResults) {
+	if results.DryRun {
+		_, _ = f.bold.Fprintln(f.writer, "  Next steps:")
+		_, _ = fmt.Fprintln(f.writer, "    • Run without --dry-run to perform sync")
+		_, _ = fmt.Fprintln(f.writer, "    • Add --verbose to see detailed operations")
+		_, _ = fmt.Fprintln(f.writer)
+		_, _ = f.cyan.Fprintln(f.writer, "  $ gitprovidersync sync")
+	} else if results.FailedSyncs > 0 {
+		_, _ = f.bold.Fprintln(f.writer, "  Next steps:")
+		_, _ = fmt.Fprintln(f.writer, "    • Check error messages above")
+		_, _ = fmt.Fprintln(f.writer, "    • Run with --verbose for more details")
+		_, _ = fmt.Fprintln(f.writer, "    • Fix issues and retry")
+	}
 }

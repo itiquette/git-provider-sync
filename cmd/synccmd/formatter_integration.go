@@ -13,7 +13,7 @@ import (
 
 	"itiquette/git-provider-sync/internal/adapters/cli"
 	"itiquette/git-provider-sync/internal/adapters/composition"
-	"itiquette/git-provider-sync/internal/application/dto"
+	"itiquette/git-provider-sync/internal/adapters/configuration/dto"
 	"itiquette/git-provider-sync/internal/domain/entities"
 	"itiquette/git-provider-sync/internal/domain/ports"
 	"itiquette/git-provider-sync/internal/domain/sync"
@@ -30,6 +30,7 @@ func executeAllEnvironmentSyncsWithFormatter(
 ) error {
 	for envName, environments := range cfg.GitProviderSyncConfs {
 		formatter.StartEnvironment(envName)
+
 		syncResults.TotalSources++
 
 		for syncCfgName, syncCfg := range environments {
@@ -55,6 +56,7 @@ func executeAllEnvironmentSyncsWithFormatter(
 			)
 			if err != nil {
 				formatter.Error("Failed to sync configuration", err)
+
 				return fmt.Errorf("failed to sync environment %s, config %s: %w", envName, syncCfgName, err)
 			}
 
@@ -105,9 +107,9 @@ func executeSyncConfigurationWithResultsAndFormatter(
 			ctx, container, fetchResponse, mirrorCfg, syncCfg,
 			envName, sourceName, mirrorName, results,
 		)
-
 		if err != nil {
-			formatter.Error(fmt.Sprintf("Failed to sync to mirror %s", mirrorName), err)
+			formatter.Error("Failed to sync to mirror "+mirrorName, err)
+
 			return 0, fmt.Errorf("failed to sync to mirror %s: %w", mirrorName, err)
 		}
 
@@ -164,19 +166,25 @@ func createSyncFormatter(ctx context.Context) ports.SyncOutputFormatter {
 	}
 
 	// Determine log level from logger
-	logLevel := "brief"
+	logLevel := VerbosityBrief
+
 	if logger := zerolog.Ctx(ctx); logger != nil {
 		switch logger.GetLevel() {
 		case zerolog.TraceLevel:
-			logLevel = "trace"
+			logLevel = VerbosityTrace
 		case zerolog.DebugLevel:
-			logLevel = "debug"
+			logLevel = VerbosityDebug
 		case zerolog.InfoLevel:
-			logLevel = "verbose"
+			logLevel = VerbosityVerbose
+		case zerolog.WarnLevel, zerolog.ErrorLevel, zerolog.FatalLevel, zerolog.PanicLevel:
+			logLevel = VerbosityBrief
+		case zerolog.NoLevel, zerolog.Disabled:
+			logLevel = VerbosityQuiet
 		}
 	}
 
 	// Create formatter - using stdout for user-facing output
 	factory := cli.NewFormatterFactory()
+
 	return factory.CreateFormatter(cliConfig, logLevel, os.Stdout)
 }

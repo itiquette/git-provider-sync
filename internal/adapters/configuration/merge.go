@@ -8,7 +8,7 @@ import (
 	"sort"
 	"strings"
 
-	"itiquette/git-provider-sync/internal/application/dto"
+	"itiquette/git-provider-sync/internal/adapters/configuration/dto"
 )
 
 // ConfigSource represents a configuration from a specific source with priority.

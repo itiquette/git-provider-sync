@@ -14,8 +14,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"itiquette/git-provider-sync/internal/adapters/repository/gogit"
-	"itiquette/git-provider-sync/internal/integrationtest/testutil"
 	"itiquette/git-provider-sync/internal/domain/ports"
+	"itiquette/git-provider-sync/internal/integrationtest/testutil"
 )
 
 // TestGoGitAdapterExtendedIntegration tests GoGit adapter operations
@@ -275,7 +275,7 @@ func testGoGitFileOperations(t *testing.T, adapter *gogit.Adapter) {
 	// Create test environment with files
 	env, err := testutil.SetupGitTestEnvironment(t, adapter, testutil.GitTestOptions{
 		SourceRepoName:  "file-source",
-		TargetRepoName:  "file-target", 
+		TargetRepoName:  "file-target",
 		WorkingRepoName: "file-workspace",
 		InitialFiles: map[string]string{
 			"main.go":     "package main\n\nfunc main() {\n\tprintln(\"Hello GoGit!\")\n}",
@@ -296,7 +296,7 @@ func testGoGitFileOperations(t *testing.T, adapter *gogit.Adapter) {
 	status, err := repo.Status(ctx)
 	require.NoError(t, err, "Should get repository status")
 	assert.NotNil(t, status)
-	
+
 	// New repository might have changes from initial file creation
 	t.Logf("Repository status - Clean: %t, Modified files: %d", status.IsClean, len(status.Modified))
 

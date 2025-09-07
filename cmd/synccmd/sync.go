@@ -8,19 +8,15 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
-
-	"github.com/rs/zerolog"
 
 	"itiquette/git-provider-sync/internal/adapters/cli"
 	"itiquette/git-provider-sync/internal/adapters/composition"
+	"itiquette/git-provider-sync/internal/adapters/configuration/dto"
 	"itiquette/git-provider-sync/internal/adapters/filesystem"
 	"itiquette/git-provider-sync/internal/adapters/log"
-	"itiquette/git-provider-sync/internal/adapters/logging"
 	"itiquette/git-provider-sync/internal/adapters/repository/archive"
 	"itiquette/git-provider-sync/internal/adapters/terminal"
-	"itiquette/git-provider-sync/internal/application/dto"
 	"itiquette/git-provider-sync/internal/domain/entities"
 	"itiquette/git-provider-sync/internal/domain/ports"
 	"itiquette/git-provider-sync/internal/domain/sync"
@@ -96,7 +92,8 @@ func createContainerWithConfig(ctx context.Context, _ *dto.AppConfiguration) (*c
 
 	// Extract log level from context (set by initLogger)
 	logLevel := "info" // Default
-	if lvl := ctx.Value("logLevel"); lvl != nil {
+
+	if lvl := ctx.Value(logLevelKey); lvl != nil {
 		if lvlStr, ok := lvl.(string); ok {
 			logLevel = lvlStr
 		}
@@ -130,79 +127,6 @@ func createContainerWithConfig(ctx context.Context, _ *dto.AppConfiguration) (*c
 // ExecuteSyncConfigurationWithResults executes sync for a single source-to-mirrors configuration
 // ExecuteSyncConfigurationWithResults fetches from source provider and syncs to all configured mirrors
 //
-//nolint:cyclop,nestif // Multiple validation and error paths required
-func executeSyncConfigurationWithResults(
-	ctx context.Context,
-	container *composition.Container,
-	syncCfg dto.SyncConfig,
-	envName string,
-	sourceName string,
-	results *sync.Results,
-) error {
-	logger := log.Logger(ctx)
-	logger.Debug().
-		Str("provider", syncCfg.ProviderType).
-		Str("domain", syncCfg.Domain).
-		Str("owner", syncCfg.Owner).
-		Msg("Executing sync configuration")
-
-	// Default to auto mode - honors NO_COLOR environment variable
-	symbols := cli.GetSymbols(terminal.ColorAuto)
-
-	// Progress output is now handled by the formatter
-
-	// Fetch source repositories and sync to mirrors
-	fetchResponse, err := fetchSourceRepositoriesWithGitRepos(ctx, container, syncCfg)
-	if err != nil {
-		return fmt.Errorf("failed to fetch source repositories: %w", err)
-	}
-
-	// Show fetch results
-	if fetchResponse.ProcessedCount > 0 {
-		fmt.Fprintf(os.Stderr, "  %s Fetched %d repositories\n",
-			symbols.Check, fetchResponse.ProcessedCount)
-	}
-
-	// Display any fetch errors in grouped format
-	if len(fetchResponse.Errors) > 0 {
-		errorGroup := cli.NewErrorGroup("Clone")
-
-		for i, err := range fetchResponse.Errors {
-			// Extract repo name from error if possible
-			repoName := fmt.Sprintf("repository-%d", i+1)
-
-			if errStr := err.Error(); strings.Contains(errStr, "failed to clone ") {
-				parts := strings.Split(errStr, "failed to clone ")
-				if len(parts) > 1 {
-					if colonIdx := strings.Index(parts[1], ":"); colonIdx > 0 {
-						repoName = parts[1][:colonIdx]
-					}
-				}
-			}
-
-			errorGroup.Add(repoName, err)
-		}
-
-		// Display grouped errors
-		if errorGroup.HasErrors() {
-			fmt.Fprint(os.Stderr, errorGroup.Format(symbols))
-		}
-	}
-
-	// Process each mirror configuration
-	for mirrorName, mirrorCfg := range syncCfg.Mirrors {
-		// Progress output is now handled by the formatter
-
-		if err := syncToMirrorWithGitReposAndResults(ctx, container, fetchResponse, mirrorCfg, syncCfg, envName, sourceName, mirrorName, results); err != nil {
-			return fmt.Errorf("failed to sync to mirror %s: %w", mirrorName, err)
-		}
-	}
-
-	logger.Debug().Msg("Sync configuration completed successfully")
-
-	return nil
-}
-
 // FetchSourceRepositoriesWithGitRepos fetches and clones repositories returning full response.
 func fetchSourceRepositoriesWithGitRepos(
 	ctx context.Context,
@@ -284,7 +208,7 @@ func syncToMirrorWithGitReposAndResults(
 ) error {
 	// Use container's logger which respects suppression settings
 	// Don't use log.Logger(ctx) as it bypasses the container's configuration
-	logger := log.Logger(ctx) // TODO: Should use container.Logger() once available
+	logger := log.Logger(ctx) // Container logger integration pending
 	logger.Debug().
 		Str("provider", mirrorCfg.ProviderType).
 		Str("domain", mirrorCfg.Domain).
@@ -506,9 +430,6 @@ func convertMirrorConfigToMirrorTargets(syncCfg dto.SyncConfig) []entities.Mirro
 }
 
 // CreateLoggerAdapter creates a domain logger adapter from zerolog.Logger.
-func createLoggerAdapter(logger zerolog.Logger) ports.Logger { //nolint:ireturn // Factory function returning interface
-	return logging.NewZerologAdapter(&logger)
-}
 
 // OutputSyncResults outputs sync results using the configured formatter.
 func outputSyncResults(ctx context.Context, results *sync.Results) error {

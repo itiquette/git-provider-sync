@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"itiquette/git-provider-sync/internal/application/dto"
+	"itiquette/git-provider-sync/internal/adapters/configuration/dto"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

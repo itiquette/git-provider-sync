@@ -81,14 +81,16 @@ func NewContainer(ctx context.Context, containerConfig ContainerConfig) (*Contai
 		string(appConfig.GlobalSettings.LogLevel) != "trace"
 
 	var zerologInstance zerolog.Logger
-	if suppressLogs {
+
+	switch {
+	case suppressLogs:
 		// Suppress INFO and DEBUG logs in normal operation - formatters handle output
 		// Only show warnings and errors for actual issues
 		zerologInstance = zerolog.New(os.Stderr).Level(zerolog.WarnLevel).With().Timestamp().Logger()
-	} else if containerConfig.OutputFormat == "json" {
+	case containerConfig.OutputFormat == "json":
 		// JSON format for structured output (when logging is enabled)
 		zerologInstance = zerolog.New(os.Stderr).Level(zerologLevel).With().Timestamp().Logger()
-	} else {
+	default:
 		// Console format for human-readable output (when logging is enabled)
 		consoleWriter := zerolog.ConsoleWriter{
 			Out:        os.Stderr,

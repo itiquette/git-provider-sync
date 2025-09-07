@@ -11,7 +11,7 @@ import (
 	"io"
 	"time"
 
-	gps "itiquette/git-provider-sync/internal/application/dto"
+	gps "itiquette/git-provider-sync/internal/adapters/configuration/dto"
 	"itiquette/git-provider-sync/internal/domain/validation"
 )
 

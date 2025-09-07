@@ -19,10 +19,10 @@ import (
 	"itiquette/git-provider-sync/cmd/baseoption"
 	cliAdapters "itiquette/git-provider-sync/internal/adapters/cli"
 	"itiquette/git-provider-sync/internal/adapters/configuration"
+	gps "itiquette/git-provider-sync/internal/adapters/configuration/dto"
 	"itiquette/git-provider-sync/internal/adapters/log"
 	"itiquette/git-provider-sync/internal/adapters/terminal"
 	validationAdapters "itiquette/git-provider-sync/internal/adapters/validation"
-	gps "itiquette/git-provider-sync/internal/application/dto"
 	"itiquette/git-provider-sync/internal/domain/validation"
 )
 
