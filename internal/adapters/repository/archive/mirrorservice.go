@@ -18,6 +18,7 @@ import (
 	"github.com/go-git/go-git/v5"
 	"itiquette/git-provider-sync/internal/domain/entities"
 	"itiquette/git-provider-sync/internal/domain/ports"
+	"itiquette/git-provider-sync/internal/shared"
 )
 
 // MirrorService handles archive-based repository mirroring.
@@ -195,7 +196,7 @@ func (ms *MirrorService) createWorkingDirectory(ctx context.Context) (string, er
 
 // CleanupWorkingDirectory removes the temporary working directory.
 func (ms *MirrorService) cleanupWorkingDirectory(ctx context.Context, workDir string) {
-	if err := os.RemoveAll(workDir); err != nil {
+	if err := shared.RemoveAllInTempDir(workDir); err != nil {
 		ms.logger.Warn(ctx, "Failed to cleanup working directory", map[string]any{
 			"path":  workDir,
 			"error": err.Error(),

@@ -16,10 +16,10 @@ import (
 
 	baseOpt "itiquette/git-provider-sync/cmd/baseoption"
 	cliAdapters "itiquette/git-provider-sync/internal/adapters/cli"
+	"itiquette/git-provider-sync/internal/adapters/configuration"
+	"itiquette/git-provider-sync/internal/adapters/log"
 	"itiquette/git-provider-sync/internal/adapters/terminal"
-	"itiquette/git-provider-sync/internal/configuration"
 	"itiquette/git-provider-sync/internal/domain/entities"
-	"itiquette/git-provider-sync/internal/log"
 )
 
 // NewSyncCommand creates the sync command for repository mirroring.
@@ -122,7 +122,7 @@ func runSync(ctx context.Context, cmd *cli.Command) error {
 	return nil
 }
 
-// MergeSyncOptionsWithCLIConfig merges sync-specific flags with existing CLI config.
+// MergeSyncOptionsWithCLIConfig merges sync-specific flags with existing CLI dto.
 func mergeSyncOptionsWithCLIConfig(cliConfig entities.CLIConfig, cmd *cli.Command) entities.CLIConfig {
 	// Extract sync flags directly from command and merge with existing CLI config
 	return entities.NewCLIConfigBuilder().

@@ -22,11 +22,11 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
 	"github.com/go-git/go-git/v5/storage"
-	"github.com/go-git/go-git/v5/storage/filesystem"
+	gitfilesystem "github.com/go-git/go-git/v5/storage/filesystem"
 	"github.com/go-git/go-git/v5/storage/memory"
 
+	"itiquette/git-provider-sync/internal/adapters/filesystem"
 	"itiquette/git-provider-sync/internal/domain"
-	"itiquette/git-provider-sync/internal/domain/entities"
 	"itiquette/git-provider-sync/internal/domain/ports"
 )
 
@@ -61,7 +61,7 @@ func (a *Adapter) createStorer(path string) storage.Storer {
 	case ports.StorageModeFilesystem:
 		fs := osfs.New(path)
 
-		return filesystem.NewStorage(fs, nil)
+		return gitfilesystem.NewStorage(fs, nil)
 	case ports.StorageModeMemory:
 		fallthrough
 	default:
@@ -274,7 +274,7 @@ func (a *Adapter) Cleanup(_ context.Context, _ string) error {
 
 // CreateTmpDir implements the ports.GitOperations interface.
 func (a *Adapter) CreateTmpDir(ctx context.Context, dir, prefix string) (context.Context, error) {
-	ctxWithTmp, err := entities.CreateTmpDir(ctx, dir, prefix)
+	ctxWithTmp, err := filesystem.CreateTmpDir(ctx, dir, prefix)
 	if err != nil {
 		return ctx, fmt.Errorf("failed to create temporary directory: %w", err)
 	}
@@ -284,7 +284,7 @@ func (a *Adapter) CreateTmpDir(ctx context.Context, dir, prefix string) (context
 
 // GetTmpDirPath implements the ports.GitOperations interface.
 func (a *Adapter) GetTmpDirPath(ctx context.Context) (string, error) {
-	path, err := entities.GetTmpDirPath(ctx)
+	path, err := filesystem.GetTmpDirPath(ctx)
 	if err != nil {
 		return "", fmt.Errorf("failed to get temporary directory path: %w", err)
 	}
@@ -294,7 +294,7 @@ func (a *Adapter) GetTmpDirPath(ctx context.Context) (string, error) {
 
 // DeleteTmpDir implements the ports.GitOperations interface.
 func (a *Adapter) DeleteTmpDir(ctx context.Context) error {
-	if err := entities.DeleteTmpDir(ctx); err != nil {
+	if err := filesystem.DeleteTmpDir(ctx); err != nil {
 		return fmt.Errorf("failed to delete temporary directory: %w", err)
 	}
 

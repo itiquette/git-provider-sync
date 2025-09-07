@@ -12,7 +12,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"itiquette/git-provider-sync/internal/domain/entities"
 )
 
 // TestTmpDirFunctional tests temp directory operations with real filesystem.
@@ -81,15 +80,10 @@ func testCreateAndCleanupNestedDirectories(t *testing.T, baseDir string) {
 	assert.FileExists(t, testFile)
 
 	// Test with tmpdir context functions
-	ctx = entities.WithTmpDir(ctx, baseDir)
-	tmpPath, err := entities.GetTmpDirPath(ctx)
+	ctx = context.WithValue(ctx, TempDirKey{}, baseDir)
+	tmpPath, err := GetTmpDirPath(ctx)
 	require.NoError(t, err)
 	assert.Equal(t, baseDir, tmpPath)
-
-	// Test subdirectory
-	subPath, err := entities.GetSubTmpDir(ctx, "level1/level2")
-	require.NoError(t, err)
-	assert.Equal(t, filepath.Join(baseDir, "level1/level2"), subPath)
 
 	// Cleanup
 	for i := len(createdDirs) - 1; i >= 0; i-- {
@@ -103,45 +97,52 @@ func testCreateAndCleanupNestedDirectories(t *testing.T, baseDir string) {
 
 func testConcurrentDirectoryOperations(t *testing.T, baseDir string) {
 	t.Helper()
-	// Run multiple goroutines creating and deleting directories
-	numGoroutines := 5
-	done := make(chan bool, numGoroutines)
 
-	for routineID := range numGoroutines {
+	// Test concurrent temp directory creation
+	numGoroutines := 10
+	errChan := make(chan error, numGoroutines)
+
+	for idx := range numGoroutines {
 		go func(id int) {
-			defer func() { done <- true }()
-
 			ctx := context.Background()
-			dirPath := filepath.Join(baseDir, "concurrent", "goroutine",
-				fmt.Sprintf("worker-%d", id))
+			dirName := fmt.Sprintf("concurrent_%d", id)
 
-			// Create directory
-			err := os.MkdirAll(dirPath, 0750)
-			assert.NoError(t, err)
+			ctx, err := CreateTmpDir(ctx, baseDir, dirName)
+			if err != nil {
+				errChan <- err
 
-			// Use context-based tmpdir
-			ctx, err = entities.CreateTmpDir(ctx, dirPath, "test")
-			assert.NoError(t, err)
+				return
+			}
 
-			// Write a file
-			testFile := filepath.Join(dirPath, "test.txt")
-			err = os.WriteFile(testFile, []byte("concurrent test"), 0600)
-			assert.NoError(t, err)
+			// Verify directory was created
+			tmpPath, err := GetTmpDirPath(ctx)
+			if err != nil {
+				errChan <- err
 
-			// Read the file back
-			content, err := os.ReadFile(testFile) //nolint:gosec // Test file with controlled path
-			assert.NoError(t, err)
-			assert.Equal(t, "concurrent test", string(content))
+				return
+			}
 
-			// Cleanup
-			err = entities.DeleteTmpDir(ctx)
-			assert.NoError(t, err)
-		}(routineID)
+			if _, err := os.Stat(tmpPath); os.IsNotExist(err) {
+				errChan <- fmt.Errorf("directory %s does not exist", tmpPath)
+
+				return
+			}
+
+			// Clean up
+			if err := DeleteTmpDir(ctx); err != nil {
+				errChan <- err
+
+				return
+			}
+
+			errChan <- nil
+		}(idx)
 	}
 
 	// Wait for all goroutines to complete
 	for range numGoroutines {
-		<-done
+		err := <-errChan
+		assert.NoError(t, err)
 	}
 }
 
@@ -151,10 +152,10 @@ func testDirectoryPermissions(t *testing.T, baseDir string) {
 	ctx := context.Background()
 
 	// Create directory using CreateTmpDir
-	ctx, err := entities.CreateTmpDir(ctx, baseDir, "permissions-test")
+	ctx, err := CreateTmpDir(ctx, baseDir, "permissions-test")
 	require.NoError(t, err)
 
-	tmpPath, err := entities.GetTmpDirPath(ctx)
+	tmpPath, err := GetTmpDirPath(ctx)
 	require.NoError(t, err)
 
 	// Check default permissions
@@ -172,7 +173,7 @@ func testDirectoryPermissions(t *testing.T, baseDir string) {
 	assert.Equal(t, "permission test", string(content))
 
 	// Cleanup
-	err = entities.DeleteTmpDir(ctx)
+	err = DeleteTmpDir(ctx)
 	require.NoError(t, err)
 }
 
@@ -207,8 +208,8 @@ func testSymlinkHandling(t *testing.T, baseDir string) {
 	assert.Equal(t, "target content", string(content))
 
 	// Test context-based tmpdir with symlink
-	ctx = entities.WithTmpDir(ctx, symlinkPath)
-	tmpPath, err := entities.GetTmpDirPath(ctx)
+	ctx = context.WithValue(ctx, TempDirKey{}, symlinkPath)
+	tmpPath, err := GetTmpDirPath(ctx)
 	require.NoError(t, err)
 	assert.Equal(t, symlinkPath, tmpPath)
 
@@ -228,10 +229,10 @@ func TestTmpDir_CreateAndCleanup_WorksWithFileSystem(t *testing.T) {
 
 	// Test workflow: create temp space, use it, clean up
 	// Create workspace
-	ctx, err := entities.CreateTmpDir(ctx, tmpDir, "workspace")
+	ctx, err := CreateTmpDir(ctx, tmpDir, "workspace")
 	require.NoError(t, err)
 
-	workspacePath, err := entities.GetTmpDirPath(ctx)
+	workspacePath, err := GetTmpDirPath(ctx)
 	require.NoError(t, err)
 
 	// Simulate git operations - create a mock git repo structure
@@ -260,15 +261,15 @@ func TestTmpDir_CreateAndCleanup_WorksWithFileSystem(t *testing.T) {
 	}
 
 	// Test subdirectory operations
-	subPath, err := entities.GetSubTmpDir(ctx, "subdir")
-	require.NoError(t, err)
+	subPath := filepath.Join(workspacePath, "subdir")
+	require.NoError(t, os.MkdirAll(subPath, 0750))
 
 	subFile := filepath.Join(subPath, "subfile.txt")
 	require.NoError(t, os.WriteFile(subFile, []byte("sub content"), 0600))
 	assert.FileExists(t, subFile)
 
 	// Cleanup everything
-	require.NoError(t, entities.DeleteTmpDir(ctx))
+	require.NoError(t, DeleteTmpDir(ctx))
 
 	// Verify cleanup
 	assert.NoDirExists(t, workspacePath)

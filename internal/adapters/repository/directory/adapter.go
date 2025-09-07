@@ -7,12 +7,12 @@ import (
 	"context"
 	"fmt"
 	"io/fs"
+	"itiquette/git-provider-sync/internal/adapters/filesystem"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"itiquette/git-provider-sync/internal/domain"
-	"itiquette/git-provider-sync/internal/domain/entities"
 	"itiquette/git-provider-sync/internal/domain/ports"
 )
 
@@ -98,6 +98,11 @@ func (a *Adapter) GetName() string {
 
 // Cleanup cleans up resources at the given path.
 func (a *Adapter) Cleanup(_ context.Context, path string) error {
+	// Safety check before removing directory
+	if err := validateDirectoryPath(path); err != nil {
+		return fmt.Errorf("cannot cleanup directory: %w", err)
+	}
+
 	// For directory adapter, cleanup involves removing the directory if it exists
 	err := os.RemoveAll(path)
 	if err != nil {
@@ -109,7 +114,7 @@ func (a *Adapter) Cleanup(_ context.Context, path string) error {
 
 // CreateTmpDir implements the ports.GitOperations interface.
 func (a *Adapter) CreateTmpDir(ctx context.Context, dir, prefix string) (context.Context, error) {
-	ctxWithTmp, err := entities.CreateTmpDir(ctx, dir, prefix)
+	ctxWithTmp, err := filesystem.CreateTmpDir(ctx, dir, prefix)
 	if err != nil {
 		return ctx, fmt.Errorf("failed to create temporary directory: %w", err)
 	}
@@ -119,7 +124,7 @@ func (a *Adapter) CreateTmpDir(ctx context.Context, dir, prefix string) (context
 
 // GetTmpDirPath implements the ports.GitOperations interface.
 func (a *Adapter) GetTmpDirPath(ctx context.Context) (string, error) {
-	path, err := entities.GetTmpDirPath(ctx)
+	path, err := filesystem.GetTmpDirPath(ctx)
 	if err != nil {
 		return "", fmt.Errorf("failed to get temporary directory path: %w", err)
 	}
@@ -129,7 +134,7 @@ func (a *Adapter) GetTmpDirPath(ctx context.Context) (string, error) {
 
 // DeleteTmpDir implements the ports.GitOperations interface.
 func (a *Adapter) DeleteTmpDir(ctx context.Context) error {
-	if err := entities.DeleteTmpDir(ctx); err != nil {
+	if err := filesystem.DeleteTmpDir(ctx); err != nil {
 		return fmt.Errorf("failed to delete temporary directory: %w", err)
 	}
 

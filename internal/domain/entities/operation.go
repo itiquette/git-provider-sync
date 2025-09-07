@@ -6,7 +6,7 @@ package entities
 import (
 	"errors"
 	"fmt"
-	"path/filepath"
+
 	"strings"
 	"time"
 
@@ -479,12 +479,34 @@ func (mc MirrorConfig) WithGitBinary(use bool) MirrorConfig {
 
 // MatchesPattern checks if a name matches a glob-like pattern.
 func matchesPattern(name, pattern string) bool {
-	// Use standard library glob matching for consistency
-	matched, err := filepath.Match(pattern, name)
-	if err != nil {
-		// Invalid pattern, treat as literal string comparison
-		return name == pattern
+	// Simple pattern matching without filepath dependency
+	// Support * wildcard
+	if pattern == "*" {
+		return true
 	}
 
-	return matched
+	// Handle patterns with * wildcard
+	if strings.Contains(pattern, "*") {
+		// Convert pattern to simple prefix/suffix matching
+		switch {
+		case strings.HasPrefix(pattern, "*") && strings.HasSuffix(pattern, "*"):
+			// *text* - contains
+			core := strings.TrimPrefix(strings.TrimSuffix(pattern, "*"), "*")
+
+			return strings.Contains(name, core)
+		case strings.HasPrefix(pattern, "*"):
+			// *suffix - ends with
+			suffix := strings.TrimPrefix(pattern, "*")
+
+			return strings.HasSuffix(name, suffix)
+		case strings.HasSuffix(pattern, "*"):
+			// prefix* - starts with
+			prefix := strings.TrimSuffix(pattern, "*")
+
+			return strings.HasPrefix(name, prefix)
+		}
+	}
+
+	// Exact match
+	return name == pattern
 }

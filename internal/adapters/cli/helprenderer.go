@@ -18,7 +18,7 @@ const (
 )
 
 // HelpRenderer adapts urfave/cli commands to our hexagonal help formatting system
-// adapter bridges the gap between urfave/cli's command structure and our domain model.
+// adapter bridges the gap between urfave/cli's command structure and our domain config.
 type HelpRenderer struct {
 	helpService help.Service
 }

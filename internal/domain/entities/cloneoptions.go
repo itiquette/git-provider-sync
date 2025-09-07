@@ -11,7 +11,7 @@ import (
 )
 
 // CloneOptions represents immutable clone operation configuration as domain value object
-// replaces model.CloneOption with proper domain design and immutability.
+// replaces config.CloneOption with proper domain design and immutability.
 type CloneOptions struct {
 	repositoryName string
 	sourceURL      string

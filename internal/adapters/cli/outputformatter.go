@@ -12,9 +12,9 @@ import (
 	"strings"
 
 	"itiquette/git-provider-sync/internal/adapters/terminal"
+	"itiquette/git-provider-sync/internal/application/dto"
 	"itiquette/git-provider-sync/internal/domain/ports"
 	sync "itiquette/git-provider-sync/internal/domain/sync"
-	model "itiquette/git-provider-sync/internal/model/configuration"
 )
 
 // Constants for output formats.
@@ -60,7 +60,7 @@ func (f *OutputFormatter) SupportedFormats() []string {
 }
 
 // FormatConfiguration formats application configuration for output.
-func (f *OutputFormatter) FormatConfiguration(appCfg model.AppConfiguration, format string, writer io.Writer) error {
+func (f *OutputFormatter) FormatConfiguration(appCfg dto.AppConfiguration, format string, writer io.Writer) error {
 	switch format {
 	case formatConsole:
 		return f.formatConfigurationConsole(appCfg, writer)
@@ -74,7 +74,7 @@ func (f *OutputFormatter) FormatConfiguration(appCfg model.AppConfiguration, for
 }
 
 // FormatConfigurationConsole renders configuration in structured console format with proper indentation.
-func (f *OutputFormatter) formatConfigurationConsole(appCfg model.AppConfiguration, writer io.Writer) error {
+func (f *OutputFormatter) formatConfigurationConsole(appCfg dto.AppConfiguration, writer io.Writer) error {
 	const indentSize = 2
 
 	// Use color for header if TTY
@@ -105,7 +105,7 @@ func (f *OutputFormatter) formatConfigurationConsole(appCfg model.AppConfigurati
 }
 
 // PrintEnvironment renders a single environment section with hierarchical indentation.
-func (f *OutputFormatter) printEnvironment(name string, env model.Environment, writer io.Writer, level, indentSize int) error {
+func (f *OutputFormatter) printEnvironment(name string, env dto.Environment, writer io.Writer, level, indentSize int) error {
 	indent := strings.Repeat(" ", level*indentSize)
 
 	envHeader := f.color.Header("Environment: " + name)
@@ -127,7 +127,7 @@ func (f *OutputFormatter) printEnvironment(name string, env model.Environment, w
 }
 
 // PrintSyncConfig renders SyncConfig details with structured indentation and validation.
-func (f *OutputFormatter) printSyncConfig(name string, syncCfg model.SyncConfig, writer io.Writer, level, indentSize int) error {
+func (f *OutputFormatter) printSyncConfig(name string, syncCfg dto.SyncConfig, writer io.Writer, level, indentSize int) error {
 	indent := strings.Repeat(" ", level*indentSize)
 
 	if err := f.writeSyncConfigHeader(writer, indent, name); err != nil {
@@ -167,7 +167,7 @@ func (f *OutputFormatter) writeSyncConfigHeader(writer io.Writer, indent, name s
 	return nil
 }
 
-func (f *OutputFormatter) writeMandatoryFields(writer io.Writer, indent string, syncCfg model.SyncConfig) error {
+func (f *OutputFormatter) writeMandatoryFields(writer io.Writer, indent string, syncCfg dto.SyncConfig) error {
 	fields := []struct{ label, value string }{
 		{"Provider Type", syncCfg.ProviderType},
 		{"Domain", syncCfg.GetDomain()},
@@ -184,7 +184,7 @@ func (f *OutputFormatter) writeMandatoryFields(writer io.Writer, indent string, 
 	return nil
 }
 
-func (f *OutputFormatter) writeOptionalFields(writer io.Writer, indent string, syncCfg model.SyncConfig) {
+func (f *OutputFormatter) writeOptionalFields(writer io.Writer, indent string, syncCfg dto.SyncConfig) {
 	if syncCfg.IncludeForks {
 		fmt.Fprintf(writer, "%sInclude Forks: %t\n", indent, syncCfg.IncludeForks) //nolint:errcheck // Best effort output
 	}
@@ -198,7 +198,7 @@ func (f *OutputFormatter) writeOptionalFields(writer io.Writer, indent string, s
 	}
 }
 
-func (f *OutputFormatter) printMirrorsSection(writer io.Writer, syncCfg model.SyncConfig, level, indentSize int) error {
+func (f *OutputFormatter) printMirrorsSection(writer io.Writer, syncCfg dto.SyncConfig, level, indentSize int) error {
 	indentSub := strings.Repeat(" ", level*indentSize)
 	if _, err := fmt.Fprintf(writer, "\n%sMirror Configurations:\n", indentSub); err != nil {
 		return fmt.Errorf("failed to write mirror configurations header: %w", err)
@@ -218,7 +218,7 @@ func (f *OutputFormatter) printMirrorsSection(writer io.Writer, syncCfg model.Sy
 }
 
 // PrintAuthConfig renders authentication configuration with security token masking.
-func (f *OutputFormatter) printAuthConfig(authCfg model.AuthConfig, writer io.Writer, level, indentSize int) error {
+func (f *OutputFormatter) printAuthConfig(authCfg dto.AuthConfig, writer io.Writer, level, indentSize int) error {
 	indent := strings.Repeat(" ", level*indentSize)
 
 	if err := f.writeAuthHeader(writer, indent); err != nil {
@@ -241,7 +241,7 @@ func (f *OutputFormatter) printAuthConfig(authCfg model.AuthConfig, writer io.Wr
 }
 
 // PrintMirrorConfig renders mirror configuration with hierarchical structure validation.
-func (f *OutputFormatter) printMirrorConfig(name string, mirrorCfg model.MirrorConfig, writer io.Writer, level, indentSize int) error {
+func (f *OutputFormatter) printMirrorConfig(name string, mirrorCfg dto.MirrorConfig, writer io.Writer, level, indentSize int) error {
 	indent := strings.Repeat(" ", level*indentSize)
 
 	if err := f.writeMirrorConfigHeader(writer, indent, name); err != nil {
@@ -271,7 +271,7 @@ func (f *OutputFormatter) writeMirrorConfigHeader(writer io.Writer, indent, name
 	return nil
 }
 
-func (f *OutputFormatter) writeMirrorConfigMandatoryFields(writer io.Writer, indent string, mirrorCfg model.MirrorConfig) error {
+func (f *OutputFormatter) writeMirrorConfigMandatoryFields(writer io.Writer, indent string, mirrorCfg dto.MirrorConfig) error {
 	if _, err := fmt.Fprintf(writer, "%sType: %s\n", indent, mirrorCfg.ProviderType); err != nil {
 		return fmt.Errorf("failed to write mirror type: %w", err)
 	}
@@ -295,7 +295,7 @@ func (f *OutputFormatter) writeMirrorConfigMandatoryFields(writer io.Writer, ind
 	return nil
 }
 
-func (f *OutputFormatter) writeMirrorConfigOptionalFields(writer io.Writer, indent string, mirrorCfg model.MirrorConfig) error {
+func (f *OutputFormatter) writeMirrorConfigOptionalFields(writer io.Writer, indent string, mirrorCfg dto.MirrorConfig) error {
 	if mirrorCfg.UseGitBinary {
 		if _, err := fmt.Fprintf(writer, "%sUse Git Binary: %t\n", indent, mirrorCfg.UseGitBinary); err != nil {
 			return fmt.Errorf("failed to write mirror use git binary: %w", err)
@@ -311,7 +311,7 @@ func (f *OutputFormatter) writeMirrorConfigOptionalFields(writer io.Writer, inde
 	return nil
 }
 
-func (f *OutputFormatter) writeMirrorConfigSections(writer io.Writer, mirrorCfg model.MirrorConfig, level, indentSize int) error {
+func (f *OutputFormatter) writeMirrorConfigSections(writer io.Writer, mirrorCfg dto.MirrorConfig, level, indentSize int) error {
 	// Print Mirror Settings if they're not empty
 	if !f.isEmptyMirrorSettings(mirrorCfg.Settings) {
 		if err := f.printMirrorSettings(mirrorCfg.Settings, writer, level+1, indentSize); err != nil {
@@ -330,7 +330,7 @@ func (f *OutputFormatter) writeMirrorConfigSections(writer io.Writer, mirrorCfg 
 }
 
 // PrintMirrorSettings renders mirror-specific settings with conditional field display.
-func (f *OutputFormatter) printMirrorSettings(settings model.MirrorSettings, writer io.Writer, level, indentSize int) error {
+func (f *OutputFormatter) printMirrorSettings(settings dto.MirrorSettings, writer io.Writer, level, indentSize int) error {
 	indent := strings.Repeat(" ", level*indentSize)
 
 	if err := f.writeMirrorSettingsHeader(writer, indent); err != nil {
@@ -352,7 +352,7 @@ func (f *OutputFormatter) writeMirrorSettingsHeader(writer io.Writer, indent str
 	return nil
 }
 
-func (f *OutputFormatter) writeMirrorSettingsFields(writer io.Writer, indent string, settings model.MirrorSettings) error {
+func (f *OutputFormatter) writeMirrorSettingsFields(writer io.Writer, indent string, settings dto.MirrorSettings) error {
 	// Define settings fields to write (only non-default values)
 	settingsFields := []struct {
 		condition bool
@@ -380,7 +380,7 @@ func (f *OutputFormatter) writeMirrorSettingsFields(writer io.Writer, indent str
 }
 
 // PrintRepositoriesOption renders repository filter patterns with include/exclude separation.
-func (f *OutputFormatter) printRepositoriesOption(opt model.RepositoriesOption, writer io.Writer, level, indentSize int) error {
+func (f *OutputFormatter) printRepositoriesOption(opt dto.RepositoriesOption, writer io.Writer, level, indentSize int) error {
 	indent := strings.Repeat(" ", level*indentSize)
 	if _, err := fmt.Fprintf(writer, "\n%sRepositories:\n", indent); err != nil {
 		return fmt.Errorf("failed to write repositories header: %w", err)
@@ -414,7 +414,7 @@ func (f *OutputFormatter) printRepositoriesOption(opt model.RepositoriesOption, 
 }
 
 // Helper functions to check if configurations are empty.
-func (f *OutputFormatter) isEmptyAuthConfig(authCfg model.AuthConfig) bool {
+func (f *OutputFormatter) isEmptyAuthConfig(authCfg dto.AuthConfig) bool {
 	return authCfg.Protocol == "" &&
 		authCfg.HTTPScheme == "" &&
 		authCfg.Token == "" &&
@@ -425,11 +425,11 @@ func (f *OutputFormatter) isEmptyAuthConfig(authCfg model.AuthConfig) bool {
 		authCfg.SSHURLRewriteTo == ""
 }
 
-func (f *OutputFormatter) isEmptyRepositoriesOption(opt model.RepositoriesOption) bool {
+func (f *OutputFormatter) isEmptyRepositoriesOption(opt dto.RepositoriesOption) bool {
 	return len(opt.Include) == 0 && len(opt.Exclude) == 0
 }
 
-func (f *OutputFormatter) isEmptyMirrorSettings(settings model.MirrorSettings) bool {
+func (f *OutputFormatter) isEmptyMirrorSettings(settings dto.MirrorSettings) bool {
 	return !settings.AlphaNumHyphName &&
 		settings.DescriptionPrefix == "" &&
 		!settings.Disabled &&
@@ -440,7 +440,7 @@ func (f *OutputFormatter) isEmptyMirrorSettings(settings model.MirrorSettings) b
 }
 
 // FormatConfigurationJSON outputs configuration as structured JSON.
-func (f *OutputFormatter) formatConfigurationJSON(appCfg model.AppConfiguration, writer io.Writer) error {
+func (f *OutputFormatter) formatConfigurationJSON(appCfg dto.AppConfiguration, writer io.Writer) error {
 	encoder := json.NewEncoder(writer)
 	encoder.SetIndent("", "  ")
 
@@ -454,7 +454,7 @@ func (f *OutputFormatter) formatConfigurationJSON(appCfg model.AppConfiguration,
 // FormatConfigurationPlain outputs configuration as tabular text for pipeline compatibility
 // One record per line, tab-separated for easy parsing with grep, awk, cut
 // Human-second, machine-first format.
-func (f *OutputFormatter) formatConfigurationPlain(appCfg model.AppConfiguration, writer io.Writer) error {
+func (f *OutputFormatter) formatConfigurationPlain(appCfg dto.AppConfiguration, writer io.Writer) error {
 	// Tab-separated header for column identification
 	if _, err := fmt.Fprintln(writer, "ENVIRONMENT\tSOURCE\tPROVIDER\tDOMAIN\tOWNER\tOWNER_TYPE\tMIRRORS"); err != nil {
 		return fmt.Errorf("failed to write header: %w", err)
@@ -760,7 +760,7 @@ func (f *OutputFormatter) writeAuthHeader(writer io.Writer, indent string) error
 	return nil
 }
 
-func (f *OutputFormatter) writeAuthMandatoryFields(writer io.Writer, indent string, authCfg model.AuthConfig) error {
+func (f *OutputFormatter) writeAuthMandatoryFields(writer io.Writer, indent string, authCfg dto.AuthConfig) error {
 	if _, err := fmt.Fprintf(writer, "%sProtocol: %s\n", indent, authCfg.Protocol); err != nil {
 		return fmt.Errorf("failed to write protocol: %w", err)
 	}
@@ -768,7 +768,7 @@ func (f *OutputFormatter) writeAuthMandatoryFields(writer io.Writer, indent stri
 	return nil
 }
 
-func (f *OutputFormatter) writeAuthOptionalFields(writer io.Writer, indent string, authCfg model.AuthConfig) error {
+func (f *OutputFormatter) writeAuthOptionalFields(writer io.Writer, indent string, authCfg dto.AuthConfig) error {
 	if authCfg.HTTPScheme != "" {
 		if _, err := fmt.Fprintf(writer, "%sHTTP Scheme: %s\n", indent, authCfg.HTTPScheme); err != nil {
 			return fmt.Errorf("failed to write HTTP scheme: %w", err)
@@ -796,7 +796,7 @@ func (f *OutputFormatter) writeAuthOptionalFields(writer io.Writer, indent strin
 	return nil
 }
 
-func (f *OutputFormatter) writeAuthSSHConfiguration(writer io.Writer, indent string, authCfg model.AuthConfig) error {
+func (f *OutputFormatter) writeAuthSSHConfiguration(writer io.Writer, indent string, authCfg dto.AuthConfig) error {
 	if !f.hasSSHConfiguration(authCfg) {
 		return nil
 	}
@@ -809,7 +809,7 @@ func (f *OutputFormatter) writeAuthSSHConfiguration(writer io.Writer, indent str
 }
 
 // HasSSHConfiguration checks if any SSH configuration fields are set.
-func (f *OutputFormatter) hasSSHConfiguration(authCfg model.AuthConfig) bool {
+func (f *OutputFormatter) hasSSHConfiguration(authCfg dto.AuthConfig) bool {
 	return authCfg.SSHCommand != "" || authCfg.SSHURLRewriteFrom != "" || authCfg.SSHURLRewriteTo != ""
 }
 
@@ -821,7 +821,7 @@ func (f *OutputFormatter) writeSSHHeader(writer io.Writer, indent string) error 
 	return nil
 }
 
-func (f *OutputFormatter) writeSSHFields(writer io.Writer, indent string, authCfg model.AuthConfig) error {
+func (f *OutputFormatter) writeSSHFields(writer io.Writer, indent string, authCfg dto.AuthConfig) error {
 	if authCfg.SSHCommand != "" {
 		if _, err := fmt.Fprintf(writer, "%sCommand: %s\n", indent, authCfg.SSHCommand); err != nil {
 			return fmt.Errorf("failed to write SSH command: %w", err)

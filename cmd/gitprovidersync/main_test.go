@@ -150,7 +150,7 @@ func TestMain_WithInvalidArgs_HandlesErrorsGracefully(t *testing.T) { //nolint:p
 		},
 		{
 			name:        "print with invalid config",
-			args:        []string{"gitprovidersync", "print", "--config-file", "/nonexistent/config.yaml"},
+			args:        []string{"gitprovidersync", "print", "--config-file", "/nonexistent/dto.yaml"},
 			expectError: true,
 			errorText:   "",
 		},
@@ -237,7 +237,7 @@ func TestMain_ConfigLoading_IntegratesWithCLI(t *testing.T) { //nolint:parallelt
 
 	// Create temporary config file
 	tmpDir := t.TempDir()
-	configFile := tmpDir + "/test-config.yaml"
+	configFile := tmpDir + "/test-dto.yaml"
 
 	configContent := `gitprovidersync:
   test:

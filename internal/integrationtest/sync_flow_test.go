@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"itiquette/git-provider-sync/internal/adapters/repository/gogit"
+	"itiquette/git-provider-sync/internal/adapters/shared"
 	"itiquette/git-provider-sync/internal/domain"
 	"itiquette/git-provider-sync/internal/domain/entities"
 	"itiquette/git-provider-sync/internal/domain/ports"
@@ -113,7 +114,8 @@ func TestCriticalGitHubToGitLabSyncFlow(t *testing.T) {
 		sourceRepo := createTestRepository("test-repo")
 
 		// Step 6: Execute PushToProvider use case (tests our remote update fix)
-		pushUseCase := sync.NewPushToProviderUseCase(mockProvider, gitOps)
+		stringUtils := shared.NewStringUtilsAdapter()
+		pushUseCase := sync.NewPushToProviderUseCase(mockProvider, gitOps, stringUtils)
 
 		request := sync.PushRequest{
 			SourceRepository: sourceRepo,
@@ -205,7 +207,8 @@ func TestRemoteURLUpdateFailure(t *testing.T) {
 	mockGitRepo.On("UpdateRemote", mock.Anything, "origin", mock.AnythingOfType("string")).Return(assert.AnError)
 
 	// Create use case and test
-	useCase := sync.NewPushToProviderUseCase(mockProvider, nil)
+	stringUtils := shared.NewStringUtilsAdapter()
+	useCase := sync.NewPushToProviderUseCase(mockProvider, nil, stringUtils)
 
 	request := sync.PushRequest{
 		SourceRepository: createTestRepository("test-repo"),

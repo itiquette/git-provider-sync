@@ -7,7 +7,6 @@ package domain
 import (
 	"context"
 	"errors"
-	"os"
 	"strings"
 )
 
@@ -307,17 +306,6 @@ func (h ErrorHandler) createUserFriendlyMessage(err error) string {
 	}
 }
 
-// ExitIfError is a helper that calls os.Exit if the error is fatal
-// is only used at the application boundary (main function).
-func ExitIfError(ctx context.Context, logger Logger, err error) {
-	if err == nil {
-		return
-	}
-
-	handler := NewErrorHandler(logger)
-	shouldExit, exitCode, _ := handler.HandleFatalError(ctx, err)
-
-	if shouldExit {
-		os.Exit(exitCode)
-	}
-}
+// ExitIfError has been removed from domain layer
+// Program termination should be handled at the application boundary, not in domain
+// Use ErrorHandler.HandleFatalError() to check if error is fatal, then handle exit in main/cmd

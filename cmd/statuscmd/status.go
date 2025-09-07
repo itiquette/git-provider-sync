@@ -19,13 +19,13 @@ import (
 
 	"itiquette/git-provider-sync/cmd/baseoption"
 	cliAdapters "itiquette/git-provider-sync/internal/adapters/cli"
+	"itiquette/git-provider-sync/internal/adapters/configuration"
+	"itiquette/git-provider-sync/internal/adapters/log"
 	"itiquette/git-provider-sync/internal/adapters/terminal"
 	validationAdapters "itiquette/git-provider-sync/internal/adapters/validation"
-	"itiquette/git-provider-sync/internal/configuration"
+	"itiquette/git-provider-sync/internal/application/dto"
 	"itiquette/git-provider-sync/internal/domain"
 	"itiquette/git-provider-sync/internal/domain/validation"
-	"itiquette/git-provider-sync/internal/log"
-	config "itiquette/git-provider-sync/internal/model/configuration"
 )
 
 // NewStatusCommand creates and returns a new cli.Command for the 'status' subcommand
@@ -175,7 +175,7 @@ type StatusJSON struct {
 }
 
 // CreateSystemStatus creates a system status from the configuration.
-func createSystemStatus(config config.AppConfiguration, connectivityCheck bool) SystemStatus {
+func createSystemStatus(config dto.AppConfiguration, connectivityCheck bool) SystemStatus {
 	// Count environments
 	envCount := 0
 	for _, env := range config.GitProviderSyncConfs {
@@ -203,7 +203,7 @@ func createSystemStatus(config config.AppConfiguration, connectivityCheck bool) 
 }
 
 // TestProviderConnectivity tests connectivity to providers in the configuration.
-func testProviderConnectivity(ctx context.Context, config config.AppConfiguration, adapter *validationAdapters.ConnectivityAdapter) []validation.ConnectivityResult {
+func testProviderConnectivity(ctx context.Context, config dto.AppConfiguration, adapter *validationAdapters.ConnectivityAdapter) []validation.ConnectivityResult {
 	var results []validation.ConnectivityResult
 
 	// For each environment and sync config, test basic HTTP connectivity
@@ -452,7 +452,7 @@ func handleStatusError(err error, outputFormat string) {
 	fmt.Printf("✗ Status Check Failed: %s\n\n", errMsg)
 	fmt.Printf("Suggestions:\n")
 	fmt.Printf("  • Check that gitprovidersync.yaml exists in the current directory\n")
-	fmt.Printf("  • Or specify config file: --config-file path/to/config.yaml\n")
+	fmt.Printf("  • Or specify config file: --config-file path/to/dto.yaml\n")
 	fmt.Printf("  • Run 'gitprovidersync --help' for more information\n\n")
 }
 

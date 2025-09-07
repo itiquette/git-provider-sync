@@ -6,6 +6,7 @@ package filesystem
 import (
 	"io/fs"
 	"os"
+	"path/filepath"
 
 	"itiquette/git-provider-sync/internal/domain/ports"
 )
@@ -61,4 +62,14 @@ func (f *OSFileSystem) TempDir(dir, pattern string) (string, error) {
 	}
 
 	return tmpDir, nil
+}
+
+// Join joins path elements.
+func (f *OSFileSystem) Join(elem ...string) string {
+	return filepath.Join(elem...)
+}
+
+// Clean cleans a path.
+func (f *OSFileSystem) Clean(path string) string {
+	return filepath.Clean(path)
 }

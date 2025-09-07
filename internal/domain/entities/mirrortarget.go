@@ -6,7 +6,7 @@ package entities
 import (
 	"errors"
 	"fmt"
-	"path/filepath"
+
 	"strings"
 	"time"
 
@@ -144,7 +144,7 @@ func (b MirrorTargetBuilder) WithPath(path string) (MirrorTargetBuilder, error) 
 
 	if path != "" {
 		// Validate path format
-		if !filepath.IsAbs(path) && b.target.providerType == ProviderTypeDirectory {
+		if !strings.HasPrefix(path, "/") && b.target.providerType == ProviderTypeDirectory {
 			return b, fmt.Errorf("%w: %s", domain.ErrDirectoryPathMustBeAbsolute, path)
 		}
 	}
@@ -337,9 +337,9 @@ func (mt MirrorTarget) GetMirrorURL(repository Repository) string {
 	case ProviderTypeGitea:
 		return fmt.Sprintf("https://%s/%s/%s", mt.GetDefaultDomain(), mt.owner, repository.Name())
 	case ProviderTypeDirectory:
-		return filepath.Join(mt.path, repository.Name())
+		return mt.path + "/" + repository.Name()
 	case ProviderTypeArchive:
-		return filepath.Join(mt.path, repository.Name()+".tar.gz")
+		return mt.path + "/" + repository.Name() + ".tar.gz"
 	default:
 		return ""
 	}
@@ -540,7 +540,7 @@ func NewAuthConfigWithSSHKey(keyContent, username string) AuthConfig {
 	}
 }
 
-// NewAuthenticationConfig creates a new authentication config.
+// NewAuthenticationConfig creates a new authentication opt.
 func NewAuthenticationConfig(authType AuthType, token, username, sshKeyPath, sshKey string) AuthConfig {
 	return AuthConfig{
 		authType:   authType,

@@ -10,6 +10,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"itiquette/git-provider-sync/internal/shared"
 )
 
 // Static errors for err113 compliance.
@@ -54,7 +56,7 @@ func DeleteTmpDir(ctx context.Context) error {
 		return fmt.Errorf("%w: %s", ErrInvalidTempDirPath, tmpDir)
 	}
 
-	if err := os.RemoveAll(tmpDir); err != nil {
+	if err := shared.RemoveAllInTempDir(tmpDir); err != nil {
 		return fmt.Errorf("failed to delete temporary directory %s: %w", tmpDir, err)
 	}
 

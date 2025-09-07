@@ -11,8 +11,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"itiquette/git-provider-sync/internal/application/dto"
 	"itiquette/git-provider-sync/internal/domain/sync"
-	model "itiquette/git-provider-sync/internal/model/configuration"
 )
 
 // ErrorWriter is a writer that always returns an error.
@@ -108,7 +108,7 @@ func TestOutputFormatter_ErrorHandling(t *testing.T) {
 	t.Run("writeAuthMandatoryFields error handling", func(t *testing.T) {
 		t.Parallel()
 
-		authCfg := model.AuthConfig{
+		authCfg := dto.AuthConfig{
 			Protocol: "https",
 		}
 
@@ -134,8 +134,8 @@ func TestOutputFormatter_ComplexMirrorConfig(t *testing.T) {
 	t.Run("writeMirrorConfigMandatoryFields with all fields", func(t *testing.T) {
 		t.Parallel()
 
-		mirrorCfg := model.MirrorConfig{
-			BaseConfig: model.BaseConfig{
+		mirrorCfg := dto.MirrorConfig{
+			BaseConfig: dto.BaseConfig{
 				ProviderType: "gitea",
 				Domain:       "gitea.example.com",
 				Owner:        "testorg",
@@ -160,8 +160,8 @@ func TestOutputFormatter_ComplexMirrorConfig(t *testing.T) {
 	t.Run("writeMirrorConfigMandatoryFields with empty domain", func(t *testing.T) {
 		t.Parallel()
 
-		mirrorCfg := model.MirrorConfig{
-			BaseConfig: model.BaseConfig{
+		mirrorCfg := dto.MirrorConfig{
+			BaseConfig: dto.BaseConfig{
 				ProviderType: "github",
 				Domain:       "",
 				Owner:        "",
@@ -187,7 +187,7 @@ func TestOutputFormatter_ComplexMirrorConfig(t *testing.T) {
 	t.Run("printAuthConfig complete", func(t *testing.T) {
 		t.Parallel()
 
-		authCfg := model.AuthConfig{
+		authCfg := dto.AuthConfig{
 			Protocol:          "https",
 			HTTPScheme:        "https",
 			Token:             "secret-token",
@@ -221,20 +221,20 @@ func TestOutputFormatter_ComplexMirrorConfig(t *testing.T) {
 	t.Run("printMirrorConfig complete", func(t *testing.T) {
 		t.Parallel()
 
-		mirrorCfg := model.MirrorConfig{
-			BaseConfig: model.BaseConfig{
+		mirrorCfg := dto.MirrorConfig{
+			BaseConfig: dto.BaseConfig{
 				ProviderType: "gitlab",
 				Domain:       "gitlab.example.com",
 				Owner:        "myorg",
 				OwnerType:    "organization",
 				UseGitBinary: true,
-				Auth: model.AuthConfig{
+				Auth: dto.AuthConfig{
 					Protocol: "https",
 					Token:    "secret",
 				},
 			},
 			Path: "/custom/path",
-			Settings: model.MirrorSettings{
+			Settings: dto.MirrorSettings{
 				AlphaNumHyphName:  true,
 				DescriptionPrefix: "Mirror: ",
 				Disabled:          false,
@@ -344,13 +344,13 @@ func TestOutputFormatter_WriteSSHFields(t *testing.T) {
 
 	tests := []struct {
 		name         string
-		authCfg      model.AuthConfig
+		authCfg      dto.AuthConfig
 		expectedText []string
 		notExpected  []string
 	}{
 		{
 			name: "all SSH fields set",
-			authCfg: model.AuthConfig{
+			authCfg: dto.AuthConfig{
 				SSHCommand:        "ssh -i /path/to/key",
 				SSHURLRewriteFrom: "git@github.com:",
 				SSHURLRewriteTo:   "https://github.com/",
@@ -363,7 +363,7 @@ func TestOutputFormatter_WriteSSHFields(t *testing.T) {
 		},
 		{
 			name: "only SSH command set",
-			authCfg: model.AuthConfig{
+			authCfg: dto.AuthConfig{
 				SSHCommand: "ssh -o StrictHostKeyChecking=no",
 			},
 			expectedText: []string{
@@ -376,7 +376,7 @@ func TestOutputFormatter_WriteSSHFields(t *testing.T) {
 		},
 		{
 			name: "only URL rewrite fields set",
-			authCfg: model.AuthConfig{
+			authCfg: dto.AuthConfig{
 				SSHURLRewriteFrom: "git@gitlab.com:",
 				SSHURLRewriteTo:   "https://gitlab.com/",
 			},
@@ -390,7 +390,7 @@ func TestOutputFormatter_WriteSSHFields(t *testing.T) {
 		},
 		{
 			name:         "no SSH fields set",
-			authCfg:      model.AuthConfig{},
+			authCfg:      dto.AuthConfig{},
 			expectedText: []string{},
 			notExpected: []string{
 				"Command:",

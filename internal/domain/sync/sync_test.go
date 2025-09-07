@@ -7,7 +7,9 @@ import (
 	"context"
 	"fmt"
 	"io/fs"
+	"itiquette/git-provider-sync/internal/adapters/shared"
 	"path/filepath"
+
 	"testing"
 	"time"
 
@@ -602,6 +604,7 @@ func TestSyncRepositoriesUseCase_Execute(t *testing.T) {
 			mockFS := &mockFileSystem{}
 
 			// Create use case
+			stringUtils := shared.NewStringUtilsAdapter()
 			useCase := sync.NewRepositoriesUseCase(
 				mockConfig,
 				mockRepo,
@@ -609,6 +612,7 @@ func TestSyncRepositoriesUseCase_Execute(t *testing.T) {
 				mockArchive,
 				mockFS,
 				mockLogger,
+				stringUtils,
 			)
 
 			// Execute
@@ -625,4 +629,12 @@ func TestSyncRepositoriesUseCase_Execute(t *testing.T) {
 			mockLogger.AssertExpectations(t)
 		})
 	}
+}
+
+func (m *mockFileSystem) Clean(path string) string {
+	return filepath.Clean(path)
+}
+
+func (m *mockFileSystem) Join(elem ...string) string {
+	return filepath.Join(elem...)
 }

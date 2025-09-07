@@ -84,8 +84,8 @@ func TestSecurityValidation_PathTraversal(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
-			// Use CleanPath for sanitization
-			cleaned := CleanPath(testCase.input)
+			// Use SanitizePath for security sanitization
+			cleaned := SanitizePath(testCase.input)
 
 			// Verify the path is cleaned as expected
 			assert.Equal(t, testCase.expectedSafe, cleaned, testCase.description)
@@ -412,7 +412,7 @@ func TestSecurityValidation_ConcurrentSafety(t *testing.T) {
 		for range 10 {
 			for _, path := range paths {
 				go func(p string) {
-					cleaned := CleanPath(p)
+					cleaned := SanitizePath(p)
 					assert.NotContains(t, cleaned, "../")
 					assert.False(t, strings.HasPrefix(cleaned, "/"))
 

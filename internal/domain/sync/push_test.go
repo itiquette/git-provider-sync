@@ -5,6 +5,7 @@ package sync
 
 import (
 	"context"
+	"itiquette/git-provider-sync/internal/adapters/shared"
 	"testing"
 
 	"github.com/stretchr/testify/mock"
@@ -178,7 +179,7 @@ func TestPushToProviderUseCase_Execute(t *testing.T) {
 			test.request.SourceGitRepo = mockGitRepo
 
 			// Create use case
-			useCase := NewPushToProviderUseCase(mockProvider, mockGitOps)
+			useCase := NewPushToProviderUseCase(mockProvider, mockGitOps, shared.NewStringUtilsAdapter())
 
 			// Execute
 			ctx := context.Background()
@@ -250,7 +251,7 @@ func TestPushToProviderUseCase_setupGPSUpstreamRemote(t *testing.T) {
 
 			test.setupMock(mockGitRepo)
 
-			useCase := NewPushToProviderUseCase(mockProvider, mockGitOps)
+			useCase := NewPushToProviderUseCase(mockProvider, mockGitOps, shared.NewStringUtilsAdapter())
 			err := useCase.setupGPSUpstreamRemote(context.Background(), mockGitRepo)
 
 			if test.expectError {

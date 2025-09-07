@@ -24,4 +24,10 @@ type FileSystem interface {
 
 	// TempDir creates a new temporary directory
 	TempDir(dir, pattern string) (string, error)
+
+	// Join joins path elements
+	Join(elem ...string) string
+
+	// Clean cleans a path
+	Clean(path string) string
 }

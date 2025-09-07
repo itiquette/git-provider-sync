@@ -18,12 +18,12 @@ import (
 
 	"itiquette/git-provider-sync/cmd/baseoption"
 	cliAdapters "itiquette/git-provider-sync/internal/adapters/cli"
+	"itiquette/git-provider-sync/internal/adapters/configuration"
+	"itiquette/git-provider-sync/internal/adapters/log"
 	"itiquette/git-provider-sync/internal/adapters/terminal"
 	validationAdapters "itiquette/git-provider-sync/internal/adapters/validation"
-	"itiquette/git-provider-sync/internal/configuration"
+	gps "itiquette/git-provider-sync/internal/application/dto"
 	"itiquette/git-provider-sync/internal/domain/validation"
-	"itiquette/git-provider-sync/internal/log"
-	gpsconfig "itiquette/git-provider-sync/internal/model/configuration"
 )
 
 // NewPrintCommand creates and returns a new cli.Command for the 'print' subcommand
@@ -170,7 +170,7 @@ func handleConfigurationError(err error) {
 		fmt.Fprintf(os.Stderr, "\n✗ No configuration found\n\n")
 		fmt.Fprintf(os.Stderr, "Quick fix:\n")
 		fmt.Fprintf(os.Stderr, "  echo 'gitprovidersync:\n    default:\n      source:\n        provider_type: github\n        owner: YOUR_USERNAME\n        owner_type: user\n        mirrors:\n          backup:\n            provider_type: gitlab\n            owner: BACKUP_USERNAME' > gitprovidersync.yaml\n\n")
-		fmt.Fprintf(os.Stderr, "Or specify existing config: --config-file path/to/config.yaml\n")
+		fmt.Fprintf(os.Stderr, "Or specify existing config: --config-file path/to/dto.yaml\n")
 		fmt.Fprintf(os.Stderr, "Then run: gitprovidersync print\n\n")
 		fmt.Fprintf(os.Stderr, "Configuration guide: https://github.com/itiquette/git-provider-sync/blob/main/docs/configuration.md\n")
 		fmt.Fprintf(os.Stderr, "Full example: https://github.com/itiquette/git-provider-sync/blob/main/examples/gitprovidersync-complete-example.yaml\n\n")
@@ -244,7 +244,7 @@ func handleValidationError(errMsg string) {
 }
 
 // TestAndDisplayConnectivity tests connectivity to configured providers and displays results.
-func testAndDisplayConnectivity(ctx context.Context, config gpsconfig.AppConfiguration, outputFormat string, writer io.Writer) error {
+func testAndDisplayConnectivity(ctx context.Context, config gps.AppConfiguration, outputFormat string, writer io.Writer) error {
 	// Create connectivity adapter
 	connectivityAdapter := validationAdapters.NewConnectivityAdapter(30 * time.Second)
 

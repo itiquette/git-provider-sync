@@ -7,7 +7,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
-	"path/filepath"
+
 	"strings"
 	"time"
 
@@ -228,8 +228,8 @@ func (s *Service) PlanMirrorOperation(
 
 func (s *Service) buildRepositorySpecWithAuth(repo entities.Repository, auth AuthSpec) RepositorySpec {
 	// Generate a unique local path for this operation
-	localPath := filepath.Join(s.config.TempDirectory, fmt.Sprintf("%s-%s-%d",
-		"repo", repo.Name(), time.Now().Unix()))
+	localPath := s.config.TempDirectory + "/" + fmt.Sprintf("%s-%s-%d",
+		"repo", repo.Name(), time.Now().Unix())
 
 	return RepositorySpec{
 		URL:         repo.PreferredCloneURL(),

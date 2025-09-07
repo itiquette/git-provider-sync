@@ -20,10 +20,10 @@ import (
 	"github.com/urfave/cli/v3"
 
 	cliAdapters "itiquette/git-provider-sync/internal/adapters/cli"
+	"itiquette/git-provider-sync/internal/application/dto"
 	"itiquette/git-provider-sync/internal/domain"
 	"itiquette/git-provider-sync/internal/domain/entities"
 	"itiquette/git-provider-sync/internal/domain/validation"
-	model "itiquette/git-provider-sync/internal/model/configuration"
 )
 
 // SetupTestCommand creates a completely new and isolated command for each test
@@ -98,7 +98,7 @@ func TestPrintCommand_NoConfig_ReturnsError(t *testing.T) { //nolint:paralleltes
 
 	// For urfave/cli v3, we pass args directly to Run
 	// Simulate the command line: gitprovidersync print --config-file invalid/path
-	args := []string{"test-print", "--config-file", "testdasadfasdfta/testconfig.yaml"}
+	args := []string{"test-print", "--config-file", "testdasadfasdfta/testdto.yaml"}
 	err := cmd.Run(ctx, args)
 
 	// Should handle errors gracefully and return error
@@ -119,7 +119,7 @@ func TestPrintCommand_ValidConfig_Success(t *testing.T) { //nolint:paralleltest 
 	// Setup context and execute with valid config file
 	ctx := context.Background()
 	// Pass args with config file path
-	args := []string{"test-print", "--config-file", "testdata/testconfig.yaml"}
+	args := []string{"test-print", "--config-file", "testdata/testdto.yaml"}
 	err := cmd.Run(ctx, args)
 
 	// Should succeed if config file exists and is valid
@@ -466,7 +466,7 @@ func TestPrintCommand_NonExistentFile(t *testing.T) { //nolint:paralleltest // C
 	ctx := setupTestContext(&errorBuffer)
 
 	// Execute command with non-existent config file
-	args := []string{"test-print", "--config-file", "/nonexistent/path/config.yaml"}
+	args := []string{"test-print", "--config-file", "/nonexistent/path/dto.yaml"}
 	_ = cmd.Run(ctx, args)
 
 	// Should handle error gracefully and show appropriate message
@@ -760,17 +760,17 @@ func TestDisplayConnectivity(t *testing.T) {
 
 	tests := []struct {
 		name         string
-		config       model.AppConfiguration
+		config       dto.AppConfiguration
 		outputFormat string
 		wantErr      bool
 	}{
 		{
 			name: "valid configuration",
-			config: model.AppConfiguration{
-				GitProviderSyncConfs: map[string]model.Environment{
-					"test": model.Environment{
-						"source": model.SyncConfig{
-							BaseConfig: model.BaseConfig{
+			config: dto.AppConfiguration{
+				GitProviderSyncConfs: map[string]dto.Environment{
+					"test": dto.Environment{
+						"source": dto.SyncConfig{
+							BaseConfig: dto.BaseConfig{
 								ProviderType: "github",
 								Domain:       "github.com",
 							},
@@ -783,19 +783,19 @@ func TestDisplayConnectivity(t *testing.T) {
 		},
 		{
 			name: "empty configuration",
-			config: model.AppConfiguration{
-				GitProviderSyncConfs: map[string]model.Environment{},
+			config: dto.AppConfiguration{
+				GitProviderSyncConfs: map[string]dto.Environment{},
 			},
 			outputFormat: "console",
 			wantErr:      false,
 		},
 		{
 			name: "config with missing domain",
-			config: model.AppConfiguration{
-				GitProviderSyncConfs: map[string]model.Environment{
-					"test": model.Environment{
-						"source": model.SyncConfig{
-							BaseConfig: model.BaseConfig{
+			config: dto.AppConfiguration{
+				GitProviderSyncConfs: map[string]dto.Environment{
+					"test": dto.Environment{
+						"source": dto.SyncConfig{
+							BaseConfig: dto.BaseConfig{
 								ProviderType: "github",
 								// Domain missing
 							},
@@ -808,11 +808,11 @@ func TestDisplayConnectivity(t *testing.T) {
 		},
 		{
 			name: "json output format",
-			config: model.AppConfiguration{
-				GitProviderSyncConfs: map[string]model.Environment{
-					"test": model.Environment{
-						"source": model.SyncConfig{
-							BaseConfig: model.BaseConfig{
+			config: dto.AppConfiguration{
+				GitProviderSyncConfs: map[string]dto.Environment{
+					"test": dto.Environment{
+						"source": dto.SyncConfig{
+							BaseConfig: dto.BaseConfig{
 								ProviderType: "gitlab",
 								Domain:       "mock-domain.local", // Use mock domain to avoid real network calls
 							},

@@ -7,13 +7,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"path/filepath"
 	"strings"
 
 	"itiquette/git-provider-sync/internal/domain"
 	"itiquette/git-provider-sync/internal/domain/entities"
 	"itiquette/git-provider-sync/internal/domain/ports"
-	"itiquette/git-provider-sync/internal/log"
 )
 
 // ToMirrorsUseCase syncs repositories to multiple mirror destinations.
@@ -23,6 +21,7 @@ type ToMirrorsUseCase struct {
 	archiveOperations  ports.ArchiveOperations
 	fileSystem         ports.FileSystem
 	logger             ports.Logger
+	stringUtils        ports.StringUtils
 }
 
 // NewToMirrorsUseCase creates a new ToMirrorsUseCase.
@@ -32,6 +31,7 @@ func NewToMirrorsUseCase(
 	archiveOps ports.ArchiveOperations,
 	fileSystem ports.FileSystem,
 	logger ports.Logger,
+	stringUtils ports.StringUtils,
 ) ToMirrorsUseCase {
 	return ToMirrorsUseCase{
 		repositoryProvider: repositoryProvider,
@@ -39,6 +39,7 @@ func NewToMirrorsUseCase(
 		archiveOperations:  archiveOps,
 		fileSystem:         fileSystem,
 		logger:             logger,
+		stringUtils:        stringUtils,
 	}
 }
 
@@ -87,7 +88,7 @@ func (uc ToMirrorsUseCase) Execute(
 	ctx context.Context,
 	request ToMirrorsRequest,
 ) (ToMirrorsResponse, error) {
-	logger := log.CreateDomainLogger(ctx)
+	logger := ports.LoggerFromContext(ctx)
 
 	var response ToMirrorsResponse
 
@@ -216,7 +217,7 @@ func (uc ToMirrorsUseCase) syncSingleRepositoryToMirror(
 	mirrorProvider ports.RepositoryProvider,
 	request ToMirrorsRequest,
 ) MirrorResult {
-	logger := log.CreateDomainLogger(ctx)
+	logger := ports.LoggerFromContext(ctx)
 
 	repoName := sourceRepo.Name()
 	result := uc.initMirrorResult(repoName, mirrorTarget.Name())
@@ -447,7 +448,7 @@ func (uc ToMirrorsUseCase) syncToDirectory(
 	})
 
 	// Build full target path including repo name
-	fullTargetPath := filepath.Join(targetPath, repoName)
+	fullTargetPath := targetPath + "/" + repoName
 
 	// Step 1: Clone/push to the directory target using git operations
 	cloneOptions := ports.CloneOptions{
@@ -587,7 +588,7 @@ func (uc ToMirrorsUseCase) performGitSync(
 	sourceRepoEntity := uc.createRepositoryEntity(ctx, sourceRepo)
 
 	// Create PushToProvider use case and execute
-	pushUseCase := NewPushToProviderUseCase(mirrorProvider, uc.gitOperations)
+	pushUseCase := NewPushToProviderUseCase(mirrorProvider, uc.gitOperations, uc.stringUtils)
 
 	pushRequest := PushRequest{
 		SourceRepository: sourceRepoEntity,

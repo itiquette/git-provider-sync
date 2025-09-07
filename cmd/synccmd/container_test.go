@@ -14,8 +14,8 @@ import (
 	"github.com/urfave/cli/v3"
 
 	cliAdapters "itiquette/git-provider-sync/internal/adapters/cli"
+	gps "itiquette/git-provider-sync/internal/application/dto"
 	"itiquette/git-provider-sync/internal/domain/entities"
-	gpsconfig "itiquette/git-provider-sync/internal/model/configuration"
 )
 
 func TestSyncHexagonalTmpDirCreation(t *testing.T) {
@@ -31,25 +31,25 @@ func TestSyncHexagonalTmpDirCreation(t *testing.T) {
 	ctx = cliAdapters.WithCLIConfig(ctx, cliConfig)
 
 	// Create minimal app configuration
-	cfg := &gpsconfig.AppConfiguration{
-		GitProviderSyncConfs: map[string]gpsconfig.Environment{
+	cfg := &gps.AppConfiguration{
+		GitProviderSyncConfs: map[string]gps.Environment{
 			"test": {
-				"source": gpsconfig.SyncConfig{
-					BaseConfig: gpsconfig.BaseConfig{
+				"source": gps.SyncConfig{
+					BaseConfig: gps.BaseConfig{
 						ProviderType: "github",
 						Domain:       "github.com",
 						Owner:        "testuser",
-						Auth: gpsconfig.AuthConfig{
+						Auth: gps.AuthConfig{
 							Token: "test-token",
 						},
 					},
-					Mirrors: map[string]gpsconfig.MirrorConfig{
+					Mirrors: map[string]gps.MirrorConfig{
 						"mirror1": {
-							BaseConfig: gpsconfig.BaseConfig{
+							BaseConfig: gps.BaseConfig{
 								ProviderType: "github",
 								Domain:       "github.com",
 								Owner:        "testuser",
-								Auth: gpsconfig.AuthConfig{
+								Auth: gps.AuthConfig{
 									Token: "test-token",
 								},
 							},
@@ -104,7 +104,7 @@ func TestCreateContainer_WithCLIOptions(t *testing.T) {
 			ctx := context.Background()
 			ctx = cliAdapters.WithCLIConfig(ctx, testCase.cliOpts)
 
-			cfg := &gpsconfig.AppConfiguration{}
+			cfg := &gps.AppConfiguration{}
 
 			container, err := createContainerWithConfig(ctx, cfg)
 			if testCase.expected {
@@ -168,8 +168,8 @@ func TestSyncHexagonal_WithoutCLIConfig_ReturnsError(t *testing.T) {
 	ctx := context.Background()
 	// Note: Not adding CLI config to context
 
-	cfg := &gpsconfig.AppConfiguration{
-		GitProviderSyncConfs: map[string]gpsconfig.Environment{},
+	cfg := &gps.AppConfiguration{
+		GitProviderSyncConfs: map[string]gps.Environment{},
 	}
 
 	// should fail when trying to access CLI options
@@ -185,7 +185,7 @@ func TestCreateContainerWithoutCLIConfig(t *testing.T) {
 	ctx := context.Background()
 	// Note: Not adding CLI config to context
 
-	cfg := &gpsconfig.AppConfiguration{}
+	cfg := &gps.AppConfiguration{}
 
 	// should fail when trying to access CLI options
 	container, err := createContainerWithConfig(ctx, cfg)

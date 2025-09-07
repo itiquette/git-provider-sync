@@ -7,6 +7,7 @@ package sync_test
 import (
 	"context"
 	"path/filepath"
+
 	"testing"
 
 	"github.com/stretchr/testify/assert"

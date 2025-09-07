@@ -90,7 +90,7 @@ func CreateValidator(opts ...Option) Func {
 	return Compose(validators...)
 }
 
-// BuildConfig applies options to create config.
+// BuildConfig applies options to create cfg.
 func buildConfig(opts []Option) *validationConfig {
 	cfg := &validationConfig{
 		maxLength: -1,
@@ -103,7 +103,7 @@ func buildConfig(opts []Option) *validationConfig {
 	return cfg
 }
 
-// BuildValidators creates validators from config.
+// BuildValidators creates validators from cfg.
 func buildValidators(cfg *validationConfig) []Func {
 	var validators []Func
 

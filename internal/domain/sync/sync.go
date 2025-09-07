@@ -12,7 +12,6 @@ import (
 	"itiquette/git-provider-sync/internal/domain"
 	"itiquette/git-provider-sync/internal/domain/entities"
 	"itiquette/git-provider-sync/internal/domain/ports"
-	"itiquette/git-provider-sync/internal/log"
 )
 
 // RepositoriesUseCase syncs repositories from source to mirrors.
@@ -23,6 +22,7 @@ type RepositoriesUseCase struct {
 	archiveOperations  ports.ArchiveOperations
 	fileSystem         ports.FileSystem
 	logger             ports.Logger
+	stringUtils        ports.StringUtils
 }
 
 // NewRepositoriesUseCase creates a new sync repositories use case with explicit dependencies.
@@ -33,6 +33,7 @@ func NewRepositoriesUseCase(
 	archiveOps ports.ArchiveOperations,
 	fileSystem ports.FileSystem,
 	logger ports.Logger,
+	stringUtils ports.StringUtils,
 ) RepositoriesUseCase {
 	return RepositoriesUseCase{
 		configProvider:     configProvider,
@@ -41,6 +42,7 @@ func NewRepositoriesUseCase(
 		archiveOperations:  archiveOps,
 		fileSystem:         fileSystem,
 		logger:             logger,
+		stringUtils:        stringUtils,
 	}
 }
 
@@ -63,7 +65,7 @@ type Response struct {
 
 // Execute synchronizes repositories based on the request configuration.
 func (uc RepositoriesUseCase) Execute(ctx context.Context, request Request) (Response, error) {
-	logger := log.CreateDomainLogger(ctx)
+	logger := ports.LoggerFromContext(ctx)
 
 	var response Response
 
@@ -174,7 +176,7 @@ func (uc RepositoriesUseCase) executeSourceToMirror(
 	_ Request,
 	response *Response,
 ) error {
-	logger := log.CreateDomainLogger(ctx)
+	logger := ports.LoggerFromContext(ctx)
 
 	// TRACE: Internal method entry
 	logger.Trace(ctx, "executeSourceToMirror entry", map[string]any{
@@ -224,7 +226,7 @@ func (uc RepositoriesUseCase) processEnvironment(
 	env ports.EnvironmentConfiguration,
 	response *Response,
 ) error {
-	logger := log.CreateDomainLogger(ctx)
+	logger := ports.LoggerFromContext(ctx)
 
 	// TRACE: Per-environment processing entry
 	logger.Trace(ctx, "processEnvironment entry", map[string]any{
@@ -283,6 +285,7 @@ func (uc RepositoriesUseCase) processEnvironment(
 		uc.archiveOperations,
 		uc.fileSystem,
 		uc.logger,
+		uc.stringUtils,
 	)
 
 	syncRequest := ToMirrorsRequest{
@@ -397,7 +400,7 @@ func (uc RepositoriesUseCase) convertMirrorsToTargets(mirrors map[string]ports.M
 // Basic validation: checks required fields are present but doesn't verify connectivity or credentials
 // For full validation (including network connectivity), use the ValidationService.
 func (uc RepositoriesUseCase) validateSourceConfig(ctx context.Context, config ports.ProviderConfig) error {
-	logger := log.CreateDomainLogger(ctx)
+	logger := ports.LoggerFromContext(ctx)
 
 	// TRACE: Validation boundary entry
 	logger.Trace(ctx, "validateSourceConfig entry", map[string]any{

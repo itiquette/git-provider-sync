@@ -1,0 +1,16 @@
+# SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
+#
+# SPDX-License-Identifier: CC0-1.0
+gitprovidersync:
+  defaultenv:
+    defaultconf:
+      provider_type: github
+      domain: github.com
+      owner: default-owner
+      repositories:
+        include:
+          - default-repo
+      mirrors:
+        backup:
+          provider_type: gitlab
+          owner: backup-owner

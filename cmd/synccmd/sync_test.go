@@ -13,10 +13,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"itiquette/git-provider-sync/internal/application/dto"
 	"itiquette/git-provider-sync/internal/domain/entities"
 	"itiquette/git-provider-sync/internal/domain/ports"
 	"itiquette/git-provider-sync/internal/domain/sync"
-	gpsconfig "itiquette/git-provider-sync/internal/model/configuration"
 )
 
 func TestConvertRepositoryFilters(t *testing.T) {
@@ -24,12 +24,12 @@ func TestConvertRepositoryFilters(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		input    gpsconfig.RepositoriesOption
+		input    dto.RepositoriesOption
 		expected ports.FilterOptions
 	}{
 		{
 			name: "with include and exclude patterns",
-			input: gpsconfig.RepositoriesOption{
+			input: dto.RepositoriesOption{
 				Include: []string{"repo1", "repo2*"},
 				Exclude: []string{"temp*", "test*"},
 			},
@@ -44,7 +44,7 @@ func TestConvertRepositoryFilters(t *testing.T) {
 		},
 		{
 			name: "empty filters",
-			input: gpsconfig.RepositoriesOption{
+			input: dto.RepositoriesOption{
 				Include: []string{},
 				Exclude: []string{},
 			},
@@ -59,7 +59,7 @@ func TestConvertRepositoryFilters(t *testing.T) {
 		},
 		{
 			name: "only include patterns",
-			input: gpsconfig.RepositoriesOption{
+			input: dto.RepositoriesOption{
 				Include: []string{"important*", "core-*"},
 				Exclude: []string{},
 			},
@@ -74,7 +74,7 @@ func TestConvertRepositoryFilters(t *testing.T) {
 		},
 		{
 			name: "only exclude patterns",
-			input: gpsconfig.RepositoriesOption{
+			input: dto.RepositoriesOption{
 				Include: []string{},
 				Exclude: []string{"legacy-*", "archived-*"},
 			},
@@ -104,30 +104,30 @@ func TestConvertMirrorConfigToMirrorTargets(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		input    gpsconfig.SyncConfig
+		input    dto.SyncConfig
 		expected int // Number of expected targets
 	}{
 		{
 			name: "valid mirror configuration",
-			input: gpsconfig.SyncConfig{
-				Mirrors: map[string]gpsconfig.MirrorConfig{
+			input: dto.SyncConfig{
+				Mirrors: map[string]dto.MirrorConfig{
 					"target1": {
-						BaseConfig: gpsconfig.BaseConfig{
+						BaseConfig: dto.BaseConfig{
 							ProviderType: "github",
 							Domain:       "github.com",
 							Owner:        "testowner",
-							Auth: gpsconfig.AuthConfig{
+							Auth: dto.AuthConfig{
 								Token: "test-token",
 							},
 						},
 						Path: "",
 					},
 					"target2": {
-						BaseConfig: gpsconfig.BaseConfig{
+						BaseConfig: dto.BaseConfig{
 							ProviderType: "gitlab",
 							Domain:       "gitlab.com",
 							Owner:        "testowner",
-							Auth: gpsconfig.AuthConfig{
+							Auth: dto.AuthConfig{
 								Token: "test-token",
 							},
 						},
@@ -139,14 +139,14 @@ func TestConvertMirrorConfigToMirrorTargets(t *testing.T) {
 		},
 		{
 			name: "invalid provider type",
-			input: gpsconfig.SyncConfig{
-				Mirrors: map[string]gpsconfig.MirrorConfig{
+			input: dto.SyncConfig{
+				Mirrors: map[string]dto.MirrorConfig{
 					"target1": {
-						BaseConfig: gpsconfig.BaseConfig{
+						BaseConfig: dto.BaseConfig{
 							ProviderType: "invalid-provider",
 							Domain:       "example.com",
 							Owner:        "testowner",
-							Auth: gpsconfig.AuthConfig{
+							Auth: dto.AuthConfig{
 								Token: "test-token",
 							},
 						},
@@ -158,32 +158,32 @@ func TestConvertMirrorConfigToMirrorTargets(t *testing.T) {
 		},
 		{
 			name: "empty mirrors",
-			input: gpsconfig.SyncConfig{
-				Mirrors: map[string]gpsconfig.MirrorConfig{},
+			input: dto.SyncConfig{
+				Mirrors: map[string]dto.MirrorConfig{},
 			},
 			expected: 0,
 		},
 		{
 			name: "mixed valid and invalid",
-			input: gpsconfig.SyncConfig{
-				Mirrors: map[string]gpsconfig.MirrorConfig{
+			input: dto.SyncConfig{
+				Mirrors: map[string]dto.MirrorConfig{
 					"valid": {
-						BaseConfig: gpsconfig.BaseConfig{
+						BaseConfig: dto.BaseConfig{
 							ProviderType: "github",
 							Domain:       "github.com",
 							Owner:        "testowner",
-							Auth: gpsconfig.AuthConfig{
+							Auth: dto.AuthConfig{
 								Token: "test-token",
 							},
 						},
 						Path: "",
 					},
 					"invalid": {
-						BaseConfig: gpsconfig.BaseConfig{
+						BaseConfig: dto.BaseConfig{
 							ProviderType: "invalid-provider",
 							Domain:       "example.com",
 							Owner:        "testowner",
-							Auth: gpsconfig.AuthConfig{
+							Auth: dto.AuthConfig{
 								Token: "test-token",
 							},
 						},
@@ -195,14 +195,14 @@ func TestConvertMirrorConfigToMirrorTargets(t *testing.T) {
 		},
 		{
 			name: "invalid mirror name",
-			input: gpsconfig.SyncConfig{
-				Mirrors: map[string]gpsconfig.MirrorConfig{
+			input: dto.SyncConfig{
+				Mirrors: map[string]dto.MirrorConfig{
 					"": { // Empty name should fail
-						BaseConfig: gpsconfig.BaseConfig{
+						BaseConfig: dto.BaseConfig{
 							ProviderType: "github",
 							Domain:       "github.com",
 							Owner:        "testowner",
-							Auth: gpsconfig.AuthConfig{
+							Auth: dto.AuthConfig{
 								Token: "test-token",
 							},
 						},
@@ -214,14 +214,14 @@ func TestConvertMirrorConfigToMirrorTargets(t *testing.T) {
 		},
 		{
 			name: "invalid owner name",
-			input: gpsconfig.SyncConfig{
-				Mirrors: map[string]gpsconfig.MirrorConfig{
+			input: dto.SyncConfig{
+				Mirrors: map[string]dto.MirrorConfig{
 					"valid-name": {
-						BaseConfig: gpsconfig.BaseConfig{
+						BaseConfig: dto.BaseConfig{
 							ProviderType: "github",
 							Domain:       "github.com",
 							Owner:        "", // Empty owner should fail
-							Auth: gpsconfig.AuthConfig{
+							Auth: dto.AuthConfig{
 								Token: "test-token",
 							},
 						},
@@ -417,8 +417,8 @@ func TestSyncHexagonal_WithMissingTmpDir_HandlesGracefully(t *testing.T) {
 	ctx := context.Background()
 
 	// Create minimal config
-	cfg := &gpsconfig.AppConfiguration{
-		GitProviderSyncConfs: map[string]gpsconfig.Environment{},
+	cfg := &dto.AppConfiguration{
+		GitProviderSyncConfs: map[string]dto.Environment{},
 	}
 
 	// Test should fail gracefully due to missing tmp dir creation

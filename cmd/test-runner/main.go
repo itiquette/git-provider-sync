@@ -446,7 +446,7 @@ func (tr *TestRunner) ValidateTestStructure() error {
 	// Check for test files in key directories
 	testDirs := []string{
 		"internal/domain",
-		"internal/configuration",
+		"internal/adapters/configuration",
 		"cmd",
 	}
 

@@ -342,7 +342,7 @@ func TestRunSync_ErrorHandling(t *testing.T) {
 					},
 				}
 				// Set config file to non-existent path
-				_ = cmd.Set("config-file", "/nonexistent/config.yaml")
+				_ = cmd.Set("config-file", "/nonexistent/dto.yaml")
 
 				return cmd
 			},
@@ -475,7 +475,7 @@ func TestMergeSyncOptionsWithCLIConfig_WithValues(t *testing.T) {
 	// Create a base CLI config
 	baseConfig := entities.NewCLIConfigBuilder().
 		WithOutputFormat("console").
-		WithConfigFilePath("/test/config.yaml").
+		WithConfigFilePath("/test/dto.yaml").
 		Build()
 
 	// Test with actual flag values set
@@ -500,7 +500,7 @@ func TestMergeSyncOptionsWithCLIConfig_WithValues(t *testing.T) {
 
 	// Base config values should be preserved
 	assert.Equal(t, "console", result.OutputFormat())
-	assert.Equal(t, "/test/config.yaml", result.ConfigFilePath())
+	assert.Equal(t, "/test/dto.yaml", result.ConfigFilePath())
 
 	// Sync flag values should be merged
 	assert.True(t, result.DryRun())

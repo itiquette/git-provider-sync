@@ -39,7 +39,7 @@ type FilterRequest struct {
 }
 
 // FilteringOptions contains domain-specific filtering options
-// replaces the CLI-specific model.CLIOption with domain values.
+// replaces the CLI-specific config.CLIOption with domain values.
 type FilteringOptions struct {
 	AlphaNumHyphName  bool
 	IncludeForks      bool

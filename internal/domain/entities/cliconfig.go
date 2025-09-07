@@ -8,7 +8,7 @@ import (
 )
 
 // CLIConfig represents command-line interface configuration as a pure domain entity
-// replaces the legacy model.CLIOption with proper domain design.
+// replaces the legacy config.CLIOption with proper domain design.
 type CLIConfig struct {
 	alphaNumHyphName    bool
 	activeFromLimit     string

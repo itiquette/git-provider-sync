@@ -96,6 +96,11 @@ func (ms *MirrorService) CreateMirror(ctx context.Context, request MirrorRequest
 			"target_path": request.TargetPath,
 		})
 
+		// Safety check before removing directory
+		if err := validateDirectoryPath(request.TargetPath); err != nil {
+			return nil, fmt.Errorf("cannot remove target directory: %w", err)
+		}
+
 		if err := os.RemoveAll(request.TargetPath); err != nil {
 			return nil, fmt.Errorf("failed to remove existing target: %w", err)
 		}
@@ -245,6 +250,11 @@ func (ms *MirrorService) DeleteMirror(ctx context.Context, targetPath string) er
 
 	if !ms.pathExists(targetPath) {
 		return fmt.Errorf("%w: %s", domain.ErrTargetPathDoesNotExist, targetPath)
+	}
+
+	// Safety check before removing directory
+	if err := validateDirectoryPath(targetPath); err != nil {
+		return fmt.Errorf("cannot delete mirror directory: %w", err)
 	}
 
 	if err := os.RemoveAll(targetPath); err != nil {

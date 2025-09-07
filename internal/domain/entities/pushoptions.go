@@ -11,7 +11,7 @@ import (
 )
 
 // PushOptions represents immutable push operation configuration as domain value object
-// replaces model.PushOption with proper domain design and immutability.
+// replaces config.PushOption with proper domain design and immutability.
 type PushOptions struct {
 	targetURL    string
 	refSpecs     []string

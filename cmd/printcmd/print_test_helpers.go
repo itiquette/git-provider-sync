@@ -11,12 +11,12 @@ import (
 	"io"
 	"time"
 
+	gps "itiquette/git-provider-sync/internal/application/dto"
 	"itiquette/git-provider-sync/internal/domain/validation"
-	gpsconfig "itiquette/git-provider-sync/internal/model/configuration"
 )
 
 // TestAndDisplayConnectivityMocked is a mocked version for testing that avoids real network calls.
-func testAndDisplayConnectivityMocked(_ context.Context, config gpsconfig.AppConfiguration, outputFormat string, writer io.Writer) error {
+func testAndDisplayConnectivityMocked(_ context.Context, config gps.AppConfiguration, outputFormat string, writer io.Writer) error {
 	// Create mock connectivity results instead of real network calls
 	var allResults []validation.ConnectivityResult
 

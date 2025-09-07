@@ -10,10 +10,10 @@ import (
 	"fmt"
 	"time"
 
+	"itiquette/git-provider-sync/internal/application/dto"
 	"itiquette/git-provider-sync/internal/domain"
 	"itiquette/git-provider-sync/internal/domain/entities"
 	"itiquette/git-provider-sync/internal/domain/filter"
-	"itiquette/git-provider-sync/internal/model"
 )
 
 // RepositoryDiscovery provides repository discovery capabilities.
@@ -327,7 +327,7 @@ type RepositoryFilter interface {
 // FilterServicer provides repository filtering using function types.
 type FilterServicer interface {
 	// FilterProjectinfos filters repositories using functional filtering
-	FilterProjectinfos(ctx context.Context, projectinfos []model.ProjectInfo, filterFunc filter.IncludedExcludedFunc, intervalFunc filter.IsInIntervalFunc) ([]model.ProjectInfo, error)
+	FilterProjectinfos(ctx context.Context, projectinfos []dto.ProjectInfo, filterFunc filter.IncludedExcludedFunc, intervalFunc filter.IsInIntervalFunc) ([]dto.ProjectInfo, error)
 }
 
 // ProviderFactory creates provider instances based on configuration.

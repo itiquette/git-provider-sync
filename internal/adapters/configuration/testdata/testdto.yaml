@@ -1,0 +1,96 @@
+# SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
+#
+# SPDX-License-Identifier: CC0-1.0
+gitprovidersync:
+  env1:
+    conf1:
+      provider_type: gitlab
+      domain: conf1domain
+      auth:
+        protocol: tls
+        token: ""
+      owner: agroup
+      owner_type: group
+      repositories:
+        include:
+          - aproject
+          - anotherproject
+      mirrors:
+        atarget:
+          provider_type: gitea
+          domain: gitea.com
+          auth:
+            protocol: tls
+            token: atoken
+          owner: agroup
+          owner_type: group
+          settings:
+            alphanumhyph_name: false
+            disabled: false
+            force_push: false
+            ignore_invalid_name: false
+        anothertarget:
+          provider_type: github
+          domain: github.com
+          auth:
+            protocol: tls
+            token: anothertoken
+          owner: anothergroup
+          owner_type: group
+          settings:
+            alphanumhyph_name: false
+            disabled: false
+            force_push: false
+            ignore_invalid_name: false
+    conf2:
+      provider_type: gitea
+      domain: conf2domain
+      auth:
+        protocol: tls
+        token: ""
+      owner: user
+      owner_type: user
+      repositories:
+        exclude:
+          - aproject
+          - anotherproject
+      mirrors:
+        atarget:
+          provider_type: gitea
+          domain: gitea.com
+          auth:
+            protocol: tls
+            token: atoken
+          owner: agroup
+          owner_type: group
+          settings:
+            alphanumhyph_name: false
+            disabled: false
+            force_push: false
+            ignore_invalid_name: false
+    conflocal:
+      provider_type: localconfprovider
+      domain: localconfdomain
+      auth:
+        protocol: tls
+        token: ""
+      owner: localconfuser
+      owner_type: user
+      repositories:
+        exclude:
+          - localconfrepo
+          - localconfrepo2
+      mirrors:
+        localtarget:
+          provider_type: localconfprovider
+          domain: localconfdomain
+          auth:
+            protocol: tls
+            token: localconftoken
+          owner: localconfgroup
+          owner_type: group
+          settings:
+            alphanumhyph_name: false
+            disabled: false
+            force_push: false
+            ignore_invalid_name: false

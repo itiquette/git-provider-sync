@@ -16,7 +16,7 @@ import (
 	"itiquette/git-provider-sync/cmd/printcmd"
 	"itiquette/git-provider-sync/cmd/statuscmd"
 	"itiquette/git-provider-sync/cmd/synccmd"
-	"itiquette/git-provider-sync/internal/log"
+	"itiquette/git-provider-sync/internal/adapters/log"
 )
 
 // NewRootCommand returns the root CLI command

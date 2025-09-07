@@ -63,3 +63,32 @@ func NewLoggerConfig() LoggerConfig {
 		TimeFormat: "2006-01-02T15:04:05Z07:00",
 	}
 }
+
+// LoggerKey is the context key for storing the logger.
+type loggerKey struct{}
+
+// LoggerFromContext retrieves the Logger from the context.
+// If no logger is found, returns a no-op logger to prevent nil pointer issues.
+func LoggerFromContext(ctx context.Context) Logger {
+	if logger, ok := ctx.Value(loggerKey{}).(Logger); ok {
+		return logger
+	}
+	// Return a no-op logger if none found
+	return &noOpLogger{}
+}
+
+// WithLogger adds a Logger to the context.
+func WithLogger(ctx context.Context, logger Logger) context.Context {
+	return context.WithValue(ctx, loggerKey{}, logger)
+}
+
+// noOpLogger is a logger that does nothing.
+type noOpLogger struct{}
+
+func (n *noOpLogger) Trace(_ context.Context, _ string, _ map[string]any) {}
+func (n *noOpLogger) Debug(_ context.Context, _ string, _ map[string]any) {}
+func (n *noOpLogger) Info(_ context.Context, _ string, _ map[string]any)  {}
+func (n *noOpLogger) Warn(_ context.Context, _ string, _ map[string]any)  {}
+func (n *noOpLogger) Error(_ context.Context, _ string, _ map[string]any) {}
+func (n *noOpLogger) Fatal(_ context.Context, _ string, _ map[string]any) {}
+func (n *noOpLogger) IsLevelEnabled(_ LogLevel) bool                      { return false }

@@ -318,8 +318,9 @@ func TestCleanup(t *testing.T) {
 	err := adapter.Cleanup(ctx, "")
 	require.NoError(t, err)
 
-	// Test cleanup with non-existent path
-	err = adapter.Cleanup(ctx, "/nonexistent/path")
+	// Test cleanup with non-existent path in temp directory
+	nonExistentPath := filepath.Join(os.TempDir(), "nonexistent", "path")
+	err = adapter.Cleanup(ctx, nonExistentPath)
 	require.NoError(t, err) // Should not fail for non-existent path
 
 	// Test cleanup with actual directory

@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	model "itiquette/git-provider-sync/internal/model/configuration"
+	"itiquette/git-provider-sync/internal/application/dto"
 )
 
 // TestFormatConfiguration_InvalidFormat tests error handling for unsupported formats.
@@ -23,7 +23,7 @@ func TestFormatConfiguration_InvalidFormat(t *testing.T) {
 
 	var buffer bytes.Buffer
 
-	err := formatter.FormatConfiguration(model.AppConfiguration{}, "invalid", &buffer)
+	err := formatter.FormatConfiguration(dto.AppConfiguration{}, "invalid", &buffer)
 
 	require.Error(t, err)
 	require.ErrorIs(t, err, ErrUnsupportedOutputFormat)
@@ -35,22 +35,22 @@ func TestFormatConfiguration_JSONValidity(t *testing.T) {
 
 	formatter := &OutputFormatter{}
 
-	config := model.AppConfiguration{
-		GitProviderSyncConfs: map[string]model.Environment{
+	config := dto.AppConfiguration{
+		GitProviderSyncConfs: map[string]dto.Environment{
 			"test": {
-				"source": model.SyncConfig{
-					BaseConfig: model.BaseConfig{
+				"source": dto.SyncConfig{
+					BaseConfig: dto.BaseConfig{
 						ProviderType: "github",
 						Domain:       "github.com",
 						Owner:        "testowner",
 						OwnerType:    "user",
-						Auth: model.AuthConfig{
+						Auth: dto.AuthConfig{
 							Token: "secret-token",
 						},
 					},
-					Mirrors: map[string]model.MirrorConfig{
+					Mirrors: map[string]dto.MirrorConfig{
 						"mirror1": {
-							BaseConfig: model.BaseConfig{
+							BaseConfig: dto.BaseConfig{
 								ProviderType: "gitlab",
 								Domain:       "gitlab.com",
 								Owner:        "backup",
@@ -95,11 +95,11 @@ func TestFormatConfiguration_WriterError(t *testing.T) {
 
 	formatter := &OutputFormatter{}
 
-	config := model.AppConfiguration{
-		GitProviderSyncConfs: map[string]model.Environment{
+	config := dto.AppConfiguration{
+		GitProviderSyncConfs: map[string]dto.Environment{
 			"test": {
-				"source": model.SyncConfig{
-					BaseConfig: model.BaseConfig{
+				"source": dto.SyncConfig{
+					BaseConfig: dto.BaseConfig{
 						ProviderType: "github",
 					},
 				},

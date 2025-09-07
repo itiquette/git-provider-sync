@@ -6,11 +6,9 @@ package sync
 import (
 	"context"
 	"fmt"
-	"path/filepath"
 
 	"itiquette/git-provider-sync/internal/domain/entities"
 	"itiquette/git-provider-sync/internal/domain/ports"
-	"itiquette/git-provider-sync/internal/log"
 )
 
 // FetchSourceRepositoriesUseCase handles fetching repositories from source providers
@@ -55,7 +53,7 @@ func (uc FetchSourceRepositoriesUseCase) Execute(
 	ctx context.Context,
 	request FetchSourceRequest,
 ) (FetchSourceResponse, error) {
-	logger := log.CreateDomainLogger(ctx)
+	logger := ports.LoggerFromContext(ctx)
 
 	var response FetchSourceResponse
 
@@ -196,7 +194,7 @@ func (uc FetchSourceRepositoriesUseCase) applyFilters(
 	filters ports.FilterOptions,
 	includeForks bool,
 ) []entities.Repository {
-	logger := log.CreateDomainLogger(ctx)
+	logger := ports.LoggerFromContext(ctx)
 
 	// TRACE: Internal method entry
 	logger.Trace(ctx, "applyFilters entry", map[string]any{
@@ -234,7 +232,7 @@ func (uc FetchSourceRepositoriesUseCase) applyFilters(
 //
 //nolint:cyclop // Multiple filter conditions create logical complexity
 func (uc FetchSourceRepositoriesUseCase) shouldSkipRepo(ctx context.Context, repo entities.Repository, filters ports.FilterOptions, includeForks bool) bool {
-	logger := log.CreateDomainLogger(ctx)
+	logger := ports.LoggerFromContext(ctx)
 
 	// Check fork exclusion first (performance optimization)
 	if repo.IsFork() && !includeForks && !filters.IncludeForks {
@@ -293,7 +291,7 @@ func (uc FetchSourceRepositoriesUseCase) matchesPatterns(
 	name string,
 	includePatterns, excludePatterns []string,
 ) bool {
-	logger := log.CreateDomainLogger(ctx)
+	logger := ports.LoggerFromContext(ctx)
 
 	// TRACE: Pattern matching entry
 	logger.Trace(ctx, "matchesPatterns entry", map[string]any{
@@ -345,7 +343,7 @@ func (uc FetchSourceRepositoriesUseCase) matchesPatterns(
 
 // MatchPattern performs simple pattern matching (simplified version).
 func (uc FetchSourceRepositoriesUseCase) matchPattern(ctx context.Context, name, pattern string) bool {
-	logger := log.CreateDomainLogger(ctx)
+	logger := ports.LoggerFromContext(ctx)
 
 	// Simple wildcard matching - could be enhanced with proper glob matching
 	if pattern == "*" {
@@ -374,7 +372,7 @@ func (uc FetchSourceRepositoriesUseCase) cloneRepositories(
 	repositories []entities.Repository,
 	providerConfig ports.ProviderConfig,
 ) ([]ports.GitRepository, []error) {
-	logger := log.CreateDomainLogger(ctx)
+	logger := ports.LoggerFromContext(ctx)
 
 	// TRACE: Internal method entry (git operations boundary)
 	logger.Trace(ctx, "cloneRepositories entry", map[string]any{
@@ -413,7 +411,7 @@ func (uc FetchSourceRepositoriesUseCase) cloneRepositories(
 			continue
 		}
 
-		clonePath := filepath.Join(tmpDir, repo.Name())
+		clonePath := tmpDir + "/" + repo.Name()
 		logger.Debug(ctx, "Prepared clone options", map[string]any{
 			"name":       repo.Name(),
 			"clone_path": clonePath,

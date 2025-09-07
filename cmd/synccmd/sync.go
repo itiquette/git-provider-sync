@@ -14,19 +14,20 @@ import (
 	"github.com/rs/zerolog"
 
 	"itiquette/git-provider-sync/internal/adapters/cli"
+	"itiquette/git-provider-sync/internal/adapters/composition"
+	"itiquette/git-provider-sync/internal/adapters/filesystem"
+	"itiquette/git-provider-sync/internal/adapters/log"
 	"itiquette/git-provider-sync/internal/adapters/logging"
 	"itiquette/git-provider-sync/internal/adapters/repository/archive"
 	"itiquette/git-provider-sync/internal/adapters/terminal"
-	"itiquette/git-provider-sync/internal/composition"
+	"itiquette/git-provider-sync/internal/application/dto"
 	"itiquette/git-provider-sync/internal/domain/entities"
 	"itiquette/git-provider-sync/internal/domain/ports"
 	"itiquette/git-provider-sync/internal/domain/sync"
-	"itiquette/git-provider-sync/internal/log"
-	gpsconfig "itiquette/git-provider-sync/internal/model/configuration"
 )
 
 // PerformSync executes the sync operation using domain use cases.
-func performSync(ctx context.Context, cfg *gpsconfig.AppConfiguration) error {
+func performSync(ctx context.Context, cfg *dto.AppConfiguration) error {
 	logger := log.Logger(ctx)
 	logger.Trace().Msg("Starting sync")
 	cfg.DebugLog(logger)
@@ -39,7 +40,7 @@ func performSync(ctx context.Context, cfg *gpsconfig.AppConfiguration) error {
 	// Create temporary directory with timestamp for uniqueness
 	tmpPrefix := fmt.Sprintf("gitprovidersync-%d", time.Now().Unix())
 
-	ctx, err := entities.CreateTmpDir(ctx, "", tmpPrefix)
+	ctx, err := filesystem.CreateTmpDir(ctx, "", tmpPrefix)
 	if err != nil {
 		return fmt.Errorf("failed to create temporary directory: %w", err)
 	}
@@ -90,7 +91,7 @@ func performSync(ctx context.Context, cfg *gpsconfig.AppConfiguration) error {
 
 // CreateContainerWithConfig builds the dependency injection container
 // with already-loaded configuration, avoiding duplicate loading.
-func createContainerWithConfig(ctx context.Context, _ *gpsconfig.AppConfiguration) (*composition.Container, error) {
+func createContainerWithConfig(ctx context.Context, _ *dto.AppConfiguration) (*composition.Container, error) {
 	// Extract CLI options for container configuration
 	cliConfig, ok := cli.ConfigFromContext(ctx)
 	if !ok {
@@ -128,7 +129,7 @@ func createContainerWithConfig(ctx context.Context, _ *gpsconfig.AppConfiguratio
 func executeSyncConfigurationWithResults(
 	ctx context.Context,
 	container *composition.Container,
-	syncCfg gpsconfig.SyncConfig,
+	syncCfg dto.SyncConfig,
 	envName string,
 	sourceName string,
 	results *sync.Results,
@@ -204,7 +205,7 @@ func executeSyncConfigurationWithResults(
 func fetchSourceRepositoriesWithGitRepos(
 	ctx context.Context,
 	container *composition.Container,
-	syncCfg gpsconfig.SyncConfig,
+	syncCfg dto.SyncConfig,
 ) (sync.FetchSourceResponse, error) {
 	// 1. Create provider configuration
 	providerConfig := ports.ProviderConfig{
@@ -272,8 +273,8 @@ func syncToMirrorWithGitReposAndResults(
 	ctx context.Context,
 	container *composition.Container,
 	fetchResponse sync.FetchSourceResponse,
-	mirrorCfg gpsconfig.MirrorConfig,
-	srcCfg gpsconfig.SyncConfig,
+	mirrorCfg dto.MirrorConfig,
+	srcCfg dto.SyncConfig,
 	envName string,
 	sourceName string,
 	mirrorName string,
@@ -327,7 +328,7 @@ func syncToMirrorWithGitReposAndResults(
 	loggerAdapter := createLoggerAdapter(*logger)
 
 	// 5. Convert to mirror targets
-	tmpSyncCfg := gpsconfig.SyncConfig{Mirrors: map[string]gpsconfig.MirrorConfig{"target": mirrorCfg}}
+	tmpSyncCfg := dto.SyncConfig{Mirrors: map[string]dto.MirrorConfig{"target": mirrorCfg}}
 	mirrorTargets := convertMirrorConfigToMirrorTargets(tmpSyncCfg)
 
 	if len(mirrorTargets) == 0 {
@@ -361,7 +362,10 @@ func syncToMirrorWithGitReposAndResults(
 	// Get file system from container
 	fileSystem := container.FileSystem()
 
-	syncUseCase := sync.NewToMirrorsUseCase(targetProvider, gitOperations, archiveOps, fileSystem, loggerAdapter)
+	// Get string utils from container
+	stringUtils := container.StringUtils()
+
+	syncUseCase := sync.NewToMirrorsUseCase(targetProvider, gitOperations, archiveOps, fileSystem, loggerAdapter, stringUtils)
 
 	// Get CLI configuration for sync options
 	cliConfig, ok := cli.ConfigFromContext(ctx)
@@ -427,7 +431,7 @@ func syncToMirrorWithGitReposAndResults(
 }
 
 // ConvertRepositoryFilters converts GPS config filters to domain filters.
-func convertRepositoryFilters(repoConfig gpsconfig.RepositoriesOption) ports.FilterOptions {
+func convertRepositoryFilters(repoConfig dto.RepositoriesOption) ports.FilterOptions {
 	return ports.FilterOptions{
 		IncludePatterns: repoConfig.Include,
 		ExcludePatterns: repoConfig.Exclude,
@@ -439,7 +443,7 @@ func convertRepositoryFilters(repoConfig gpsconfig.RepositoriesOption) ports.Fil
 }
 
 // ConvertMirrorConfigToMirrorTargets converts GPS mirror config to domain mirror targets.
-func convertMirrorConfigToMirrorTargets(syncCfg gpsconfig.SyncConfig) []entities.MirrorTarget {
+func convertMirrorConfigToMirrorTargets(syncCfg dto.SyncConfig) []entities.MirrorTarget {
 	targets := make([]entities.MirrorTarget, 0, len(syncCfg.Mirrors))
 
 	for mirrorName, mirrorCfg := range syncCfg.Mirrors {
@@ -522,7 +526,7 @@ func outputSyncResults(ctx context.Context, results *sync.Results) error {
 }
 
 // ExecuteAllEnvironmentSyncs executes sync for all environments and configurations.
-func executeAllEnvironmentSyncs(ctx context.Context, logger *zerolog.Logger, container *composition.Container, cfg *gpsconfig.AppConfiguration, syncResults *sync.Results) error {
+func executeAllEnvironmentSyncs(ctx context.Context, logger *zerolog.Logger, container *composition.Container, cfg *dto.AppConfiguration, syncResults *sync.Results) error {
 	for envName, environments := range cfg.GitProviderSyncConfs {
 		syncResults.TotalSources++
 		for syncCfgName, syncCfg := range environments {

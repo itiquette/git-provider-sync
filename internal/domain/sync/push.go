@@ -13,8 +13,6 @@ import (
 	"itiquette/git-provider-sync/internal/domain"
 	"itiquette/git-provider-sync/internal/domain/entities"
 	"itiquette/git-provider-sync/internal/domain/ports"
-	"itiquette/git-provider-sync/internal/log"
-	"itiquette/git-provider-sync/internal/shared"
 )
 
 const (
@@ -34,15 +32,17 @@ var (
 // Creates target repository if needed, temporarily disables branch protection during push,
 // Then restores protection settings.
 type PushToProviderUseCase struct {
-	provider ports.RepositoryProvider
-	gitOps   ports.GitOperations
+	provider    ports.RepositoryProvider
+	gitOps      ports.GitOperations
+	stringUtils ports.StringUtils
 }
 
 // NewPushToProviderUseCase creates a new push to provider use case.
-func NewPushToProviderUseCase(provider ports.RepositoryProvider, gitOps ports.GitOperations) *PushToProviderUseCase {
+func NewPushToProviderUseCase(provider ports.RepositoryProvider, gitOps ports.GitOperations, stringUtils ports.StringUtils) *PushToProviderUseCase {
 	return &PushToProviderUseCase{
-		provider: provider,
-		gitOps:   gitOps,
+		provider:    provider,
+		gitOps:      gitOps,
+		stringUtils: stringUtils,
 	}
 }
 
@@ -68,7 +68,7 @@ type PushResponse struct {
 
 // Execute performs the push to provider operation.
 func (uc *PushToProviderUseCase) Execute(ctx context.Context, request PushRequest) (PushResponse, error) {
-	logger := log.CreateDomainLogger(ctx)
+	logger := ports.LoggerFromContext(ctx)
 
 	var response PushResponse
 
@@ -106,7 +106,7 @@ func (uc *PushToProviderUseCase) Execute(ctx context.Context, request PushReques
 
 // ExecutePush performs the actual push operation with early returns.
 func (uc *PushToProviderUseCase) executePush(ctx context.Context, request PushRequest) (PushResponse, error) {
-	logger := log.CreateDomainLogger(ctx)
+	logger := ports.LoggerFromContext(ctx)
 
 	// TRACE: Internal method entry
 	logger.Trace(ctx, "executePush entry", map[string]any{
@@ -203,7 +203,7 @@ func (uc *PushToProviderUseCase) failResponse(err error) PushResponse {
 //
 //nolint:cyclop // Complex remote setup logic with multiple validation steps
 func (uc *PushToProviderUseCase) setupGPSUpstreamRemote(ctx context.Context, gitRepo ports.GitRepository) error {
-	logger := log.CreateDomainLogger(ctx)
+	logger := ports.LoggerFromContext(ctx)
 
 	// DEBUG: Remote setup details (application state)
 	logger.Debug(ctx, "Setting up GPSUPSTREAM remote", map[string]any{
@@ -279,7 +279,7 @@ func (uc *PushToProviderUseCase) setupGPSUpstreamRemote(ctx context.Context, git
 
 // EnsureRepositoryExists checks if repository exists and creates it if needed.
 func (uc *PushToProviderUseCase) ensureRepositoryExists(ctx context.Context, request PushRequest) (bool, string, error) {
-	logger := log.CreateDomainLogger(ctx)
+	logger := ports.LoggerFromContext(ctx)
 
 	// DEBUG: Repository existence check (application state)
 	logger.Debug(ctx, "Checking if repository exists", map[string]any{
@@ -329,7 +329,7 @@ func (uc *PushToProviderUseCase) ensureRepositoryExists(ctx context.Context, req
 
 // CreateRepository creates a new repository at the target provider.
 func (uc *PushToProviderUseCase) createRepository(ctx context.Context, request PushRequest) (string, error) {
-	logger := log.CreateDomainLogger(ctx)
+	logger := ports.LoggerFromContext(ctx)
 
 	// DEBUG: Repository creation details (application state)
 	logger.Debug(ctx, "Creating repository at target provider", map[string]any{
@@ -389,7 +389,7 @@ func (uc *PushToProviderUseCase) mapVisibility(request PushRequest) string {
 
 // PerformPush performs the actual git push operation.
 func (uc *PushToProviderUseCase) performPush(ctx context.Context, request PushRequest) (string, error) {
-	logger := log.CreateDomainLogger(ctx)
+	logger := ports.LoggerFromContext(ctx)
 
 	// TRACE: Critical method entry (git adapter boundary)
 	logger.Trace(ctx, "performPush entry", map[string]any{
@@ -485,7 +485,7 @@ func (uc *PushToProviderUseCase) buildTargetURL(_ context.Context, request PushR
 	// AlphaNumHyphName option not implemented
 	alphaNumName := false // Placeholder for request.TargetConfig.Options().AlphaNumHyphName
 	if alphaNumName {
-		repositoryName = shared.RemoveNonAlphaNumericChars(repositoryName)
+		repositoryName = uc.stringUtils.RemoveNonAlphaNumericChars(repositoryName)
 	}
 
 	// Extract authentication details from target config
@@ -503,7 +503,7 @@ func (uc *PushToProviderUseCase) buildTargetURL(_ context.Context, request PushR
 
 	// Add authentication if token is provided
 	if token != "" {
-		baseURL = shared.AddBasicAuthToURL(baseURL, "git", token)
+		baseURL = uc.stringUtils.AddBasicAuthToURL(baseURL, "git", token)
 	}
 
 	return baseURL
@@ -511,7 +511,7 @@ func (uc *PushToProviderUseCase) buildTargetURL(_ context.Context, request PushR
 
 // SetDefaultBranch sets the default branch at the target.
 func (uc *PushToProviderUseCase) setDefaultBranch(ctx context.Context, request PushRequest, projectID string) error { //nolint:unparam // Placeholder implementation - will return errors when implemented
-	logger := log.CreateDomainLogger(ctx)
+	logger := ports.LoggerFromContext(ctx)
 
 	// DEBUG: Branch configuration (application state)
 	logger.Debug(ctx, "Setting default branch", map[string]any{
@@ -525,7 +525,7 @@ func (uc *PushToProviderUseCase) setDefaultBranch(ctx context.Context, request P
 
 // DisableProtection disables branch protection.
 func (uc *PushToProviderUseCase) disableProtection(ctx context.Context, request PushRequest, projectID string) error {
-	logger := log.CreateDomainLogger(ctx)
+	logger := ports.LoggerFromContext(ctx)
 
 	// DEBUG: Protection disabling (application state)
 	logger.Debug(ctx, "Disabling branch protection", map[string]any{
@@ -557,7 +557,7 @@ func (uc *PushToProviderUseCase) disableProtection(ctx context.Context, request 
 
 // EnableProtection enables branch protection.
 func (uc *PushToProviderUseCase) enableProtection(ctx context.Context, request PushRequest, projectID string) error {
-	logger := log.CreateDomainLogger(ctx)
+	logger := ports.LoggerFromContext(ctx)
 
 	logger.Debug(ctx, "Enabling branch protection", map[string]any{
 		"project_id": projectID,
@@ -596,7 +596,7 @@ func (uc *PushToProviderUseCase) isArchiveOrDirectory(providerType string) bool 
 
 // PerformDryRun simulates the push operation.
 func (uc *PushToProviderUseCase) performDryRun(ctx context.Context, request PushRequest) PushResponse {
-	logger := log.CreateDomainLogger(ctx)
+	logger := ports.LoggerFromContext(ctx)
 
 	logger.Info(ctx, "Performing dry run push", map[string]any{
 		"source": request.SourceRepository.Name(),

@@ -16,8 +16,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	validationAdapters "itiquette/git-provider-sync/internal/adapters/validation"
+	"itiquette/git-provider-sync/internal/application/dto"
 	"itiquette/git-provider-sync/internal/domain/validation"
-	config "itiquette/git-provider-sync/internal/model/configuration"
 )
 
 func TestCreateSystemStatus_FromConfiguration_BuildsCorrectStatus(t *testing.T) {
@@ -25,17 +25,17 @@ func TestCreateSystemStatus_FromConfiguration_BuildsCorrectStatus(t *testing.T) 
 
 	tests := []struct {
 		name              string
-		config            config.AppConfiguration
+		config            dto.AppConfiguration
 		connectivityCheck bool
 		expected          SystemStatus
 	}{
 		{
 			name: "valid configuration with environments",
-			config: config.AppConfiguration{
-				GitProviderSyncConfs: map[string]config.Environment{
+			config: dto.AppConfiguration{
+				GitProviderSyncConfs: map[string]dto.Environment{
 					"production": {
-						"github-source": config.SyncConfig{
-							BaseConfig: config.BaseConfig{
+						"github-source": dto.SyncConfig{
+							BaseConfig: dto.BaseConfig{
 								ProviderType: "github",
 								Domain:       "github.com",
 								Owner:        "testuser",
@@ -43,8 +43,8 @@ func TestCreateSystemStatus_FromConfiguration_BuildsCorrectStatus(t *testing.T) 
 						},
 					},
 					"staging": {
-						"gitlab-source": config.SyncConfig{
-							BaseConfig: config.BaseConfig{
+						"gitlab-source": dto.SyncConfig{
+							BaseConfig: dto.BaseConfig{
 								ProviderType: "gitlab",
 								Domain:       "gitlab.com",
 								Owner:        "testuser",
@@ -66,8 +66,8 @@ func TestCreateSystemStatus_FromConfiguration_BuildsCorrectStatus(t *testing.T) 
 		},
 		{
 			name: "empty configuration",
-			config: config.AppConfiguration{
-				GitProviderSyncConfs: map[string]config.Environment{},
+			config: dto.AppConfiguration{
+				GitProviderSyncConfs: map[string]dto.Environment{},
 			},
 			connectivityCheck: false,
 			expected: SystemStatus{
@@ -82,18 +82,18 @@ func TestCreateSystemStatus_FromConfiguration_BuildsCorrectStatus(t *testing.T) 
 		},
 		{
 			name: "single environment with multiple sources",
-			config: config.AppConfiguration{
-				GitProviderSyncConfs: map[string]config.Environment{
+			config: dto.AppConfiguration{
+				GitProviderSyncConfs: map[string]dto.Environment{
 					"production": {
-						"github-source": config.SyncConfig{
-							BaseConfig: config.BaseConfig{
+						"github-source": dto.SyncConfig{
+							BaseConfig: dto.BaseConfig{
 								ProviderType: "github",
 								Domain:       "github.com",
 								Owner:        "testuser",
 							},
 						},
-						"gitlab-source": config.SyncConfig{
-							BaseConfig: config.BaseConfig{
+						"gitlab-source": dto.SyncConfig{
+							BaseConfig: dto.BaseConfig{
 								ProviderType: "gitlab",
 								Domain:       "gitlab.com",
 								Owner:        "testuser",
@@ -175,11 +175,11 @@ func TestProviderConnectivity_ChecksConnections_ReturnsValidationResults(t *test
 	// Create a real connectivity adapter for testing
 	adapter := validationAdapters.NewConnectivityAdapter(5 * time.Second)
 
-	config := config.AppConfiguration{
-		GitProviderSyncConfs: map[string]config.Environment{
+	config := dto.AppConfiguration{
+		GitProviderSyncConfs: map[string]dto.Environment{
 			"production": {
-				"github-source": config.SyncConfig{
-					BaseConfig: config.BaseConfig{
+				"github-source": dto.SyncConfig{
+					BaseConfig: dto.BaseConfig{
 						ProviderType: "github",
 						Domain:       "github.com",
 						Owner:        "testuser",
