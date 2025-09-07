@@ -71,12 +71,7 @@ Allows syncing to multiple mirror destinations.`,
 				Usage:    "Automatic yes to prompts (assume yes)",
 				Category: "Operations",
 			},
-			&cli.BoolFlag{
-				Name:     "verbose",
-				Aliases:  []string{"v"},
-				Usage:    "Verbose output (same as --log-level=verbose)",
-				Category: "Output Control",
-			},
+
 			&cli.BoolFlag{
 				Name:     "debug",
 				Aliases:  []string{"d"},
@@ -89,7 +84,7 @@ Allows syncing to multiple mirror destinations.`,
 				Name:     "log-level",
 				Aliases:  []string{"l"},
 				Value:    "brief",
-				Usage:    "Set logging level: quiet | brief | verbose | debug | trace",
+				Usage:    "Set logging level: quiet | brief | debug | trace",
 				Category: "Output Control",
 			},
 			&cli.StringFlag{

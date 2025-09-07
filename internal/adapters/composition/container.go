@@ -40,6 +40,7 @@ type ContainerConfig struct {
 	ConfigPath     string
 	Environment    string
 	LogLevel       string
+	OutputFormat   string // Output format: console, json, plain
 	DryRun         bool
 	SkipTLSVerify  bool
 	MaxConcurrency int
@@ -69,7 +70,34 @@ func NewContainer(ctx context.Context, containerConfig ContainerConfig) (*Contai
 
 	// 3. Create logger using proper hexagonal adapter
 	zerologLevel := convertLogLevel(appConfig.GlobalSettings.LogLevel)
-	zerologInstance := zerolog.New(os.Stderr).Level(zerologLevel).With().Timestamp().Logger()
+
+	// Determine if we should suppress logger output
+	// Logger only writes to stderr in debug/trace/verbose modes
+	// In normal/quiet modes, formatters handle all user-facing output
+	suppressLogs := containerConfig.LogLevel != "debug" &&
+		containerConfig.LogLevel != "trace" &&
+		containerConfig.LogLevel != "verbose" &&
+		string(appConfig.GlobalSettings.LogLevel) != "debug" &&
+		string(appConfig.GlobalSettings.LogLevel) != "trace"
+
+	var zerologInstance zerolog.Logger
+	if suppressLogs {
+		// Suppress INFO and DEBUG logs in normal operation - formatters handle output
+		// Only show warnings and errors for actual issues
+		zerologInstance = zerolog.New(os.Stderr).Level(zerolog.WarnLevel).With().Timestamp().Logger()
+	} else if containerConfig.OutputFormat == "json" {
+		// JSON format for structured output (when logging is enabled)
+		zerologInstance = zerolog.New(os.Stderr).Level(zerologLevel).With().Timestamp().Logger()
+	} else {
+		// Console format for human-readable output (when logging is enabled)
+		consoleWriter := zerolog.ConsoleWriter{
+			Out:        os.Stderr,
+			TimeFormat: "15:04:05",
+			NoColor:    containerConfig.OutputFormat == "plain", // Plain format = no colors
+		}
+		zerologInstance = zerolog.New(consoleWriter).Level(zerologLevel).With().Timestamp().Logger()
+	}
+
 	logger := logging.NewZerologAdapter(&zerologInstance)
 
 	// 4. Create provider factory
@@ -131,6 +159,11 @@ func (c *Container) HTTPFactory() *transport.HTTPFactory {
 // FileSystem returns the file system adapter.
 func (c *Container) FileSystem() ports.FileSystem { //nolint:ireturn // Getter returning interface
 	return c.fileSystem
+}
+
+// Logger returns the logger adapter.
+func (c *Container) Logger() ports.Logger { //nolint:ireturn // Getter returning interface
+	return c.logger
 }
 
 // CreateSyncUseCase creates a sync use case with dependency injection.

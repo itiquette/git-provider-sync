@@ -147,7 +147,9 @@ func TestFetchSourceRepositoriesUseCase_Execute(t *testing.T) {
 			},
 			expectedError: false,
 			expectedResult: func(resp FetchSourceResponse) bool {
-				return resp.Success && len(resp.ClonedRepos) == 1 && resp.ProcessedCount == 4 && resp.SkippedCount == 3
+				// ProcessedCount should be the filtered count (1), not the total (4)
+				// SkippedCount should be the number filtered out (3)
+				return resp.Success && len(resp.ClonedRepos) == 1 && resp.ProcessedCount == 1 && resp.SkippedCount == 3
 			},
 		},
 		{

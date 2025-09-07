@@ -58,7 +58,8 @@ func (pf *ProviderFactory) CreateProvider(
 	ctx context.Context,
 	config ProviderConfig,
 ) (ports.RepositoryProvider, error) {
-	pf.logger.Info(ctx, "Creating provider client", map[string]any{
+	// Log at debug level to avoid cluttering output
+	pf.logger.Debug(ctx, "Creating provider client", map[string]any{
 		"provider_type": config.ProviderType,
 		"domain":        config.Domain,
 		"owner":         config.Owner,

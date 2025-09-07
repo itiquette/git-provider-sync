@@ -154,6 +154,8 @@ func initLogger(ctx context.Context, cmd *cli.Command) context.Context {
 	quiet := logLevel == "quiet"
 
 	ctx = log.InitLogger(ctx, logLevel, quiet, withCaller, outputFormat)
+	// Store log level in context for container configuration
+	ctx = context.WithValue(ctx, "logLevel", logLevel)
 	log.Logger(ctx).Trace().Msg("Logger initialized")
 
 	return ctx
@@ -179,10 +181,6 @@ func extractLogLevel(cmd *cli.Command) string {
 
 	if cmd.Bool("debug") {
 		return "debug"
-	}
-
-	if cmd.Bool("verbose") {
-		return "verbose"
 	}
 
 	return "brief" // default

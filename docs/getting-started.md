@@ -56,6 +56,29 @@ gitprovidersync sync --config-file gitprovidersync.yaml
 gitprovidersync sync --environment production --config-file gitprovidersync.yaml
 ```
 
+### Output Formats
+
+Control how results are displayed:
+
+```bash
+# Beautiful console output (default)
+gitprovidersync sync
+
+# JSON for automation
+gitprovidersync sync --format=json
+
+# Plain text for logs
+gitprovidersync sync --format=plain
+
+# Quiet mode (errors only)
+gitprovidersync --quiet sync
+
+# Debug mode (verbose logging)
+gitprovidersync --log-level=debug sync
+```
+
+See [Output Formatting](output-formatting.md) for detailed options.
+
 ## Next Steps
 
 - See [configuration.md](configuration.md) for detailed configuration options

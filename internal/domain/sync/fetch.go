@@ -121,6 +121,8 @@ func (uc FetchSourceRepositoriesUseCase) Execute(
 	filteredRepos := uc.applyFilters(ctx, repositories, request.Filters, request.IncludeForks)
 	response.Repositories = filteredRepos
 	response.SkippedCount = len(repositories) - len(filteredRepos)
+	// Update ProcessedCount to reflect the actual repositories that will be processed
+	response.ProcessedCount = len(filteredRepos)
 
 	logger.Debug(ctx, "Repository filtering completed", map[string]any{
 		"total_found":   len(repositories),

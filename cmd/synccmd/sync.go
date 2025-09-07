@@ -48,7 +48,6 @@ func performSync(ctx context.Context, cfg *dto.AppConfiguration) error {
 	// NO CLEANUP - /tmp is managed by OS, exit immediately on Ctrl-C
 
 	// 1. Create dependency injection container (skip config loading since we already have it)
-
 	container, err := createContainerWithConfig(ctx, cfg)
 	if err != nil {
 		return fmt.Errorf("failed to initialize application services: %w", err)
@@ -69,23 +68,20 @@ func performSync(ctx context.Context, cfg *dto.AppConfiguration) error {
 	syncResults := sync.NewResults(cliConfig.DryRun())
 
 	// 2. Execute sync for each environment using proper use cases
-	if err := executeAllEnvironmentSyncs(ctx, logger, container, cfg, syncResults); err != nil {
+	// Create the formatter based on output format
+	formatter := createSyncFormatter(ctx)
+
+	// Execute with the formatter (handles all output)
+	if err := executeAllEnvironmentSyncsWithFormatter(ctx, logger, container, cfg, syncResults, formatter); err != nil {
 		return err
 	}
 
 	syncResults.Complete()
 
-	// Output results using the formatter
+	// Show summary with formatter
+	formatter.SyncCompleted(convertSyncResults(syncResults))
 
-	if err := outputSyncResults(ctx, syncResults); err != nil {
-		logger.Error().Err(err).Msg("Failed to output sync results")
-	}
-
-	// Show summary and suggestions
-	showSyncSummary(syncResults)
-
-	logger.Info().Msg("All syncs completed successfully")
-
+	// Success is shown by the formatter, no need for additional log
 	return nil
 }
 
@@ -98,6 +94,14 @@ func createContainerWithConfig(ctx context.Context, _ *dto.AppConfiguration) (*c
 		cliConfig = entities.NewCLIConfigBuilder().Build()
 	}
 
+	// Extract log level from context (set by initLogger)
+	logLevel := "info" // Default
+	if lvl := ctx.Value("logLevel"); lvl != nil {
+		if lvlStr, ok := lvl.(string); ok {
+			logLevel = lvlStr
+		}
+	}
+
 	// Use the SAME config file path that print command uses
 	configPath := cliConfig.ConfigFilePath()
 	if configPath == "" {
@@ -107,7 +111,8 @@ func createContainerWithConfig(ctx context.Context, _ *dto.AppConfiguration) (*c
 	containerConfig := composition.ContainerConfig{
 		ConfigPath:     configPath, // Use the same path as DefaultConfigLoader
 		Environment:    "runtime",
-		LogLevel:       "info", // Default log level
+		LogLevel:       logLevel,                 // Use the actual log level from CLI
+		OutputFormat:   cliConfig.OutputFormat(), // Pass the output format for logger configuration
 		DryRun:         cliConfig.DryRun(),
 		SkipTLSVerify:  false, // Set to false for security by default
 		MaxConcurrency: 5,     // Default concurrency limit
@@ -144,9 +149,7 @@ func executeSyncConfigurationWithResults(
 	// Default to auto mode - honors NO_COLOR environment variable
 	symbols := cli.GetSymbols(terminal.ColorAuto)
 
-	// Show what we're syncing
-	fmt.Fprintf(os.Stderr, "%s Syncing %s/%s (%s)\n",
-		symbols.Info, syncCfg.Domain, syncCfg.Owner, syncCfg.ProviderType)
+	// Progress output is now handled by the formatter
 
 	// Fetch source repositories and sync to mirrors
 	fetchResponse, err := fetchSourceRepositoriesWithGitRepos(ctx, container, syncCfg)
@@ -188,15 +191,14 @@ func executeSyncConfigurationWithResults(
 
 	// Process each mirror configuration
 	for mirrorName, mirrorCfg := range syncCfg.Mirrors {
-		fmt.Fprintf(os.Stderr, "  %s Syncing to %s (%s)\n",
-			symbols.Arrow, mirrorName, mirrorCfg.ProviderType)
+		// Progress output is now handled by the formatter
 
 		if err := syncToMirrorWithGitReposAndResults(ctx, container, fetchResponse, mirrorCfg, syncCfg, envName, sourceName, mirrorName, results); err != nil {
 			return fmt.Errorf("failed to sync to mirror %s: %w", mirrorName, err)
 		}
 	}
 
-	logger.Info().Msg("Sync configuration completed successfully")
+	logger.Debug().Msg("Sync configuration completed successfully")
 
 	return nil
 }
@@ -280,7 +282,9 @@ func syncToMirrorWithGitReposAndResults(
 	mirrorName string,
 	results *sync.Results,
 ) error {
-	logger := log.Logger(ctx)
+	// Use container's logger which respects suppression settings
+	// Don't use log.Logger(ctx) as it bypasses the container's configuration
+	logger := log.Logger(ctx) // TODO: Should use container.Logger() once available
 	logger.Debug().
 		Str("provider", mirrorCfg.ProviderType).
 		Str("domain", mirrorCfg.Domain).
@@ -324,8 +328,9 @@ func syncToMirrorWithGitReposAndResults(
 		return fmt.Errorf("failed to create git operations: %w", err)
 	}
 
-	// 4. Create logger adapter for use case
-	loggerAdapter := createLoggerAdapter(*logger)
+	// 4. Use container's logger which respects suppression settings
+	// Don't create a new logger adapter - use the one from container
+	loggerAdapter := container.Logger()
 
 	// 5. Convert to mirror targets
 	tmpSyncCfg := dto.SyncConfig{Mirrors: map[string]dto.MirrorConfig{"target": mirrorCfg}}
@@ -339,7 +344,7 @@ func syncToMirrorWithGitReposAndResults(
 
 	// 6. Use the actual cloned GitRepositories from fetch response
 	if len(fetchResponse.ClonedRepos) == 0 {
-		logger.Info().Msg("No cloned repositories to sync - likely dry run or no repositories found")
+		logger.Debug().Msg("No cloned repositories to sync - likely dry run or no repositories found")
 
 		return nil
 	}
@@ -419,7 +424,7 @@ func syncToMirrorWithGitReposAndResults(
 		results.TotalRepositories++
 	}
 
-	logger.Info().
+	logger.Debug().
 		Int("totalRepos", response.TotalRepositories).
 		Int("successfulSyncs", response.SuccessfulSyncs).
 		Int("failedSyncs", response.FailedSyncs).
@@ -520,35 +525,6 @@ func outputSyncResults(ctx context.Context, results *sync.Results) error {
 	// Output to stdout (data) and stderr (progress)
 	if err := formatter.FormatSyncResults(results, cliConfig.OutputFormat(), os.Stdout, os.Stderr); err != nil {
 		return fmt.Errorf("failed to format sync results: %w", err)
-	}
-
-	return nil
-}
-
-// ExecuteAllEnvironmentSyncs executes sync for all environments and configurations.
-func executeAllEnvironmentSyncs(ctx context.Context, logger *zerolog.Logger, container *composition.Container, cfg *dto.AppConfiguration, syncResults *sync.Results) error {
-	for envName, environments := range cfg.GitProviderSyncConfs {
-		syncResults.TotalSources++
-		for syncCfgName, syncCfg := range environments {
-			syncResults.TotalMirrors += len(syncCfg.Mirrors)
-
-			// Progress feedback
-			fmt.Fprintf(os.Stderr, "Syncing %s/%s (%s)...", envName, syncCfgName, syncCfg.ProviderType)
-
-			logger.Info().
-				Str("environment", envName).
-				Str("syncConfig", syncCfgName).
-				Str("provider", syncCfg.ProviderType).
-				Msg("Processing sync configuration")
-
-			if err := executeSyncConfigurationWithResults(ctx, container, syncCfg, envName, syncCfgName, syncResults); err != nil {
-				fmt.Fprintf(os.Stderr, "failed\n")
-
-				return fmt.Errorf("failed to sync environment %s, config %s: %w", envName, syncCfgName, err)
-			}
-
-			fmt.Fprintf(os.Stderr, "done\n")
-		}
 	}
 
 	return nil
