@@ -29,8 +29,9 @@ type Level string
 
 // Predefined log levels.
 const (
-	LevelQuiet Level = "quiet" // Only error messages
-	LevelBrief Level = "brief" // Info and above (default)
+	LevelError Level = "error" // Only error messages
+	LevelWarn  Level = "warn"  // Warnings and errors
+	LevelInfo  Level = "info"  // Info and above (default)
 	LevelDebug Level = "debug" // Debug and above
 	LevelTrace Level = "trace" // Trace and above (most verbose)
 )
@@ -48,16 +49,18 @@ const (
 // ToZerologLevel converts a LogLevel to the corresponding zerolog.Level.
 func (l Level) ToZerologLevel() zerolog.Level {
 	switch l {
-	case LevelQuiet:
+	case LevelError:
 		return zerolog.ErrorLevel
+	case LevelWarn:
+		return zerolog.WarnLevel
+	case LevelInfo:
+		return zerolog.InfoLevel
 	case LevelDebug:
 		return zerolog.DebugLevel
 	case LevelTrace:
 		return zerolog.TraceLevel
-	case LevelBrief:
-		return zerolog.InfoLevel
 	default:
-		return zerolog.InfoLevel // Default to Info for LevelBrief and unknown levels
+		return zerolog.InfoLevel // Default to Info for unknown levels
 	}
 }
 
@@ -141,7 +144,7 @@ func CreateDomainLogger(ctx context.Context) ports.Logger {
 // GetLogLevel determines the log level based on command flags.
 func getLogLevel(logLevel string, quiet bool) zerolog.Level {
 	if quiet {
-		return LevelQuiet.ToZerologLevel()
+		return LevelError.ToZerologLevel()
 	}
 
 	return Level(logLevel).ToZerologLevel()

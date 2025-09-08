@@ -27,13 +27,18 @@ func TestLevel_ToZerologLevel(t *testing.T) {
 		expected zerolog.Level
 	}{
 		{
-			name:     "quiet level",
-			level:    LevelQuiet,
+			name:     "error level",
+			level:    LevelError,
 			expected: zerolog.ErrorLevel,
 		},
 		{
-			name:     "brief level",
-			level:    LevelBrief,
+			name:     "warn level",
+			level:    LevelWarn,
+			expected: zerolog.WarnLevel,
+		},
+		{
+			name:     "info level",
+			level:    LevelInfo,
 			expected: zerolog.InfoLevel,
 		},
 		{
@@ -79,13 +84,13 @@ func TestInitLogger_JSONFormat(t *testing.T) { //nolint:paralleltest,tparallel /
 	}{
 		{
 			name:          "quiet mode",
-			verbosity:     "brief",
+			verbosity:     "info",
 			quiet:         true,
 			expectedLevel: zerolog.ErrorLevel,
 		},
 		{
 			name:          "brief verbosity",
-			verbosity:     "brief",
+			verbosity:     "info",
 			quiet:         false,
 			expectedLevel: zerolog.InfoLevel,
 		},
@@ -359,7 +364,7 @@ func TestLoggerIntegration_DifferentLevels(t *testing.T) {
 	}{
 		{
 			name:     "info message at info level",
-			logLevel: "brief",
+			logLevel: "info",
 			logMessage: func(l ports.Logger) {
 				l.Info(context.Background(), "info message", nil)
 			},
@@ -367,7 +372,7 @@ func TestLoggerIntegration_DifferentLevels(t *testing.T) {
 		},
 		{
 			name:     "debug message at info level",
-			logLevel: "brief",
+			logLevel: "info",
 			logMessage: func(l ports.Logger) {
 				l.Debug(context.Background(), "debug message", nil)
 			},
@@ -375,7 +380,7 @@ func TestLoggerIntegration_DifferentLevels(t *testing.T) {
 		},
 		{
 			name:     "error message at error level",
-			logLevel: "quiet",
+			logLevel: "error",
 			logMessage: func(l ports.Logger) {
 				l.Error(context.Background(), "error message", nil)
 			},
@@ -383,7 +388,7 @@ func TestLoggerIntegration_DifferentLevels(t *testing.T) {
 		},
 		{
 			name:     "info message at error level",
-			logLevel: "quiet",
+			logLevel: "error",
 			logMessage: func(l ports.Logger) {
 				l.Info(context.Background(), "info message", nil)
 			},

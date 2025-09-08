@@ -36,12 +36,14 @@ This separation allows for clean pipeline usage and log redirection.
 
 ## Output Formats
 
-### Console Format (Default for TTY)
+### Default Format (Console for TTY)
 
 Beautiful, colored output with icons for interactive terminal usage:
 
 ```bash
 gitprovidersync sync --dry-run
+# or explicitly:
+gitprovidersync sync --format=default
 ```
 
 Features:

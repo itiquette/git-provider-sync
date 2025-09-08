@@ -84,7 +84,7 @@ Allows syncing to multiple mirror destinations.`,
 				Name:     "log-level",
 				Aliases:  []string{"l"},
 				Value:    "brief",
-				Usage:    "Set logging level: quiet | brief | debug | trace",
+				Usage:    "Set logging level: error | warn | info | debug | trace",
 				Category: "Output Control",
 			},
 			&cli.StringFlag{

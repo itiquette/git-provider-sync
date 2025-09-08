@@ -5,9 +5,9 @@ package synccmd
 
 // Verbosity levels.
 const (
-	VerbosityQuiet   = "quiet"
-	VerbosityBrief   = "brief"
-	VerbosityVerbose = "verbose"
-	VerbosityDebug   = "debug"
-	VerbosityTrace   = "trace"
+	VerbosityError = "error" // Only errors
+	VerbosityWarn  = "warn"  // Warnings and errors
+	VerbosityInfo  = "info"  // Normal information (default)
+	VerbosityDebug = "debug" // Detailed debugging
+	VerbosityTrace = "trace" // Very detailed tracing
 )

@@ -28,6 +28,8 @@ type contextKey string
 const (
 	// logLevelKey is the context key for log level..
 	logLevelKey contextKey = "logLevel"
+	// logLevelExplicitKey is the context key for whether log level was explicitly set.
+	logLevelExplicitKey contextKey = "logLevelExplicit"
 )
 
 // NewSyncCommand creates the sync command for repository mirroring.
@@ -158,12 +160,14 @@ func initLogger(ctx context.Context, cmd *cli.Command) context.Context {
 	outputFormat := cliConfig.OutputFormat()
 
 	// Extract log level using the new helper
-	logLevel := extractLogLevel(cmd)
-	quiet := logLevel == VerbosityQuiet
+	logLevel, explicitlySet := extractLogLevel(cmd)
+	quiet := logLevel == VerbosityError
 
 	ctx = log.InitLogger(ctx, logLevel, quiet, withCaller, outputFormat)
 	// Store log level in context for container configuration
 	ctx = context.WithValue(ctx, logLevelKey, logLevel)
+	// Store whether log level was explicitly set
+	ctx = context.WithValue(ctx, logLevelExplicitKey, explicitlySet)
 	log.Logger(ctx).Trace().Msg("Logger initialized")
 
 	return ctx
@@ -171,27 +175,28 @@ func initLogger(ctx context.Context, cmd *cli.Command) context.Context {
 
 // ExtractLogLevel determines the effective log level from various flags
 // Duplicated here to avoid circular dependency with baseoption.
-func extractLogLevel(cmd *cli.Command) string {
+// Returns the log level and whether it was explicitly set by the user.
+func extractLogLevel(cmd *cli.Command) (string, bool) {
 	// Handle nil command
 	if cmd == nil {
-		return VerbosityBrief
+		return VerbosityInfo, false
 	}
 
 	// Explicit log-level takes highest precedence
 	if level := cmd.String("log-level"); level != "" {
-		return level
+		return level, true
 	}
 
 	// Then check shortcuts (most specific first)
 	if cmd.Bool("quiet") {
-		return VerbosityQuiet
+		return VerbosityError, true
 	}
 
 	if cmd.Bool("debug") {
-		return VerbosityDebug
+		return VerbosityDebug, true
 	}
 
-	return VerbosityBrief // default
+	return VerbosityInfo, false // default, not explicitly set
 }
 
 // ConfirmDangerousOperations checks if dangerous operations need confirmation

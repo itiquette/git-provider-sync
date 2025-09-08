@@ -68,8 +68,8 @@ func (f *ConsoleFormatter) StartEnvironment(env string) {
 // StartSync indicates the start of a sync configuration.
 func (f *ConsoleFormatter) StartSync(env, config, sourceProvider string) {
 	f.currentSync = fmt.Sprintf("%s/%s", env, config)
-	// Only show this in verbose mode
-	if f.verbosity == VerbosityVerbose || f.verbosity == VerbosityDebug || f.verbosity == VerbosityTrace {
+	// Only show this in info mode or higher
+	if f.verbosity == VerbosityInfo || f.verbosity == VerbosityDebug || f.verbosity == VerbosityTrace {
 		_, _ = f.dim.Fprintf(f.writer, "  Starting sync: %s (%s)\n", config, sourceProvider)
 	}
 }
@@ -104,8 +104,8 @@ func (f *ConsoleFormatter) MirrorSynced(_ string, _, _, _ int, _ time.Duration) 
 
 // RepositorySynced indicates a single repository was synced.
 func (f *ConsoleFormatter) RepositorySynced(name string, success bool, message string) {
-	// Only show in verbose mode
-	if f.verbosity != VerbosityVerbose && f.verbosity != VerbosityDebug && f.verbosity != VerbosityTrace {
+	// Only show in info mode or higher
+	if f.verbosity != VerbosityInfo && f.verbosity != VerbosityDebug && f.verbosity != VerbosityTrace {
 		return
 	}
 
@@ -172,7 +172,8 @@ func (f *ConsoleFormatter) Warning(message string) {
 
 // Info outputs an info message (respects verbosity).
 func (f *ConsoleFormatter) Info(message string) {
-	if f.verbosity == VerbosityQuiet || f.verbosity == VerbosityBrief {
+	// Only show info messages in info level or higher
+	if f.verbosity == VerbosityError || f.verbosity == VerbosityWarn {
 		return
 	}
 

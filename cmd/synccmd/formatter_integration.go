@@ -157,6 +157,43 @@ func convertSyncResults(results *sync.Results) ports.SyncResults {
 	}
 }
 
+// mapZerologLevelToVerbosity maps zerolog levels to verbosity constants.
+func mapZerologLevelToVerbosity(level zerolog.Level) string {
+	switch level {
+	case zerolog.TraceLevel:
+		return VerbosityTrace
+	case zerolog.DebugLevel:
+		return VerbosityDebug
+	case zerolog.InfoLevel:
+		return VerbosityInfo
+	case zerolog.WarnLevel:
+		return VerbosityWarn
+	case zerolog.ErrorLevel, zerolog.FatalLevel, zerolog.PanicLevel:
+		return VerbosityError
+	case zerolog.NoLevel, zerolog.Disabled:
+		return VerbosityError
+	default:
+		return VerbosityInfo
+	}
+}
+
+// determineOutputFormat determines the output format based on context.
+func determineOutputFormat(ctx context.Context, cliConfig entities.CLIConfig) string {
+	outputFormat := cliConfig.OutputFormat()
+	if outputFormat != "" {
+		return outputFormat
+	}
+
+	// Check if log level was explicitly set
+	if explicit, ok := ctx.Value(logLevelExplicitKey).(bool); ok && explicit {
+		// Auto-switch to plain format when log level is explicitly set
+		return cli.FormatPlain
+	}
+
+	// Use default format when no log level is set
+	return cli.FormatDefault
+}
+
 // createSyncFormatter creates the appropriate formatter based on configuration.
 func createSyncFormatter(ctx context.Context) ports.SyncOutputFormatter {
 	// Extract CLI config
@@ -166,21 +203,28 @@ func createSyncFormatter(ctx context.Context) ports.SyncOutputFormatter {
 	}
 
 	// Determine log level from logger
-	logLevel := VerbosityBrief
-
+	logLevel := VerbosityInfo
 	if logger := zerolog.Ctx(ctx); logger != nil {
-		switch logger.GetLevel() {
-		case zerolog.TraceLevel:
-			logLevel = VerbosityTrace
-		case zerolog.DebugLevel:
-			logLevel = VerbosityDebug
-		case zerolog.InfoLevel:
-			logLevel = VerbosityVerbose
-		case zerolog.WarnLevel, zerolog.ErrorLevel, zerolog.FatalLevel, zerolog.PanicLevel:
-			logLevel = VerbosityBrief
-		case zerolog.NoLevel, zerolog.Disabled:
-			logLevel = VerbosityQuiet
-		}
+		logLevel = mapZerologLevelToVerbosity(logger.GetLevel())
+	}
+
+	// Determine output format
+	outputFormat := determineOutputFormat(ctx, cliConfig)
+
+	// Update CLI config if format was auto-determined
+	if cliConfig.OutputFormat() == "" && outputFormat != "" {
+		cliConfig = entities.NewCLIConfigBuilder().
+			WithOutputFormat(outputFormat).
+			WithVerbosityWithCaller(cliConfig.VerbosityWithCaller()).
+			WithQuiet(cliConfig.Quiet()).
+			WithConfigFilePath(cliConfig.ConfigFilePath()).
+			WithConfigFileOnly(cliConfig.ConfigFileOnly()).
+			WithDryRun(cliConfig.DryRun()).
+			WithForcePush(cliConfig.ForcePush()).
+			WithAlphaNumHyphName(cliConfig.AlphaNumHyphName()).
+			WithIgnoreInvalidName(cliConfig.IgnoreInvalidName()).
+			WithActiveFromLimit(cliConfig.ActiveFromLimit()).
+			Build()
 	}
 
 	// Create formatter - using stdout for user-facing output

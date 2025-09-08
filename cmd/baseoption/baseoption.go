@@ -37,7 +37,7 @@ func ExtractRootInputOptions(cmd *cli.Command) (entities.CLIConfig, error) {
 		case json:
 			outputFormat = "json"
 		case terminal.IsOutput():
-			outputFormat = "console" // Human-readable for TTY
+			outputFormat = "default" // Human-readable for TTY
 		default:
 			outputFormat = "plain" // Machine-readable for pipes
 		}

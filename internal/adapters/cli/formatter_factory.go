@@ -26,8 +26,8 @@ func (f *FormatterFactory) CreateFormatter(config entities.CLIConfig, verbosity 
 		writer = os.Stdout // Default to stdout for user-facing output
 	}
 
-	// If quiet mode is explicitly set, use quiet formatter
-	if config.Quiet() || verbosity == VerbosityQuiet {
+	// If quiet/error mode is explicitly set, use quiet formatter
+	if config.Quiet() || verbosity == VerbosityError {
 		return NewQuietFormatter(writer)
 	}
 
@@ -39,14 +39,14 @@ func (f *FormatterFactory) CreateFormatter(config entities.CLIConfig, verbosity 
 	case FormatPlain:
 		return NewPlainFormatter(writer, verbosity)
 
-	case FormatConsole:
-		// Check if NO_COLOR is set or if colors should be disabled
+	case FormatDefault, "":
+		// Default formatter with colors and icons for human-friendly output
 		noColor := os.Getenv("NO_COLOR") != "" || config.ColorMode() == ColorModeNever
 
 		return NewConsoleFormatter(writer, verbosity, noColor)
 
 	default:
-		// Default to console formatter
+		// Unknown format - use default formatter
 		noColor := os.Getenv("NO_COLOR") != "" || config.ColorMode() == ColorModeNever
 
 		return NewConsoleFormatter(writer, verbosity, noColor)

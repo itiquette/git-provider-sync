@@ -5,17 +5,17 @@ package cli
 
 // Verbosity levels.
 const (
-	VerbosityQuiet   = "quiet"
-	VerbosityBrief   = "brief"
-	VerbosityVerbose = "verbose"
-	VerbosityDebug   = "debug"
-	VerbosityTrace   = "trace"
+	VerbosityError = "error" // Only errors
+	VerbosityWarn  = "warn"  // Warnings and errors
+	VerbosityInfo  = "info"  // Normal information (default)
+	VerbosityDebug = "debug" // Detailed debugging
+	VerbosityTrace = "trace" // Very detailed tracing
 )
 
 // Output formats.
 const (
-	FormatConsole = "console"
-	FormatPlain   = "plain"
+	FormatDefault = "default" // Default human-friendly format with colors and icons
+	FormatPlain   = "plain"   // Simple text format for logs and pipelines
 	// FormatJSON is already defined in the package.
 )
 

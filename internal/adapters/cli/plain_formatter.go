@@ -41,7 +41,7 @@ func (f *PlainFormatter) StartEnvironment(env string) {
 // StartSync indicates the start of a sync configuration.
 func (f *PlainFormatter) StartSync(env, config, sourceProvider string) {
 	f.currentSync = fmt.Sprintf("%s/%s", env, config)
-	if f.verbosity == VerbosityVerbose || f.verbosity == VerbosityDebug || f.verbosity == VerbosityTrace {
+	if f.verbosity == VerbosityInfo || f.verbosity == VerbosityDebug || f.verbosity == VerbosityTrace {
 		_, _ = fmt.Fprintf(f.writer, "  Starting sync: %s (%s)\n", config, sourceProvider)
 	}
 }
