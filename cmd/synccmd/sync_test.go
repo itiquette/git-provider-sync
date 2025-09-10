@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"itiquette/git-provider-sync/internal/adapters/configuration/dto"
+	"itiquette/git-provider-sync/internal/adapters/filesystem"
 	"itiquette/git-provider-sync/internal/domain/entities"
 	"itiquette/git-provider-sync/internal/domain/ports"
 	"itiquette/git-provider-sync/internal/domain/sync"
@@ -369,8 +370,8 @@ func TestShowSyncSummary(_ *testing.T) { //nolint:paralleltest // DO NOT run thi
 	showSyncSummary(dryRunResults)
 }
 
-func TestSaveLastSyncInfo(t *testing.T) { //nolint:paralleltest // Cannot run in parallel due to directory changes
-	// Don't use t.Parallel() since we're changing directories
+func TestSaveLastSyncInfo(t *testing.T) {
+	t.Parallel() // Safe now - no more directory changes!
 
 	// Create temporary directory for test
 	tmpDir := t.TempDir()
@@ -382,23 +383,14 @@ func TestSaveLastSyncInfo(t *testing.T) { //nolint:paralleltest // Cannot run in
 	results.FailedSyncs = 1
 	results.SkippedSyncs = 1
 
-	// Test save function - it saves to current directory
-	// So we need to be in the tmp directory
-	originalWd, err := os.Getwd()
-	require.NoError(t, err)
-
-	defer func() {
-		err := os.Chdir(originalWd)
-		require.NoError(t, err)
-	}()
-
-	err = os.Chdir(tmpDir)
-	require.NoError(t, err)
-
-	saveLastSyncInfo(results)
+	// Use dependency injection with a test writer pointing to our temp directory
+	// No need to change directories anymore!
+	writer := filesystem.NewSyncInfoWriter(tmpDir)
+	saveLastSyncInfoWithWriter(results, writer)
 
 	// Verify file was created in temp directory
-	content, err := os.ReadFile(getLastSyncFilePath())
+	expectedPath := filepath.Join(tmpDir, ".gitprovidersync-last-sync")
+	content, err := os.ReadFile(expectedPath) //nolint:gosec // Test file with controlled path
 	require.NoError(t, err)
 
 	contentStr := string(content)

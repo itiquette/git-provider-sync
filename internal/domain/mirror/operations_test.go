@@ -4,6 +4,7 @@
 package mirror
 
 import (
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -18,13 +19,16 @@ import (
 func TestPlanCloneAndMirror(t *testing.T) {
 	t.Parallel()
 
+	// Create isolated temp directory for test
+	tmpDir := t.TempDir()
+
 	source := RepositorySpec{
 		URL:         "https://github.com/owner/source-repo.git",
 		Name:        "source-repo",
 		Owner:       "owner",
 		Provider:    "github",
 		Branch:      "main",
-		LocalPath:   "/tmp/source",
+		LocalPath:   filepath.Join(tmpDir, "source"),
 		IsPrivate:   false,
 		Topics:      []string{"topic1", "topic2"},
 		Description: "Source repository",
@@ -38,7 +42,7 @@ func TestPlanCloneAndMirror(t *testing.T) {
 		Owner:       "owner",
 		Provider:    "gitlab",
 		Branch:      "main",
-		LocalPath:   "/tmp/target",
+		LocalPath:   filepath.Join(tmpDir, "target"),
 		IsPrivate:   true,
 		Topics:      []string{},
 		Description: "Target repository",
@@ -139,10 +143,13 @@ func TestPlanCloneAndMirror(t *testing.T) {
 func TestPlanCloneAndMirror_WithDryRun(t *testing.T) {
 	t.Parallel()
 
+	// Create isolated temp directory for test
+	tmpDir := t.TempDir()
+
 	source := RepositorySpec{
 		URL:       "https://github.com/owner/source.git",
 		Name:      "source",
-		LocalPath: "/tmp/source",
+		LocalPath: tmpDir + "/source",
 	}
 
 	target := RepositorySpec{
@@ -178,10 +185,13 @@ func TestPlanCloneAndMirror_WithDryRun(t *testing.T) {
 func TestPlanSync(t *testing.T) {
 	t.Parallel()
 
+	// Create isolated temp directory for test
+	tmpDir := t.TempDir()
+
 	source := RepositorySpec{
 		URL:       "https://github.com/owner/source-repo.git",
 		Name:      "source-repo",
-		LocalPath: "/tmp/source",
+		LocalPath: tmpDir + "/source",
 		Auth:      AuthSpec{Type: ports.AuthTypeToken, Token: "source-token"},
 	}
 
@@ -239,10 +249,13 @@ func TestPlanSync(t *testing.T) {
 func TestPlanSync_WithDryRun(t *testing.T) {
 	t.Parallel()
 
+	// Create isolated temp directory for test
+	tmpDir := t.TempDir()
+
 	source := RepositorySpec{
 		URL:       "https://github.com/owner/source.git",
 		Name:      "source",
-		LocalPath: "/tmp/source",
+		LocalPath: tmpDir + "/source",
 	}
 
 	target := RepositorySpec{

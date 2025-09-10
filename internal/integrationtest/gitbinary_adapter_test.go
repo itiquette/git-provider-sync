@@ -24,15 +24,17 @@ import (
 // TestGitBinaryAdapterIntegration tests GitBinary adapter operations
 // Moved from internal/adapters/repository/gitbinary/adapter_test.go:350
 func TestGitBinaryAdapterIntegration(t *testing.T) {
-
-	t.Parallel()
+	// Note: Cannot use t.Parallel() with Git isolation that uses t.Setenv
+	// This is a Go testing limitation - acceptable trade-off for proper isolation
+	testutil.IsolateGitEnvironment(t)
 
 	config := ports.GitConfig{
 		UserName:  "GitBinary Integration Test",
 		UserEmail: "gitbinary@integration.test",
 	}
 
-	adapter := gitbinary.New(config)
+	// Use t.TempDir() for complete test isolation
+	adapter := gitbinary.NewWithTempDir(config, t.TempDir())
 	zerologInstance := zerolog.New(os.Stderr).Level(zerolog.InfoLevel)
 	logger := logging.NewZerologAdapter(&zerologInstance)
 	ctx := context.Background()
@@ -75,12 +77,14 @@ func TestGitBinaryAdapterIntegration(t *testing.T) {
 func testGitBinaryInitRepository(t *testing.T, adapter *gitbinary.Adapter) {
 	t.Helper()
 
+	ctx := context.Background()
+
 	// Create safe isolated test environment
 	env, err := testutil.SetupSimpleGitTestEnvironment(t, adapter)
 	require.NoError(t, err)
 	// No manual cleanup needed - t.TempDir() handles it automatically
 
-	ctx := context.Background()
+	// Use the provided context with Git environment
 	repoPath := filepath.Join(env.TmpDir, "test-repo")
 
 	// Test repository initialization

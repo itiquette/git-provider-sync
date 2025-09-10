@@ -171,25 +171,35 @@ func TestConvertAuthOptions(t *testing.T) {
 			},
 		},
 		{
-			name: "ssh key auth",
+			name: "ssh key auth with path",
+			authOpts: ports.AuthOptions{
+				Type:       ports.AuthTypeSSHKey,
+				SSHKeyPath: "/path/to/key",
+			},
+			want: AuthConfig{
+				Protocol:   "ssh",
+				SSHCommand: "ssh -i /path/to/key",
+			},
+		},
+		{
+			name: "ssh key auth with bytes - not supported for security",
 			authOpts: ports.AuthOptions{
 				Type:   ports.AuthTypeSSHKey,
 				SSHKey: []byte("ssh-key-content"),
 			},
 			want: AuthConfig{
 				Protocol:   "ssh",
-				SSHCommand: "ssh -i /tmp/ssh_key",
+				SSHCommand: "", // Empty - in-memory keys not supported
 			},
 		},
 		{
 			name: "ssh agent auth",
 			authOpts: ports.AuthOptions{
-				Type:   ports.AuthTypeSSHAgent,
-				SSHKey: []byte("ssh-key-content"),
+				Type: ports.AuthTypeSSHAgent,
 			},
 			want: AuthConfig{
 				Protocol:   "ssh",
-				SSHCommand: "ssh -i /tmp/ssh_key",
+				SSHCommand: "", // Empty - ssh-agent used automatically
 			},
 		},
 	}
@@ -319,7 +329,7 @@ func TestCleanup(t *testing.T) {
 	require.NoError(t, err)
 
 	// Test cleanup with non-existent path in temp directory
-	nonExistentPath := filepath.Join(os.TempDir(), "nonexistent", "path")
+	nonExistentPath := filepath.Join(t.TempDir(), "nonexistent", "path")
 	err = adapter.Cleanup(ctx, nonExistentPath)
 	require.NoError(t, err) // Should not fail for non-existent path
 

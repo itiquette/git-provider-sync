@@ -34,16 +34,21 @@ func createMockGitConfig() ports.GitConfig {
 func createTestArchive(tb testing.TB) string {
 	tb.Helper()
 
-	// Create temp archive file
-	archiveFile, err := os.CreateTemp("", "test-archive-*.tar.gz")
-	if err != nil {
-		tb.Fatal(err)
+	// Get temp directory from test
+	var tempDir string
+
+	switch v := tb.(type) {
+	case *testing.T:
+		tempDir = v.TempDir()
+	case *testing.B:
+		tempDir = v.TempDir()
+	default:
+		tb.Fatal("unsupported testing type")
 	}
 
-	archivePath := archiveFile.Name()
-	_ = archiveFile.Close()
+	// Create archive file in test temp directory
+	archivePath := filepath.Join(tempDir, "test-archive.tar.gz")
 
-	// Create archive
 	file, err := os.Create(archivePath) //nolint:gosec // Test file with controlled path
 	if err != nil {
 		tb.Fatal(err)
@@ -103,9 +108,16 @@ func createTestArchive(tb testing.TB) string {
 func createTempDirWithFiles(tb testing.TB) string {
 	tb.Helper()
 
-	tempDir, err := os.MkdirTemp("", "archive-source-*")
-	if err != nil {
-		tb.Fatal(err)
+	// Both *testing.T and *testing.B have TempDir() method
+	var tempDir string
+
+	switch v := tb.(type) {
+	case *testing.T:
+		tempDir = v.TempDir()
+	case *testing.B:
+		tempDir = v.TempDir()
+	default:
+		tb.Fatal("unsupported testing type")
 	}
 
 	// Create test files
@@ -274,8 +286,7 @@ func TestAdapter_Clone_ValidArchive(t *testing.T) {
 	t.Parallel()
 
 	archivePath := createTestArchive(t)
-
-	defer func() { _ = os.Remove(archivePath) }()
+	// No need to defer cleanup - archive is in t.TempDir()
 
 	destDir := t.TempDir()
 
@@ -482,10 +493,7 @@ func TestAdapter_Push_CreateArchive(t *testing.T) {
 	require.NoError(t, err)
 
 	// Verify archive contents by extracting to a temp directory
-	extractDir, err := os.MkdirTemp("", "extract-test-*")
-	require.NoError(t, err)
-
-	defer func() { _ = os.RemoveAll(extractDir) }()
+	extractDir := t.TempDir()
 
 	err = adapter.extractArchive(archivePath, extractDir)
 	require.NoError(t, err)
@@ -1055,18 +1063,15 @@ func BenchmarkAdapter_Clone(b *testing.B) {
 
 	b.ResetTimer()
 
-	for i := range b.N {
-		destDir, err := os.MkdirTemp("", fmt.Sprintf("benchmark-clone-%d-*", i))
-		if err != nil {
-			b.Fatal(err)
-		}
+	for range b.N {
+		destDir := b.TempDir()
 
 		options := ports.CloneOptions{
 			URL:  "file://" + archivePath,
 			Path: destDir,
 		}
 
-		_, err = adapter.Clone(context.Background(), options)
+		_, err := adapter.Clone(context.Background(), options)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -1084,13 +1089,10 @@ func BenchmarkAdapter_extractArchive(b *testing.B) {
 
 	b.ResetTimer()
 
-	for i := range b.N {
-		destDir, err := os.MkdirTemp("", fmt.Sprintf("benchmark-extract-%d-*", i))
-		if err != nil {
-			b.Fatal(err)
-		}
+	for range b.N {
+		destDir := b.TempDir()
 
-		err = adapter.extractArchive(archivePath, destDir)
+		err := adapter.extractArchive(archivePath, destDir)
 		if err != nil {
 			b.Fatal(err)
 		}

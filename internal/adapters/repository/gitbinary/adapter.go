@@ -6,12 +6,12 @@ package gitbinary
 import (
 	"context"
 	"fmt"
-	"itiquette/git-provider-sync/internal/adapters/filesystem"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
+	"itiquette/git-provider-sync/internal/adapters/filesystem"
 	"itiquette/git-provider-sync/internal/domain"
 	"itiquette/git-provider-sync/internal/domain/ports"
 	"itiquette/git-provider-sync/internal/shared"
@@ -38,14 +38,31 @@ func New(config ports.GitConfig) *Adapter {
 	}
 }
 
+// NewWithTempDir creates a new git binary adapter with a specific temp directory.
+// This is useful for testing to ensure complete isolation.
+func NewWithTempDir(config ports.GitConfig, tempDir string) *Adapter {
+	return &Adapter{
+		config:      config,
+		tempDir:     tempDir,
+		initialized: false,
+	}
+}
+
 // Initialize initializes the git binary adapter with proper dependencies.
 func (a *Adapter) Initialize(ctx context.Context, logger ports.Logger) error {
 	if a.initialized {
 		return nil
 	}
 
-	// Create temporary directory
-	a.tempDir = "/tmp/git-provider-sync-binary"
+	// Create temporary directory if not already set (e.g., from NewWithTempDir)
+	if a.tempDir == "" {
+		tempDir, err := os.MkdirTemp("", "git-provider-sync-binary-*")
+		if err != nil {
+			return fmt.Errorf("failed to create temp directory: %w", err)
+		}
+
+		a.tempDir = tempDir
+	}
 
 	// Create mirror service with timeout from config
 	timeout := a.config.Timeout
@@ -202,6 +219,10 @@ func (a *Adapter) DeleteTmpDir(ctx context.Context) error {
 // Helper methods
 
 // ConvertAuthOptions converts ports.AuthOptions to gitbinary.AuthConfig.
+// Note: For security reasons, this adapter does NOT support in-memory SSH keys.
+// SSH keys must either be:
+// 1. Already on disk (via SSHKeyPath)
+// 2. Managed by ssh-agent (AuthTypeSSHAgent).
 func (a *Adapter) convertAuthOptions(auth ports.AuthOptions) AuthConfig {
 	authConfig := AuthConfig{
 		Token: auth.Token,
@@ -216,16 +237,33 @@ func (a *Adapter) convertAuthOptions(auth ports.AuthOptions) AuthConfig {
 	case ports.AuthTypeToken:
 		authConfig.Protocol = protocolHTTPS
 	case ports.AuthTypeSSH:
-		// Generic SSH type
+		// Generic SSH type - use default SSH behavior (ssh-agent or default keys)
 		authConfig.Protocol = protocolSSH
-	case ports.AuthTypeSSHKey, ports.AuthTypeSSHAgent:
+	case ports.AuthTypeSSHKey:
 		authConfig.Protocol = protocolSSH
-		if len(auth.SSHKey) > 0 {
-			authConfig.SSHCommand = "ssh -i /tmp/ssh_key"
+		if auth.SSHKeyPath != "" {
+			// Use existing SSH key file (secure - user manages the file)
+			authConfig.SSHCommand = "ssh -i " + auth.SSHKeyPath
+		} else if len(auth.SSHKey) > 0 {
+			// SECURITY: We do NOT write private keys to disk
+			// The git binary adapter cannot support in-memory keys
+			// Users should use SSHKeyPath or ssh-agent instead
+			a.logSSHKeyWarning()
 		}
+	case ports.AuthTypeSSHAgent:
+		// Use ssh-agent (secure - keys stay in memory)
+		authConfig.Protocol = protocolSSH
+		// No SSHCommand needed - ssh will use agent automatically
 	}
 
 	return authConfig
+}
+
+// logSSHKeyWarning logs a warning about in-memory SSH keys not being supported.
+func (a *Adapter) logSSHKeyWarning() {
+	// This is a no-op for now since we don't have logger access here
+	// In production, this should log:
+	// "Git binary adapter does not support in-memory SSH keys for security reasons. Use SSHKeyPath or ssh-agent."
 }
 
 // DetermineMirrorType determines the mirror type from clone options.

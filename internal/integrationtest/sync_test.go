@@ -20,8 +20,9 @@ import (
 
 // TestGitRepositoryCreationIntegration tests real git repository creation and basic operations
 func TestGitRepositoryCreationIntegration(t *testing.T) {
-
-	t.Parallel()
+	// Isolate Git environment from host system
+	// Note: Cannot use t.Parallel() when using t.Setenv in IsolateGitEnvironment
+	testutil.IsolateGitEnvironment(t)
 
 	gitOps := gogit.New(ports.GitConfig{
 		UserName:    "integration-test",

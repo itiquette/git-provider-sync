@@ -25,8 +25,9 @@ import (
 // TestCriticalGitHubToGitLabSyncFlow tests the critical GitHub → GitLab sync flow
 // That was failing due to missing remote URL update
 func TestCriticalGitHubToGitLabSyncFlow(t *testing.T) {
-
-	t.Parallel()
+	// Isolate Git environment from host system
+	// Note: Cannot use t.Parallel() when using t.Setenv in IsolateGitEnvironment
+	testutil.IsolateGitEnvironment(t)
 
 	ctx := context.Background()
 

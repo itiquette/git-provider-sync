@@ -85,12 +85,11 @@ func TestRemoveAllInTempDir_ActualDirectory(t *testing.T) {
 	t.Parallel()
 
 	// Create a real temp directory
-	tempDir, err := os.MkdirTemp("", "test-removeall-*")
-	require.NoError(t, err)
+	tempDir := t.TempDir()
 
 	// Create a file in it
 	testFile := filepath.Join(tempDir, "test.txt")
-	err = os.WriteFile(testFile, []byte("test"), 0600)
+	err := os.WriteFile(testFile, []byte("test"), 0600)
 	require.NoError(t, err)
 
 	// Verify it exists

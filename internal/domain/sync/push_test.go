@@ -6,6 +6,7 @@ package sync
 import (
 	"context"
 	"itiquette/git-provider-sync/internal/adapters/shared"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/mock"
@@ -20,6 +21,9 @@ import (
 func TestPushToProviderUseCase_Execute(t *testing.T) {
 	t.Parallel()
 
+	// Create isolated temp directory for all test cases
+	tmpDir := t.TempDir()
+
 	tests := []struct {
 		name           string
 		setupMocks     func(*SharedMockRepositoryProvider, *SharedMockGitRepository, *SharedMockGitOperations)
@@ -32,7 +36,7 @@ func TestPushToProviderUseCase_Execute(t *testing.T) {
 			setupMocks: func(provider *SharedMockRepositoryProvider, gitRepo *SharedMockGitRepository, _ *SharedMockGitOperations) {
 				// Mock GPSUPSTREAM remote setup
 				gitRepo.On("Name").Return("test-repo")
-				gitRepo.On("Path").Return("/tmp/test-repo")
+				gitRepo.On("Path").Return(filepath.Join(tmpDir, "test-repo"))
 				gitRepo.On("ListRemotes", mock.Anything).Return([]ports.RemoteInfo{
 					{Name: "origin", URL: "https://github.com/source/test-repo.git"},
 				}, nil).Once()
@@ -71,7 +75,7 @@ func TestPushToProviderUseCase_Execute(t *testing.T) {
 			setupMocks: func(provider *SharedMockRepositoryProvider, gitRepo *SharedMockGitRepository, _ *SharedMockGitOperations) {
 				// Mock GPSUPSTREAM remote setup
 				gitRepo.On("Name").Return("new-repo")
-				gitRepo.On("Path").Return("/tmp/new-repo")
+				gitRepo.On("Path").Return(filepath.Join(tmpDir, "new-repo"))
 				gitRepo.On("ListRemotes", mock.Anything).Return([]ports.RemoteInfo{
 					{Name: "origin", URL: "https://github.com/source/new-repo.git"},
 				}, nil).Once()
@@ -127,7 +131,7 @@ func TestPushToProviderUseCase_Execute(t *testing.T) {
 			setupMocks: func(provider *SharedMockRepositoryProvider, gitRepo *SharedMockGitRepository, _ *SharedMockGitOperations) {
 				// Mock GPSUPSTREAM remote setup
 				gitRepo.On("Name").Return("fail-repo")
-				gitRepo.On("Path").Return("/tmp/fail-repo")
+				gitRepo.On("Path").Return(filepath.Join(tmpDir, "fail-repo"))
 				gitRepo.On("ListRemotes", mock.Anything).Return([]ports.RemoteInfo{
 					{Name: "origin", URL: "https://github.com/source/fail-repo.git"},
 				}, nil).Once()
@@ -208,6 +212,9 @@ func TestPushToProviderUseCase_Execute(t *testing.T) {
 func TestPushToProviderUseCase_setupGPSUpstreamRemote(t *testing.T) {
 	t.Parallel()
 
+	// Create isolated temp directory for all test cases
+	tmpDir := t.TempDir()
+
 	tests := []struct {
 		name        string
 		setupMock   func(*SharedMockGitRepository)
@@ -217,7 +224,7 @@ func TestPushToProviderUseCase_setupGPSUpstreamRemote(t *testing.T) {
 			name: "successful_remote_setup",
 			setupMock: func(gitRepo *SharedMockGitRepository) {
 				gitRepo.On("Name").Return("test-repo").Maybe()
-				gitRepo.On("Path").Return("/tmp/test-repo").Maybe()
+				gitRepo.On("Path").Return(filepath.Join(tmpDir, "test-repo")).Maybe()
 				gitRepo.On("ListRemotes", mock.Anything).Return([]ports.RemoteInfo{
 					{Name: "origin", URL: "https://github.com/test/repo.git"},
 				}, nil).Once()
@@ -234,7 +241,7 @@ func TestPushToProviderUseCase_setupGPSUpstreamRemote(t *testing.T) {
 			name: "missing_origin_remote",
 			setupMock: func(gitRepo *SharedMockGitRepository) {
 				gitRepo.On("Name").Return("test-repo").Maybe()
-				gitRepo.On("Path").Return("/tmp/test-repo").Maybe()
+				gitRepo.On("Path").Return(filepath.Join(tmpDir, "test-repo")).Maybe()
 				gitRepo.On("ListRemotes", mock.Anything).Return([]ports.RemoteInfo{}, nil).Once()
 			},
 			expectError: true,

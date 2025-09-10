@@ -19,8 +19,9 @@ import (
 
 // TestGoGitAdapterRealGitIntegration tests gogit adapter with real git operations
 func TestGoGitAdapterRealGitIntegration(t *testing.T) {
-
-	t.Parallel()
+	// Isolate Git environment from host system
+	// Note: Cannot use t.Parallel() when using t.Setenv in IsolateGitEnvironment
+	testutil.IsolateGitEnvironment(t)
 
 	adapter := gogit.New(ports.GitConfig{
 		UserName:    "GoGit Integration Test",

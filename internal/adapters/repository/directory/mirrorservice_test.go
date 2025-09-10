@@ -1200,10 +1200,7 @@ func BenchmarkMirrorService_CreateMirror(b *testing.B) {
 	b.ResetTimer()
 
 	for range b.N {
-		targetDir, err := os.MkdirTemp("", "benchmark-mirror-*")
-		if err != nil {
-			b.Fatal(err)
-		}
+		targetDir := b.TempDir()
 
 		targetPath := filepath.Join(targetDir, "mirror")
 
@@ -1219,11 +1216,9 @@ func BenchmarkMirrorService_CreateMirror(b *testing.B) {
 			},
 		}
 
-		_, err = service.CreateMirror(context.Background(), request)
+		_, err := service.CreateMirror(context.Background(), request)
 		if err != nil {
 			b.Fatal(err)
 		}
-
-		_ = os.RemoveAll(targetDir)
 	}
 }

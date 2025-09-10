@@ -265,10 +265,7 @@ func TestAdapter_Open_FileInsteadOfDirectory(t *testing.T) {
 func TestAdapter_Init(t *testing.T) {
 	t.Parallel()
 
-	tempDir, err := os.MkdirTemp("", "init-test-*")
-	require.NoError(t, err)
-
-	defer func() { _ = os.RemoveAll(tempDir) }()
+	tempDir := t.TempDir()
 
 	newRepoPath := filepath.Join(tempDir, "new-repo")
 

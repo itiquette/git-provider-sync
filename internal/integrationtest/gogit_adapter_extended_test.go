@@ -21,8 +21,9 @@ import (
 // TestGoGitAdapterExtendedIntegration tests GoGit adapter operations
 // Moved from internal/adapters/repository/gogit/adapter_test.go:375
 func TestGoGitAdapterExtendedIntegration(t *testing.T) {
-
-	t.Parallel()
+	// Isolate Git environment from host system
+	// Note: Cannot use t.Parallel() when using t.Setenv in IsolateGitEnvironment
+	testutil.IsolateGitEnvironment(t)
 
 	adapter := gogit.New(ports.GitConfig{
 		UserName:    "GoGit Extended Test",

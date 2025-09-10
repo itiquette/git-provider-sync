@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -237,7 +238,7 @@ func TestMain_ConfigLoading_IntegratesWithCLI(t *testing.T) { //nolint:parallelt
 
 	// Create temporary config file
 	tmpDir := t.TempDir()
-	configFile := tmpDir + "/test-dto.yaml"
+	configFile := filepath.Join(tmpDir, "test-dto.yaml")
 
 	configContent := `gitprovidersync:
   test:

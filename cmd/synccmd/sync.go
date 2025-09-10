@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path/filepath"
 	"time"
 
 	"itiquette/git-provider-sync/internal/adapters/cli"
@@ -479,23 +478,26 @@ func showSyncSummary(syncResults *sync.Results) {
 	}
 }
 
-// GetLastSyncFilePath returns the path to the last sync state file in temp directory.
-func getLastSyncFilePath() string {
-	return filepath.Join(os.TempDir(), ".gitprovidersync-last-sync")
+// SaveLastSyncInfo saves simple sync info to a file for status command.
+// Uses the default filesystem writer with os.TempDir for backward compatibility.
+func saveLastSyncInfo(results *sync.Results) {
+	writer := filesystem.NewSyncInfoWriter(os.TempDir())
+	saveLastSyncInfoWithWriter(results, writer)
 }
 
-// SaveLastSyncInfo saves simple sync info to a file for status command.
-func saveLastSyncInfo(results *sync.Results) {
-	// Write to temp directory instead of current working directory
-	content := fmt.Sprintf("timestamp=%d\nrepos=%d\nsuccessful=%d\nfailed=%d\nskipped=%d\n",
-		time.Now().Unix(),
-		results.TotalRepositories,
-		results.SuccessfulSyncs,
-		results.FailedSyncs,
-		results.SkippedSyncs)
+// saveLastSyncInfoWithWriter saves sync info using the provided writer.
+// This follows dependency injection pattern for better testability.
+func saveLastSyncInfoWithWriter(results *sync.Results, writer ports.SyncInfoWriter) {
+	info := ports.SyncInfo{
+		Timestamp:         time.Now().Unix(),
+		TotalRepositories: results.TotalRepositories,
+		SuccessfulSyncs:   results.SuccessfulSyncs,
+		FailedSyncs:       results.FailedSyncs,
+		SkippedSyncs:      results.SkippedSyncs,
+	}
 
 	// Write to file (non-critical, so we don't fail the sync)
-	if err := os.WriteFile(getLastSyncFilePath(), []byte(content), 0600); err != nil {
+	if err := writer.WriteSyncInfo(info); err != nil {
 		// Log the error but don't fail the sync operation
 		fmt.Fprintf(os.Stderr, "warning: failed to write last sync info: %v\n", err)
 	}
