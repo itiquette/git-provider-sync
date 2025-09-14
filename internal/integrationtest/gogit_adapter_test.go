@@ -29,15 +29,15 @@ func TestGoGitAdapterRealGitIntegration(t *testing.T) {
 		StorageMode: ports.StorageModeFilesystem, // Required for pushable bare repos in THIS test
 	})
 
-	t.Run("real_git_remote_operations_with_bare_repos", func(t *testing.T) {
+	t.Run("real git remote operations with bare repos", func(t *testing.T) {
 		testRealGitRemoteOperations(t, adapter)
 	})
 
-	t.Run("real_git_clone_and_push_operations", func(t *testing.T) {
+	t.Run("real git clone and push operations", func(t *testing.T) {
 		testRealGitCloneAndPushOperations(t, adapter)
 	})
 
-	t.Run("real_git_branch_operations", func(t *testing.T) {
+	t.Run("real git branch operations", func(t *testing.T) {
 		testRealGitBranchOperations(t, adapter)
 	})
 }

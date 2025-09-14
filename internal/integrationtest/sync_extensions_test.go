@@ -30,15 +30,15 @@ func TestEnhancedGitOperationsIntegration(t *testing.T) {
 		StorageMode: ports.StorageModeFilesystem, // Required for pushable bare repos in tests
 	})
 
-	t.Run("complete_repository_lifecycle", func(t *testing.T) {
+	t.Run("complete repository lifecycle", func(t *testing.T) {
 		testCompleteRepositoryLifecycle(t, gitOps)
 	})
 
-	t.Run("large_repository_operations", func(t *testing.T) {
+	t.Run("large repository operations", func(t *testing.T) {
 		testLargeRepositoryOperations(t, gitOps)
 	})
 
-	t.Run("remote_management_comprehensive", func(t *testing.T) {
+	t.Run("remote management comprehensive", func(t *testing.T) {
 		testRemoteManagementComprehensive(t, gitOps)
 	})
 }

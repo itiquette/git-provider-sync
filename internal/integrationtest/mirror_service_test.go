@@ -31,15 +31,15 @@ func TestMirrorServiceIntegration(t *testing.T) {
 		StorageMode: ports.StorageModeFilesystem, // Required for pushable bare repos in tests
 	})
 
-	t.Run("complete_mirror_operation_with_real_git", func(t *testing.T) {
+	t.Run("complete mirror operation with real git", func(t *testing.T) {
 		testCompleteMirrorOperation(t, gitOps)
 	})
 
-	t.Run("mirror_repository_with_files_and_remotes", func(t *testing.T) {
+	t.Run("mirror repository with files and remotes", func(t *testing.T) {
 		testMirrorRepositoryWithFilesAndRemotes(t, gitOps)
 	})
 
-	t.Run("mirror_operation_validation", func(t *testing.T) {
+	t.Run("mirror operation validation", func(t *testing.T) {
 		testMirrorOperationValidation(t, gitOps)
 	})
 }

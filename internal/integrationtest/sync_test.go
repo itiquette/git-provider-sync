@@ -19,6 +19,17 @@ import (
 )
 
 // TestGitRepositoryCreationIntegration tests real git repository creation and basic operations
+// TEST PURPOSE:
+// Integration test validating actual git repository operations using real git commands,
+// ensuring the git adapters work correctly with actual git repositories.
+// SCENARIOS COVERED:
+// - Repository initialization and cloning
+// - Remote management (add, list, verify)
+// - File operations within repositories
+// - Repository properties verification
+// - Multiple remote support
+// LIMITATIONS:
+// Cannot run in parallel due to environment variable isolation requirements (t.Setenv)
 func TestGitRepositoryCreationIntegration(t *testing.T) {
 	// Isolate Git environment from host system
 	// Note: Cannot use t.Parallel() when using t.Setenv in IsolateGitEnvironment
@@ -30,7 +41,7 @@ func TestGitRepositoryCreationIntegration(t *testing.T) {
 		StorageMode: ports.StorageModeFilesystem, // Required for pushable bare repos in tests
 	})
 
-	t.Run("git_repository_creation_and_file_operations", func(t *testing.T) {
+	t.Run("git repository creation and file operations", func(t *testing.T) {
 		testGitRepositoryCreationAndFileOperations(t, gitOps)
 	})
 }

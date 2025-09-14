@@ -47,7 +47,7 @@ func TestCriticalGitHubToGitLabSyncFlow(t *testing.T) {
 	mockLogger.On("Info", mock.Anything, mock.AnythingOfType("string"), mock.Anything).Maybe()
 
 	// Test the critical flow: GitHub clone → GitLab sync
-	t.Run("github_clone_to_gitlab_sync_with_remote_update", func(t *testing.T) {
+	t.Run("github clone to gitlab sync with remote update", func(t *testing.T) {
 		// Step 1: Set up isolated git test environment (replaces manual bare repo setup)
 		opts := testutil.GitTestOptions{
 			SourceRepoName:  "github-repo",
