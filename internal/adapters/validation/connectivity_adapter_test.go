@@ -7,15 +7,16 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"itiquette/git-provider-sync/internal/adapters/filesystem"
 	"itiquette/git-provider-sync/internal/domain"
 	"itiquette/git-provider-sync/internal/domain/validation"
+	"itiquette/git-provider-sync/internal/testutil"
 )
 
 func TestConnectivityAdapter_ValidateConnectivity_HTTP(t *testing.T) {
@@ -74,7 +75,9 @@ func TestConnectivityAdapter_ValidateConnectivity_HTTP(t *testing.T) {
 			server := test.setupServer()
 			defer server.Close()
 
-			adapter := NewConnectivityAdapter(5 * time.Second)
+			memFS := testutil.NewMemFS(t)
+			fs := filesystem.NewAferoFileSystem(memFS.Fs)
+			adapter := NewConnectivityAdapter(5*time.Second, fs)
 			ctx := context.Background()
 
 			val := validation.ConnectivityValidation{
@@ -144,7 +147,9 @@ func TestConnectivityAdapter_ValidateConnectivity_Provider(t *testing.T) {
 			server := test.setupServer()
 			defer server.Close()
 
-			adapter := NewConnectivityAdapter(5 * time.Second)
+			memFS := testutil.NewMemFS(t)
+			fs := filesystem.NewAferoFileSystem(memFS.Fs)
+			adapter := NewConnectivityAdapter(5*time.Second, fs)
 			ctx := context.Background()
 
 			val := validation.ConnectivityValidation{
@@ -176,7 +181,9 @@ func TestConnectivityAdapter_ValidateConnectivity_Git(t *testing.T) {
 	}))
 	defer server.Close()
 
-	adapter := NewConnectivityAdapter(5 * time.Second)
+	memFS := testutil.NewMemFS(t)
+	fs := filesystem.NewAferoFileSystem(memFS.Fs)
+	adapter := NewConnectivityAdapter(5*time.Second, fs)
 	ctx := context.Background()
 
 	val := validation.ConnectivityValidation{
@@ -218,7 +225,9 @@ func TestConnectivityAdapter_ValidateConnectivity_SSH(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			adapter := NewConnectivityAdapter(1 * time.Second) // Short timeout for tests
+			memFS := testutil.NewMemFS(t)
+			fs := filesystem.NewAferoFileSystem(memFS.Fs)
+			adapter := NewConnectivityAdapter(1*time.Second, fs) // Short timeout for tests
 			ctx := context.Background()
 
 			val := validation.ConnectivityValidation{
@@ -244,7 +253,9 @@ func TestConnectivityAdapter_ValidateConnectivity_SSH(t *testing.T) {
 func TestConnectivityAdapter_ValidateConnectivity_UnsupportedType(t *testing.T) {
 	t.Parallel()
 
-	adapter := NewConnectivityAdapter(5 * time.Second)
+	memFS := testutil.NewMemFS(t)
+	fs := filesystem.NewAferoFileSystem(memFS.Fs)
+	adapter := NewConnectivityAdapter(5*time.Second, fs)
 	ctx := context.Background()
 
 	val := validation.ConnectivityValidation{
@@ -263,7 +274,9 @@ func TestConnectivityAdapter_ValidateConnectivity_UnsupportedType(t *testing.T) 
 func TestConnectivityAdapter_ValidateConnectivity_Timeout(t *testing.T) {
 	t.Parallel()
 
-	adapter := NewConnectivityAdapter(5 * time.Second)
+	memFS := testutil.NewMemFS(t)
+	fs := filesystem.NewAferoFileSystem(memFS.Fs)
+	adapter := NewConnectivityAdapter(5*time.Second, fs)
 	ctx := context.Background()
 
 	// Test with custom timeout
@@ -284,7 +297,9 @@ func TestConnectivityAdapter_ValidateConnectivity_Timeout(t *testing.T) {
 func TestConnectivityAdapter_ValidateConnectivity_ContextCancellation(t *testing.T) {
 	t.Parallel()
 
-	adapter := NewConnectivityAdapter(5 * time.Second)
+	memFS := testutil.NewMemFS(t)
+	fs := filesystem.NewAferoFileSystem(memFS.Fs)
+	adapter := NewConnectivityAdapter(5*time.Second, fs)
 	ctx, cancel := context.WithCancel(context.Background())
 
 	// Cancel context immediately
@@ -305,7 +320,9 @@ func TestConnectivityAdapter_ValidateConnectivity_ContextCancellation(t *testing
 func TestConnectivityAdapter_validateHTTP_InvalidURL(t *testing.T) {
 	t.Parallel()
 
-	adapter := NewConnectivityAdapter(5 * time.Second)
+	memFS := testutil.NewMemFS(t)
+	fs := filesystem.NewAferoFileSystem(memFS.Fs)
+	adapter := NewConnectivityAdapter(5*time.Second, fs)
 	ctx := context.Background()
 
 	// Test with invalid URL
@@ -319,7 +336,9 @@ func TestConnectivityAdapter_validateHTTP_InvalidURL(t *testing.T) {
 func TestConnectivityAdapter_validateProvider_InvalidURL(t *testing.T) {
 	t.Parallel()
 
-	adapter := NewConnectivityAdapter(5 * time.Second)
+	memFS := testutil.NewMemFS(t)
+	fs := filesystem.NewAferoFileSystem(memFS.Fs)
+	adapter := NewConnectivityAdapter(5*time.Second, fs)
 	ctx := context.Background()
 
 	// Test with invalid URL
@@ -354,7 +373,9 @@ func TestConnectivityAdapter_validateSSH_HostFormats(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			adapter := NewConnectivityAdapter(100 * time.Millisecond) // 100ms timeout for quick test failure
+			memFS := testutil.NewMemFS(t)
+			fs := filesystem.NewAferoFileSystem(memFS.Fs)
+			adapter := NewConnectivityAdapter(100*time.Millisecond, fs) // 100ms timeout for quick test failure
 			ctx := context.Background()
 
 			// We expect this to fail due to invalid host, but we can check the error message
@@ -372,7 +393,7 @@ func TestFileSystemAdapter_ValidateFileSystem_Directory(t *testing.T) {
 
 	tests := []struct {
 		name            string
-		setupPath       func() string
+		setupPath       func(memFS *testutil.AferoTestFS) string
 		needsWritable   bool
 		expectedSuccess bool
 		expectedExists  bool
@@ -380,8 +401,10 @@ func TestFileSystemAdapter_ValidateFileSystem_Directory(t *testing.T) {
 	}{
 		{
 			name: "valid readable directory",
-			setupPath: func() string {
-				return t.TempDir()
+			setupPath: func(memFS *testutil.AferoTestFS) string {
+				dirPath := "/testdir"
+				memFS.CreateDir(dirPath)
+				return dirPath
 			},
 			needsWritable:   false,
 			expectedSuccess: true,
@@ -389,8 +412,10 @@ func TestFileSystemAdapter_ValidateFileSystem_Directory(t *testing.T) {
 		},
 		{
 			name: "valid writable directory",
-			setupPath: func() string {
-				return t.TempDir()
+			setupPath: func(memFS *testutil.AferoTestFS) string {
+				dirPath := "/writabledir"
+				memFS.CreateDir(dirPath)
+				return dirPath
 			},
 			needsWritable:   true,
 			expectedSuccess: true,
@@ -398,7 +423,7 @@ func TestFileSystemAdapter_ValidateFileSystem_Directory(t *testing.T) {
 		},
 		{
 			name: "nonexistent directory",
-			setupPath: func() string {
+			setupPath: func(memFS *testutil.AferoTestFS) string {
 				return "/nonexistent/directory/path"
 			},
 			needsWritable:   false,
@@ -412,10 +437,12 @@ func TestFileSystemAdapter_ValidateFileSystem_Directory(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			adapter := NewFileSystemAdapter()
+			memFS := testutil.NewMemFS(t)
+			fs := filesystem.NewAferoFileSystem(memFS.Fs)
+			adapter := NewFileSystemAdapter(fs)
 			ctx := context.Background()
 
-			path := test.setupPath()
+			path := test.setupPath(memFS)
 			val := validation.FileSystemValidation{
 				Type:     validation.FileSystemTypeDirectory,
 				Path:     path,
@@ -458,7 +485,7 @@ func TestFileSystemAdapter_ValidateFileSystem_File(t *testing.T) {
 
 	tests := []struct {
 		name            string
-		setupPath       func() string
+		setupPath       func(memFS *testutil.AferoTestFS) string
 		needsWritable   bool
 		expectedSuccess bool
 		expectedExists  bool
@@ -466,11 +493,9 @@ func TestFileSystemAdapter_ValidateFileSystem_File(t *testing.T) {
 	}{
 		{
 			name: "valid readable file",
-			setupPath: func() string {
-				tempDir := t.TempDir()
-				testFile := tempDir + "/test.txt"
-				require.NoError(t, os.WriteFile(testFile, []byte("test"), 0600))
-
+			setupPath: func(memFS *testutil.AferoTestFS) string {
+				testFile := "/test.txt"
+				memFS.WriteFileString(testFile, "test")
 				return testFile
 			},
 			needsWritable:   false,
@@ -479,11 +504,9 @@ func TestFileSystemAdapter_ValidateFileSystem_File(t *testing.T) {
 		},
 		{
 			name: "valid writable file",
-			setupPath: func() string {
-				tempDir := t.TempDir()
-				testFile := tempDir + "/test.txt"
-				require.NoError(t, os.WriteFile(testFile, []byte("test"), 0600))
-
+			setupPath: func(memFS *testutil.AferoTestFS) string {
+				testFile := "/writable.txt"
+				memFS.WriteFileString(testFile, "test")
 				return testFile
 			},
 			needsWritable:   true,
@@ -492,8 +515,10 @@ func TestFileSystemAdapter_ValidateFileSystem_File(t *testing.T) {
 		},
 		{
 			name: "directory when expecting file",
-			setupPath: func() string {
-				return t.TempDir()
+			setupPath: func(memFS *testutil.AferoTestFS) string {
+				dirPath := "/testdir"
+				memFS.CreateDir(dirPath)
+				return dirPath
 			},
 			needsWritable:   false,
 			expectedSuccess: false,
@@ -502,7 +527,7 @@ func TestFileSystemAdapter_ValidateFileSystem_File(t *testing.T) {
 		},
 		{
 			name: "nonexistent file",
-			setupPath: func() string {
+			setupPath: func(memFS *testutil.AferoTestFS) string {
 				return "/nonexistent/file.txt"
 			},
 			needsWritable:   false,
@@ -516,10 +541,12 @@ func TestFileSystemAdapter_ValidateFileSystem_File(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			adapter := NewFileSystemAdapter()
+			memFS := testutil.NewMemFS(t)
+			fs := filesystem.NewAferoFileSystem(memFS.Fs)
+			adapter := NewFileSystemAdapter(fs)
 			ctx := context.Background()
 
-			path := test.setupPath()
+			path := test.setupPath(memFS)
 			val := validation.FileSystemValidation{
 				Type:     validation.FileSystemTypeFile,
 				Path:     path,
@@ -552,11 +579,12 @@ func TestFileSystemAdapter_ValidateFileSystem_File(t *testing.T) {
 func TestFileSystemAdapter_ValidateFileSystem_Archive(t *testing.T) {
 	t.Parallel()
 
-	tempDir := t.TempDir()
-	archiveFile := tempDir + "/test.tar.gz"
-	require.NoError(t, os.WriteFile(archiveFile, []byte("fake archive"), 0600))
+	memFS := testutil.NewMemFS(t)
+	archiveFile := "/test.tar.gz"
+	memFS.WriteFileString(archiveFile, "fake archive")
 
-	adapter := NewFileSystemAdapter()
+	fs := filesystem.NewAferoFileSystem(memFS.Fs)
+	adapter := NewFileSystemAdapter(fs)
 	ctx := context.Background()
 
 	val := validation.FileSystemValidation{
@@ -575,7 +603,9 @@ func TestFileSystemAdapter_ValidateFileSystem_Archive(t *testing.T) {
 func TestFileSystemAdapter_ValidateFileSystem_UnsupportedType(t *testing.T) {
 	t.Parallel()
 
-	adapter := NewFileSystemAdapter()
+	memFS := testutil.NewMemFS(t)
+	fs := filesystem.NewAferoFileSystem(memFS.Fs)
+	adapter := NewFileSystemAdapter(fs)
 	ctx := context.Background()
 
 	val := validation.FileSystemValidation{
@@ -597,7 +627,9 @@ func BenchmarkConnectivityAdapter_ValidateHTTP(b *testing.B) {
 	}))
 	defer server.Close()
 
-	adapter := NewConnectivityAdapter(5 * time.Second)
+	memFS := testutil.NewMemFS(b)
+	fs := filesystem.NewAferoFileSystem(memFS.Fs)
+	adapter := NewConnectivityAdapter(5*time.Second, fs)
 	ctx := context.Background()
 
 	val := validation.ConnectivityValidation{
@@ -614,13 +646,17 @@ func BenchmarkConnectivityAdapter_ValidateHTTP(b *testing.B) {
 }
 
 func BenchmarkFileSystemAdapter_ValidateDirectory(b *testing.B) {
-	tempDir := b.TempDir()
-	adapter := NewFileSystemAdapter()
+	memFS := testutil.NewMemFS(b)
+	dirPath := "/testdir"
+	memFS.CreateDir(dirPath)
+
+	fs := filesystem.NewAferoFileSystem(memFS.Fs)
+	adapter := NewFileSystemAdapter(fs)
 	ctx := context.Background()
 
 	val := validation.FileSystemValidation{
 		Type: validation.FileSystemTypeDirectory,
-		Path: tempDir,
+		Path: dirPath,
 	}
 
 	b.ResetTimer()

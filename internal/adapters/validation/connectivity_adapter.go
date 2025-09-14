@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"itiquette/git-provider-sync/internal/domain"
+	"itiquette/git-provider-sync/internal/domain/ports"
 	"itiquette/git-provider-sync/internal/domain/validation"
 )
 
@@ -18,15 +19,17 @@ import (
 type ConnectivityAdapter struct {
 	httpClient *http.Client
 	timeout    time.Duration
+	fileSystem ports.FileSystem
 }
 
 // NewConnectivityAdapter creates a new connectivity validation adapter.
-func NewConnectivityAdapter(timeout time.Duration) *ConnectivityAdapter {
+func NewConnectivityAdapter(timeout time.Duration, fileSystem ports.FileSystem) *ConnectivityAdapter {
 	return &ConnectivityAdapter{
 		httpClient: &http.Client{
 			Timeout: timeout,
 		},
-		timeout: timeout,
+		timeout:    timeout,
+		fileSystem: fileSystem,
 	}
 }
 
@@ -162,11 +165,15 @@ func (c *ConnectivityAdapter) validateSSH(ctx context.Context, target string) (b
 }
 
 // FileSystemAdapter implements file system validation.
-type FileSystemAdapter struct{}
+type FileSystemAdapter struct {
+	fileSystem ports.FileSystem
+}
 
 // NewFileSystemAdapter creates a new file system validation adapter.
-func NewFileSystemAdapter() *FileSystemAdapter {
-	return &FileSystemAdapter{}
+func NewFileSystemAdapter(fileSystem ports.FileSystem) *FileSystemAdapter {
+	return &FileSystemAdapter{
+		fileSystem: fileSystem,
+	}
 }
 
 // ValidateFileSystem executes a file system validation.
@@ -199,7 +206,7 @@ func (f *FileSystemAdapter) ValidateFileSystem(_ context.Context, val validation
 
 // ValidateDirectory validates directory access.
 func (f *FileSystemAdapter) validateDirectory(path string, needsWritable bool) (bool, bool, bool, bool, error) {
-	info, err := statPath(path)
+	info, err := statPath(f.fileSystem, path)
 	if err != nil {
 		return false, false, false, false, err
 	}
@@ -208,8 +215,8 @@ func (f *FileSystemAdapter) validateDirectory(path string, needsWritable bool) (
 		return false, true, false, false, domain.ErrPathNotDirectory
 	}
 
-	readable := isReadable(path)
-	writable := isWritable(path)
+	readable := isReadable(f.fileSystem, path)
+	writable := isWritable(f.fileSystem, path)
 
 	success := readable && (!needsWritable || writable)
 
@@ -218,7 +225,7 @@ func (f *FileSystemAdapter) validateDirectory(path string, needsWritable bool) (
 
 // ValidateFile validates file access.
 func (f *FileSystemAdapter) validateFile(path string, needsWritable bool) (bool, bool, bool, bool, error) {
-	info, err := statPath(path)
+	info, err := statPath(f.fileSystem, path)
 	if err != nil {
 		return false, false, false, false, err
 	}
@@ -227,8 +234,8 @@ func (f *FileSystemAdapter) validateFile(path string, needsWritable bool) (bool,
 		return false, true, false, false, domain.ErrPathIsDirectory
 	}
 
-	readable := isReadable(path)
-	writable := isWritable(path)
+	readable := isReadable(f.fileSystem, path)
+	writable := isWritable(f.fileSystem, path)
 
 	success := readable && (!needsWritable || writable)
 
