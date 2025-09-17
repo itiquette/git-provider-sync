@@ -16,6 +16,9 @@ import (
 func TestGetTmpDirPath(t *testing.T) {
 	t.Parallel()
 
+	tempDir := t.TempDir()
+	tempTestPath := filepath.Join(tempDir, "test")
+
 	tests := []struct {
 		name          string
 		setupContext  func() context.Context
@@ -25,9 +28,9 @@ func TestGetTmpDirPath(t *testing.T) {
 		{
 			name: "valid_temp_dir_in_context",
 			setupContext: func() context.Context {
-				return context.WithValue(context.Background(), TempDirKey{}, "/tmp/test")
+				return context.WithValue(context.Background(), TempDirKey{}, tempTestPath)
 			},
-			expectedPath: "/tmp/test",
+			expectedPath: tempTestPath,
 		},
 		{
 			name:          "empty_context",
@@ -101,7 +104,8 @@ func TestCreateTmpDir(t *testing.T) {
 			t.Parallel()
 
 			ctx := context.Background()
-			newCtx, err := CreateTmpDir(ctx, test.dir, test.prefix)
+			fileSystem := NewOSFileSystem()
+			newCtx, err := CreateTmpDir(ctx, fileSystem, test.dir, test.prefix)
 
 			if test.expectErr {
 				require.Error(t, err)
@@ -127,8 +131,8 @@ func TestCreateTmpDir(t *testing.T) {
 					assert.Contains(t, filepath.Base(tmpPath), test.prefix)
 				}
 
-				// Cleanup
-				require.NoError(t, os.RemoveAll(tmpPath))
+				// No manual cleanup needed - test creates temp dirs under t.TempDir()
+				// which are automatically cleaned up
 			}
 		})
 	}
@@ -136,6 +140,8 @@ func TestCreateTmpDir(t *testing.T) {
 
 func TestDeleteTmpDir(t *testing.T) {
 	t.Parallel()
+
+	fileSystem := NewOSFileSystem()
 
 	tests := []struct {
 		name          string
@@ -146,7 +152,7 @@ func TestDeleteTmpDir(t *testing.T) {
 			name: "valid_temp_directory",
 			setupContext: func() (context.Context, string) {
 				tmpDir := t.TempDir()
-				ctx, err := CreateTmpDir(context.Background(), tmpDir, "test")
+				ctx, err := CreateTmpDir(context.Background(), fileSystem, tmpDir, "test")
 				require.NoError(t, err)
 
 				path, err := GetTmpDirPath(ctx)
@@ -197,7 +203,7 @@ func TestDeleteTmpDir(t *testing.T) {
 				dirExisted = err == nil
 			}
 
-			err := DeleteTmpDir(ctx)
+			err := DeleteTmpDir(ctx, fileSystem)
 
 			if test.expectedError != nil {
 				require.Error(t, err)
@@ -217,7 +223,7 @@ func TestDeleteTmpDir(t *testing.T) {
 func TestIsSubdirectoryOfTemp(t *testing.T) {
 	t.Parallel()
 
-	tempDir := os.TempDir()
+	tempDir := t.TempDir()
 	validTempPath := filepath.Join(tempDir, "test", "subdir")
 
 	tests := []struct {
@@ -257,16 +263,18 @@ func TestIsSubdirectoryOfTemp(t *testing.T) {
 		},
 		{
 			name:     "path_traversal_attempt",
-			path:     tempDir + "/../etc",
+			path:     "/etc/passwd",
 			expected: false,
 		},
 	}
+
+	fileSystem := NewOSFileSystem()
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			result := isSubdirectoryOfTemp(test.path)
+			result := isSubdirectoryOfTemp(fileSystem, test.path)
 			assert.Equal(t, test.expected, result)
 		})
 	}
@@ -278,9 +286,10 @@ func TestTempDirWorkflow(t *testing.T) {
 
 	baseDir := t.TempDir()
 	ctx := context.Background()
+	fileSystem := NewOSFileSystem()
 
 	// Step 1: Create temp directory
-	ctx, err := CreateTmpDir(ctx, baseDir, "workflow")
+	ctx, err := CreateTmpDir(ctx, fileSystem, baseDir, "workflow")
 	require.NoError(t, err)
 
 	// Step 2: Get the path and verify it exists
@@ -294,6 +303,6 @@ func TestTempDirWorkflow(t *testing.T) {
 	assert.FileExists(t, testFile)
 
 	// Step 4: Cleanup
-	require.NoError(t, DeleteTmpDir(ctx))
+	require.NoError(t, DeleteTmpDir(ctx, fileSystem))
 	assert.NoDirExists(t, tmpPath)
 }

@@ -18,6 +18,7 @@ require (
 	github.com/knadh/koanf/providers/file v1.2.0
 	github.com/knadh/koanf/v2 v2.2.2
 	github.com/rs/zerolog v1.34.0
+	github.com/spf13/afero v1.15.0
 	github.com/stretchr/testify v1.10.0
 	github.com/urfave/cli/v3 v3.4.1
 	gitlab.com/gitlab-org/api/client-go v0.141.1
@@ -33,6 +34,7 @@ require (
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
+	golang.org/x/text v0.28.0 // indirect
 )
 
 require (

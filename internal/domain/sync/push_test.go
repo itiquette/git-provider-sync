@@ -32,7 +32,7 @@ func TestPushToProviderUseCase_Execute(t *testing.T) {
 		expectedResult func(PushResponse) bool
 	}{
 		{
-			name: "successful_push_to_existing_repository",
+			name: "push to existing repository succeeds",
 			setupMocks: func(provider *SharedMockRepositoryProvider, gitRepo *SharedMockGitRepository, _ *SharedMockGitOperations) {
 				// Mock GPSUPSTREAM remote setup
 				gitRepo.On("Name").Return("test-repo")
@@ -71,7 +71,7 @@ func TestPushToProviderUseCase_Execute(t *testing.T) {
 			},
 		},
 		{
-			name: "successful_creation_and_push_to_new_repository",
+			name: "creates and pushes to new repository when missing",
 			setupMocks: func(provider *SharedMockRepositoryProvider, gitRepo *SharedMockGitRepository, _ *SharedMockGitOperations) {
 				// Mock GPSUPSTREAM remote setup
 				gitRepo.On("Name").Return("new-repo")
@@ -111,7 +111,7 @@ func TestPushToProviderUseCase_Execute(t *testing.T) {
 			},
 		},
 		{
-			name: "dry_run_mode_simulation",
+			name: "simulates push when dry run is enabled",
 			setupMocks: func(_ *SharedMockRepositoryProvider, _ *SharedMockGitRepository, _ *SharedMockGitOperations) {
 				// No mocks needed for dry run - it should simulate everything
 			},
@@ -127,7 +127,7 @@ func TestPushToProviderUseCase_Execute(t *testing.T) {
 			},
 		},
 		{
-			name: "push_failure_during_git_operation",
+			name: "returns error when push operation fails",
 			setupMocks: func(provider *SharedMockRepositoryProvider, gitRepo *SharedMockGitRepository, _ *SharedMockGitOperations) {
 				// Mock GPSUPSTREAM remote setup
 				gitRepo.On("Name").Return("fail-repo")

@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io/fs"
 	"itiquette/git-provider-sync/internal/adapters/filesystem"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -21,20 +20,32 @@ import (
 // Without full git functionality, useful for file-based repositories or backups.
 type Adapter struct {
 	config ports.GitConfig
+	fs     ports.FileSystem
 }
 
-// New creates a new directory adapter.
+// New creates a new directory adapter with OS filesystem.
 func New(config ports.GitConfig) *Adapter {
+	return NewWithFileSystem(config, filesystem.NewOSFileSystem())
+}
+
+// NewWithFileSystem creates a new directory adapter with custom filesystem.
+func NewWithFileSystem(config ports.GitConfig, fs ports.FileSystem) *Adapter {
 	return &Adapter{
 		config: config,
+		fs:     fs,
 	}
+}
+
+// GetFileSystem returns the adapter's filesystem for use by services.
+func (a *Adapter) GetFileSystem() ports.FileSystem {
+	return a.fs
 }
 
 // Clone creates a directory copy from source to destination
 // For directory adapter, this means copying files rather than git cloning.
 func (a *Adapter) Clone(_ /* ctx */ context.Context, options ports.CloneOptions) (ports.GitRepository, error) { //nolint:ireturn
 	// Ensure destination directory exists
-	err := os.MkdirAll(options.Path, 0750)
+	err := a.fs.MkdirAll(options.Path, 0750)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create directory: %w", err)
 	}
@@ -52,13 +63,14 @@ func (a *Adapter) Clone(_ /* ctx */ context.Context, options ports.CloneOptions)
 	return &Repository{
 		path: options.Path,
 		url:  options.URL,
+		fs:   a.fs,
 	}, nil
 }
 
 // Open opens an existing directory as a repository.
 func (a *Adapter) Open(_ /* ctx */ context.Context, path string) (ports.GitRepository, error) { //nolint:ireturn
 	// Check if directory exists
-	info, err := os.Stat(path)
+	info, err := a.fs.Stat(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to access directory: %w", err)
 	}
@@ -69,18 +81,20 @@ func (a *Adapter) Open(_ /* ctx */ context.Context, path string) (ports.GitRepos
 
 	return &Repository{
 		path: path,
+		fs:   a.fs,
 	}, nil
 }
 
 // Init creates a new directory.
 func (a *Adapter) Init(_ /* ctx */ context.Context, path string, _ ports.InitOptions) (ports.GitRepository, error) { //nolint:ireturn
-	err := os.MkdirAll(path, 0750)
+	err := a.fs.MkdirAll(path, 0750)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create directory: %w", err)
 	}
 
 	return &Repository{
 		path: path,
+		fs:   a.fs,
 	}, nil
 }
 
@@ -99,12 +113,12 @@ func (a *Adapter) GetName() string {
 // Cleanup cleans up resources at the given path.
 func (a *Adapter) Cleanup(_ context.Context, path string) error {
 	// Safety check before removing directory
-	if err := validateDirectoryPath(path); err != nil {
+	if err := validateDirectoryPath(a.fs, path); err != nil {
 		return fmt.Errorf("cannot cleanup directory: %w", err)
 	}
 
 	// For directory adapter, cleanup involves removing the directory if it exists
-	err := os.RemoveAll(path)
+	err := a.fs.RemoveAll(path)
 	if err != nil {
 		return fmt.Errorf("failed to remove directory %s: %w", path, err)
 	}
@@ -114,7 +128,7 @@ func (a *Adapter) Cleanup(_ context.Context, path string) error {
 
 // CreateTmpDir implements the ports.GitOperations interface.
 func (a *Adapter) CreateTmpDir(ctx context.Context, dir, prefix string) (context.Context, error) {
-	ctxWithTmp, err := filesystem.CreateTmpDir(ctx, dir, prefix)
+	ctxWithTmp, err := filesystem.CreateTmpDir(ctx, a.fs, dir, prefix)
 	if err != nil {
 		return ctx, fmt.Errorf("failed to create temporary directory: %w", err)
 	}
@@ -134,7 +148,7 @@ func (a *Adapter) GetTmpDirPath(ctx context.Context) (string, error) {
 
 // DeleteTmpDir implements the ports.GitOperations interface.
 func (a *Adapter) DeleteTmpDir(ctx context.Context) error {
-	if err := filesystem.DeleteTmpDir(ctx); err != nil {
+	if err := filesystem.DeleteTmpDir(ctx, a.fs); err != nil {
 		return fmt.Errorf("failed to delete temporary directory: %w", err)
 	}
 
@@ -145,6 +159,7 @@ func (a *Adapter) DeleteTmpDir(ctx context.Context) error {
 type Repository struct {
 	path string
 	url  string
+	fs   ports.FileSystem
 }
 
 // Path returns the directory path.
@@ -253,7 +268,7 @@ func (r *Repository) Fetch(_ context.Context, _ ports.FetchOptions) error {
 
 	if strings.HasPrefix(r.url, "file://") {
 		sourcePath := strings.TrimPrefix(r.url, "file://")
-		adapter := &Adapter{}
+		adapter := &Adapter{fs: r.fs}
 
 		return adapter.copyDirectory(sourcePath, r.path)
 	}
@@ -314,7 +329,7 @@ func (r *Repository) DeleteTag(_ context.Context, _ string) error {
 // Status returns basic directory status.
 func (r *Repository) Status(_ context.Context) (ports.StatusResult, error) {
 	// Check if directory exists and is accessible
-	_, err := os.Stat(r.path)
+	_, err := r.fs.Stat(r.path)
 	if err != nil {
 		return ports.StatusResult{}, fmt.Errorf("failed to access directory: %w", err)
 	}
@@ -338,7 +353,7 @@ func (r *Repository) Close() error {
 
 // CopyDirectory recursively copies a directory from src to dst.
 func (a *Adapter) copyDirectory(src, dst string) error {
-	err := filepath.WalkDir(src, func(path string, dirEntry fs.DirEntry, err error) error {
+	err := a.fs.Walk(src, func(path string, info fs.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -349,16 +364,11 @@ func (a *Adapter) copyDirectory(src, dst string) error {
 			return fmt.Errorf("failed to get relative path from %s to %s: %w", src, path, err)
 		}
 
-		dstPath := filepath.Join(dst, relPath)
+		dstPath := a.fs.Join(dst, relPath)
 
-		if dirEntry.IsDir() {
-			// Create directory - get mode from DirEntry
-			info, err := dirEntry.Info()
-			if err != nil {
-				return fmt.Errorf("failed to get dir info: %w", err)
-			}
-
-			return os.MkdirAll(dstPath, info.Mode())
+		if info.IsDir() {
+			// Create directory
+			return a.fs.MkdirAll(dstPath, info.Mode())
 		}
 
 		// Copy file
@@ -375,13 +385,13 @@ func (a *Adapter) copyDirectory(src, dst string) error {
 func (a *Adapter) copyFile(src, dst string) error {
 	// Read source file
 	// #nosec G304 - Source path comes from trusted directory walking
-	srcData, err := os.ReadFile(src)
+	srcData, err := a.fs.ReadFile(src)
 	if err != nil {
 		return fmt.Errorf("failed to read source file: %w", err)
 	}
 
 	// Get source file info for permissions
-	srcInfo, err := os.Stat(src)
+	srcInfo, err := a.fs.Stat(src)
 	if err != nil {
 		return fmt.Errorf("failed to get source file info: %w", err)
 	}
@@ -389,13 +399,13 @@ func (a *Adapter) copyFile(src, dst string) error {
 	// Create destination directory if needed
 	dstDir := filepath.Dir(dst)
 
-	err = os.MkdirAll(dstDir, 0750)
+	err = a.fs.MkdirAll(dstDir, 0750)
 	if err != nil {
 		return fmt.Errorf("failed to create destination directory: %w", err)
 	}
 
 	// Write destination file
-	err = os.WriteFile(dst, srcData, srcInfo.Mode())
+	err = a.fs.WriteFile(dst, srcData, srcInfo.Mode())
 	if err != nil {
 		return fmt.Errorf("failed to write destination file: %w", err)
 	}

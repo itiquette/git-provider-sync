@@ -38,7 +38,7 @@ func TestGitRepositoryCreationIntegration(t *testing.T) {
 	gitOps := gogit.New(ports.GitConfig{
 		UserName:    "integration-test",
 		UserEmail:   "test@git-provider-sync.local",
-		StorageMode: ports.StorageModeFilesystem, // Required for pushable bare repos in tests
+		StorageMode: ports.StorageModeMemory, // Memory mode is faster and works with bare repos
 	})
 
 	t.Run("git repository creation and file operations", func(t *testing.T) {

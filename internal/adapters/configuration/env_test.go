@@ -77,11 +77,6 @@ gitprovidersync:
 		t.Run(testCase.name, func(t *testing.T) {
 			// Setup test environment
 			tempDir := t.TempDir()
-			originalWd, _ := os.Getwd()
-
-			t.Cleanup(func() { _ = os.Chdir(originalWd) })
-
-			require.NoError(t, os.Chdir(tempDir))
 
 			// Set environment variables
 			for key, value := range testCase.setupEnv {
@@ -92,15 +87,15 @@ gitprovidersync:
 				}
 			}
 
-			// Create config file
+			// Create config file with absolute path
+			configPath := filepath.Join(tempDir, "gitprovidersync.yaml")
 			if testCase.configFile != "" {
-				configPath := "gitprovidersync.yaml"
 				require.NoError(t, os.WriteFile(configPath, []byte(testCase.configFile), 0600))
 			}
 
-			// Load configuration
+			// Load configuration with absolute path
 			appConfig := &dto.AppConfiguration{}
-			err := ReadConfigurationFile(context.Background(), "gitprovidersync.yaml", false, appConfig)
+			err := ReadConfigurationFile(context.Background(), configPath, false, appConfig)
 
 			// Verify
 			if testCase.wantSuccess {
@@ -179,23 +174,19 @@ gitprovidersync:
 		t.Run(testCase.name, func(t *testing.T) {
 			// Setup test environment
 			tempDir := t.TempDir()
-			originalWd, _ := os.Getwd()
-
-			t.Cleanup(func() { _ = os.Chdir(originalWd) })
-
-			require.NoError(t, os.Chdir(tempDir))
 
 			// Set environment variables
 			for key, value := range testCase.setupEnv {
 				t.Setenv(key, value)
 			}
 
-			// Create config file
-			require.NoError(t, os.WriteFile("dto.yaml", []byte(testCase.configFile), 0600))
+			// Create config file with absolute path
+			configPath := filepath.Join(tempDir, "dto.yaml")
+			require.NoError(t, os.WriteFile(configPath, []byte(testCase.configFile), 0600))
 
-			// Load configuration
+			// Load configuration with absolute path
 			appConfig := &dto.AppConfiguration{}
-			err := ReadConfigurationFile(context.Background(), "dto.yaml", true, appConfig)
+			err := ReadConfigurationFile(context.Background(), configPath, true, appConfig)
 			require.NoError(t, err)
 
 			// Verify token precedence
@@ -275,23 +266,19 @@ gitprovidersync:
 		t.Run(testCase.name, func(t *testing.T) {
 			// Setup test environment
 			tempDir := t.TempDir()
-			originalWd, _ := os.Getwd()
-
-			t.Cleanup(func() { _ = os.Chdir(originalWd) })
-
-			require.NoError(t, os.Chdir(tempDir))
 
 			// Set environment variables
 			for key, value := range testCase.setupEnv {
 				t.Setenv(key, value)
 			}
 
-			// Create config file
-			require.NoError(t, os.WriteFile("dto.yaml", []byte(testCase.configFile), 0600))
+			// Create config file with absolute path
+			configPath := filepath.Join(tempDir, "dto.yaml")
+			require.NoError(t, os.WriteFile(configPath, []byte(testCase.configFile), 0600))
 
-			// Load configuration
+			// Load configuration with absolute path
 			appConfig := &dto.AppConfiguration{}
-			err := ReadConfigurationFile(context.Background(), "dto.yaml", false, appConfig)
+			err := ReadConfigurationFile(context.Background(), configPath, false, appConfig)
 			require.NoError(t, err)
 
 			// Verify expansion
@@ -371,10 +358,6 @@ func TestGPSConfigFileEnvironmentVariable(t *testing.T) {
 
 	// Setup test environment
 	tempDir := t.TempDir()
-	originalWd, _ := os.Getwd()
-
-	t.Cleanup(func() { _ = os.Chdir(originalWd) })
-	require.NoError(t, os.Chdir(tempDir))
 
 	// Create custom config file
 	customPath := filepath.Join(tempDir, "custom", "dto.yaml")
@@ -397,7 +380,8 @@ gitprovidersync:
       provider_type: github
       owner: from-default-path
 `
-	require.NoError(t, os.WriteFile("gitprovidersync.yaml", []byte(defaultConfig), 0600))
+	defaultPath := filepath.Join(tempDir, "gitprovidersync.yaml")
+	require.NoError(t, os.WriteFile(defaultPath, []byte(defaultConfig), 0600))
 
 	// Set GPS_CONFIG_FILE to custom path
 	t.Setenv("GPS_CONFIG_FILE", customPath)
@@ -420,11 +404,6 @@ func TestEnvironmentVariablePrecedence(t *testing.T) {
 
 	// Setup test environment
 	tempDir := t.TempDir()
-	originalWd, _ := os.Getwd()
-
-	t.Cleanup(func() { _ = os.Chdir(originalWd) })
-	require.NoError(t, os.Chdir(tempDir))
-
 	// Create config file with token
 	configFile := `
 gitprovidersync:
@@ -440,7 +419,8 @@ gitprovidersync:
       auth:
         token: "${GITLAB_TOKEN}"
 `
-	require.NoError(t, os.WriteFile("dto.yaml", []byte(configFile), 0600))
+	configPath := filepath.Join(tempDir, "dto.yaml")
+	require.NoError(t, os.WriteFile(configPath, []byte(configFile), 0600))
 
 	// Set environment variables
 	t.Setenv("GPS_GITHUB_TOKEN", "github-specific-token")
@@ -449,7 +429,7 @@ gitprovidersync:
 
 	// Load configuration
 	appConfig := &dto.AppConfiguration{}
-	err := ReadConfigurationFile(context.Background(), "dto.yaml", true, appConfig)
+	err := ReadConfigurationFile(context.Background(), configPath, true, appConfig)
 	require.NoError(t, err)
 
 	// Verify precedence:

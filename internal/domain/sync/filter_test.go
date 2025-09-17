@@ -26,7 +26,9 @@ func (l testLogger) Error(_ context.Context, _ string, _ map[string]any) {}
 func (l testLogger) Fatal(_ context.Context, _ string, _ map[string]any) {}
 func (l testLogger) IsLevelEnabled(_ ports.LogLevel) bool                { return true }
 
-func TestFilterRepositoriesUseCase_Execute(t *testing.T) {
+// TestFilterRepositories_ShouldApplyFiltersCorrectly validates that repository filtering
+// applies all filter criteria (activity, patterns, attributes) correctly.
+func TestFilterRepositories_ShouldApplyFiltersCorrectly(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -36,7 +38,7 @@ func TestFilterRepositoriesUseCase_Execute(t *testing.T) {
 		expectedSuccess bool
 	}{
 		{
-			name: "empty repositories list",
+			name: "returns empty list when no repositories provided",
 			request: FilterRequest{
 				Repositories:         []entities.Repository{},
 				FilterOptions:        ports.FilterOptions{},
@@ -48,7 +50,7 @@ func TestFilterRepositoriesUseCase_Execute(t *testing.T) {
 			expectedSuccess: true,
 		},
 		{
-			name: "no filtering applied",
+			name: "returns all repositories when all filters include everything",
 			request: FilterRequest{
 				Repositories: []entities.Repository{
 					createFilterTestRepository("repo1", time.Now()),
@@ -68,7 +70,7 @@ func TestFilterRepositoriesUseCase_Execute(t *testing.T) {
 			expectedSuccess: true,
 		},
 		{
-			name: "activity filtering - recent repositories",
+			name: "filters repositories by activity date when limit specified",
 			request: FilterRequest{
 				Repositories: []entities.Repository{
 					createFilterTestRepository("repo1", time.Now().Add(-1*time.Hour)),
@@ -106,7 +108,9 @@ func TestFilterRepositoriesUseCase_Execute(t *testing.T) {
 	}
 }
 
-func TestFilterRepositoriesUseCase_filterByActivity(t *testing.T) {
+// TestFilterRepositories_ShouldExcludeInactive_WhenActivityLimitSet validates that
+// repositories are correctly filtered based on their last activity timestamp.
+func TestFilterRepositories_ShouldExcludeInactive_WhenActivityLimitSet(t *testing.T) {
 	t.Parallel()
 
 	useCase := NewFilterRepositoriesUseCase(testLogger{})
@@ -173,7 +177,9 @@ func TestFilterRepositoriesUseCase_filterByActivity(t *testing.T) {
 	}
 }
 
-func TestFilterRepositoriesUseCase_filterByIncludeExclude(t *testing.T) {
+// TestFilterRepositories_ShouldRespectIncludeExcludeLists validates that
+// explicit include/exclude repository lists are applied correctly.
+func TestFilterRepositories_ShouldRespectIncludeExcludeLists(t *testing.T) {
 	t.Parallel()
 
 	useCase := NewFilterRepositoriesUseCase(testLogger{})
@@ -258,7 +264,9 @@ func TestFilterRepositoriesUseCase_filterByIncludeExclude(t *testing.T) {
 	}
 }
 
-func TestFilterRepositoriesUseCase_shouldIncludeRepository(t *testing.T) {
+// TestFilterRepositories_ShouldPrioritizeIncludeOverExclude validates that
+// include lists take precedence over exclude lists in conflict scenarios.
+func TestFilterRepositories_ShouldPrioritizeIncludeOverExclude(t *testing.T) {
 	t.Parallel()
 
 	useCase := NewFilterRepositoriesUseCase(testLogger{})
@@ -322,7 +330,18 @@ func TestFilterRepositoriesUseCase_shouldIncludeRepository(t *testing.T) {
 	}
 }
 
-func TestFilterRepositoriesUseCase_filterByPatterns(t *testing.T) {
+// TestFilterRepositories_ShouldMatchPatterns_WhenPatternsProvided validates that
+// glob patterns correctly match repository names for filtering
+// TEST PURPOSE:
+// Ensures the filtering system correctly applies glob patterns to repository names,
+// supporting both include and exclude patterns with proper precedence rules.
+// SCENARIOS COVERED:
+// - No patterns (should include all)
+// - Include patterns only (whitelist approach)
+// - Exclude patterns only (blacklist approach)
+// - Mixed patterns with precedence rules
+// - Complex glob patterns with wildcards.
+func TestFilterRepositories_ShouldMatchPatterns_WhenPatternsProvided(t *testing.T) {
 	t.Parallel()
 
 	useCase := NewFilterRepositoriesUseCase(testLogger{})

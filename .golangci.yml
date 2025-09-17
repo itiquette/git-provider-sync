@@ -43,6 +43,7 @@ linters:
     - errorlint
     - exhaustive
     #    - exhaustruct
+    - forbidigo
     - forcetypeassert
     # - funlen
     - ginkgolinter
@@ -111,9 +112,53 @@ linters:
     - whitespace
     - wrapcheck
     - zerologlint
-  settings:
-    go-vet:
-      enable:
-        - shadow
+linters-settings:
+  forbidigo:
+    # Forbid direct OS file operations in test files
+    # Tests should use testutil.Test helpers instead
+    forbid:
+      - p: '^os\.WriteFile'
+        pkg: '^.*_test$'
+        msg: "Use testutil.Test.FS.WriteFile() instead of os.WriteFile in tests"
+      - p: '^os\.ReadFile'
+        pkg: '^.*_test$'
+        msg: "Use testutil.Test.FS.ReadFile() instead of os.ReadFile in tests"
+      - p: '^os\.MkdirAll'
+        pkg: '^.*_test$'
+        msg: "Use testutil.Test.FS.CreateDir() instead of os.MkdirAll in tests"
+      - p: '^os\.Mkdir'
+        pkg: '^.*_test$'
+        msg: "Use testutil.Test.FS.CreateDir() instead of os.Mkdir in tests"
+      - p: '^os\.MkdirTemp'
+        pkg: '^.*_test$'
+        msg: "Use testutil.Test.FS.TempDir() instead of os.MkdirTemp in tests"
+      - p: '^os\.CreateTemp'
+        pkg: '^.*_test$'
+        msg: "Use testutil.Test.FS.TempFile() instead of os.CreateTemp in tests"
+      - p: '^os\.Create'
+        pkg: '^.*_test$'
+        msg: "Use testutil.Test.FS.WriteFile() instead of os.Create in tests"
+      - p: '^os\.Open'
+        pkg: '^.*_test$'
+        msg: "Use testutil.Test.FS.ReadFile() instead of os.Open in tests"
+      - p: '^os\.Remove'
+        pkg: '^.*_test$'
+        msg: "Use testutil.Test.FS.Remove() instead of os.Remove in tests"
+      - p: '^os\.RemoveAll'
+        pkg: '^.*_test$'
+        msg: "Use testutil.Test.FS.Remove() instead of os.RemoveAll in tests"
+      - p: '^os\.Chdir'
+        msg: "Never use os.Chdir - it affects global state and breaks parallel tests"
+      - p: '^ioutil\.WriteFile'
+        msg: "Use testutil.Test.FS.WriteFile() instead of ioutil.WriteFile (deprecated)"
+      - p: '^ioutil\.ReadFile'
+        msg: "Use testutil.Test.FS.ReadFile() instead of ioutil.ReadFile (deprecated)"
+      - p: '^ioutil\.TempFile'
+        msg: "Use testutil.Test.FS.TempFile() instead of ioutil.TempFile (deprecated)"
+      - p: '^ioutil\.TempDir'
+        msg: "Use testutil.Test.FS.TempDir() instead of ioutil.TempDir (deprecated)"
+  go-vet:
+    enable:
+      - shadow
   varnamelen:
     min-name-length: 2

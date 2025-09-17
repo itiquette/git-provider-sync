@@ -14,7 +14,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"itiquette/git-provider-sync/internal/adapters/filesystem"
 	"itiquette/git-provider-sync/internal/domain/ports"
@@ -37,12 +36,25 @@ var (
 // Of repositories, useful for backup and distribution purposes.
 type Adapter struct {
 	config ports.GitConfig
+	fs     ports.FileSystem
 }
 
-// New creates a new archive adapter.
-func New(config ports.GitConfig) *Adapter {
+// New creates a new archive adapter with OS filesystem.
+func New(config ports.GitConfig, optionalFS ...ports.FileSystem) *Adapter {
+	// Use provided filesystem if given, otherwise use OS filesystem
+	fs := filesystem.NewOSFileSystem()
+	if len(optionalFS) > 0 {
+		fs = optionalFS[0]
+	}
+
+	return NewWithFileSystem(config, fs)
+}
+
+// NewWithFileSystem creates a new archive adapter with custom filesystem.
+func NewWithFileSystem(config ports.GitConfig, fs ports.FileSystem) *Adapter {
 	return &Adapter{
 		config: config,
+		fs:     fs,
 	}
 }
 
@@ -50,7 +62,7 @@ func New(config ports.GitConfig) *Adapter {
 // For archive adapter, this means extracting a tar.gz archive.
 func (a *Adapter) Clone(_ context.Context, options ports.CloneOptions) (ports.GitRepository, error) { //nolint:ireturn
 	// Ensure destination directory exists
-	err := os.MkdirAll(options.Path, 0750)
+	err := a.fs.MkdirAll(options.Path, 0750)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create directory: %w", err)
 	}
@@ -63,6 +75,7 @@ func (a *Adapter) Clone(_ context.Context, options ports.CloneOptions) (ports.Gi
 	return &Repository{
 		path:   options.Path,
 		config: a.config,
+		fs:     a.fs,
 	}, nil
 }
 
@@ -97,7 +110,7 @@ func (a *Adapter) Push(_ context.Context, repo ports.GitRepository, _ ports.Push
 
 	// For archive operations, we'll create an archive in the repository directory
 	// Since archive adapter doesn't use remotes, we'll create a default archive name
-	archivePath := filepath.Join(repoPath, "repository-archive.tar.gz")
+	archivePath := a.fs.Join(repoPath, "repository-archive.tar.gz")
 
 	err := a.createArchive(repoPath, archivePath)
 	if err != nil {
@@ -115,13 +128,14 @@ func (a *Adapter) Fetch(_ context.Context, _ ports.GitRepository, _ ports.FetchO
 // Open creates a repository instance for the given path.
 func (a *Adapter) Open(_ context.Context, path string) (ports.GitRepository, error) { //nolint:ireturn
 	// Verify the path exists
-	if _, err := os.Stat(path); errors.Is(err, fs.ErrNotExist) {
+	if _, err := a.fs.Stat(path); errors.Is(err, fs.ErrNotExist) {
 		return nil, fmt.Errorf("%w: %s", ErrRepositoryPathNotExist, path)
 	}
 
 	return &Repository{
 		path:   path,
 		config: a.config,
+		fs:     a.fs,
 	}, nil
 }
 
@@ -156,7 +170,7 @@ func (a *Adapter) GetName() string {
 
 // CreateTmpDir implements the ports.GitOperations interface.
 func (a *Adapter) CreateTmpDir(ctx context.Context, dir, prefix string) (context.Context, error) {
-	ctxWithTmp, err := filesystem.CreateTmpDir(ctx, dir, prefix)
+	ctxWithTmp, err := filesystem.CreateTmpDir(ctx, a.fs, dir, prefix)
 	if err != nil {
 		return ctx, fmt.Errorf("failed to create temporary directory: %w", err)
 	}
@@ -176,7 +190,7 @@ func (a *Adapter) GetTmpDirPath(ctx context.Context) (string, error) {
 
 // DeleteTmpDir implements the ports.GitOperations interface.
 func (a *Adapter) DeleteTmpDir(ctx context.Context) error {
-	if err := filesystem.DeleteTmpDir(ctx); err != nil {
+	if err := filesystem.DeleteTmpDir(ctx, a.fs); err != nil {
 		return fmt.Errorf("failed to delete temporary directory: %w", err)
 	}
 
@@ -198,8 +212,8 @@ func (a *Adapter) extractArchive(archivePath, destPath string) error {
 
 // OpenArchiveForReading opens a tar.gz archive and returns the tar reader and cleanup function.
 func (a *Adapter) openArchiveForReading(archivePath string) (*tar.Reader, func(), error) {
-	// #nosec G304 - Archive path is from controlled repository operations
-	file, err := os.Open(archivePath)
+	// Archive path is from controlled repository operations
+	file, err := a.fs.Open(archivePath)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to open archive: %w", err)
 	}
@@ -263,11 +277,11 @@ func (a *Adapter) validateAndBuildTargetPath(name, destPath string) (string, err
 		return "", fmt.Errorf("%w: %s", ErrUnsafePathInArchive, name)
 	}
 
-	targetPath := filepath.Join(destPath, filepath.Clean(name))
+	targetPath := a.fs.Join(destPath, a.fs.Clean(name))
 
 	// Additional security check: ensure target is within destination
-	cleanDestPath := filepath.Clean(destPath)
-	if !strings.HasPrefix(targetPath, cleanDestPath+string(os.PathSeparator)) && targetPath != cleanDestPath {
+	cleanDestPath := a.fs.Clean(destPath)
+	if !strings.HasPrefix(targetPath, cleanDestPath+string(filepath.Separator)) && targetPath != cleanDestPath {
 		return "", fmt.Errorf("%w: %s", ErrInvalidPathInArchive, name)
 	}
 
@@ -289,7 +303,7 @@ func (a *Adapter) extractEntry(tarReader *tar.Reader, header *tar.Header, target
 
 // ExtractDirectory creates a directory with safe permissions.
 func (a *Adapter) extractDirectory(targetPath string) error {
-	err := os.MkdirAll(targetPath, 0750)
+	err := a.fs.MkdirAll(targetPath, 0750)
 	if err != nil {
 		return fmt.Errorf("failed to create directory: %w", err)
 	}
@@ -300,7 +314,7 @@ func (a *Adapter) extractDirectory(targetPath string) error {
 // ExtractFile extracts a single file from the tar archive.
 func (a *Adapter) extractFile(tarReader *tar.Reader, header *tar.Header, targetPath string) error {
 	// Ensure parent directory exists
-	err := os.MkdirAll(filepath.Dir(targetPath), 0750)
+	err := a.fs.MkdirAll(a.fs.Dir(targetPath), 0750)
 	if err != nil {
 		return fmt.Errorf("failed to create parent directory: %w", err)
 	}
@@ -312,8 +326,8 @@ func (a *Adapter) extractFile(tarReader *tar.Reader, header *tar.Header, targetP
 		return fmt.Errorf("%w: %s (%d bytes)", ErrFileTooLargeInArchive, header.Name, header.Size)
 	}
 
-	// #nosec G304 - Target path is constructed with security checks above
-	outFile, err := os.OpenFile(targetPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
+	// Target path is constructed with security checks above
+	outFile, err := a.fs.OpenFile(targetPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
 	if err != nil {
 		return fmt.Errorf("failed to create file: %w", err)
 	}
@@ -333,7 +347,7 @@ func (a *Adapter) extractFile(tarReader *tar.Reader, header *tar.Header, targetP
 	}
 
 	// Set modification time (non-critical, ignore errors)
-	_ = os.Chtimes(targetPath, time.Now(), header.ModTime)
+	// Note: Chtimes not available in filesystem interface
 
 	return nil
 }
@@ -352,8 +366,8 @@ func (a *Adapter) createArchive(sourcePath, archivePath string) error {
 // CreateArchiveWriters creates the output file and writer chain for the archive.
 func (a *Adapter) createArchiveWriters(archivePath string) (*tar.Writer, func(), error) {
 	// Create the archive file
-	// #nosec G304 - Archive path is from controlled operations
-	outFile, err := os.Create(archivePath)
+	// Archive path is from controlled operations
+	outFile, err := a.fs.Create(archivePath)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create archive file: %w", err)
 	}
@@ -383,15 +397,14 @@ func (a *Adapter) createArchiveWriters(archivePath string) (*tar.Writer, func(),
 
 // WalkAndAddToArchive walks the source directory and adds files to the archive.
 func (a *Adapter) walkAndAddToArchive(sourcePath string, tarWriter *tar.Writer) error {
-	if err := filepath.WalkDir(sourcePath, func(path string, dirEntry fs.DirEntry, err error) error {
+	if err := a.fs.Walk(sourcePath, func(path string, info fs.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 
-		// Get FileInfo for the tar header
-		info, err := dirEntry.Info()
-		if err != nil {
-			return fmt.Errorf("failed to get file info: %w", err)
+		// FileInfo is already provided by Walk
+		if info == nil {
+			return fmt.Errorf("file info is nil for %s", path)
 		}
 
 		return a.addFileToArchive(sourcePath, path, info, tarWriter)
@@ -403,14 +416,14 @@ func (a *Adapter) walkAndAddToArchive(sourcePath string, tarWriter *tar.Writer) 
 }
 
 // AddFileToArchive adds a single file or directory to the archive.
-func (a *Adapter) addFileToArchive(sourcePath, path string, info os.FileInfo, tarWriter *tar.Writer) error {
+func (a *Adapter) addFileToArchive(sourcePath, path string, info fs.FileInfo, tarWriter *tar.Writer) error {
 	// Skip the root directory itself
 	if path == sourcePath {
 		return nil
 	}
 
 	// Get relative path
-	relPath, err := filepath.Rel(sourcePath, path)
+	relPath, err := a.fs.Rel(sourcePath, path)
 	if err != nil {
 		return fmt.Errorf("failed to get relative path: %w", err)
 	}
@@ -445,8 +458,8 @@ func (a *Adapter) addFileToArchive(sourcePath, path string, info os.FileInfo, ta
 
 // WriteFileContent writes a file's content to the tar archive.
 func (a *Adapter) writeFileContent(path string, tarWriter *tar.Writer) error {
-	// #nosec G304 - Path comes from controlled directory walking
-	file, err := os.Open(path)
+	// Path comes from controlled directory walking
+	file, err := a.fs.Open(path)
 	if err != nil {
 		return fmt.Errorf("failed to open file: %w", err)
 	}

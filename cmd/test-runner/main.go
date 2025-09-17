@@ -301,16 +301,16 @@ func (tr *TestRunner) GetTestSuites() []TestSuite {
 
 // RunTestSuite executes a single test suite.
 func (tr *TestRunner) RunTestSuite(ctx context.Context, suite TestSuite) ([]TestResult, error) {
-	fmt.Printf("\n🧪 Running test suite: %s\n", suite.Name)
-	fmt.Printf("Description: %s\n", suite.Description)
-	fmt.Printf("⏱️  Timeout: %v\n", suite.Timeout)
-	fmt.Printf("Commands: %d\n", len(suite.Commands))
+	fmt.Printf("\n🧪 Running test suite: %s\n", suite.Name) //nolint:forbidigo // CLI output
+	fmt.Printf("Description: %s\n", suite.Description)     //nolint:forbidigo // CLI output
+	fmt.Printf("⏱️  Timeout: %v\n", suite.Timeout)         //nolint:forbidigo // CLI output
+	fmt.Printf("Commands: %d\n", len(suite.Commands))      //nolint:forbidigo // CLI output
 
 	if tr.dryRun {
-		fmt.Printf("DRY RUN - Would execute %d commands\n", len(suite.Commands))
+		fmt.Printf("DRY RUN - Would execute %d commands\n", len(suite.Commands)) //nolint:forbidigo // CLI output
 
 		for _, cmd := range suite.Commands {
-			fmt.Printf("   - %s: %s %s\n", cmd.Name, cmd.Command, strings.Join(cmd.Args, " "))
+			fmt.Printf("   - %s: %s %s\n", cmd.Name, cmd.Command, strings.Join(cmd.Args, " ")) //nolint:forbidigo // CLI output
 		}
 
 		return []TestResult{}, nil
@@ -364,8 +364,8 @@ func (tr *TestRunner) RunTestSuite(ctx context.Context, suite TestSuite) ([]Test
 
 // GenerateReport generates a test report.
 func (tr *TestRunner) GenerateReport(results map[string][]TestResult) {
-	fmt.Printf("\nTEST REPORT\n")
-	fmt.Printf("%s\n", "="+strings.Repeat("=", 50))
+	fmt.Printf("\nTEST REPORT\n")                   //nolint:forbidigo // CLI output
+	fmt.Printf("%s\n", "="+strings.Repeat("=", 50)) //nolint:forbidigo // CLI output
 
 	totalSuites := len(results)
 	totalCommands := 0
@@ -397,35 +397,35 @@ func (tr *TestRunner) GenerateReport(results map[string][]TestResult) {
 			successfulSuites++
 		}
 
-		fmt.Printf("%s %s: %d/%d commands passed (%.2fs)\n",
+		fmt.Printf("%s %s: %d/%d commands passed (%.2fs)\n", //nolint:forbidigo // CLI output
 			status, suiteName,
 			tr.countSuccessfulCommands(suiteResults), len(suiteResults),
 			suiteDuration.Seconds())
 	}
 
-	fmt.Printf("\nSUMMARY\n")
-	fmt.Printf("Test Suites: %d/%d passed\n", successfulSuites, totalSuites)
-	fmt.Printf("Test Commands: %d/%d passed\n", successfulCommands, totalCommands)
-	fmt.Printf("Total Duration: %.2fs\n", totalDuration.Seconds())
+	fmt.Printf("\nSUMMARY\n")                                                      //nolint:forbidigo // CLI output
+	fmt.Printf("Test Suites: %d/%d passed\n", successfulSuites, totalSuites)       //nolint:forbidigo // CLI output
+	fmt.Printf("Test Commands: %d/%d passed\n", successfulCommands, totalCommands) //nolint:forbidigo // CLI output
+	fmt.Printf("Total Duration: %.2fs\n", totalDuration.Seconds())                 //nolint:forbidigo // CLI output
 
 	// Success rate
 	suiteRate := float64(successfulSuites) / float64(totalSuites) * 100
 	commandRate := float64(successfulCommands) / float64(totalCommands) * 100
 
-	fmt.Printf("Suite Success Rate: %.1f%%\n", suiteRate)
-	fmt.Printf("Command Success Rate: %.1f%%\n", commandRate)
+	fmt.Printf("Suite Success Rate: %.1f%%\n", suiteRate)     //nolint:forbidigo // CLI output
+	fmt.Printf("Command Success Rate: %.1f%%\n", commandRate) //nolint:forbidigo // CLI output
 
 	// Overall status
 	if successfulSuites == totalSuites {
-		fmt.Printf("\n🎉 ALL TESTS PASSED!\n")
+		fmt.Printf("\n🎉 ALL TESTS PASSED!\n") //nolint:forbidigo // CLI output
 	} else {
-		fmt.Printf("\n!  SOME TESTS FAILED\n")
+		fmt.Printf("\n!  SOME TESTS FAILED\n") //nolint:forbidigo // CLI output
 	}
 }
 
 // ValidateTestStructure validates the test structure and configuration.
 func (tr *TestRunner) ValidateTestStructure() error {
-	fmt.Printf("Validating test structure...\n")
+	fmt.Printf("Validating test structure...\n") //nolint:forbidigo // CLI output
 
 	// Check for required test files
 	requiredTests := []string{
@@ -454,7 +454,7 @@ func (tr *TestRunner) ValidateTestStructure() error {
 		hasTests := tr.hasTestFiles(dir)
 
 		if !hasTests {
-			fmt.Printf("!  No test files found in %s\n", dir)
+			fmt.Printf("!  No test files found in %s\n", dir) //nolint:forbidigo // CLI output
 		}
 	}
 
@@ -464,7 +464,7 @@ func (tr *TestRunner) ValidateTestStructure() error {
 		return err
 	}
 
-	fmt.Printf("✓ Test structure validation passed\n")
+	fmt.Printf("✓ Test structure validation passed\n") //nolint:forbidigo // CLI output
 
 	return nil
 }
@@ -512,7 +512,7 @@ func (tr *TestRunner) SaveResults(results map[string][]TestResult) error {
 		_ = writer.Flush()
 	}
 
-	fmt.Printf("Results saved to %s/\n", tr.outputDir)
+	fmt.Printf("Results saved to %s/\n", tr.outputDir) //nolint:forbidigo // CLI output
 
 	return nil
 }
@@ -522,7 +522,7 @@ func (tr *TestRunner) runTestCommand(ctx context.Context, testCmd TestCommand) T
 	start := time.Now()
 
 	if tr.verbose {
-		fmt.Printf("  ▶️  Running: %s (%s %s)\n", testCmd.Name, testCmd.Command, strings.Join(testCmd.Args, " "))
+		fmt.Printf("  ▶️  Running: %s (%s %s)\n", testCmd.Name, testCmd.Command, strings.Join(testCmd.Args, " ")) //nolint:forbidigo // CLI output
 	}
 
 	// Create command context with timeout
@@ -564,13 +564,13 @@ func (tr *TestRunner) runTestCommand(ctx context.Context, testCmd TestCommand) T
 	// Log result
 	if result.Success {
 		if tr.verbose {
-			fmt.Printf("  ✓ %s completed in %v\n", testCmd.Name, duration)
+			fmt.Printf("  ✓ %s completed in %v\n", testCmd.Name, duration) //nolint:forbidigo // CLI output
 		}
 	} else {
-		fmt.Printf("  ✗ %s failed in %v (exit code: %d)\n", testCmd.Name, duration, result.ExitCode)
+		fmt.Printf("  ✗ %s failed in %v (exit code: %d)\n", testCmd.Name, duration, result.ExitCode) //nolint:forbidigo // CLI output
 
 		if tr.verbose && result.Output != "" {
-			fmt.Printf("     Output: %s\n", strings.TrimSpace(result.Output))
+			fmt.Printf("     Output: %s\n", strings.TrimSpace(result.Output)) //nolint:forbidigo // CLI output
 		}
 	}
 
@@ -740,12 +740,12 @@ func filterSuitesByFlags(allSuites []TestSuite, flags commandLineFlags) []TestSu
 
 // PrintStartupInfo displays startup information to the user.
 func printStartupInfo(suitesToRun []TestSuite, dryRun bool) {
-	fmt.Printf("Git Provider Sync Test Runner\n")
-	fmt.Printf("Started: %s\n", time.Now().Format(time.RFC3339))
-	fmt.Printf("🧪 Test Suites: %d\n", len(suitesToRun))
+	fmt.Printf("Git Provider Sync Test Runner\n")                //nolint:forbidigo // CLI output
+	fmt.Printf("Started: %s\n", time.Now().Format(time.RFC3339)) //nolint:forbidigo // CLI output
+	fmt.Printf("🧪 Test Suites: %d\n", len(suitesToRun))          //nolint:forbidigo // CLI output
 
 	if dryRun {
-		fmt.Printf("DRY RUN MODE - No tests will be executed\n")
+		fmt.Printf("DRY RUN MODE - No tests will be executed\n") //nolint:forbidigo // CLI output
 	}
 }
 
@@ -804,5 +804,5 @@ func main() {
 	// Generate final output
 	generateOutput(runner, results, flags)
 
-	fmt.Printf("\nTest runner completed at %s\n", time.Now().Format(time.RFC3339))
+	fmt.Printf("\nTest runner completed at %s\n", time.Now().Format(time.RFC3339)) //nolint:forbidigo // CLI output
 }

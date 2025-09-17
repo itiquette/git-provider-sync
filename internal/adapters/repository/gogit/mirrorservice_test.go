@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"itiquette/git-provider-sync/internal/adapters/filesystem"
 	"itiquette/git-provider-sync/internal/domain/ports"
 )
 
@@ -39,13 +40,13 @@ func TestNewMirrorService(t *testing.T) {
 		{
 			name:     "valid logger and temp dir",
 			logger:   testGoGitLogger{},
-			tempDir:  "/tmp/test",
+			tempDir:  t.TempDir(),
 			expected: true,
 		},
 		{
 			name:     "nil logger",
 			logger:   nil,
-			tempDir:  "/tmp/test",
+			tempDir:  t.TempDir(),
 			expected: true,
 		},
 		{
@@ -60,7 +61,8 @@ func TestNewMirrorService(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			service := NewMirrorService(test.logger, test.tempDir)
+			fs := filesystem.NewOSFileSystem()
+			service := NewMirrorService(test.logger, fs, test.tempDir)
 
 			assert.NotNil(t, service)
 			assert.Equal(t, test.logger, service.logger)
@@ -93,7 +95,8 @@ func TestMirrorService_SetProgressWriter(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			testService := NewMirrorService(logger, "/tmp/test")
+			fs := filesystem.NewOSFileSystem()
+			testService := NewMirrorService(logger, fs, t.TempDir())
 			testService.SetProgressWriter(test.writer)
 			assert.Equal(t, test.writer, testService.progressWriter)
 		})
@@ -104,7 +107,8 @@ func TestMirrorService_shouldIncludeBranch(t *testing.T) {
 	t.Parallel()
 
 	logger := testGoGitLogger{}
-	service := NewMirrorService(logger, "/tmp/test")
+	fs := filesystem.NewOSFileSystem()
+	service := NewMirrorService(logger, fs, t.TempDir())
 
 	tests := []struct {
 		name            string
@@ -199,7 +203,8 @@ func TestMirrorService_shouldIncludeTag(t *testing.T) {
 	t.Parallel()
 
 	logger := testGoGitLogger{}
-	service := NewMirrorService(logger, "/tmp/test")
+	fs := filesystem.NewOSFileSystem()
+	service := NewMirrorService(logger, fs, t.TempDir())
 
 	tests := []struct {
 		name            string
@@ -287,7 +292,8 @@ func TestMirrorService_matchesPattern(t *testing.T) {
 	t.Parallel()
 
 	logger := testGoGitLogger{}
-	service := NewMirrorService(logger, "/tmp/test")
+	fs := filesystem.NewOSFileSystem()
+	service := NewMirrorService(logger, fs, t.TempDir())
 
 	tests := []struct {
 		name     string
@@ -465,7 +471,8 @@ func TestMirrorService_EdgeCases(t *testing.T) {
 	t.Parallel()
 
 	logger := testGoGitLogger{}
-	service := NewMirrorService(logger, "/tmp/test")
+	fs := filesystem.NewOSFileSystem()
+	service := NewMirrorService(logger, fs, t.TempDir())
 
 	t.Run("shouldIncludeBranch with empty branch name", func(t *testing.T) {
 		t.Parallel()

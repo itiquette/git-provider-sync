@@ -6,7 +6,6 @@ package statuscmd
 import (
 	"context"
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -18,9 +17,10 @@ import (
 	"itiquette/git-provider-sync/internal/adapters/configuration/dto"
 	validationAdapters "itiquette/git-provider-sync/internal/adapters/validation"
 	"itiquette/git-provider-sync/internal/domain/validation"
+	"itiquette/git-provider-sync/internal/testutil"
 )
 
-func TestCreateSystemStatus_FromConfiguration_BuildsCorrectStatus(t *testing.T) {
+func TestCreateSystemStatus_WhenGivenValidConfiguration_ReturnsCorrectStatus(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -30,7 +30,7 @@ func TestCreateSystemStatus_FromConfiguration_BuildsCorrectStatus(t *testing.T) 
 		expected          SystemStatus
 	}{
 		{
-			name: "valid configuration with environments",
+			name: "valid config with multiple environments returns success status",
 			config: dto.AppConfiguration{
 				GitProviderSyncConfs: map[string]dto.Environment{
 					"production": {
@@ -65,7 +65,7 @@ func TestCreateSystemStatus_FromConfiguration_BuildsCorrectStatus(t *testing.T) 
 			},
 		},
 		{
-			name: "empty configuration",
+			name: "empty config without environments returns critical issues",
 			config: dto.AppConfiguration{
 				GitProviderSyncConfs: map[string]dto.Environment{},
 			},
@@ -121,18 +121,18 @@ func TestCreateSystemStatus_FromConfiguration_BuildsCorrectStatus(t *testing.T) 
 
 			result := createSystemStatus(test.config, test.connectivityCheck)
 
-			assert.Equal(t, test.expected.ConfigurationValid, result.ConfigurationValid)
-			assert.Equal(t, test.expected.EnvironmentCount, result.EnvironmentCount)
-			assert.Equal(t, test.expected.ConnectivityChecked, result.ConnectivityChecked)
-			assert.Equal(t, test.expected.HasCriticalIssues, result.HasCriticalIssues)
-			assert.Equal(t, test.expected.Issues, result.Issues)
-			assert.Equal(t, test.expected.Warnings, result.Warnings)
-			assert.Equal(t, test.expected.Suggestions, result.Suggestions)
+			require.Equal(t, test.expected.ConfigurationValid, result.ConfigurationValid)
+			require.Equal(t, test.expected.EnvironmentCount, result.EnvironmentCount)
+			require.Equal(t, test.expected.ConnectivityChecked, result.ConnectivityChecked)
+			require.Equal(t, test.expected.HasCriticalIssues, result.HasCriticalIssues)
+			require.Equal(t, test.expected.Issues, result.Issues)
+			require.Equal(t, test.expected.Warnings, result.Warnings)
+			require.Equal(t, test.expected.Suggestions, result.Suggestions)
 		})
 	}
 }
 
-func TestBuildHTTPSURL_FromDomain_ReturnsFormattedURL(t *testing.T) {
+func TestBuildHTTPSURL_WhenGivenDomain_ReturnsProperlyFormattedURL(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -162,18 +162,20 @@ func TestBuildHTTPSURL_FromDomain_ReturnsFormattedURL(t *testing.T) {
 			t.Parallel()
 
 			result := buildHTTPSURL(test.domain)
-			assert.Equal(t, test.expected, result)
+			require.Equal(t, test.expected, result)
 		})
 	}
 }
 
-func TestProviderConnectivity_ChecksConnections_ReturnsValidationResults(t *testing.T) {
+func TestProviderConnectivity_WhenCheckingConnections_ReturnsValidationResults(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
 
-	// Create a real connectivity adapter for testing
-	adapter := validationAdapters.NewConnectivityAdapter(5 * time.Second)
+	// Create test environment with memory filesystem for testing
+	testFS := testutil.NewTestFS(t)
+	fs := testFS.GetFileSystem()
+	adapter := validationAdapters.NewConnectivityAdapter(5*time.Second, fs)
 
 	config := dto.AppConfiguration{
 		GitProviderSyncConfs: map[string]dto.Environment{
@@ -192,13 +194,13 @@ func TestProviderConnectivity_ChecksConnections_ReturnsValidationResults(t *test
 	results := testProviderConnectivity(ctx, config, adapter)
 
 	require.Len(t, results, 1)
-	assert.Equal(t, "https://github.com", results[0].Validation.Target)
-	assert.Equal(t, validation.ConnectivityTypeHTTP, results[0].Validation.Type)
-	assert.Contains(t, results[0].Validation.Description, "HTTP connectivity to github.com")
-	assert.True(t, results[0].Validation.Required)
+	require.Equal(t, "https://github.com", results[0].Validation.Target)
+	require.Equal(t, validation.ConnectivityTypeHTTP, results[0].Validation.Type)
+	require.Contains(t, results[0].Validation.Description, "HTTP connectivity to github.com")
+	require.True(t, results[0].Validation.Required)
 }
 
-func TestFormatSystemStatus_ToJSON_ReturnsValidFormat(t *testing.T) {
+func TestFormatSystemStatus_WhenFormattingAsJSON_ReturnsValidJSONStructure(t *testing.T) {
 	t.Parallel()
 
 	status := SystemStatus{
@@ -352,21 +354,21 @@ func TestFormatStatus_JSONOutput_ReturnsValidJSON(t *testing.T) {
 	result := formatStatusJSON(status)
 
 	// Check that it contains valid JSON structure
-	assert.Contains(t, result, "\"overall_success\": true")
-	assert.Contains(t, result, "\"configuration_valid\": true")
-	assert.Contains(t, result, "\"environment_count\": 2")
-	assert.Contains(t, result, "\"connectivity_checked\": true")
-	assert.Contains(t, result, "\"total_errors\": 1")
-	assert.Contains(t, result, "\"total_warnings\": 1")
-	assert.Contains(t, result, "\"connectivity_required_failed\": 0")
-	assert.Contains(t, result, "\"connectivity_optional_failed\": 1")
+	require.Contains(t, result, "\"overall_success\": true")
+	require.Contains(t, result, "\"configuration_valid\": true")
+	require.Contains(t, result, "\"environment_count\": 2")
+	require.Contains(t, result, "\"connectivity_checked\": true")
+	require.Contains(t, result, "\"total_errors\": 1")
+	require.Contains(t, result, "\"total_warnings\": 1")
+	require.Contains(t, result, "\"connectivity_required_failed\": 0")
+	require.Contains(t, result, "\"connectivity_optional_failed\": 1")
 	// Check array values are present (format may vary with indentation)
-	assert.Contains(t, result, "\"Issue 1\"")
-	assert.Contains(t, result, "\"Warning 1\"")
-	assert.Contains(t, result, "\"Suggestion 1\"")
-	assert.Contains(t, result, "\"issues\":")
-	assert.Contains(t, result, "\"warnings\":")
-	assert.Contains(t, result, "\"suggestions\":")
+	require.Contains(t, result, "\"Issue 1\"")
+	require.Contains(t, result, "\"Warning 1\"")
+	require.Contains(t, result, "\"Suggestion 1\"")
+	require.Contains(t, result, "\"issues\":")
+	require.Contains(t, result, "\"warnings\":")
+	require.Contains(t, result, "\"suggestions\":")
 }
 
 func TestFormatStatus_PlainOutput_ReturnsSimpleText(t *testing.T) {
@@ -389,13 +391,13 @@ func TestFormatStatus_PlainOutput_ReturnsSimpleText(t *testing.T) {
 	result := formatStatusPlain(status, false)
 
 	lines := strings.Split(result, "\n")
-	assert.Contains(t, lines[0], "STATUS\tWARNING") // Has warnings
-	assert.Contains(t, result, "CONFIG_VALID\ttrue")
-	assert.Contains(t, result, "ENVIRONMENTS\t2")
-	assert.Contains(t, result, "CONNECTIVITY_REQUIRED_FAILED\t0")
-	assert.Contains(t, result, "CONNECTIVITY_OPTIONAL_FAILED\t1")
-	assert.Contains(t, result, "TOTAL_ERRORS\t0")
-	assert.Contains(t, result, "TOTAL_WARNINGS\t1")
+	require.Contains(t, lines[0], "STATUS\tWARNING") // Has warnings
+	require.Contains(t, result, "CONFIG_VALID\ttrue")
+	require.Contains(t, result, "ENVIRONMENTS\t2")
+	require.Contains(t, result, "CONNECTIVITY_REQUIRED_FAILED\t0")
+	require.Contains(t, result, "CONNECTIVITY_OPTIONAL_FAILED\t1")
+	require.Contains(t, result, "TOTAL_ERRORS\t0")
+	require.Contains(t, result, "TOTAL_WARNINGS\t1")
 }
 
 func TestHandleStatusError_WithErrorTypes_FormatsCorrectly(t *testing.T) {
@@ -477,16 +479,18 @@ successful=3`,
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			// Create isolated temp file for this specific test
-			tempDir := t.TempDir()
+			// Create test environment with memory filesystem
+			testFS := testutil.NewTestFS(t)
+			tempDir := testFS.TempDir("test")
 			syncFilePath := filepath.Join(tempDir, ".gitprovidersync-last-sync-test")
 
 			if test.fileContent != "" {
-				require.NoError(t, os.WriteFile(syncFilePath, []byte(test.fileContent), 0o600))
+				testFS.WriteFile(syncFilePath, test.fileContent)
 			}
 
-			// Use the testable function with custom file path
-			result := getLastSyncInfoFromPath(syncFilePath)
+			// Use the testable function with memory filesystem
+			fs := testFS.GetFileSystem()
+			result := getLastSyncInfoFromPath(fs, syncFilePath)
 
 			if test.expected == "" {
 				assert.Empty(t, result)

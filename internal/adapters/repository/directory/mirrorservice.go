@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"io/fs"
-	"os"
 	"path/filepath"
 	"time"
 
@@ -19,6 +18,7 @@ import (
 type MirrorService struct {
 	adapter *Adapter
 	logger  ports.Logger
+	fs      ports.FileSystem
 }
 
 // NewMirrorService creates a new directory mirror service.
@@ -26,6 +26,7 @@ func NewMirrorService(adapter *Adapter, logger ports.Logger) *MirrorService {
 	return &MirrorService{
 		adapter: adapter,
 		logger:  logger,
+		fs:      adapter.fs,
 	}
 }
 
@@ -97,17 +98,17 @@ func (ms *MirrorService) CreateMirror(ctx context.Context, request MirrorRequest
 		})
 
 		// Safety check before removing directory
-		if err := validateDirectoryPath(request.TargetPath); err != nil {
+		if err := validateDirectoryPath(ms.fs, request.TargetPath); err != nil {
 			return nil, fmt.Errorf("cannot remove target directory: %w", err)
 		}
 
-		if err := os.RemoveAll(request.TargetPath); err != nil {
+		if err := ms.fs.RemoveAll(request.TargetPath); err != nil {
 			return nil, fmt.Errorf("failed to remove existing target: %w", err)
 		}
 	}
 
 	// Create target directory
-	if err := os.MkdirAll(request.TargetPath, 0750); err != nil {
+	if err := ms.fs.MkdirAll(request.TargetPath, 0750); err != nil {
 		return nil, fmt.Errorf("failed to create target directory: %w", err)
 	}
 
@@ -179,22 +180,15 @@ func (ms *MirrorService) VerifyMirror(ctx context.Context, targetPath string) (*
 		return verification, nil
 	}
 
-	// Count files and calculate size
-	err := filepath.WalkDir(targetPath, func(path string, dirEntry fs.DirEntry, err error) error {
+	// Count files and calculate size using injected filesystem
+	err := ms.adapter.GetFileSystem().Walk(targetPath, func(path string, info fs.FileInfo, err error) error {
 		if err != nil {
 			verification.Warnings = append(verification.Warnings, fmt.Sprintf("Error accessing %s: %v", path, err))
 
 			return nil
 		}
 
-		if !dirEntry.IsDir() {
-			info, err := dirEntry.Info()
-			if err != nil {
-				verification.Warnings = append(verification.Warnings, fmt.Sprintf("Error getting info for %s: %v", path, err))
-
-				return nil
-			}
-
+		if !info.IsDir() {
 			verification.FileCount++
 			verification.TotalSize += info.Size()
 		}
@@ -253,11 +247,11 @@ func (ms *MirrorService) DeleteMirror(ctx context.Context, targetPath string) er
 	}
 
 	// Safety check before removing directory
-	if err := validateDirectoryPath(targetPath); err != nil {
+	if err := validateDirectoryPath(ms.fs, targetPath); err != nil {
 		return fmt.Errorf("cannot delete mirror directory: %w", err)
 	}
 
-	if err := os.RemoveAll(targetPath); err != nil {
+	if err := ms.fs.RemoveAll(targetPath); err != nil {
 		return fmt.Errorf("failed to delete mirror: %w", err)
 	}
 
@@ -272,7 +266,7 @@ func (ms *MirrorService) DeleteMirror(ctx context.Context, targetPath string) er
 func (ms *MirrorService) performMirror(_ /* ctx */ context.Context, request MirrorRequest, result *MirrorResult) error {
 	sourcePath := request.SourceRepository.Path()
 
-	if err := filepath.WalkDir(sourcePath, func(path string, dirEntry fs.DirEntry, err error) error {
+	if err := ms.fs.Walk(sourcePath, func(path string, info fs.FileInfo, err error) error {
 		if err != nil {
 			result.Warnings = append(result.Warnings, fmt.Sprintf("Error accessing %s: %v", path, err))
 
@@ -297,13 +291,8 @@ func (ms *MirrorService) performMirror(_ /* ctx */ context.Context, request Mirr
 
 		targetPath := filepath.Join(request.TargetPath, relPath)
 
-		if dirEntry.IsDir() {
-			info, err := dirEntry.Info()
-			if err != nil {
-				return fmt.Errorf("failed to get dir info: %w", err)
-			}
-
-			return os.MkdirAll(targetPath, info.Mode())
+		if info.IsDir() {
+			return ms.fs.MkdirAll(targetPath, info.Mode())
 		}
 
 		// Copy file
@@ -313,11 +302,8 @@ func (ms *MirrorService) performMirror(_ /* ctx */ context.Context, request Mirr
 			return nil
 		}
 
-		info, err := dirEntry.Info()
-		if err == nil {
-			result.FilesCount++
-			result.TotalSize += info.Size()
-		}
+		result.FilesCount++
+		result.TotalSize += info.Size()
 
 		return nil
 	}); err != nil {
@@ -372,51 +358,26 @@ func (ms *MirrorService) isHidden(path string) bool {
 
 // CopyFile copies a file from source to target.
 func (ms *MirrorService) copyFile(sourcePath, targetPath string) error {
-	// #nosec G304 - Source path comes from controlled directory mirroring
-	sourceFile, err := os.Open(sourcePath)
+	// Read source file content
+	sourceData, err := ms.fs.ReadFile(sourcePath)
 	if err != nil {
-		return fmt.Errorf("failed to open source file: %w", err)
+		return fmt.Errorf("failed to read source file: %w", err)
 	}
 
-	defer func() {
-		if err := sourceFile.Close(); err != nil {
-			// Log close error
-			_ = err
-		}
-	}()
-
-	// Ensure target directory exists
-	if err := os.MkdirAll(filepath.Dir(targetPath), 0750); err != nil {
-		return fmt.Errorf("failed to create target directory: %w", err)
-	}
-
-	// #nosec G304 - Target path is constructed from validated components
-	targetFile, err := os.Create(targetPath)
-	if err != nil {
-		return fmt.Errorf("failed to create target file: %w", err)
-	}
-
-	defer func() {
-		if err := targetFile.Close(); err != nil {
-			// Log close error
-			_ = err
-		}
-	}()
-
-	// Copy file content
-	_, err = targetFile.ReadFrom(sourceFile)
-	if err != nil {
-		return fmt.Errorf("failed to copy file content: %w", err)
-	}
-
-	// Copy file permissions
-	sourceInfo, err := sourceFile.Stat()
+	// Get source file info for permissions
+	sourceInfo, err := ms.fs.Stat(sourcePath)
 	if err != nil {
 		return fmt.Errorf("failed to get source file info: %w", err)
 	}
 
-	if err := os.Chmod(targetPath, sourceInfo.Mode()); err != nil {
-		return fmt.Errorf("failed to set file permissions: %w", err)
+	// Ensure target directory exists
+	if err := ms.fs.MkdirAll(filepath.Dir(targetPath), 0750); err != nil {
+		return fmt.Errorf("failed to create target directory: %w", err)
+	}
+
+	// Write target file with same permissions
+	if err := ms.fs.WriteFile(targetPath, sourceData, sourceInfo.Mode()); err != nil {
+		return fmt.Errorf("failed to write target file: %w", err)
 	}
 
 	return nil
@@ -433,7 +394,7 @@ func (ms *MirrorService) createMetadataFile(_ /* ctx */ context.Context, targetP
 		metadata.Source,
 		metadata.CreatedBy)
 
-	if err := os.WriteFile(metadataPath, []byte(content), 0600); err != nil {
+	if err := ms.fs.WriteFile(metadataPath, []byte(content), 0600); err != nil {
 		return fmt.Errorf("failed to write metadata file: %w", err)
 	}
 
@@ -454,7 +415,7 @@ func (ms *MirrorService) createArchive(ctx context.Context, targetPath string, o
 
 // PathExists checks if a path exists.
 func (ms *MirrorService) pathExists(path string) bool {
-	_, err := os.Stat(path)
+	exists, _ := ms.fs.Exists(path)
 
-	return err == nil
+	return exists
 }

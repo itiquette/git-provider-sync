@@ -85,18 +85,15 @@ func testCreateAndCleanupNestedDirectories(t *testing.T, baseDir string) {
 	require.NoError(t, err)
 	assert.Equal(t, baseDir, tmpPath)
 
-	// Cleanup
-	for i := len(createdDirs) - 1; i >= 0; i-- {
-		err := os.RemoveAll(createdDirs[i])
-		require.NoError(t, err)
-
-		// Verify directory is removed
-		assert.NoDirExists(t, createdDirs[i])
-	}
+	// No manual cleanup needed - baseDir is under t.TempDir()
+	// Just verify we can still access files before test ends
+	assert.FileExists(t, testFile)
 }
 
 func testConcurrentDirectoryOperations(t *testing.T, baseDir string) {
 	t.Helper()
+
+	fileSystem := NewOSFileSystem()
 
 	// Test concurrent temp directory creation
 	numGoroutines := 10
@@ -107,7 +104,7 @@ func testConcurrentDirectoryOperations(t *testing.T, baseDir string) {
 			ctx := context.Background()
 			dirName := fmt.Sprintf("concurrent_%d", id)
 
-			ctx, err := CreateTmpDir(ctx, baseDir, dirName)
+			ctx, err := CreateTmpDir(ctx, fileSystem, baseDir, dirName)
 			if err != nil {
 				errChan <- err
 
@@ -129,7 +126,7 @@ func testConcurrentDirectoryOperations(t *testing.T, baseDir string) {
 			}
 
 			// Clean up
-			if err := DeleteTmpDir(ctx); err != nil {
+			if err := DeleteTmpDir(ctx, fileSystem); err != nil {
 				errChan <- err
 
 				return
@@ -149,10 +146,12 @@ func testConcurrentDirectoryOperations(t *testing.T, baseDir string) {
 func testDirectoryPermissions(t *testing.T, baseDir string) {
 	t.Helper()
 
+	fileSystem := NewOSFileSystem()
+
 	ctx := context.Background()
 
 	// Create directory using CreateTmpDir
-	ctx, err := CreateTmpDir(ctx, baseDir, "permissions-test")
+	ctx, err := CreateTmpDir(ctx, fileSystem, baseDir, "permissions-test")
 	require.NoError(t, err)
 
 	tmpPath, err := GetTmpDirPath(ctx)
@@ -173,7 +172,7 @@ func testDirectoryPermissions(t *testing.T, baseDir string) {
 	assert.Equal(t, "permission test", string(content))
 
 	// Cleanup
-	err = DeleteTmpDir(ctx)
+	err = DeleteTmpDir(ctx, fileSystem)
 	require.NoError(t, err)
 }
 
@@ -213,23 +212,21 @@ func testSymlinkHandling(t *testing.T, baseDir string) {
 	require.NoError(t, err)
 	assert.Equal(t, symlinkPath, tmpPath)
 
-	// Cleanup symlink
-	require.NoError(t, os.Remove(symlinkPath))
-
-	// Cleanup target
-	require.NoError(t, os.RemoveAll(targetDir))
+	// No manual cleanup needed - all under t.TempDir()
+	// Symlink and target will be cleaned up automatically
 }
 
 // TestTmpDirIntegration tests integration with other components.
 func TestTmpDir_CreateAndCleanup_WorksWithFileSystem(t *testing.T) {
 	t.Parallel()
 
+	fileSystem := NewOSFileSystem()
 	tmpDir := t.TempDir()
 	ctx := context.Background()
 
 	// Test workflow: create temp space, use it, clean up
 	// Create workspace
-	ctx, err := CreateTmpDir(ctx, tmpDir, "workspace")
+	ctx, err := CreateTmpDir(ctx, fileSystem, tmpDir, "workspace")
 	require.NoError(t, err)
 
 	workspacePath, err := GetTmpDirPath(ctx)
@@ -269,7 +266,7 @@ func TestTmpDir_CreateAndCleanup_WorksWithFileSystem(t *testing.T) {
 	assert.FileExists(t, subFile)
 
 	// Cleanup everything
-	require.NoError(t, DeleteTmpDir(ctx))
+	require.NoError(t, DeleteTmpDir(ctx, fileSystem))
 
 	// Verify cleanup
 	assert.NoDirExists(t, workspacePath)

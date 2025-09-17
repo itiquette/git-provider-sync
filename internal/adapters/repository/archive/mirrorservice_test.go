@@ -109,8 +109,8 @@ func TestNewMirrorService(t *testing.T) {
 	t.Parallel()
 
 	logger := &mockLogger{}
-	tempDir := "/tmp/test"
-	archiveDir := "/archive/test"
+	tempDir := t.TempDir()
+	archiveDir := t.TempDir()
 
 	service := NewMirrorService(logger, tempDir, archiveDir)
 

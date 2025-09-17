@@ -34,13 +34,15 @@ func TestLoad(t *testing.T) {
 
 	tests := []struct {
 		name          string
-		setupSource   func(tempDir string) ports.ConfigurationSource
+		setupSource   func() ports.ConfigurationSource
 		expectError   bool
 		errorContains string
 	}{
 		{
 			name: "valid YAML file",
-			setupSource: func(tempDir string) ports.ConfigurationSource {
+			setupSource: func() ports.ConfigurationSource {
+				// Config adapter uses koanf which requires real files
+				tempDir := t.TempDir()
 				configPath := filepath.Join(tempDir, "config.yaml")
 				content := `
 environments:
@@ -73,10 +75,10 @@ global:
 		},
 		{
 			name: "non-existent required file",
-			setupSource: func(tempDir string) ports.ConfigurationSource {
+			setupSource: func() ports.ConfigurationSource {
 				return ports.ConfigurationSource{
 					Type:     ports.SourceTypeFile,
-					Location: filepath.Join(tempDir, "nonexistent.yaml"),
+					Location: filepath.Join(t.TempDir(), "nonexistent.yaml"),
 					Required: true,
 				}
 			},
@@ -85,10 +87,10 @@ global:
 		},
 		{
 			name: "non-existent optional file",
-			setupSource: func(tempDir string) ports.ConfigurationSource {
+			setupSource: func() ports.ConfigurationSource {
 				return ports.ConfigurationSource{
 					Type:     ports.SourceTypeFile,
-					Location: filepath.Join(tempDir, "nonexistent.yaml"),
+					Location: filepath.Join(t.TempDir(), "nonexistent.yaml"),
 					Required: false,
 				}
 			},
@@ -96,7 +98,8 @@ global:
 		},
 		{
 			name: "invalid YAML file",
-			setupSource: func(tempDir string) ports.ConfigurationSource {
+			setupSource: func() ports.ConfigurationSource {
+				tempDir := t.TempDir()
 				configPath := filepath.Join(tempDir, "invalid.yaml")
 				content := `
 environments:
@@ -117,7 +120,7 @@ environments:
 		},
 		{
 			name: "environment source",
-			setupSource: func(_ string) ports.ConfigurationSource {
+			setupSource: func() ports.ConfigurationSource {
 				// Note: Environment source testing skipped due to t.Setenv() with t.Parallel() incompatibility
 				return ports.ConfigurationSource{
 					Type:     ports.SourceTypeEnvironment,
@@ -133,11 +136,10 @@ environments:
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			tempDir := t.TempDir()
 			adapter := New()
 			ctx := context.Background()
 
-			source := test.setupSource(tempDir)
+			source := test.setupSource()
 			config, err := adapter.Load(ctx, source)
 
 			if test.expectError {

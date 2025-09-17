@@ -5,18 +5,20 @@ package validation
 
 import (
 	"fmt"
+	"io/fs"
 	"os"
-	"path/filepath"
+
+	"itiquette/git-provider-sync/internal/domain/ports"
 )
 
-// StatPath gets file info for a path.
-func statPath(path string) (os.FileInfo, error) {
-	absPath, err := filepath.Abs(path)
+// StatPath gets file info for a path using the provided filesystem.
+func statPath(fileSystem ports.FileSystem, path string) (fs.FileInfo, error) {
+	absPath, err := fileSystem.Abs(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get absolute path for %s: %w", path, err)
 	}
 
-	info, err := os.Stat(absPath)
+	info, err := fileSystem.Stat(absPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to stat path %s: %w", absPath, err)
 	}
@@ -24,10 +26,10 @@ func statPath(path string) (os.FileInfo, error) {
 	return info, nil
 }
 
-// IsReadable checks if a path is readable.
-func isReadable(path string) bool {
-	// #nosec G304 - Path is validated before this call
-	file, err := os.Open(path)
+// IsReadable checks if a path is readable using the provided filesystem.
+func isReadable(fileSystem ports.FileSystem, path string) bool {
+	// Path is validated before this call
+	file, err := fileSystem.Open(path)
 	if err != nil {
 		return false
 	}
@@ -42,23 +44,23 @@ func isReadable(path string) bool {
 	return true
 }
 
-// IsWritable checks if a path is writable.
-func isWritable(path string) bool {
+// IsWritable checks if a path is writable using the provided filesystem.
+func isWritable(fileSystem ports.FileSystem, path string) bool {
 	// For directories, try to create a temp file
-	info, err := os.Stat(path)
+	info, err := fileSystem.Stat(path)
 	if err != nil {
 		return false
 	}
 
 	if info.IsDir() {
 		// Try to create a temporary file in the directory
-		tempFile, err := os.CreateTemp(path, "write_test_")
+		tempFileName, tempFile, err := fileSystem.CreateTemp(path, "write_test_")
 		if err != nil {
 			return false
 		}
 
 		defer func() {
-			if err := os.Remove(tempFile.Name()); err != nil {
+			if err := fileSystem.Remove(tempFileName); err != nil {
 				// Log remove error
 				_ = err
 			}
@@ -74,8 +76,8 @@ func isWritable(path string) bool {
 	}
 
 	// For files, check if we can open for writing
-	// #nosec G304 - Path is validated before this call
-	file, err := os.OpenFile(path, os.O_WRONLY, 0)
+	// Path is validated before this call
+	file, err := fileSystem.OpenFile(path, os.O_WRONLY, 0)
 	if err != nil {
 		return false
 	}

@@ -28,7 +28,7 @@ func TestMirrorServiceIntegration(t *testing.T) {
 	gitOps := gogit.New(ports.GitConfig{
 		UserName:    "Mirror Test",
 		UserEmail:   "mirror@test.com",
-		StorageMode: ports.StorageModeFilesystem, // Required for pushable bare repos in tests
+		StorageMode: ports.StorageModeMemory, // Memory mode is faster and works with bare repos
 	})
 
 	t.Run("complete mirror operation with real git", func(t *testing.T) {

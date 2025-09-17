@@ -6,21 +6,22 @@ package directory
 import (
 	"errors"
 	"fmt"
-	"path/filepath"
 	"strings"
+
+	"itiquette/git-provider-sync/internal/domain/ports"
 )
 
 // validateDirectoryPath validates that a path is safe for directory operations.
 // Returns an error if the path points to a critical system directory.
-func validateDirectoryPath(path string) error {
+func validateDirectoryPath(fileSystem ports.FileSystem, path string) error {
 	// Normalize the path
-	absPath, err := filepath.Abs(path)
+	absPath, err := fileSystem.Abs(path)
 	if err != nil {
 		return fmt.Errorf("invalid path: %w", err)
 	}
 
 	// Clean the path to remove any . or .. components
-	cleanPath := filepath.Clean(absPath)
+	cleanPath := fileSystem.Clean(absPath)
 
 	// Never allow root directory
 	if cleanPath == "/" {

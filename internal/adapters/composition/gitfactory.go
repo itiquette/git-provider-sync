@@ -16,11 +16,15 @@ import (
 )
 
 // GitFactory creates git operations instances based on configuration.
-type GitFactory struct{}
+type GitFactory struct {
+	fileSystem ports.FileSystem
+}
 
 // NewGitFactory creates a new git operations factory.
-func NewGitFactory(_ ports.GitConfig) *GitFactory {
-	return &GitFactory{}
+func NewGitFactory(_ ports.GitConfig, fileSystem ports.FileSystem) *GitFactory {
+	return &GitFactory{
+		fileSystem: fileSystem,
+	}
 }
 
 // CreateOperations creates git operations based on configuration.

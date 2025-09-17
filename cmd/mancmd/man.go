@@ -26,13 +26,9 @@ func NewManCommand() *cli.Command {
 	return cmd
 }
 
-// RunManGeneration generates man page content
-// outputs basic man page content
-// In a full implementation, this would generate markdown that gets converted to man format.
-func runManGeneration(_ context.Context, _ *cli.Command) error {
-	// Basic man page content output
-	// In practice, this would generate proper markdown documentation
-	manContent := `# gitprovidersync(1)
+// getManContent returns the man page content as a string.
+func getManContent() string {
+	return `# gitprovidersync(1)
 
 ## NAME
 
@@ -79,6 +75,13 @@ Git Provider Sync was initially created by Josef Andersson <https://github.com/i
 Copyright (C) 2025 The Git Provider Sync Authors.
 Released under the EUPL-1.2 license.
 `
+}
+
+// RunManGeneration generates man page content
+// outputs basic man page content
+// In a full implementation, this would generate markdown that gets converted to man format.
+func runManGeneration(_ context.Context, _ *cli.Command) error {
+	manContent := getManContent()
 
 	_, err := fmt.Fprint(os.Stdout, manContent)
 	if err != nil {

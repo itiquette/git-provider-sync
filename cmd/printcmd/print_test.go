@@ -337,7 +337,7 @@ func TestHandleValidationError(t *testing.T) { //nolint:paralleltest // Cannot r
 // Integration tests for different configuration file scenarios.
 func TestPrintCommand_ConfigErrors(t *testing.T) { //nolint:paralleltest // Cannot run in parallel due to race conditions in urfave/cli v3
 	// Removed t.Parallel() due to race conditions in urfave/cli v3
-	// Create temporary directory for test files
+	// Note: This test needs real files because the CLI command reads from the actual filesystem
 	tempDir := t.TempDir()
 
 	tests := []struct {

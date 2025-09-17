@@ -6,6 +6,7 @@ package cli
 import (
 	"bytes"
 	"net/url"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -75,7 +76,8 @@ func TestPanicHandler_GenerateBugReportURL(t *testing.T) {
 
 	handler := NewPanicHandler(nil, "v1.0.0")
 
-	urlStr := handler.generateBugReportURL("test error", "/tmp/crash.txt")
+	crashFile := filepath.Join(t.TempDir(), "crash.txt")
+	urlStr := handler.generateBugReportURL("test error", crashFile)
 
 	// Parse URL to verify structure
 	parsedURL, err := url.Parse(urlStr)
@@ -104,7 +106,7 @@ func TestPanicHandler_GenerateBugReportURL(t *testing.T) {
 	assert.Contains(t, body, "## Error Details")
 	assert.Contains(t, body, "## System Information")
 	assert.Contains(t, body, "v1.0.0")
-	assert.Contains(t, body, "/tmp/crash.txt")
+	assert.Contains(t, body, crashFile)
 }
 
 func TestPanicHandler_FormatIssueBody(t *testing.T) {
@@ -112,7 +114,8 @@ func TestPanicHandler_FormatIssueBody(t *testing.T) {
 
 	handler := NewPanicHandler(nil, "v1.0.0")
 
-	body := handler.formatIssueBody("test panic", "/tmp/crash.txt")
+	crashFile := filepath.Join(t.TempDir(), "crash.txt")
+	body := handler.formatIssueBody("test panic", crashFile)
 
 	// Check markdown sections
 	assert.Contains(t, body, "## Description")
@@ -122,7 +125,7 @@ func TestPanicHandler_FormatIssueBody(t *testing.T) {
 	assert.Contains(t, body, "## System Information")
 	assert.Contains(t, body, "- Version: v1.0.0")
 	assert.Contains(t, body, "## Crash Report")
-	assert.Contains(t, body, "/tmp/crash.txt")
+	assert.Contains(t, body, crashFile)
 	assert.Contains(t, body, "## Additional Context")
 }
 

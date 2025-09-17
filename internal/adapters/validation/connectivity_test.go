@@ -402,8 +402,9 @@ func TestFileSystemAdapter_ValidateFileSystem_Directory(t *testing.T) {
 		{
 			name: "valid readable directory",
 			setupPath: func(memFS *testutil.AferoTestFS) string {
-				dirPath := "/testdir"
+				dirPath := testDirPath
 				memFS.CreateDir(dirPath)
+
 				return dirPath
 			},
 			needsWritable:   false,
@@ -415,6 +416,7 @@ func TestFileSystemAdapter_ValidateFileSystem_Directory(t *testing.T) {
 			setupPath: func(memFS *testutil.AferoTestFS) string {
 				dirPath := "/writabledir"
 				memFS.CreateDir(dirPath)
+
 				return dirPath
 			},
 			needsWritable:   true,
@@ -423,7 +425,7 @@ func TestFileSystemAdapter_ValidateFileSystem_Directory(t *testing.T) {
 		},
 		{
 			name: "nonexistent directory",
-			setupPath: func(memFS *testutil.AferoTestFS) string {
+			setupPath: func(_ *testutil.AferoTestFS) string {
 				return "/nonexistent/directory/path"
 			},
 			needsWritable:   false,
@@ -496,6 +498,7 @@ func TestFileSystemAdapter_ValidateFileSystem_File(t *testing.T) {
 			setupPath: func(memFS *testutil.AferoTestFS) string {
 				testFile := "/test.txt"
 				memFS.WriteFileString(testFile, "test")
+
 				return testFile
 			},
 			needsWritable:   false,
@@ -507,6 +510,7 @@ func TestFileSystemAdapter_ValidateFileSystem_File(t *testing.T) {
 			setupPath: func(memFS *testutil.AferoTestFS) string {
 				testFile := "/writable.txt"
 				memFS.WriteFileString(testFile, "test")
+
 				return testFile
 			},
 			needsWritable:   true,
@@ -516,8 +520,9 @@ func TestFileSystemAdapter_ValidateFileSystem_File(t *testing.T) {
 		{
 			name: "directory when expecting file",
 			setupPath: func(memFS *testutil.AferoTestFS) string {
-				dirPath := "/testdir"
+				dirPath := testDirPath
 				memFS.CreateDir(dirPath)
+
 				return dirPath
 			},
 			needsWritable:   false,
@@ -527,7 +532,7 @@ func TestFileSystemAdapter_ValidateFileSystem_File(t *testing.T) {
 		},
 		{
 			name: "nonexistent file",
-			setupPath: func(memFS *testutil.AferoTestFS) string {
+			setupPath: func(_ *testutil.AferoTestFS) string {
 				return "/nonexistent/file.txt"
 			},
 			needsWritable:   false,

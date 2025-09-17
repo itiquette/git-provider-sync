@@ -6,6 +6,7 @@ package sync_test
 import (
 	"context"
 	"fmt"
+	"io"
 	"io/fs"
 	"itiquette/git-provider-sync/internal/adapters/shared"
 	"path/filepath"
@@ -22,6 +23,7 @@ import (
 )
 
 // Mock implementations for testing
+// Using shared mocks from mocks_test.go where available
 
 type mockConfiguration struct {
 	mock.Mock
@@ -90,26 +92,30 @@ func (m *mockConfiguration) GetVersion() string {
 	return args.String(0)
 }
 
+// mockRepositoryProvider is a test-specific mock for the RepositoryProvider interface
+// Note: We keep this in sync_test package for black-box testing isolation.
 type mockRepositoryProvider struct {
 	mock.Mock
 }
 
+// Simplified mock methods - only implement what's needed for these tests.
 func (m *mockRepositoryProvider) ListRepositories(ctx context.Context, config ports.ProviderConfig) ([]entities.Repository, error) {
 	args := m.Called(ctx, config)
 	if err := args.Error(1); err != nil {
-		return nil, fmt.Errorf("failed to list repositories: %w", err)
+		return nil, err //nolint:wrapcheck // Test mock
 	}
+	// Safe type assertion - test mock controls return values
+	repos, _ := args.Get(0).([]entities.Repository)
 
-	return args.Get(0).([]entities.Repository), nil //nolint:forcetypeassert // Test mock - controlled return values
+	return repos, nil
 }
 
 func (m *mockRepositoryProvider) GetRepository(ctx context.Context, config ports.ProviderConfig, name string) (entities.Repository, error) {
 	args := m.Called(ctx, config, name)
-	if err := args.Error(1); err != nil {
-		return entities.Repository{}, fmt.Errorf("failed to get repository: %w", err)
-	}
+	// Safe type assertion - test mock controls return values
+	repo, _ := args.Get(0).(entities.Repository)
 
-	return args.Get(0).(entities.Repository), nil //nolint:forcetypeassert // Test mock - controlled return values
+	return repo, args.Error(1) //nolint:wrapcheck // Test mock
 }
 
 func (m *mockRepositoryProvider) RepositoryExists(ctx context.Context, request ports.RepositoryExistsRequest) (bool, string, error) {
@@ -120,38 +126,28 @@ func (m *mockRepositoryProvider) RepositoryExists(ctx context.Context, request p
 
 func (m *mockRepositoryProvider) CreateRepository(ctx context.Context, config ports.ProviderConfig, options ports.CreateRepositoryOptions) (entities.Repository, error) {
 	args := m.Called(ctx, config, options)
-	if err := args.Error(1); err != nil {
-		return entities.Repository{}, fmt.Errorf("failed to create repository: %w", err)
-	}
+	// Safe type assertion - test mock controls return values
+	repo, _ := args.Get(0).(entities.Repository)
 
-	return args.Get(0).(entities.Repository), nil //nolint:forcetypeassert // Test mock - controlled return values
+	return repo, args.Error(1) //nolint:wrapcheck // Test mock
 }
 
 func (m *mockRepositoryProvider) UpdateRepository(ctx context.Context, config ports.ProviderConfig, name string, options ports.UpdateRepositoryOptions) error {
 	args := m.Called(ctx, config, name, options)
-	if err := args.Error(0); err != nil {
-		return fmt.Errorf("failed to update repository: %w", err)
-	}
 
-	return nil
+	return args.Error(0) //nolint:wrapcheck // Test mock
 }
 
 func (m *mockRepositoryProvider) DeleteRepository(ctx context.Context, config ports.ProviderConfig, name string) error {
 	args := m.Called(ctx, config, name)
-	if err := args.Error(0); err != nil {
-		return fmt.Errorf("failed to delete repository: %w", err)
-	}
 
-	return nil
+	return args.Error(0) //nolint:wrapcheck // Test mock
 }
 
 func (m *mockRepositoryProvider) ValidateRepositoryName(name string) error {
 	args := m.Called(name)
-	if err := args.Error(0); err != nil {
-		return fmt.Errorf("failed to validate repository name: %w", err)
-	}
 
-	return nil
+	return args.Error(0) //nolint:wrapcheck // Test mock
 }
 
 func (m *mockRepositoryProvider) TransformRepositoryName(name string, options ports.NameTransformOptions) string {
@@ -162,44 +158,35 @@ func (m *mockRepositoryProvider) TransformRepositoryName(name string, options po
 
 func (m *mockRepositoryProvider) GetBranchProtection(ctx context.Context, config ports.ProviderConfig, repoName, branch string) (ports.BranchProtection, error) {
 	args := m.Called(ctx, config, repoName, branch)
-	if err := args.Error(1); err != nil {
-		return ports.BranchProtection{}, fmt.Errorf("failed to get branch protection: %w", err)
-	}
+	protection, _ := args.Get(0).(ports.BranchProtection)
 
-	return args.Get(0).(ports.BranchProtection), nil //nolint:forcetypeassert // Test mock - controlled return values
+	return protection, args.Error(1) //nolint:wrapcheck // Test mock
 }
 
 func (m *mockRepositoryProvider) SetBranchProtection(ctx context.Context, config ports.ProviderConfig, repoName, branch string, protection ports.BranchProtection) error {
 	args := m.Called(ctx, config, repoName, branch, protection)
-	if err := args.Error(0); err != nil {
-		return fmt.Errorf("failed to set branch protection: %w", err)
-	}
 
-	return nil
+	return args.Error(0) //nolint:wrapcheck // Test mock
 }
 
 func (m *mockRepositoryProvider) RemoveBranchProtection(ctx context.Context, config ports.ProviderConfig, repoName, branch string) error {
 	args := m.Called(ctx, config, repoName, branch)
-	if err := args.Error(0); err != nil {
-		return fmt.Errorf("failed to remove branch protection: %w", err)
-	}
 
-	return nil
+	return args.Error(0) //nolint:wrapcheck // Test mock
 }
 
 func (m *mockRepositoryProvider) ListProtectedBranches(ctx context.Context, config ports.ProviderConfig, repoName string) ([]string, error) {
 	args := m.Called(ctx, config, repoName)
-	if err := args.Error(1); err != nil {
-		return nil, fmt.Errorf("failed to list protected branches: %w", err)
-	}
+	branches, _ := args.Get(0).([]string)
 
-	return args.Get(0).([]string), nil //nolint:forcetypeassert // Test mock - controlled return values
+	return branches, args.Error(1) //nolint:wrapcheck // Test mock
 }
 
 func (m *mockRepositoryProvider) GetProviderInfo() ports.ProviderInfo {
 	args := m.Called()
+	info, _ := args.Get(0).(ports.ProviderInfo)
 
-	return args.Get(0).(ports.ProviderInfo) //nolint:forcetypeassert // Test mock - controlled return values
+	return info
 }
 
 func (m *mockRepositoryProvider) SupportsFeature(feature ports.ProviderFeature) bool {
@@ -222,29 +209,20 @@ func (m *mockRepositoryProvider) ProjectExists(ctx context.Context, owner, repo 
 
 func (m *mockRepositoryProvider) Protect(ctx context.Context, owner string, defaultBranch string, projectIDstr string) error {
 	args := m.Called(ctx, owner, defaultBranch, projectIDstr)
-	if err := args.Error(0); err != nil {
-		return fmt.Errorf("failed to protect: %w", err)
-	}
 
-	return nil
+	return args.Error(0) //nolint:wrapcheck // Test mock
 }
 
 func (m *mockRepositoryProvider) Unprotect(ctx context.Context, defaultBranch string, projectIDStr string) error {
 	args := m.Called(ctx, defaultBranch, projectIDStr)
-	if err := args.Error(0); err != nil {
-		return fmt.Errorf("failed to unprotect: %w", err)
-	}
 
-	return nil
+	return args.Error(0) //nolint:wrapcheck // Test mock
 }
 
 func (m *mockRepositoryProvider) SetDefaultBranch(ctx context.Context, owner, name, branch string) error {
 	args := m.Called(ctx, owner, name, branch)
-	if err := args.Error(0); err != nil {
-		return fmt.Errorf("failed to set default branch: %w", err)
-	}
 
-	return nil
+	return args.Error(0) //nolint:wrapcheck // Test mock
 }
 
 func (m *mockRepositoryProvider) IsValidProjectName(ctx context.Context, name string) bool {
@@ -411,6 +389,162 @@ func (m *mockFileSystem) TempDir(dir, pattern string) (string, error) {
 	args := m.Called(dir, pattern)
 
 	return args.String(0), args.Error(1)
+}
+
+func (m *mockFileSystem) Join(elem ...string) string {
+	args := m.Called(elem)
+
+	return args.String(0)
+}
+
+func (m *mockFileSystem) Clean(path string) string {
+	args := m.Called(path)
+
+	return args.String(0)
+}
+
+func (m *mockFileSystem) ReadFile(path string) ([]byte, error) {
+	args := m.Called(path)
+	if args.Get(0) == nil {
+		return nil, args.Error(1) //nolint:wrapcheck // Mock error pass-through
+	}
+
+	data, ok := args.Get(0).([]byte)
+	if !ok {
+		return nil, args.Error(1) //nolint:wrapcheck // Mock error pass-through
+	}
+
+	return data, args.Error(1) //nolint:wrapcheck // Mock error pass-through
+}
+
+func (m *mockFileSystem) WriteFile(path string, data []byte, perm fs.FileMode) error {
+	args := m.Called(path, data, perm)
+
+	return args.Error(0) //nolint:wrapcheck // Mock error pass-through
+}
+
+func (m *mockFileSystem) Walk(root string, walkFn func(path string, info fs.FileInfo, err error) error) error {
+	args := m.Called(root, walkFn)
+
+	return args.Error(0) //nolint:wrapcheck // Mock error pass-through
+}
+
+func (m *mockFileSystem) Chmod(path string, mode fs.FileMode) error {
+	args := m.Called(path, mode)
+
+	return args.Error(0) //nolint:wrapcheck // Mock error pass-through
+}
+
+func (m *mockFileSystem) Open(path string) (io.ReadCloser, error) {
+	args := m.Called(path)
+	if args.Get(0) == nil {
+		return nil, args.Error(1) //nolint:wrapcheck // Mock error pass-through
+	}
+
+	rc, ok := args.Get(0).(io.ReadCloser)
+	if !ok {
+		return nil, args.Error(1) //nolint:wrapcheck // Mock error pass-through
+	}
+
+	return rc, args.Error(1) //nolint:wrapcheck // Mock error pass-through
+}
+
+func (m *mockFileSystem) Create(path string) (io.WriteCloser, error) {
+	args := m.Called(path)
+	if args.Get(0) == nil {
+		return nil, args.Error(1) //nolint:wrapcheck // Mock error pass-through
+	}
+
+	wc, ok := args.Get(0).(io.WriteCloser)
+	if !ok {
+		return nil, args.Error(1) //nolint:wrapcheck // Mock error pass-through
+	}
+
+	return wc, args.Error(1) //nolint:wrapcheck // Mock error pass-through
+}
+
+func (m *mockFileSystem) OpenFile(path string, flag int, perm fs.FileMode) (io.ReadWriteCloser, error) {
+	args := m.Called(path, flag, perm)
+	if args.Get(0) == nil {
+		return nil, args.Error(1) //nolint:wrapcheck // Mock error pass-through
+	}
+
+	rwc, ok := args.Get(0).(io.ReadWriteCloser)
+	if !ok {
+		return nil, args.Error(1) //nolint:wrapcheck // Mock error pass-through
+	}
+
+	return rwc, args.Error(1) //nolint:wrapcheck // Mock error pass-through
+}
+
+func (m *mockFileSystem) Remove(path string) error {
+	args := m.Called(path)
+
+	return args.Error(0) //nolint:wrapcheck // Mock error pass-through
+}
+
+func (m *mockFileSystem) CreateTemp(dir, pattern string) (string, io.WriteCloser, error) {
+	args := m.Called(dir, pattern)
+	if args.Get(1) == nil {
+		return args.String(0), nil, args.Error(2)
+	}
+
+	wc, ok := args.Get(1).(io.WriteCloser)
+	if !ok {
+		return args.String(0), nil, args.Error(2)
+	}
+
+	return args.String(0), wc, args.Error(2)
+}
+
+func (m *mockFileSystem) Abs(path string) (string, error) {
+	args := m.Called(path)
+
+	return args.String(0), args.Error(1)
+}
+
+func (m *mockFileSystem) ReadDir(path string) ([]fs.DirEntry, error) {
+	args := m.Called(path)
+	if args.Get(0) == nil {
+		return nil, args.Error(1) //nolint:wrapcheck // Mock error pass-through
+	}
+
+	entries, ok := args.Get(0).([]fs.DirEntry)
+	if !ok {
+		return nil, args.Error(1) //nolint:wrapcheck // Mock error pass-through
+	}
+
+	return entries, args.Error(1) //nolint:wrapcheck // Mock error pass-through
+}
+
+func (m *mockFileSystem) Base(path string) string {
+	args := m.Called(path)
+
+	return args.String(0)
+}
+
+func (m *mockFileSystem) Dir(path string) string {
+	args := m.Called(path)
+
+	return args.String(0)
+}
+
+func (m *mockFileSystem) Rel(basepath, targpath string) (string, error) {
+	args := m.Called(basepath, targpath)
+
+	return args.String(0), args.Error(1)
+}
+
+func (m *mockFileSystem) IsAbs(path string) bool {
+	args := m.Called(path)
+
+	return args.Bool(0)
+}
+
+func (m *mockFileSystem) GetTempDir() string {
+	args := m.Called()
+
+	return args.String(0)
 }
 
 // Test Suite
@@ -629,12 +763,4 @@ func TestSyncRepositoriesUseCase_Execute(t *testing.T) {
 			mockLogger.AssertExpectations(t)
 		})
 	}
-}
-
-func (m *mockFileSystem) Clean(path string) string {
-	return filepath.Clean(path)
-}
-
-func (m *mockFileSystem) Join(elem ...string) string {
-	return filepath.Join(elem...)
 }

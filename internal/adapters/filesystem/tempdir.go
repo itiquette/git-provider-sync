@@ -7,10 +7,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
-	"path/filepath"
 	"strings"
 
+	"itiquette/git-provider-sync/internal/domain/ports"
 	"itiquette/git-provider-sync/internal/shared"
 )
 
@@ -35,8 +34,8 @@ func GetTmpDirPath(ctx context.Context) (string, error) {
 }
 
 // CreateTmpDir creates a temporary directory and stores it in context.
-func CreateTmpDir(ctx context.Context, dir, prefix string) (context.Context, error) {
-	tmpDir, err := os.MkdirTemp(dir, prefix+".*")
+func CreateTmpDir(ctx context.Context, fs ports.FileSystem, dir, prefix string) (context.Context, error) {
+	tmpDir, err := fs.TempDir(dir, prefix+".*")
 	if err != nil {
 		return nil, fmt.Errorf("failed to create temporary directory (dir: %s, prefix: %s): %w", dir, prefix, err)
 	}
@@ -46,13 +45,13 @@ func CreateTmpDir(ctx context.Context, dir, prefix string) (context.Context, err
 
 // DeleteTmpDir deletes the temporary directory from context
 // Validates directory before deletion.
-func DeleteTmpDir(ctx context.Context) error {
+func DeleteTmpDir(ctx context.Context, fileSystem ports.FileSystem) error {
 	tmpDir, err := GetTmpDirPath(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get temporary directory path: %w", err)
 	}
 
-	if !filepath.IsAbs(tmpDir) || !isSubdirectoryOfTemp(tmpDir) {
+	if !fileSystem.IsAbs(tmpDir) || !isSubdirectoryOfTemp(fileSystem, tmpDir) {
 		return fmt.Errorf("%w: %s", ErrInvalidTempDirPath, tmpDir)
 	}
 
@@ -65,19 +64,19 @@ func DeleteTmpDir(ctx context.Context) error {
 
 // IsSubdirectoryOfTemp checks if the given path is a subdirectory of the system's temporary directory
 // Safety measure to prevent accidental deletion of non-temporary directories.
-func isSubdirectoryOfTemp(path string) bool {
-	tempDir, err := filepath.Abs(os.TempDir())
+func isSubdirectoryOfTemp(fileSystem ports.FileSystem, path string) bool {
+	tempDir, err := fileSystem.Abs(fileSystem.GetTempDir())
 	if err != nil {
 		return false
 	}
 
-	absPath, err := filepath.Abs(path)
+	absPath, err := fileSystem.Abs(path)
 	if err != nil {
 		return false
 	}
 
-	// Use filepath.Rel for proper path validation - prevents path traversal
-	relPath, err := filepath.Rel(tempDir, absPath)
+	// Use Rel for proper path validation - prevents path traversal
+	relPath, err := fileSystem.Rel(tempDir, absPath)
 	if err != nil {
 		return false
 	}

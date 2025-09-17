@@ -382,8 +382,8 @@ func TestPlanFileSystemValidations(t *testing.T) {
 			name: "global directories configured",
 			config: ports.AppConfiguration{
 				GlobalSettings: ports.GlobalSettings{
-					TempDirectory:  "/tmp/git-sync",
-					CacheDirectory: "/cache/git-sync",
+					TempDirectory:  t.TempDir(),
+					CacheDirectory: t.TempDir(),
 				},
 				Environments: map[string]ports.EnvironmentConfiguration{},
 			},
@@ -424,7 +424,7 @@ func TestPlanFileSystemValidations(t *testing.T) {
 			name: "mixed configuration",
 			config: ports.AppConfiguration{
 				GlobalSettings: ports.GlobalSettings{
-					TempDirectory: "/tmp/git-sync",
+					TempDirectory: t.TempDir(),
 				},
 				Environments: map[string]ports.EnvironmentConfiguration{
 					"mixed": {

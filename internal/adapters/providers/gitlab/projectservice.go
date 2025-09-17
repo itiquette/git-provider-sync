@@ -133,18 +133,32 @@ func (ps *ProjectService) UpdateProject(ctx context.Context, owner, name string,
 	}
 
 	editOpts := &gitlab.EditProjectOptions{}
+	hasUpdates := false
 
 	if updates.Description != nil {
 		editOpts.Description = gitlab.Ptr(*updates.Description)
+		hasUpdates = true
 	}
 
 	if updates.Visibility != nil {
 		visibility := ps.convertToGitLabVisibility(*updates.Visibility)
 		editOpts.Visibility = &visibility
+		hasUpdates = true
 	}
 
 	if updates.DefaultBranch != nil {
 		editOpts.DefaultBranch = gitlab.Ptr(*updates.DefaultBranch)
+		hasUpdates = true
+	}
+
+	if updates.Topics != nil {
+		editOpts.Topics = &updates.Topics
+		hasUpdates = true
+	}
+
+	// Skip API call if no updates
+	if !hasUpdates {
+		return nil
 	}
 
 	_, _, err = ps.client.Projects.EditProject(project.ID, editOpts)

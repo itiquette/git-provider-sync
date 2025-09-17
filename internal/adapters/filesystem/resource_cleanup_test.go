@@ -18,13 +18,15 @@ func TestResourceCleanup_TemporaryDirectories(t *testing.T) {
 	t.Parallel()
 
 	t.Run("temp directory is cleaned up after context cancellation", func(t *testing.T) {
+		fileSystem := NewOSFileSystem()
+
 		t.Parallel()
 
 		baseDir := t.TempDir()
 		ctx := context.Background()
 
 		// Create temp directory
-		ctx, err := CreateTmpDir(ctx, baseDir, "cleanup-test")
+		ctx, err := CreateTmpDir(ctx, fileSystem, baseDir, "cleanup-test")
 		require.NoError(t, err)
 
 		// Get the path and verify it exists
@@ -39,7 +41,7 @@ func TestResourceCleanup_TemporaryDirectories(t *testing.T) {
 		require.FileExists(t, testFile)
 
 		// Clean up
-		err = DeleteTmpDir(ctx)
+		err = DeleteTmpDir(ctx, fileSystem)
 		require.NoError(t, err)
 
 		// Verify everything is gone
@@ -50,11 +52,13 @@ func TestResourceCleanup_TemporaryDirectories(t *testing.T) {
 	t.Run("cleanup handles nested directories correctly", func(t *testing.T) {
 		t.Parallel()
 
+		fileSystem := NewOSFileSystem()
+
 		baseDir := t.TempDir()
 		ctx := context.Background()
 
 		// Create temp directory
-		ctx, err := CreateTmpDir(ctx, baseDir, "nested-cleanup")
+		ctx, err := CreateTmpDir(ctx, fileSystem, baseDir, "nested-cleanup")
 		require.NoError(t, err)
 
 		tmpPath, err := GetTmpDirPath(ctx)
@@ -80,7 +84,7 @@ func TestResourceCleanup_TemporaryDirectories(t *testing.T) {
 		}
 
 		// Clean up
-		err = DeleteTmpDir(ctx)
+		err = DeleteTmpDir(ctx, fileSystem)
 		require.NoError(t, err)
 
 		// Verify complete removal
@@ -94,10 +98,12 @@ func TestResourceCleanup_TemporaryDirectories(t *testing.T) {
 	t.Run("cleanup handles read-only files", func(t *testing.T) {
 		t.Parallel()
 
+		fileSystem := NewOSFileSystem()
+
 		baseDir := t.TempDir()
 		ctx := context.Background()
 
-		ctx, err := CreateTmpDir(ctx, baseDir, "readonly-cleanup")
+		ctx, err := CreateTmpDir(ctx, fileSystem, baseDir, "readonly-cleanup")
 		require.NoError(t, err)
 
 		tmpPath, err := GetTmpDirPath(ctx)
@@ -109,7 +115,7 @@ func TestResourceCleanup_TemporaryDirectories(t *testing.T) {
 		require.NoError(t, err)
 
 		// Clean up should handle read-only files
-		err = DeleteTmpDir(ctx)
+		err = DeleteTmpDir(ctx, fileSystem)
 		require.NoError(t, err)
 
 		assert.NoDirExists(t, tmpPath)
@@ -119,38 +125,42 @@ func TestResourceCleanup_TemporaryDirectories(t *testing.T) {
 	t.Run("cleanup is idempotent", func(t *testing.T) {
 		t.Parallel()
 
+		fileSystem := NewOSFileSystem()
+
 		baseDir := t.TempDir()
 		ctx := context.Background()
 
-		ctx, err := CreateTmpDir(ctx, baseDir, "idempotent")
+		ctx, err := CreateTmpDir(ctx, fileSystem, baseDir, "idempotent")
 		require.NoError(t, err)
 
 		tmpPath, err := GetTmpDirPath(ctx)
 		require.NoError(t, err)
 
 		// First cleanup
-		err = DeleteTmpDir(ctx)
+		err = DeleteTmpDir(ctx, fileSystem)
 		require.NoError(t, err)
 		assert.NoDirExists(t, tmpPath)
 
 		// Second cleanup should not error
-		err = DeleteTmpDir(ctx)
+		err = DeleteTmpDir(ctx, fileSystem)
 		require.NoError(t, err, "Cleanup should be idempotent")
 	})
 
 	t.Run("multiple temp directories don't interfere", func(t *testing.T) {
 		t.Parallel()
 
+		fileSystem := NewOSFileSystem()
+
 		baseDir := t.TempDir()
 
 		// Create multiple temp directories
-		ctx1, err := CreateTmpDir(context.Background(), baseDir, "temp1")
+		ctx1, err := CreateTmpDir(context.Background(), fileSystem, baseDir, "temp1")
 		require.NoError(t, err)
 
-		ctx2, err := CreateTmpDir(context.Background(), baseDir, "temp2")
+		ctx2, err := CreateTmpDir(context.Background(), fileSystem, baseDir, "temp2")
 		require.NoError(t, err)
 
-		ctx3, err := CreateTmpDir(context.Background(), baseDir, "temp3")
+		ctx3, err := CreateTmpDir(context.Background(), fileSystem, baseDir, "temp3")
 		require.NoError(t, err)
 
 		// Get paths
@@ -179,7 +189,7 @@ func TestResourceCleanup_TemporaryDirectories(t *testing.T) {
 		require.NoError(t, os.WriteFile(file3, []byte("3"), 0600))
 
 		// Delete only the second one
-		err = DeleteTmpDir(ctx2)
+		err = DeleteTmpDir(ctx2, fileSystem)
 		require.NoError(t, err)
 
 		// Verify only the second is gone
@@ -191,8 +201,8 @@ func TestResourceCleanup_TemporaryDirectories(t *testing.T) {
 		assert.FileExists(t, file3)
 
 		// Clean up the rest
-		require.NoError(t, DeleteTmpDir(ctx1))
-		require.NoError(t, DeleteTmpDir(ctx3))
+		require.NoError(t, DeleteTmpDir(ctx1, fileSystem))
+		require.NoError(t, DeleteTmpDir(ctx3, fileSystem))
 
 		assert.NoDirExists(t, path1)
 		assert.NoDirExists(t, path3)
@@ -226,13 +236,15 @@ func TestResourceCleanup_FileDescriptors(t *testing.T) {
 		assert.NoFileExists(t, testFile)
 	})
 
+	fileSystem := NewOSFileSystem()
+
 	t.Run("cleanup works even with open file handles", func(t *testing.T) {
 		t.Parallel()
 
 		baseDir := t.TempDir()
 		ctx := context.Background()
 
-		ctx, err := CreateTmpDir(ctx, baseDir, "open-files")
+		ctx, err := CreateTmpDir(ctx, fileSystem, baseDir, "open-files")
 		require.NoError(t, err)
 
 		tmpPath, err := GetTmpDirPath(ctx)
@@ -253,7 +265,7 @@ func TestResourceCleanup_FileDescriptors(t *testing.T) {
 		// Try to clean up (behavior may vary by OS)
 		// On Unix-like systems, this usually succeeds
 		// On Windows, this might fail if file is still open
-		deleteErr := DeleteTmpDir(ctx)
+		deleteErr := DeleteTmpDir(ctx, fileSystem)
 
 		// Close file before checking
 		closeErr := file.Close()
@@ -275,13 +287,15 @@ func TestResourceCleanup_FileDescriptors(t *testing.T) {
 func TestResourceCleanup_ConcurrentAccess(t *testing.T) {
 	t.Parallel()
 
+	fileSystem := NewOSFileSystem()
+
 	t.Run("concurrent cleanup operations are safe", func(t *testing.T) {
 		t.Parallel()
 
 		baseDir := t.TempDir()
 		ctx := context.Background()
 
-		ctx, err := CreateTmpDir(ctx, baseDir, "concurrent")
+		ctx, err := CreateTmpDir(ctx, fileSystem, baseDir, "concurrent")
 		require.NoError(t, err)
 
 		tmpPath, err := GetTmpDirPath(ctx)
@@ -299,7 +313,7 @@ func TestResourceCleanup_ConcurrentAccess(t *testing.T) {
 
 		for range 5 {
 			go func() {
-				_ = DeleteTmpDir(ctx) // Ignore errors - some calls might fail
+				_ = DeleteTmpDir(ctx, fileSystem) // Ignore errors - some calls might fail
 
 				done <- true
 			}()
@@ -319,12 +333,14 @@ func TestResourceCleanup_ConcurrentAccess(t *testing.T) {
 func TestResourceCleanup_ErrorScenarios(t *testing.T) {
 	t.Parallel()
 
+	fileSystem := NewOSFileSystem()
+
 	t.Run("cleanup with invalid context", func(t *testing.T) {
 		t.Parallel()
 
 		// Context without temp dir
 		ctx := context.Background()
-		err := DeleteTmpDir(ctx)
+		err := DeleteTmpDir(ctx, fileSystem)
 		require.Error(t, err)
 		require.ErrorIs(t, err, ErrTempDirNotFound)
 	})
@@ -332,9 +348,11 @@ func TestResourceCleanup_ErrorScenarios(t *testing.T) {
 	t.Run("cleanup with malformed path in context", func(t *testing.T) {
 		t.Parallel()
 
+		fileSystem := NewOSFileSystem()
+
 		// Context with invalid path
 		ctx := context.WithValue(context.Background(), TempDirKey{}, "../../etc/passwd")
-		err := DeleteTmpDir(ctx)
+		err := DeleteTmpDir(ctx, fileSystem)
 		require.Error(t, err)
 		require.ErrorIs(t, err, ErrInvalidTempDirPath)
 	})
@@ -342,16 +360,17 @@ func TestResourceCleanup_ErrorScenarios(t *testing.T) {
 	t.Run("cleanup preserves base directory", func(t *testing.T) {
 		t.Parallel()
 
+		fileSystem := NewOSFileSystem()
 		baseDir := t.TempDir()
 		importantFile := filepath.Join(baseDir, "important.txt")
 		err := os.WriteFile(importantFile, []byte("important"), 0600)
 		require.NoError(t, err)
 
-		ctx, err := CreateTmpDir(context.Background(), baseDir, "temp")
+		ctx, err := CreateTmpDir(context.Background(), fileSystem, baseDir, "temp")
 		require.NoError(t, err)
 
 		// Clean up temp dir
-		err = DeleteTmpDir(ctx)
+		err = DeleteTmpDir(ctx, fileSystem)
 		require.NoError(t, err)
 
 		// Base directory and its contents should still exist

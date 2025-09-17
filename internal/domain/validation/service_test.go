@@ -6,6 +6,7 @@ package validation
 import (
 	"context"
 	"errors"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -272,10 +273,13 @@ func TestValidateConfiguration(t *testing.T) {
 	t.Run("file system test failures", func(t *testing.T) {
 		t.Parallel()
 
+		tempDir := filepath.Join(t.TempDir(), "git-sync")
+		cacheDir := filepath.Join(t.TempDir(), "cache", "git-sync")
+
 		connectivityValidator := &mockConnectivityValidator{}
 		fileSystemValidator := &mockFileSystemValidator{
 			results: map[string]FileSystemResult{
-				"/tmp/git-sync": {
+				tempDir: {
 					Success: false,
 					Error:   errors.New("permission denied"),
 				},
@@ -287,8 +291,8 @@ func TestValidateConfiguration(t *testing.T) {
 			GlobalSettings: ports.GlobalSettings{
 				LogLevel:       ports.LogLevelInfo,
 				LogFormat:      ports.LogFormatJSON,
-				TempDirectory:  "/tmp/git-sync",
-				CacheDirectory: "/cache/git-sync",
+				TempDirectory:  tempDir,
+				CacheDirectory: cacheDir,
 			},
 			Environments: map[string]ports.EnvironmentConfiguration{},
 		}

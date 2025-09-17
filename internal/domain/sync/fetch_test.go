@@ -17,6 +17,7 @@ import (
 	"itiquette/git-provider-sync/internal/domain"
 	"itiquette/git-provider-sync/internal/domain/entities"
 	"itiquette/git-provider-sync/internal/domain/ports"
+	"itiquette/git-provider-sync/internal/testutil"
 )
 
 //nolint:cyclop,maintidx // Test function with multiple test cases
@@ -233,13 +234,15 @@ func TestFetchSourceRepositoriesUseCase_Execute(t *testing.T) {
 			// Create use case
 			useCase := NewFetchSourceRepositoriesUseCase(mockProvider, mockGitOps)
 
-			// Execute with temporary directory in context
+			// Execute with memory filesystem temporary directory in context
 			ctx := context.Background()
-			ctx, err := filesystem.CreateTmpDir(ctx, "", "fetch_test")
+			testFS := testutil.NewTestFS(t)
+			fs := testFS.GetFileSystem()
+			ctx, err := filesystem.CreateTmpDir(ctx, fs, "", "fetch_test")
 			require.NoError(t, err)
 
 			defer func() {
-				if cleanupErr := filesystem.DeleteTmpDir(ctx); cleanupErr != nil {
+				if cleanupErr := filesystem.DeleteTmpDir(ctx, fs); cleanupErr != nil {
 					t.Logf("Failed to cleanup temp directory: %v", cleanupErr)
 				}
 			}()

@@ -9,7 +9,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"itiquette/git-provider-sync/internal/adapters/filesystem"
 	"itiquette/git-provider-sync/internal/domain/ports"
+	"itiquette/git-provider-sync/internal/testutil"
 )
 
 func TestNewGitFactory(t *testing.T) {
@@ -24,7 +26,10 @@ func TestNewGitFactory(t *testing.T) {
 		Debug:                   false,
 	}
 
-	_ = NewGitFactory(config)
+	// Use memory filesystem for tests
+	memFS := testutil.NewMemFS(t)
+	fs := filesystem.NewAferoFileSystem(memFS.Fs)
+	_ = NewGitFactory(config, fs)
 	// GitFactory is now stateless - no config field
 }
 
@@ -40,7 +45,10 @@ func TestGitFactory_CreateOperations_GoGit(t *testing.T) {
 		Debug:                   false,
 	}
 
-	factory := NewGitFactory(factoryConfig)
+	// Use memory filesystem for tests
+	memFS := testutil.NewMemFS(t)
+	fs := filesystem.NewAferoFileSystem(memFS.Fs)
+	factory := NewGitFactory(factoryConfig, fs)
 
 	operationConfig := ports.GitConfig{
 		UserName:                "testuser",
@@ -68,7 +76,10 @@ func TestGitFactory_CreateOperations_GitBinary(t *testing.T) {
 		Debug:                   false,
 	}
 
-	factory := NewGitFactory(factoryConfig)
+	// Use memory filesystem for tests
+	memFS := testutil.NewMemFS(t)
+	fs := filesystem.NewAferoFileSystem(memFS.Fs)
+	factory := NewGitFactory(factoryConfig, fs)
 
 	operationConfig := ports.GitConfig{
 		UserName:                "testuser",
@@ -96,7 +107,10 @@ func TestGitFactory_CreateOperations_Directory(t *testing.T) {
 		Debug:                   false,
 	}
 
-	factory := NewGitFactory(factoryConfig)
+	// Use memory filesystem for tests
+	memFS := testutil.NewMemFS(t)
+	fs := filesystem.NewAferoFileSystem(memFS.Fs)
+	factory := NewGitFactory(factoryConfig, fs)
 
 	operationConfig := ports.GitConfig{
 		UserName:                "testuser",
@@ -124,7 +138,10 @@ func TestGitFactory_CreateOperations_Archive(t *testing.T) {
 		Debug:                   false,
 	}
 
-	factory := NewGitFactory(factoryConfig)
+	// Use memory filesystem for tests
+	memFS := testutil.NewMemFS(t)
+	fs := filesystem.NewAferoFileSystem(memFS.Fs)
+	factory := NewGitFactory(factoryConfig, fs)
 
 	operationConfig := ports.GitConfig{
 		UserName:                "testuser",
@@ -143,7 +160,10 @@ func TestGitFactory_CreateOperations_Archive(t *testing.T) {
 func TestGitFactory_CreateOperations_UnsupportedImplementation(t *testing.T) {
 	t.Parallel()
 
-	factory := NewGitFactory(ports.GitConfig{})
+	// Use memory filesystem for tests
+	memFS := testutil.NewMemFS(t)
+	fs := filesystem.NewAferoFileSystem(memFS.Fs)
+	factory := NewGitFactory(ports.GitConfig{}, fs)
 
 	config := ports.GitConfig{
 		UserName:                "testuser",
@@ -162,7 +182,10 @@ func TestGitFactory_CreateOperations_UnsupportedImplementation(t *testing.T) {
 func TestGitFactory_CreateOperations_EmptyImplementation(t *testing.T) {
 	t.Parallel()
 
-	factory := NewGitFactory(ports.GitConfig{})
+	// Use memory filesystem for tests
+	memFS := testutil.NewMemFS(t)
+	fs := filesystem.NewAferoFileSystem(memFS.Fs)
+	factory := NewGitFactory(ports.GitConfig{}, fs)
 
 	config := ports.GitConfig{
 		UserName:                "testuser",

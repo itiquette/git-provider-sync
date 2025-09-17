@@ -20,7 +20,8 @@ import (
 
 // Constants for testing.
 const (
-	mockRepoURL = "https://example.com/repo.git"
+	mockRepoURL  = "https://example.com/repo.git"
+	mockTempPath = "/test/mock/tmp" // Mock temp path for testing
 )
 
 // Mock implementations for interpreter testing
@@ -147,7 +148,7 @@ func (m *mockGitOpsWithErrors) CreateTmpDir(ctx context.Context, _, _ string) (c
 }
 
 func (m *mockGitOpsWithErrors) GetTmpDirPath(_ context.Context) (string, error) {
-	return "/tmp/mock", nil
+	return mockTempPath, nil
 }
 
 func (m *mockGitOpsWithErrors) DeleteTmpDir(_ context.Context) error {
@@ -427,7 +428,7 @@ func TestEffectInterpreter_executeCloneRepository_Success(t *testing.T) {
 		Description: "Clone repository",
 		Parameters: map[string]any{
 			"url":        "https://github.com/owner/repo.git",
-			"local_path": "/tmp/repo",
+			"local_path": mockTempPath + "/repo",
 			"auth":       AuthSpec{Type: ports.AuthTypeToken, Token: "token"},
 			"branch":     "main",
 		},
@@ -455,7 +456,7 @@ func TestEffectInterpreter_executeCloneRepository_DryRun(t *testing.T) {
 		Type: EffectTypeCloneRepository,
 		Parameters: map[string]any{
 			"url":        "https://github.com/owner/repo.git",
-			"local_path": "/tmp/repo",
+			"local_path": mockTempPath + "/repo",
 		},
 	}
 
@@ -483,7 +484,7 @@ func TestEffectInterpreter_executeCloneRepository_MissingParameters(t *testing.T
 	}{
 		{
 			name:          "missing URL",
-			parameters:    map[string]any{"local_path": "/tmp", "auth": AuthSpec{}},
+			parameters:    map[string]any{"local_path": mockTempPath, "auth": AuthSpec{}},
 			expectedError: domain.ErrCloneEffectMissingURL,
 		},
 		{
@@ -493,7 +494,7 @@ func TestEffectInterpreter_executeCloneRepository_MissingParameters(t *testing.T
 		},
 		{
 			name:          "missing auth",
-			parameters:    map[string]any{"url": "https://example.com", "local_path": "/tmp"},
+			parameters:    map[string]any{"url": "https://example.com", "local_path": mockTempPath},
 			expectedError: domain.ErrCloneEffectMissingAuth,
 		},
 	}
@@ -584,7 +585,7 @@ func TestEffectInterpreter_executePushToRepository_Success(t *testing.T) {
 		Type: EffectTypePushToRepository,
 		Parameters: map[string]any{
 			"url":        "https://github.com/owner/repo.git",
-			"local_path": "/tmp/repo",
+			"local_path": mockTempPath + "/repo",
 			"auth":       AuthSpec{Type: ports.AuthTypeToken, Token: "token"},
 			"force":      true,
 		},
@@ -609,7 +610,7 @@ func TestEffectInterpreter_executePushToRepository_DryRun(t *testing.T) {
 		Type: EffectTypePushToRepository,
 		Parameters: map[string]any{
 			"url":        "https://github.com/owner/repo.git",
-			"local_path": "/tmp/repo",
+			"local_path": mockTempPath + "/repo",
 		},
 	}
 
@@ -689,7 +690,7 @@ func TestEffectInterpreter_executeCleanupTempFiles_Success(t *testing.T) {
 	effect := Effect{
 		Type: EffectTypeCleanupTempFiles,
 		Parameters: map[string]any{
-			"local_path": "/tmp/repo",
+			"local_path": mockTempPath + "/repo",
 		},
 	}
 
@@ -711,7 +712,7 @@ func TestEffectInterpreter_executeCleanupTempFiles_DryRun(t *testing.T) {
 	effect := Effect{
 		Type: EffectTypeCleanupTempFiles,
 		Parameters: map[string]any{
-			"local_path": "/tmp/repo",
+			"local_path": mockTempPath + "/repo",
 		},
 	}
 
@@ -915,7 +916,7 @@ func createValidOperation() Operation {
 		Source: RepositorySpec{
 			URL:       "https://github.com/owner/source.git",
 			Name:      "source",
-			LocalPath: "/tmp/source",
+			LocalPath: mockTempPath + "/source",
 			Auth:      AuthSpec{Type: ports.AuthTypeToken, Token: "source-token"},
 		},
 		Target: RepositorySpec{
@@ -933,7 +934,7 @@ func createValidOperation() Operation {
 				Description: "Clone source repository",
 				Parameters: map[string]any{
 					"url":        "https://github.com/owner/source.git",
-					"local_path": "/tmp/source",
+					"local_path": mockTempPath + "/source",
 					"auth":       AuthSpec{Type: ports.AuthTypeToken, Token: "source-token"},
 					"branch":     "main",
 				},

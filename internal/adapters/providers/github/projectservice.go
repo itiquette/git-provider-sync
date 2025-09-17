@@ -104,6 +104,44 @@ func (ps *ProjectService) UpdateProject(ctx context.Context, owner, name string,
 		"name":  name,
 	})
 
+	// Apply basic repository updates
+	if err := ps.applyBasicUpdates(ctx, owner, name, updates); err != nil {
+		return err
+	}
+
+	// Apply topics updates
+	if err := ps.applyTopicsUpdate(ctx, owner, name, updates); err != nil {
+		return err
+	}
+
+	// Check if any updates were made
+	if ps.hasAnyUpdates(updates) {
+		ps.logger.Info(ctx, "GitHub project updated successfully", map[string]any{
+			"owner": owner,
+			"name":  name,
+		})
+	}
+
+	return nil
+}
+
+func (ps *ProjectService) applyBasicUpdates(ctx context.Context, owner, name string, updates ports.UpdateRepositoryOptions) error {
+	repoOpts := ps.buildUpdateOptions(updates)
+	hasBasicUpdates := updates.Description != nil || updates.Visibility != nil || updates.DefaultBranch != nil
+
+	if !hasBasicUpdates {
+		return nil
+	}
+
+	_, _, err := ps.client.Repositories.Edit(ctx, owner, name, repoOpts)
+	if err != nil {
+		return fmt.Errorf("failed to update GitHub project %s/%s: %w", owner, name, err)
+	}
+
+	return nil
+}
+
+func (ps *ProjectService) buildUpdateOptions(updates ports.UpdateRepositoryOptions) *github.Repository {
 	repoOpts := &github.Repository{}
 
 	if updates.Description != nil {
@@ -119,17 +157,27 @@ func (ps *ProjectService) UpdateProject(ctx context.Context, owner, name string,
 		repoOpts.DefaultBranch = github.Ptr(*updates.DefaultBranch)
 	}
 
-	_, _, err := ps.client.Repositories.Edit(ctx, owner, name, repoOpts)
-	if err != nil {
-		return fmt.Errorf("failed to update GitHub project %s/%s: %w", owner, name, err)
+	return repoOpts
+}
+
+func (ps *ProjectService) applyTopicsUpdate(ctx context.Context, owner, name string, updates ports.UpdateRepositoryOptions) error {
+	if updates.Topics == nil {
+		return nil
 	}
 
-	ps.logger.Info(ctx, "GitHub project updated successfully", map[string]any{
-		"owner": owner,
-		"name":  name,
-	})
+	_, _, err := ps.client.Repositories.ReplaceAllTopics(ctx, owner, name, updates.Topics)
+	if err != nil {
+		return fmt.Errorf("failed to update topics for GitHub project %s/%s: %w", owner, name, err)
+	}
 
 	return nil
+}
+
+func (ps *ProjectService) hasAnyUpdates(updates ports.UpdateRepositoryOptions) bool {
+	return updates.Description != nil ||
+		updates.Visibility != nil ||
+		updates.DefaultBranch != nil ||
+		updates.Topics != nil
 }
 
 // ValidateProjectName validates a GitHub repository name using domain validation.

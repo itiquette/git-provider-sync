@@ -21,10 +21,12 @@ import (
 	cliAdapters "itiquette/git-provider-sync/internal/adapters/cli"
 	"itiquette/git-provider-sync/internal/adapters/configuration"
 	"itiquette/git-provider-sync/internal/adapters/configuration/dto"
+	"itiquette/git-provider-sync/internal/adapters/filesystem"
 	"itiquette/git-provider-sync/internal/adapters/log"
 	"itiquette/git-provider-sync/internal/adapters/terminal"
 	validationAdapters "itiquette/git-provider-sync/internal/adapters/validation"
 	"itiquette/git-provider-sync/internal/domain"
+	"itiquette/git-provider-sync/internal/domain/ports"
 	"itiquette/git-provider-sync/internal/domain/validation"
 )
 
@@ -124,7 +126,9 @@ func runStatus(ctx context.Context, cmd *cli.Command) error {
 	if connectivityCheck {
 		logger.Info().Msg("→ Testing connectivity to providers...")
 
-		connectivityAdapter := validationAdapters.NewConnectivityAdapter(30 * time.Second)
+		// Create filesystem for validation
+		fileSystem := filesystem.NewOSFileSystem()
+		connectivityAdapter := validationAdapters.NewConnectivityAdapter(30*time.Second, fileSystem)
 		status.ConnectivityResults = testProviderConnectivity(ctx, *conf, connectivityAdapter)
 	}
 
@@ -133,7 +137,9 @@ func runStatus(ctx context.Context, cmd *cli.Command) error {
 	statusOutput := formatSystemStatus(status, connectivityCheck, skipSuggestions, outputFormat)
 
 	// Output to stdout (data) vs stderr (progress messages)
-	fmt.Print(statusOutput)
+	if _, err := fmt.Fprint(os.Stdout, statusOutput); err != nil {
+		return fmt.Errorf("failed to write status output: %w", err)
+	}
 
 	// Exit with error code if there are critical issues
 	if status.HasCriticalIssues {
@@ -437,23 +443,23 @@ func handleStatusError(err error, outputFormat string) {
 	errMsg := err.Error()
 
 	if outputFormat == "json" {
-		fmt.Printf("{\"error\": \"%s\", \"status\": \"ERROR\"}\n", errMsg)
+		fmt.Fprintf(os.Stderr, "{\"error\": \"%s\", \"status\": \"ERROR\"}\n", errMsg)
 
 		return
 	}
 
 	if outputFormat == "plain" {
-		fmt.Printf("STATUS\tERROR\nERROR_MESSAGE\t%s\n", errMsg)
+		fmt.Fprintf(os.Stderr, "STATUS\tERROR\nERROR_MESSAGE\t%s\n", errMsg)
 
 		return
 	}
 
 	// Console format
-	fmt.Printf("✗ Status Check Failed: %s\n\n", errMsg)
-	fmt.Printf("Suggestions:\n")
-	fmt.Printf("  • Check that gitprovidersync.yaml exists in the current directory\n")
-	fmt.Printf("  • Or specify config file: --config-file path/to/dto.yaml\n")
-	fmt.Printf("  • Run 'gitprovidersync --help' for more information\n\n")
+	fmt.Fprintf(os.Stderr, "✗ Status Check Failed: %s\n\n", errMsg)
+	fmt.Fprintf(os.Stderr, "Suggestions:\n")
+	fmt.Fprintf(os.Stderr, "  • Check that gitprovidersync.yaml exists in the current directory\n")
+	fmt.Fprintf(os.Stderr, "  • Or specify config file: --config-file path/to/dto.yaml\n")
+	fmt.Fprintf(os.Stderr, "  • Run 'gitprovidersync --help' for more information\n\n")
 }
 
 // parseSyncInfoLine parses a single line from the sync info file.
@@ -473,8 +479,8 @@ func parseSyncInfoLine(line string) (string, int64) {
 
 // GetLastSyncInfoFromPath reads simple last sync info from a specific file path
 // Testable with custom file paths.
-func getLastSyncInfoFromPath(filePath string) string {
-	content, err := os.ReadFile(filePath) //nolint:gosec // File path is controlled and validated
+func getLastSyncInfoFromPath(fileSystem ports.FileSystem, filePath string) string {
+	content, err := fileSystem.ReadFile(filePath)
 	if err != nil {
 		return ""
 	}

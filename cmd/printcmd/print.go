@@ -20,6 +20,7 @@ import (
 	cliAdapters "itiquette/git-provider-sync/internal/adapters/cli"
 	"itiquette/git-provider-sync/internal/adapters/configuration"
 	gps "itiquette/git-provider-sync/internal/adapters/configuration/dto"
+	"itiquette/git-provider-sync/internal/adapters/filesystem"
 	"itiquette/git-provider-sync/internal/adapters/log"
 	"itiquette/git-provider-sync/internal/adapters/terminal"
 	validationAdapters "itiquette/git-provider-sync/internal/adapters/validation"
@@ -245,8 +246,9 @@ func handleValidationError(errMsg string) {
 
 // TestAndDisplayConnectivity tests connectivity to configured providers and displays results.
 func testAndDisplayConnectivity(ctx context.Context, config gps.AppConfiguration, outputFormat string, writer io.Writer) error {
-	// Create connectivity adapter
-	connectivityAdapter := validationAdapters.NewConnectivityAdapter(30 * time.Second)
+	// Create connectivity adapter with filesystem
+	fs := filesystem.NewOSFileSystem()
+	connectivityAdapter := validationAdapters.NewConnectivityAdapter(30*time.Second, fs)
 
 	// Test connectivity for each environment and sync config
 	var allResults []validation.ConnectivityResult

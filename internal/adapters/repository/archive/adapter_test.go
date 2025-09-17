@@ -115,13 +115,14 @@ func createTestArchiveInMemory(tb testing.TB, fs ports.FileSystem) string {
 	return archivePath
 }
 
-// createTestArchive creates a test archive in a temporary real filesystem location
-// Used for tests that require real file paths (backwards compatibility)
+// createTestArchive creates a test archive in a temporary real filesystem location.
+// Used for tests that require real file paths (backwards compatibility).
 func createTestArchive(tb testing.TB) string {
 	tb.Helper()
 
 	// Create real temp file for tests that need actual file paths
 	tempDir := ""
+
 	switch v := tb.(type) {
 	case *testing.T:
 		tempDir = v.TempDir()
@@ -134,14 +135,17 @@ func createTestArchive(tb testing.TB) string {
 	archivePath := filepath.Join(tempDir, "test-archive.tar.gz")
 
 	// Create the archive using os filesystem
-	file, err := os.Create(archivePath)
+	file, err := os.Create(archivePath) //nolint:gosec // Test code with controlled paths
 	require.NoError(tb, err)
+
 	defer func() { _ = file.Close() }()
 
 	gzWriter := gzip.NewWriter(file)
+
 	defer func() { _ = gzWriter.Close() }()
 
 	tarWriter := tar.NewWriter(gzWriter)
+
 	defer func() { _ = tarWriter.Close() }()
 
 	// Add test files to archive
@@ -304,7 +308,7 @@ func TestNew_ValidConfig_CreatesArchiveAdapter(t *testing.T) {
 	// Use in-memory filesystem for unit tests
 	memFS := testutil.NewMemFS(t)
 	fs := filesystem.NewAferoFileSystem(memFS.Fs)
-	adapter := New(config, fs)
+	adapter := NewWithFileSystem(config, fs)
 
 	require.NotNil(t, adapter)
 	assert.Equal(t, config, adapter.config)
@@ -312,23 +316,23 @@ func TestNew_ValidConfig_CreatesArchiveAdapter(t *testing.T) {
 
 // Test Adapter methods
 
-func TestAdapter_GetName(t *testing.T) {
+func TestGetName_WhenCalled_ReturnsArchive(t *testing.T) {
 	t.Parallel()
 
 	// Use in-memory filesystem for unit tests
 	memFS := testutil.NewMemFS(t)
 	fs := filesystem.NewAferoFileSystem(memFS.Fs)
-	adapter := New(createMockGitConfig(), fs)
+	adapter := NewWithFileSystem(createMockGitConfig(), fs)
 	assert.Equal(t, "archive", adapter.GetName())
 }
 
-func TestAdapter_SupportsURL(t *testing.T) {
+func TestSupportsURL_WhenGivenVariousURLs_CorrectlyIdentifiesArchiveFormats(t *testing.T) {
 	t.Parallel()
 
 	// Use in-memory filesystem for unit tests
 	memFS := testutil.NewMemFS(t)
 	fs := filesystem.NewAferoFileSystem(memFS.Fs)
-	adapter := New(createMockGitConfig(), fs)
+	adapter := NewWithFileSystem(createMockGitConfig(), fs)
 
 	tests := []struct {
 		name     string
@@ -336,32 +340,32 @@ func TestAdapter_SupportsURL(t *testing.T) {
 		expected bool
 	}{
 		{
-			name:     "tar.gz file URL",
+			name:     "accepts tar.gz file URL as valid archive format",
 			url:      "file:///path/to/archive.tar.gz",
 			expected: true,
 		},
 		{
-			name:     "tgz file URL",
+			name:     "accepts tgz file URL as valid archive format",
 			url:      "file:///path/to/archive.tgz",
 			expected: true,
 		},
 		{
-			name:     "zip file URL",
+			name:     "rejects zip file URL as unsupported format",
 			url:      "file:///path/to/archive.zip",
 			expected: false,
 		},
 		{
-			name:     "regular file URL",
+			name:     "rejects regular text file URL as non-archive",
 			url:      "file:///path/to/file.txt",
 			expected: false,
 		},
 		{
-			name:     "https URL",
+			name:     "rejects https URL as unsupported protocol",
 			url:      "https://example.com/archive.tar.gz",
 			expected: false,
 		},
 		{
-			name:     "ssh URL",
+			name:     "rejects ssh git URL as unsupported protocol",
 			url:      "git@github.com:user/repo.git",
 			expected: false,
 		},
@@ -372,27 +376,27 @@ func TestAdapter_SupportsURL(t *testing.T) {
 			t.Parallel()
 
 			result := adapter.SupportsURL(test.url)
-			assert.Equal(t, test.expected, result)
+			require.Equal(t, test.expected, result)
 		})
 	}
 }
 
 // Test Clone operation
 
-func TestAdapter_Clone_ValidArchive(t *testing.T) {
+func TestClone_WhenGivenValidArchive_ExtractsContentSuccessfully(t *testing.T) {
 	t.Parallel()
 
 	// Create memory filesystem for the entire test
 	memFS := testutil.NewMemFS(t)
-	fileSystem := filesystem.NewAferoFileSystem(memFS.Fs)
+	fs := filesystem.NewAferoFileSystem(memFS.Fs) //nolint:varnamelen // Common abbreviation
 
 	// Create archive in memory filesystem
-	archivePath := createTestArchiveInMemory(t, fileSystem)
+	archivePath := createTestArchiveInMemory(t, fs)
 
 	// Destination directory in memory filesystem
 	destDir := "/extracted"
 
-	adapter := New(createMockGitConfig(), fileSystem)
+	adapter := NewWithFileSystem(createMockGitConfig(), fs)
 	options := ports.CloneOptions{
 		URL:  "file://" + archivePath,
 		Path: destDir,
@@ -405,26 +409,26 @@ func TestAdapter_Clone_ValidArchive(t *testing.T) {
 	assert.Equal(t, destDir, repo.Path())
 
 	// Verify files were extracted using filesystem interface
-	testFileContent, err := fileSystem.ReadFile(filepath.Join(destDir, "test-file.txt"))
+	testFileContent, err := fs.ReadFile(filepath.Join(destDir, "test-file.txt"))
 	require.NoError(t, err)
 	assert.Equal(t, "test content", string(testFileContent))
 
-	nestedFileContent, err := fileSystem.ReadFile(filepath.Join(destDir, "subdir", "nested-file.txt"))
+	nestedFileContent, err := fs.ReadFile(filepath.Join(destDir, "subdir", "nested-file.txt"))
 	require.NoError(t, err)
 	assert.Equal(t, "nested content", string(nestedFileContent))
 
 	// Verify directory was created
-	subdirInfo, err := fileSystem.Stat(filepath.Join(destDir, "subdir"))
+	subdirInfo, err := fs.Stat(filepath.Join(destDir, "subdir"))
 	require.NoError(t, err)
 	assert.True(t, subdirInfo.IsDir())
 }
 
-func TestAdapter_Clone_UnsupportedFormat(t *testing.T) {
+func TestClone_WhenGivenUnsupportedFormat_ReturnsError(t *testing.T) {
 	t.Parallel()
 
 	// Use memory filesystem consistently
 	memFS := testutil.NewMemFS(t)
-	fs := filesystem.NewAferoFileSystem(memFS.Fs)
+	fs := filesystem.NewAferoFileSystem(memFS.Fs) //nolint:varnamelen // Common abbreviation
 
 	// Create test file in memory filesystem
 	testFile := "/test-file.txt"
@@ -432,7 +436,7 @@ func TestAdapter_Clone_UnsupportedFormat(t *testing.T) {
 
 	destDir := "/dest"
 
-	adapter := New(createMockGitConfig(), fs)
+	adapter := NewWithFileSystem(createMockGitConfig(), fs)
 	options := ports.CloneOptions{
 		URL:  "file://" + testFile,
 		Path: destDir,
@@ -443,13 +447,13 @@ func TestAdapter_Clone_UnsupportedFormat(t *testing.T) {
 	require.ErrorIs(t, err, ErrUnsupportedArchiveFormat)
 }
 
-func TestAdapter_Clone_NonFileURL(t *testing.T) {
+func TestClone_WhenGivenNonFileURL_ReturnsUnsupportedURLError(t *testing.T) {
 	t.Parallel()
 
 	destDir := t.TempDir()
 
 	fs := createTestFileSystem(t)
-	adapter := New(createMockGitConfig(), fs)
+	adapter := NewWithFileSystem(createMockGitConfig(), fs)
 	options := ports.CloneOptions{
 		URL:  "https://example.com/archive.tar.gz",
 		Path: destDir,
@@ -460,7 +464,7 @@ func TestAdapter_Clone_NonFileURL(t *testing.T) {
 	require.ErrorIs(t, err, ErrArchiveOnlySupportsFile)
 }
 
-func TestAdapter_Clone_MaliciousArchives(t *testing.T) {
+func TestClone_WhenArchiveContainsMaliciousPath_RejectsExtraction(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -495,7 +499,7 @@ func TestAdapter_Clone_MaliciousArchives(t *testing.T) {
 
 			// Need OS filesystem for tests with real archive files
 			fs := filesystem.NewOSFileSystem()
-			adapter := New(createMockGitConfig(), fs)
+			adapter := NewWithFileSystem(createMockGitConfig(), fs)
 			options := ports.CloneOptions{
 				URL:  "file://" + archivePath,
 				Path: destDir,
@@ -510,11 +514,11 @@ func TestAdapter_Clone_MaliciousArchives(t *testing.T) {
 
 // Test Open operation
 
-func TestAdapter_Open_ExistingPath(t *testing.T) {
+func TestOpen_WhenPathExists_ReturnsRepositoryHandle(t *testing.T) {
 	t.Parallel()
 
 	fs, tempDir := createTestFileSystemWithFiles(t)
-	adapter := New(createMockGitConfig(), fs)
+	adapter := NewWithFileSystem(createMockGitConfig(), fs)
 
 	repo, err := adapter.Open(context.Background(), tempDir)
 
@@ -523,11 +527,11 @@ func TestAdapter_Open_ExistingPath(t *testing.T) {
 	assert.Equal(t, tempDir, repo.Path())
 }
 
-func TestAdapter_Open_NonExistentPath(t *testing.T) {
+func TestOpen_WhenPathDoesNotExist_ReturnsError(t *testing.T) {
 	t.Parallel()
 
 	fs := createTestFileSystem(t)
-	adapter := New(createMockGitConfig(), fs)
+	adapter := NewWithFileSystem(createMockGitConfig(), fs)
 
 	_, err := adapter.Open(context.Background(), "/non-existent-path")
 
@@ -536,11 +540,11 @@ func TestAdapter_Open_NonExistentPath(t *testing.T) {
 
 // Test Init operation
 
-func TestAdapter_Cleanup(t *testing.T) {
+func TestCleanup_WhenCalled_RemovesAllTemporaryFiles(t *testing.T) {
 	t.Parallel()
 
 	fs := createTestFileSystem(t)
-	adapter := New(createMockGitConfig(), fs)
+	adapter := NewWithFileSystem(createMockGitConfig(), fs)
 
 	err := adapter.Cleanup(context.Background(), "/test/path")
 
@@ -550,17 +554,17 @@ func TestAdapter_Cleanup(t *testing.T) {
 
 // Test Repository implementation (created from archive package)
 
-func TestRepository_Properties_ReturnsCorrectValues(t *testing.T) {
+func TestRepositoryProperties_WhenQueried_ReturnsExpectedValues(t *testing.T) {
 	t.Parallel()
 
-	fileSystem, tempDir := createTestFileSystemWithFiles(t)
+	fs, tempDir := createTestFileSystemWithFiles(t) //nolint:varnamelen // Common abbreviation
 	config := createMockGitConfig()
 
 	// Create repository using archive.Repository
 	repo := &Repository{
-		path:       tempDir,
-		config:     config,
-		fileSystem: fileSystem,
+		path:   tempDir,
+		config: config,
+		fs:     fs,
 	}
 
 	// Test basic properties
@@ -570,11 +574,11 @@ func TestRepository_Properties_ReturnsCorrectValues(t *testing.T) {
 
 // Test Push operation (archive creation)
 
-func TestAdapter_Push_CreateArchive(t *testing.T) {
+func TestPush_WhenPushingRepository_CreatesArchiveSuccessfully(t *testing.T) {
 	t.Parallel()
 
-	fileSystem, sourceDir := createTestFileSystemWithFiles(t)
-	adapter := New(createMockGitConfig(), fileSystem)
+	fs, sourceDir := createTestFileSystemWithFiles(t) //nolint:varnamelen // Common abbreviation
+	adapter := NewWithFileSystem(createMockGitConfig(), fs)
 
 	// Open repository
 	repo, err := adapter.Open(context.Background(), sourceDir)
@@ -586,35 +590,35 @@ func TestAdapter_Push_CreateArchive(t *testing.T) {
 
 	// Verify archive was created
 	archivePath := filepath.Join(sourceDir, "repository-archive.tar.gz")
-	_, err = fileSystem.Stat(archivePath)
+	_, err = fs.Stat(archivePath)
 	require.NoError(t, err)
 
 	// Verify archive contents by extracting to a temp directory
 	extractDir := "/extract-dir"
-	err = fileSystem.MkdirAll(extractDir, 0750)
+	err = fs.MkdirAll(extractDir, 0750)
 	require.NoError(t, err)
 
 	err = adapter.extractArchive(archivePath, extractDir)
 	require.NoError(t, err)
 
 	// Verify extracted files
-	file1Content, err := fileSystem.ReadFile(filepath.Join(extractDir, "file1.txt"))
+	file1Content, err := fs.ReadFile(filepath.Join(extractDir, "file1.txt"))
 	require.NoError(t, err)
 	assert.Equal(t, "test content 1", string(file1Content))
 
-	file2Content, err := fileSystem.ReadFile(filepath.Join(extractDir, "subdir", "file2.txt"))
+	file2Content, err := fs.ReadFile(filepath.Join(extractDir, "subdir", "file2.txt"))
 	require.NoError(t, err)
 	assert.Equal(t, "test content 2", string(file2Content))
 }
 
 // Test Fetch operation
 
-func TestAdapter_extractArchive_CorruptedArchive(t *testing.T) {
+func TestExtractArchive_WhenArchiveCorrupted_ReturnsError(t *testing.T) {
 	t.Parallel()
 
 	// Create corrupted archive (not a valid gzip file) in memory filesystem
 	memFS := testutil.NewMemFS(t)
-	fs := filesystem.NewAferoFileSystem(memFS.Fs)
+	fs := filesystem.NewAferoFileSystem(memFS.Fs) //nolint:varnamelen // Common abbreviation
 
 	corruptedFile := "/corrupted.tar.gz"
 	err := fs.WriteFile(corruptedFile, []byte("not a valid gzip file"), 0644)
@@ -622,7 +626,7 @@ func TestAdapter_extractArchive_CorruptedArchive(t *testing.T) {
 
 	destDir := "/dest"
 
-	adapter := New(createMockGitConfig(), fs)
+	adapter := NewWithFileSystem(createMockGitConfig(), fs)
 
 	err = adapter.extractArchive(corruptedFile, destDir)
 
@@ -630,11 +634,11 @@ func TestAdapter_extractArchive_CorruptedArchive(t *testing.T) {
 	assert.Contains(t, err.Error(), "failed to create gzip reader")
 }
 
-func TestAdapter_createArchive_NonExistentSource(t *testing.T) {
+func TestCreateArchive_WhenSourceDoesNotExist_ReturnsError(t *testing.T) {
 	t.Parallel()
 
 	fs := createTestFileSystem(t)
-	adapter := New(createMockGitConfig(), fs)
+	adapter := NewWithFileSystem(createMockGitConfig(), fs)
 
 	archivePath, err := os.CreateTemp("", "test-archive-*.tar.gz")
 	require.NoError(t, err)
@@ -648,11 +652,11 @@ func TestAdapter_createArchive_NonExistentSource(t *testing.T) {
 	require.Error(t, err)
 }
 
-func TestAdapter_validateAndBuildTargetPath(t *testing.T) {
+func TestValidateAndBuildTargetPath_WhenGivenVariousPaths_ValidatesCorrectly(t *testing.T) {
 	t.Parallel()
 
 	fs := createTestFileSystem(t)
-	adapter := New(createMockGitConfig(), fs)
+	adapter := NewWithFileSystem(createMockGitConfig(), fs)
 	destPath := "/dest/path"
 
 	tests := []struct {
@@ -709,11 +713,11 @@ func TestAdapter_validateAndBuildTargetPath(t *testing.T) {
 	}
 }
 
-func TestAdapter_extractEntry_UnsupportedType(t *testing.T) {
+func TestExtractEntry_WhenUnsupportedFileType_ReturnsError(t *testing.T) {
 	t.Parallel()
 
 	fs := createTestFileSystem(t)
-	adapter := New(createMockGitConfig(), fs)
+	adapter := NewWithFileSystem(createMockGitConfig(), fs)
 
 	// Create header with unsupported type (symlink)
 	header := &tar.Header{
@@ -728,11 +732,11 @@ func TestAdapter_extractEntry_UnsupportedType(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestAdapter_extractFile_PermissionCheck(t *testing.T) {
+func TestExtractFile_WhenPermissionDenied_ReturnsError(t *testing.T) {
 	t.Parallel()
 
-	fileSystem := createTestFileSystem(t)
-	adapter := New(createMockGitConfig(), fileSystem)
+	fs := createTestFileSystem(t) //nolint:varnamelen // Common abbreviation
+	adapter := NewWithFileSystem(createMockGitConfig(), fs)
 
 	// Create a header for a regular file
 	content := "test content"
@@ -753,7 +757,7 @@ func TestAdapter_extractFile_PermissionCheck(t *testing.T) {
 	require.Equal(t, header.Name, actualHeader.Name)
 
 	destDir := "/test-extract"
-	err = fileSystem.MkdirAll(destDir, 0750)
+	err = fs.MkdirAll(destDir, 0750)
 	require.NoError(t, err)
 
 	targetPath := filepath.Join(destDir, "test-file.txt")
@@ -763,12 +767,12 @@ func TestAdapter_extractFile_PermissionCheck(t *testing.T) {
 	require.NoError(t, err)
 
 	// Verify file was created with correct permissions
-	info, err := fileSystem.Stat(targetPath)
+	info, err := fs.Stat(targetPath)
 	require.NoError(t, err)
 	assert.Equal(t, os.FileMode(0600), info.Mode().Perm())
 
 	// Verify content
-	extractedContent, err := fileSystem.ReadFile(targetPath)
+	extractedContent, err := fs.ReadFile(targetPath)
 	require.NoError(t, err)
 	assert.Equal(t, content, string(extractedContent))
 }
@@ -796,12 +800,12 @@ func createTarReaderWithContent(t *testing.T, header *tar.Header, content string
 
 // Test helper methods more thoroughly
 
-func TestAdapter_openArchiveForReading_InvalidGzip(t *testing.T) {
+func TestOpenArchiveForReading_WhenGzipInvalid_ReturnsError(t *testing.T) {
 	t.Parallel()
 
 	// Create a file that's not a valid gzip file in memory filesystem
 	memFS := testutil.NewMemFS(t)
-	fs := filesystem.NewAferoFileSystem(memFS.Fs)
+	fs := filesystem.NewAferoFileSystem(memFS.Fs) //nolint:varnamelen // Common abbreviation
 
 	invalidFile := "/invalid.tar.gz"
 
@@ -809,18 +813,18 @@ func TestAdapter_openArchiveForReading_InvalidGzip(t *testing.T) {
 	err := fs.WriteFile(invalidFile, []byte("this is not gzip data"), 0644)
 	require.NoError(t, err)
 
-	adapter := New(createMockGitConfig(), fs)
+	adapter := NewWithFileSystem(createMockGitConfig(), fs)
 
 	_, _, err = adapter.openArchiveForReading(invalidFile)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to create gzip reader")
 }
 
-func TestAdapter_extractTarContents_ReadError(t *testing.T) {
+func TestExtractTarContents_WhenReadFails_ReturnsError(t *testing.T) {
 	t.Parallel()
 
 	fs := createTestFileSystem(t)
-	adapter := New(createMockGitConfig(), fs)
+	adapter := NewWithFileSystem(createMockGitConfig(), fs)
 
 	// Create a broken tar reader by using invalid tar data
 	invalidTarData := "this is not valid tar data"
@@ -833,11 +837,11 @@ func TestAdapter_extractTarContents_ReadError(t *testing.T) {
 	assert.Contains(t, err.Error(), "failed to read tar header")
 }
 
-func TestAdapter_validateAndBuildTargetPath_EdgeCases(t *testing.T) {
+func TestValidateAndBuildTargetPath_WhenPathTraversalAttempted_RejectsPath(t *testing.T) {
 	t.Parallel()
 
 	fs := createTestFileSystem(t)
-	adapter := New(createMockGitConfig(), fs)
+	adapter := NewWithFileSystem(createMockGitConfig(), fs)
 	destPath := "/dest/path"
 
 	tests := []struct {
@@ -898,28 +902,26 @@ func TestAdapter_validateAndBuildTargetPath_EdgeCases(t *testing.T) {
 	}
 }
 
-func TestAdapter_createArchiveWriters_InvalidPath(t *testing.T) {
+func TestCreateArchiveWriters_WhenPathInvalid_ReturnsError(t *testing.T) {
 	t.Parallel()
 
-	memFS := testutil.NewMemFS(t)
-	fs := filesystem.NewAferoFileSystem(memFS.Fs)
-	adapter := New(createMockGitConfig(), fs)
+	fs := testutil.NewErrorFileSystem(t)
+	adapter := NewWithFileSystem(createMockGitConfig(), fs)
 
-	// Create a directory where we want to create a file (to cause a conflict)
-	err := fs.MkdirAll("/archive.tar.gz", 0755)
-	require.NoError(t, err)
+	// Set error for file creation
+	fs.SetError("/archive.tar.gz", testutil.ErrPermissionDenied)
 
-	// Try to create archive where a directory exists
-	_, _, err = adapter.createArchiveWriters("/archive.tar.gz")
+	// Try to create archive
+	_, _, err := adapter.createArchiveWriters("/archive.tar.gz")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to create archive file")
 }
 
-func TestAdapter_walkAndAddToArchive_WithSymlinks(t *testing.T) {
+func TestWalkAndAddToArchive_WhenSymlinksPresent_HandlesCorrectly(t *testing.T) {
 	t.Parallel()
 
 	memFS := testutil.NewMemFS(t)
-	fs := filesystem.NewAferoFileSystem(memFS.Fs)
+	fs := filesystem.NewAferoFileSystem(memFS.Fs) //nolint:varnamelen // Common abbreviation
 
 	// Create source directory with various file types
 	sourceDir := "/source-dir"
@@ -939,7 +941,7 @@ func TestAdapter_walkAndAddToArchive_WithSymlinks(t *testing.T) {
 	err = fs.WriteFile(subFile, []byte("sub file content"), 0600)
 	require.NoError(t, err)
 
-	adapter := New(createMockGitConfig(), fs)
+	adapter := NewWithFileSystem(createMockGitConfig(), fs)
 
 	// Create archive
 	archivePath := filepath.Join(sourceDir, "test.tar.gz")
@@ -970,11 +972,11 @@ func TestAdapter_walkAndAddToArchive_WithSymlinks(t *testing.T) {
 	assert.Equal(t, "sub file content", string(content))
 }
 
-func TestAdapter_addFileToArchive_RelativePathError(t *testing.T) {
+func TestAddFileToArchive_WhenRelativePathInvalid_ReturnsError(t *testing.T) {
 	t.Parallel()
 
 	fs := createTestFileSystem(t)
-	adapter := New(createMockGitConfig(), fs)
+	adapter := NewWithFileSystem(createMockGitConfig(), fs)
 
 	// Create a buffer to capture tar data
 	var tarData bytes.Buffer
@@ -994,11 +996,11 @@ func TestAdapter_addFileToArchive_RelativePathError(t *testing.T) {
 	assert.Contains(t, err.Error(), "failed to get relative path")
 }
 
-func TestAdapter_writeFileContent_ReadError(t *testing.T) {
+func TestWriteFileContent_WhenReadFails_ReturnsError(t *testing.T) {
 	t.Parallel()
 
 	fs := createTestFileSystem(t)
-	adapter := New(createMockGitConfig(), fs)
+	adapter := NewWithFileSystem(createMockGitConfig(), fs)
 
 	// Create a buffer to capture tar data
 	var tarData bytes.Buffer
@@ -1013,12 +1015,11 @@ func TestAdapter_writeFileContent_ReadError(t *testing.T) {
 	assert.Contains(t, err.Error(), "failed to open file")
 }
 
-func TestAdapter_extractFile_CreateParentError(t *testing.T) {
+func TestExtractFile_WhenCannotCreateParentDir_ReturnsError(t *testing.T) {
 	t.Parallel()
 
-	memFS := testutil.NewMemFS(t)
-	fs := filesystem.NewAferoFileSystem(memFS.Fs)
-	adapter := New(createMockGitConfig(), fs)
+	fs := testutil.NewErrorFileSystem(t) //nolint:varnamelen // Common abbreviation
+	adapter := NewWithFileSystem(createMockGitConfig(), fs)
 
 	header := &tar.Header{
 		Name:     "test-file.txt",
@@ -1035,25 +1036,22 @@ func TestAdapter_extractFile_CreateParentError(t *testing.T) {
 	_, err := tarReader.Next()
 	require.NoError(t, err)
 
-	// Create a file where we want to create a directory
-	blockingFile := "/blocking-file"
-	err = fs.WriteFile(blockingFile, []byte("blocking"), 0644)
-	require.NoError(t, err)
-
-	// Try to extract file to path that would require creating blockingFile as directory
-	targetPath := filepath.Join(blockingFile, "nested", "file.txt")
+	// Set error for parent directory creation
+	targetPath := "/blocking-file/nested/file.txt"
+	parentDir := fs.Dir(targetPath)
+	fs.SetError(parentDir, testutil.ErrPermissionDenied)
 
 	err = adapter.extractFile(tarReader, header, targetPath)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to create parent directory")
 }
 
-func TestAdapter_extractFile_LimitedReader(t *testing.T) {
+func TestExtractFile_WhenReaderLimited_HandlesCorrectly(t *testing.T) {
 	t.Parallel()
 
 	memFS := testutil.NewMemFS(t)
-	fs := filesystem.NewAferoFileSystem(memFS.Fs)
-	adapter := New(createMockGitConfig(), fs)
+	fs := filesystem.NewAferoFileSystem(memFS.Fs) //nolint:varnamelen // Common abbreviation
+	adapter := NewWithFileSystem(createMockGitConfig(), fs)
 
 	// Create a file with specific size
 	content := strings.Repeat("A", 1000)
@@ -1091,12 +1089,12 @@ func TestAdapter_extractFile_LimitedReader(t *testing.T) {
 
 // Integration tests
 
-func TestAdapter_FullWorkflow(t *testing.T) {
+func TestFullWorkflow_WhenCreatingAndExtractingArchive_WorksEndToEnd(t *testing.T) {
 	t.Parallel()
 
 	// Create source directory with files in MemFS
-	fileSystem, sourceDir := createTestFileSystemWithFiles(t)
-	adapter := New(createMockGitConfig(), fileSystem)
+	fs, sourceDir := createTestFileSystemWithFiles(t) //nolint:varnamelen // Common abbreviation //nolint:varnamelen // Common abbreviation
+	adapter := NewWithFileSystem(createMockGitConfig(), fs)
 
 	// Step 1: Open repository
 	repo, err := adapter.Open(context.Background(), sourceDir)
@@ -1110,7 +1108,7 @@ func TestAdapter_FullWorkflow(t *testing.T) {
 
 	// Step 3: Clone from archive
 	destDir := "/clone-dest"
-	err = fileSystem.MkdirAll(destDir, 0750)
+	err = fs.MkdirAll(destDir, 0750)
 	require.NoError(t, err)
 
 	options := ports.CloneOptions{
@@ -1123,11 +1121,11 @@ func TestAdapter_FullWorkflow(t *testing.T) {
 	require.NotNil(t, clonedRepo)
 
 	// Step 4: Verify cloned content
-	file1Content, err := fileSystem.ReadFile(filepath.Join(destDir, "file1.txt"))
+	file1Content, err := fs.ReadFile(filepath.Join(destDir, "file1.txt"))
 	require.NoError(t, err)
 	assert.Equal(t, "test content 1", string(file1Content))
 
-	file2Content, err := fileSystem.ReadFile(filepath.Join(destDir, "subdir", "file2.txt"))
+	file2Content, err := fs.ReadFile(filepath.Join(destDir, "subdir", "file2.txt"))
 	require.NoError(t, err)
 	assert.Equal(t, "test content 2", string(file2Content))
 }
@@ -1137,44 +1135,42 @@ func TestAdapter_FullWorkflow(t *testing.T) {
 func TestAdapter_Clone_CreateDirectoryError(t *testing.T) {
 	t.Parallel()
 
-	memFS := testutil.NewMemFS(t)
-	fs := filesystem.NewAferoFileSystem(memFS.Fs)
+	// Use error filesystem that can simulate failures
+	fs := testutil.NewErrorFileSystem(t) //nolint:varnamelen // Common abbreviation for filesystem
 
 	// Create test archive in memory
 	archivePath := createTestArchiveInMemory(t, fs)
 
-	// Create a file to block directory creation
-	err := fs.WriteFile("/blocked", []byte("blocking"), 0644)
-	require.NoError(t, err)
+	// Set error for the directory creation
+	fs.SetError("/blocked/directory", testutil.ErrPermissionDenied)
 
-	adapter := New(createMockGitConfig(), fs)
+	adapter := NewWithFileSystem(createMockGitConfig(), fs)
 	options := ports.CloneOptions{
 		URL:  "file://" + archivePath,
-		Path: "/blocked/directory", // Can't create dir where file exists
+		Path: "/blocked/directory",
 	}
 
-	_, err = adapter.Clone(context.Background(), options)
+	_, err := adapter.Clone(context.Background(), options)
 
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to create directory")
+	assert.Contains(t, err.Error(), "permission denied")
 }
 
 func TestAdapter_extractDirectory_Error(t *testing.T) {
 	t.Parallel()
 
-	memFS := testutil.NewMemFS(t)
-	fs := filesystem.NewAferoFileSystem(memFS.Fs)
-	adapter := New(createMockGitConfig(), fs)
+	// Use error filesystem that can simulate failures
+	fs := testutil.NewErrorFileSystem(t)
+	adapter := NewWithFileSystem(createMockGitConfig(), fs)
 
-	// Create a file where we want to create a directory
-	err := fs.WriteFile("/blocking-file", []byte("content"), 0644)
-	require.NoError(t, err)
+	// Set error for directory creation
+	fs.SetError("/blocking-file/child", testutil.ErrPermissionDenied)
 
-	// Try to create directory where a file exists
-	err = adapter.extractDirectory("/blocking-file/child")
+	// Try to create directory
+	err := adapter.extractDirectory("/blocking-file/child")
 
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to create directory")
+	assert.Contains(t, err.Error(), "permission denied")
 }
 
 // Benchmark tests for performance regression detection
@@ -1185,7 +1181,7 @@ func BenchmarkAdapter_Clone(b *testing.B) {
 	defer func() { _ = os.Remove(archivePath) }()
 
 	fs := createTestFileSystem(b)
-	adapter := New(createMockGitConfig(), fs)
+	adapter := NewWithFileSystem(createMockGitConfig(), fs)
 
 	b.ResetTimer()
 
@@ -1201,8 +1197,7 @@ func BenchmarkAdapter_Clone(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
-
-		_ = os.RemoveAll(destDir)
+		// b.TempDir() auto-cleans, no need for manual removal
 	}
 }
 
@@ -1212,7 +1207,7 @@ func BenchmarkAdapter_extractArchive(b *testing.B) {
 	defer func() { _ = os.Remove(archivePath) }()
 
 	fs := createTestFileSystem(b)
-	adapter := New(createMockGitConfig(), fs)
+	adapter := NewWithFileSystem(createMockGitConfig(), fs)
 
 	b.ResetTimer()
 
@@ -1223,18 +1218,16 @@ func BenchmarkAdapter_extractArchive(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
-
-		_ = os.RemoveAll(destDir)
+		// b.TempDir() auto-cleans, no need for manual removal
 	}
 }
 
 func BenchmarkAdapter_createArchive(b *testing.B) {
 	sourceDir := createTempDirWithFiles(b)
-
-	defer func() { _ = os.RemoveAll(sourceDir) }()
+	// createTempDirWithFiles uses b.TempDir() internally which auto-cleans
 
 	fs := createTestFileSystem(b)
-	adapter := New(createMockGitConfig(), fs)
+	adapter := NewWithFileSystem(createMockGitConfig(), fs)
 
 	b.ResetTimer()
 

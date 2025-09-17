@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -40,6 +39,7 @@ var (
 type Repository struct {
 	path   string
 	config ports.GitConfig
+	fs     ports.FileSystem
 }
 
 // Path returns the repository path.
@@ -64,7 +64,7 @@ func (r *Repository) IsBare() bool {
 
 // IsClean returns true if the directory exists and is readable.
 func (r *Repository) IsClean() bool {
-	_, err := os.Stat(r.path)
+	_, err := r.fs.Stat(r.path)
 
 	return err == nil
 }
@@ -216,7 +216,7 @@ func (r *Repository) Status(_ context.Context) (ports.StatusResult, error) {
 	var status ports.StatusResult
 
 	// Check if the repository directory exists and has content
-	entries, err := os.ReadDir(r.path)
+	entries, err := r.fs.ReadDir(r.path)
 	if err != nil {
 		return status, fmt.Errorf("failed to read directory: %w", err)
 	}
@@ -316,7 +316,7 @@ func (r *Repository) GetFileContent(_ context.Context, filePath string) ([]byte,
 	}
 
 	// #nosec G304 - Path is validated above for security
-	data, err := os.ReadFile(fullPath)
+	data, err := r.fs.ReadFile(fullPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read file: %w", err)
 	}
@@ -344,12 +344,12 @@ func (r *Repository) WriteFile(_ context.Context, filePath string, content []byt
 	}
 
 	// Ensure parent directory exists
-	err = os.MkdirAll(filepath.Dir(fullPath), 0750)
+	err = r.fs.MkdirAll(r.fs.Dir(fullPath), 0750)
 	if err != nil {
 		return fmt.Errorf("failed to create parent directory: %w", err)
 	}
 
-	if err := os.WriteFile(fullPath, content, 0600); err != nil {
+	if err := r.fs.WriteFile(fullPath, content, 0600); err != nil {
 		return fmt.Errorf("failed to write file: %w", err)
 	}
 

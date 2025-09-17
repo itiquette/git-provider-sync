@@ -36,6 +36,8 @@ func TestConfigurationValidation(t *testing.T) {
 	t.Run("ValidConfiguration", func(t *testing.T) {
 		t.Parallel()
 
+		backupPath := t.TempDir()
+
 		config := ports.AppConfiguration{
 			GlobalSettings: ports.GlobalSettings{
 				LogLevel:     ports.LogLevelInfo,
@@ -59,7 +61,7 @@ func TestConfigurationValidation(t *testing.T) {
 						"backup": {
 							Name:         "backup",
 							ProviderType: "directory",
-							Path:         "/tmp/backup",
+							Path:         backupPath,
 							Enabled:      true,
 						},
 					},

@@ -48,10 +48,10 @@ func TestDebugWriter_NewDebugWriter(t *testing.T) {
 				assert.NotEmpty(t, path)
 				assert.Contains(t, path, "gps-debug-")
 
-				// Clean up
+				// Clean up - close the writer but leave debug file in temp
+				// Debug files in temp are fine - OS will clean them up
 				if debugWriter, ok := writer.(*DebugWriter); ok {
 					defer func() { _ = debugWriter.Close() }()
-					defer func() { _ = os.Remove(path) }()
 				}
 			} else {
 				assert.Empty(t, path)
@@ -74,9 +74,7 @@ func TestDebugWriter_Write(t *testing.T) {
 
 	defer func() { _ = debugWriter.Close() }()
 
-	if path != "" {
-		defer func() { _ = os.Remove(path) }()
-	}
+	// Debug files in temp are fine - OS will clean them up
 
 	// Write test data
 	testData := []byte("test log message\n")
@@ -143,10 +141,9 @@ func TestDebugWriter_TeeWriter(t *testing.T) {
 				assert.NotEmpty(t, debugPath)
 				assert.True(t, strings.HasSuffix(debugPath, ".log"))
 
-				// Clean up
+				// Clean up - close the writer but leave debug file in temp
 				if debugWriter, ok := writer.(*DebugWriter); ok {
 					defer func() { _ = debugWriter.Close() }()
-					defer func() { _ = os.Remove(debugPath) }()
 				}
 			} else {
 				assert.Empty(t, debugPath)

@@ -19,14 +19,8 @@ import (
 func setupTestEnvironment(t *testing.T, setupFiles map[string]string, setupEnv map[string]string) string {
 	t.Helper()
 	tempDir := t.TempDir()
-	originalWd, _ := os.Getwd()
 
-	t.Cleanup(func() { _ = os.Chdir(originalWd) })
-
-	// Change to temp dir for test
-	require.NoError(t, os.Chdir(tempDir))
-
-	// Create test files
+	// Create test files using absolute paths
 	for path, content := range setupFiles {
 		fullPath := filepath.Join(tempDir, path)
 		dir := filepath.Dir(fullPath)
@@ -225,15 +219,18 @@ gitprovidersync:
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
 			// Cannot use t.Parallel() with t.Setenv()
-			_ = setupTestEnvironment(t, testCase.setupFiles, testCase.setupEnv)
+			tempDir := setupTestEnvironment(t, testCase.setupFiles, testCase.setupEnv)
 
-			// Load configuration
+			// Load configuration using absolute paths
 			appConfig := &dto.AppConfiguration{}
 			configPath := testCase.configFile
 
 			if configPath == "" {
 				configPath = "gitprovidersync.yaml"
 			}
+
+			// Make config path absolute
+			configPath = filepath.Join(tempDir, configPath)
 
 			err := ReadConfigurationFile(context.Background(), configPath, testCase.configFileOnly, appConfig)
 
@@ -309,6 +306,7 @@ func TestGetUserConfigPath(t *testing.T) {
 		// Make sure XDG_CONFIG_HOME is not set
 		t.Setenv("XDG_CONFIG_HOME", "")
 		// HOME is typically always set in test environments
+		// Using os.Getenv for read-only access is safe
 		if home := os.Getenv("HOME"); home != "" {
 			expectedPath := filepath.Join(home, ".config", "gitprovidersync", "dto.yaml")
 			path := getUserConfigPath()

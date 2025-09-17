@@ -32,21 +32,21 @@ func performSync(ctx context.Context, cfg *dto.AppConfiguration) error {
 		return fmt.Errorf("sync cancelled: %w", ctx.Err())
 	}
 
-	// Create temporary directory with timestamp for uniqueness
-	tmpPrefix := fmt.Sprintf("gitprovidersync-%d", time.Now().Unix())
-
-	ctx, err := filesystem.CreateTmpDir(ctx, "", tmpPrefix)
-	if err != nil {
-		return fmt.Errorf("failed to create temporary directory: %w", err)
-	}
-
-	// NO CLEANUP - /tmp is managed by OS, exit immediately on Ctrl-C
-
 	// 1. Create dependency injection container (skip config loading since we already have it)
 	container, err := createContainerWithConfig(ctx, cfg)
 	if err != nil {
 		return fmt.Errorf("failed to initialize application services: %w", err)
 	}
+
+	// Create temporary directory with timestamp for uniqueness
+	tmpPrefix := fmt.Sprintf("gitprovidersync-%d", time.Now().Unix())
+
+	ctx, err = filesystem.CreateTmpDir(ctx, container.FileSystem(), "", tmpPrefix)
+	if err != nil {
+		return fmt.Errorf("failed to create temporary directory: %w", err)
+	}
+
+	// NO CLEANUP - /tmp is managed by OS, exit immediately on Ctrl-C
 
 	defer func() {
 		if closeErr := container.Close(); closeErr != nil {
@@ -284,11 +284,11 @@ func syncToMirrorWithGitReposAndResults(
 
 	// 8. Create and execute ToMirrorsUseCase
 
-	// Create archive operations adapter
-	archiveOps := archive.NewOperations(loggerAdapter, os.TempDir(), mirrorCfg.Path)
-
 	// Get file system from container
 	fileSystem := container.FileSystem()
+
+	// Create archive operations adapter
+	archiveOps := archive.NewOperations(loggerAdapter, os.TempDir(), mirrorCfg.Path)
 
 	// Get string utils from container
 	stringUtils := container.StringUtils()

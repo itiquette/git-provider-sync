@@ -25,15 +25,17 @@ import (
 // MirrorService provides go-git based repository mirroring operations.
 type MirrorService struct {
 	logger         ports.Logger
+	fileSystem     ports.FileSystem
 	tempDir        string
 	progressWriter io.Writer
 }
 
 // NewMirrorService creates a new go-git mirror service.
-func NewMirrorService(logger ports.Logger, tempDir string) *MirrorService {
+func NewMirrorService(logger ports.Logger, fileSystem ports.FileSystem, tempDir string) *MirrorService {
 	return &MirrorService{
-		logger:  logger,
-		tempDir: tempDir,
+		logger:     logger,
+		fileSystem: fileSystem,
+		tempDir:    tempDir,
 	}
 }
 
@@ -177,7 +179,7 @@ func (ms *MirrorService) performDryRun(ctx context.Context, request MirrorReques
 func (ms *MirrorService) createWorkingDirectory(ctx context.Context) (string, error) {
 	workDir := filepath.Join(ms.tempDir, "gogit-mirror-"+generateRandomID())
 
-	if err := os.MkdirAll(workDir, 0750); err != nil {
+	if err := ms.fileSystem.MkdirAll(workDir, 0750); err != nil {
 		return "", fmt.Errorf("failed to create working directory: %w", err)
 	}
 

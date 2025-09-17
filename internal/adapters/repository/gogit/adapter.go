@@ -32,13 +32,15 @@ import (
 
 // Adapter implements the GitOperations interface using go-git.
 type Adapter struct {
-	config ports.GitConfig
+	config     ports.GitConfig
+	fileSystem ports.FileSystem
 }
 
 // New creates a new go-git adapter.
 func New(config ports.GitConfig) *Adapter {
 	return &Adapter{
-		config: config,
+		config:     config,
+		fileSystem: filesystem.NewOSFileSystem(),
 	}
 }
 
@@ -274,7 +276,7 @@ func (a *Adapter) Cleanup(_ context.Context, _ string) error {
 
 // CreateTmpDir implements the ports.GitOperations interface.
 func (a *Adapter) CreateTmpDir(ctx context.Context, dir, prefix string) (context.Context, error) {
-	ctxWithTmp, err := filesystem.CreateTmpDir(ctx, dir, prefix)
+	ctxWithTmp, err := filesystem.CreateTmpDir(ctx, a.fileSystem, dir, prefix)
 	if err != nil {
 		return ctx, fmt.Errorf("failed to create temporary directory: %w", err)
 	}
@@ -294,7 +296,7 @@ func (a *Adapter) GetTmpDirPath(ctx context.Context) (string, error) {
 
 // DeleteTmpDir implements the ports.GitOperations interface.
 func (a *Adapter) DeleteTmpDir(ctx context.Context) error {
-	if err := filesystem.DeleteTmpDir(ctx); err != nil {
+	if err := filesystem.DeleteTmpDir(ctx, a.fileSystem); err != nil {
 		return fmt.Errorf("failed to delete temporary directory: %w", err)
 	}
 

@@ -147,11 +147,6 @@ gitprovidersync:
 	envValue := "env-staging-owner"
 	t.Setenv(envKey, envValue)
 
-	// Debug: verify env var is set
-	if val := os.Getenv(envKey); val != envValue {
-		t.Fatalf("Environment variable not set correctly: got %s, want %s", val, envValue)
-	}
-
 	// Read configuration using ReadConfigurationFile
 	appConfig := &dto.AppConfiguration{}
 	err := ReadConfigurationFile(context.Background(), configPath, false, appConfig)

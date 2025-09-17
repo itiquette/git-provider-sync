@@ -298,7 +298,8 @@ func processAuthTokenFile(authConfig *dto.AuthConfig) error {
 		return nil
 	}
 
-	// Read token from file
+	// Read token from file using the deprecated function for now
+	// Future improvement: Inject TokenReader through loader constructor for better testability
 	token, err := auth.ReadTokenFromFile(authConfig.TokenFile)
 	if err != nil {
 		return fmt.Errorf("failed to read token from file: %w", err)

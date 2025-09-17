@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"itiquette/git-provider-sync/internal/shared"
+	"itiquette/git-provider-sync/internal/testutil"
 )
 
 func TestRemoveAllInTempDir(t *testing.T) {
@@ -28,7 +29,7 @@ func TestRemoveAllInTempDir(t *testing.T) {
 		},
 		{
 			name:        "OS temp directory",
-			path:        filepath.Join(os.TempDir(), "test-dir"),
+			path:        filepath.Join(t.TempDir(), "test-dir"),
 			shouldError: false,
 		},
 		{
@@ -84,23 +85,29 @@ func TestRemoveAllInTempDir(t *testing.T) {
 func TestRemoveAllInTempDir_ActualDirectory(t *testing.T) {
 	t.Parallel()
 
-	// Create a real temp directory
-	tempDir := t.TempDir()
+	// Use our test helpers for isolation
+	test := testutil.NewTest(t)
 
-	// Create a file in it
+	// Create test structure in virtual filesystem
+	tempDir := test.FS.TempDir("test-")
 	testFile := filepath.Join(tempDir, "test.txt")
-	err := os.WriteFile(testFile, []byte("test"), 0600)
-	require.NoError(t, err)
+	test.FS.WriteFile(testFile, "test content")
 
 	// Verify it exists
-	_, err = os.Stat(tempDir)
+	test.FS.AssertFileExists(testFile)
+
+	// For this specific test, we need a real temp dir since
+	// RemoveAllInTempDir checks actual OS paths
+	realTempDir := t.TempDir()
+	realTestFile := filepath.Join(realTempDir, "test.txt")
+	err := os.WriteFile(realTestFile, []byte("test"), 0600)
 	require.NoError(t, err)
 
 	// Remove it using our safe function
-	err = shared.RemoveAllInTempDir(tempDir)
+	err = shared.RemoveAllInTempDir(realTempDir)
 	require.NoError(t, err)
 
 	// Verify it's gone
-	_, err = os.Stat(tempDir)
+	_, err = os.Stat(realTempDir)
 	assert.True(t, os.IsNotExist(err))
 }

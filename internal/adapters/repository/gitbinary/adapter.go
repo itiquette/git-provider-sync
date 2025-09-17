@@ -28,6 +28,7 @@ type Adapter struct {
 	mirrorSvc   *MirrorService
 	tempDir     string
 	initialized bool
+	fileSystem  ports.FileSystem
 }
 
 // New creates a new git binary adapter.
@@ -35,6 +36,16 @@ func New(config ports.GitConfig) *Adapter {
 	return &Adapter{
 		config:      config,
 		initialized: false,
+		fileSystem:  filesystem.NewOSFileSystem(),
+	}
+}
+
+// NewWithFileSystem creates a new git binary adapter with injected filesystem.
+func NewWithFileSystem(config ports.GitConfig, fs ports.FileSystem) *Adapter {
+	return &Adapter{
+		config:      config,
+		initialized: false,
+		fileSystem:  fs,
 	}
 }
 
@@ -45,6 +56,7 @@ func NewWithTempDir(config ports.GitConfig, tempDir string) *Adapter {
 		config:      config,
 		tempDir:     tempDir,
 		initialized: false,
+		fileSystem:  filesystem.NewOSFileSystem(),
 	}
 }
 
@@ -189,7 +201,7 @@ func (a *Adapter) GetName() string {
 
 // CreateTmpDir implements the ports.GitOperations interface.
 func (a *Adapter) CreateTmpDir(ctx context.Context, dir, prefix string) (context.Context, error) {
-	ctxWithTmp, err := filesystem.CreateTmpDir(ctx, dir, prefix)
+	ctxWithTmp, err := filesystem.CreateTmpDir(ctx, a.fileSystem, dir, prefix)
 	if err != nil {
 		return ctx, fmt.Errorf("failed to create temporary directory: %w", err)
 	}
@@ -209,7 +221,7 @@ func (a *Adapter) GetTmpDirPath(ctx context.Context) (string, error) {
 
 // DeleteTmpDir implements the ports.GitOperations interface.
 func (a *Adapter) DeleteTmpDir(ctx context.Context) error {
-	if err := filesystem.DeleteTmpDir(ctx); err != nil {
+	if err := filesystem.DeleteTmpDir(ctx, a.fileSystem); err != nil {
 		return fmt.Errorf("failed to delete temporary directory: %w", err)
 	}
 

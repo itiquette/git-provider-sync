@@ -8,6 +8,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"itiquette/git-provider-sync/internal/adapters/filesystem"
+	"itiquette/git-provider-sync/internal/testutil"
 )
 
 func TestValidateDirectoryPath(t *testing.T) {
@@ -98,11 +101,15 @@ func TestValidateDirectoryPath(t *testing.T) {
 		},
 	}
 
+	// Use memory filesystem for tests
+	memFS := testutil.NewMemFS(t)
+	fileSystem := filesystem.NewAferoFileSystem(memFS.Fs)
+
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			err := validateDirectoryPath(test.path)
+			err := validateDirectoryPath(fileSystem, test.path)
 
 			if test.shouldError {
 				require.Error(t, err, "Expected error for dangerous path: %s", test.path)
@@ -117,12 +124,16 @@ func TestValidateDirectoryPath(t *testing.T) {
 func TestValidateDirectoryPath_EdgeCases(t *testing.T) {
 	t.Parallel()
 
+	// Use memory filesystem for tests
+	memFS := testutil.NewMemFS(t)
+	fileSystem := filesystem.NewAferoFileSystem(memFS.Fs)
+
 	// Test relative path resolution
 	t.Run("relative paths", func(t *testing.T) {
 		t.Parallel()
 		// These will resolve to absolute paths, so the safety check
 		// will depend on where they resolve to
-		err := validateDirectoryPath("./backup")
+		err := validateDirectoryPath(fileSystem, "./backup")
 		// Should work unless we're running tests in a system directory
 		assert.NoError(t, err)
 	})
@@ -130,7 +141,7 @@ func TestValidateDirectoryPath_EdgeCases(t *testing.T) {
 	t.Run("parent directory traversal", func(t *testing.T) {
 		t.Parallel()
 		// This should resolve and then be checked
-		err := validateDirectoryPath("/home/user/../..")
+		err := validateDirectoryPath(fileSystem, "/home/user/../..")
 		// This resolves to "/" which should be blocked
 		assert.Error(t, err)
 	})

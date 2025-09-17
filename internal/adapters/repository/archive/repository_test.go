@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"itiquette/git-provider-sync/internal/adapters/filesystem"
 	"itiquette/git-provider-sync/internal/domain"
 	"itiquette/git-provider-sync/internal/domain/ports"
 )
@@ -52,6 +53,7 @@ func createTestRepository(tb testing.TB) (*Repository, string) {
 	repo := &Repository{
 		path:   tempDir,
 		config: config,
+		fs:     filesystem.NewOSFileSystem(),
 	}
 
 	return repo, tempDir
@@ -59,7 +61,7 @@ func createTestRepository(tb testing.TB) (*Repository, string) {
 
 // Test basic repository properties
 
-func TestRepository_IsClean(t *testing.T) {
+func TestIsClean_WhenNoChanges_ReturnsTrue(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -88,6 +90,7 @@ func TestRepository_IsClean(t *testing.T) {
 				return &Repository{
 					path:   "/non-existent-directory",
 					config: config,
+					fs:     filesystem.NewOSFileSystem(),
 				}
 			},
 			expected: false,
@@ -109,7 +112,7 @@ func TestRepository_IsClean(t *testing.T) {
 	}
 }
 
-func TestRepository_HasChanges(t *testing.T) {
+func TestHasChanges_WhenChangesExist_ReturnsTrue(t *testing.T) {
 	t.Parallel()
 
 	repo, tempDir := createTestRepository(t)
@@ -122,7 +125,7 @@ func TestRepository_HasChanges(t *testing.T) {
 
 // Test commit operations
 
-func TestRepository_GetCurrentCommit(t *testing.T) {
+func TestGetCurrentCommit_WhenArchiveRepository_ReturnsEmptyString(t *testing.T) {
 	t.Parallel()
 
 	repo, tempDir := createTestRepository(t)
@@ -279,6 +282,7 @@ func TestRepository_Status_NonExistentDirectory(t *testing.T) {
 	repo := &Repository{
 		path:   "/non-existent-directory",
 		config: config,
+		fs:     filesystem.NewOSFileSystem(),
 	}
 
 	_, err := repo.Status(context.Background())
@@ -547,6 +551,7 @@ func TestRepository_FileOperations_AbsolutePathErrors(t *testing.T) {
 	repo := &Repository{
 		path:   "\x00", // Invalid path that should cause filepath.Abs to fail
 		config: config,
+		fs:     filesystem.NewOSFileSystem(),
 	}
 
 	// Test GetFileContent

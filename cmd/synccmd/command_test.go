@@ -18,7 +18,7 @@ import (
 	"itiquette/git-provider-sync/internal/domain/entities"
 )
 
-func TestMergeSyncOptionsWithCLIConfig_MergesFlags(t *testing.T) {
+func TestMergeSyncOptionsWithCLIConfig_WhenMergingFlags_PreservesBaseConfigAndAppliesDefaults(t *testing.T) {
 	t.Parallel()
 
 	// Create a CLI config with base values
@@ -40,21 +40,21 @@ func TestMergeSyncOptionsWithCLIConfig_MergesFlags(t *testing.T) {
 
 	// Test the function merges values correctly
 	result := mergeSyncOptionsWithCLIConfig(baseConfig, cmd)
-	assert.NotNil(t, result)
+	require.NotNil(t, result)
 
 	// Base config values should be preserved
-	assert.Equal(t, "json", result.OutputFormat())
-	assert.True(t, result.Quiet())
+	require.Equal(t, "json", result.OutputFormat())
+	require.True(t, result.Quiet())
 
 	// Sync flags should have default values when not set
-	assert.False(t, result.DryRun())
-	assert.False(t, result.ForcePush())
-	assert.Empty(t, result.ActiveFromLimit())
-	assert.False(t, result.AlphaNumHyphName())
-	assert.False(t, result.IgnoreInvalidName())
+	require.False(t, result.DryRun())
+	require.False(t, result.ForcePush())
+	require.Empty(t, result.ActiveFromLimit())
+	require.False(t, result.AlphaNumHyphName())
+	require.False(t, result.IgnoreInvalidName())
 }
 
-func TestRunSync_InvalidConfig(t *testing.T) {
+func TestRunSync_WhenConfigIsInvalid_ReturnsConfigurationError(t *testing.T) {
 	t.Parallel()
 
 	// Create a temporary directory for the test

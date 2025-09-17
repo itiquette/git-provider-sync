@@ -105,12 +105,12 @@ func NewContainer(ctx context.Context, containerConfig ContainerConfig) (*Contai
 	// 4. Create provider factory
 	providerFactory := NewProviderFactory(httpFactory, logger)
 
-	// 5. Create git factory
-	gitConfig := getGitConfig(appConfig, containerConfig)
-	gitFactory := NewGitFactory(gitConfig)
-
-	// 6. Create file system adapter
+	// 5. Create file system adapter (needed by git factory)
 	fileSystem := filesystem.NewOSFileSystem()
+
+	// 6. Create git factory with file system dependency
+	gitConfig := getGitConfig(appConfig, containerConfig)
+	gitFactory := NewGitFactory(gitConfig, fileSystem)
 
 	// 7. Create string utils adapter
 	stringUtils := shared.NewStringUtilsAdapter()
@@ -173,8 +173,18 @@ func (c *Container) CreateSyncUseCase(
 	repositoryProvider ports.RepositoryProvider,
 	gitOperations ports.GitOperations,
 ) sync.RepositoriesUseCase {
-	// Create archive operations with reasonable defaults
-	archiveOps := archive.NewOperations(c.logger, os.TempDir(), "/tmp/archives")
+	// Create archive operations with configured temp directories
+	tempDir := c.config.GlobalSettings.TempDirectory
+	if tempDir == "" {
+		tempDir = os.TempDir()
+	}
+
+	archiveDir := c.config.GlobalSettings.CacheDirectory
+	if archiveDir == "" {
+		archiveDir = os.TempDir()
+	}
+
+	archiveOps := archive.NewOperations(c.logger, tempDir, archiveDir)
 
 	return sync.NewRepositoriesUseCase(c.configAdapter, repositoryProvider, gitOperations, archiveOps, c.fileSystem, c.logger, c.stringUtils)
 }

@@ -58,9 +58,7 @@ func TestReadConfigFile_MergedSources_Success(t *testing.T) {
 	appConfiguration := &dto.AppConfiguration{}
 
 	err = ReadConfigurationFile(context.Background(), filepath.Join(tempTestdataPath, "testdto.yaml"), false, appConfiguration)
-	if err != nil {
-		fmt.Println(err)
-	}
+	require.NoError(err)
 
 	// A xdg file only defined conf
 	require.Equal("xdgconfdomain", appConfiguration.GitProviderSyncConfs["env1"]["confxdg"].GetDomain())

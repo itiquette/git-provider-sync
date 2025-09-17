@@ -35,7 +35,7 @@ func TestCriticalGitHubToGitLabSyncFlow(t *testing.T) {
 	gitOps := gogit.New(ports.GitConfig{
 		UserName:    "test-user",
 		UserEmail:   "test@example.com",
-		StorageMode: ports.StorageModeFilesystem, // Required for pushable bare repos in tests
+		StorageMode: ports.StorageModeMemory, // Use memory for faster, isolated tests
 	})
 
 	// Create mock provider with proper network call mocking
