@@ -15,7 +15,7 @@ Primary capabilities:
 Quality goals:
 * Security: Limited token access, OpenSSF best practices
 * Reliability: Error handling, validation, retry support
-* Maintainability: Modular providers, comprehensive testing
+* Maintainability: Modular providers, testing
 
 == Constraints
 

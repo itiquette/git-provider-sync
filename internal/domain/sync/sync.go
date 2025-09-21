@@ -22,7 +22,6 @@ type RepositoriesUseCase struct {
 	archiveOperations  ports.ArchiveOperations
 	fileSystem         ports.FileSystem
 	logger             ports.Logger
-	stringUtils        ports.StringUtils
 }
 
 // NewRepositoriesUseCase creates a new sync repositories use case with explicit dependencies.
@@ -33,7 +32,6 @@ func NewRepositoriesUseCase(
 	archiveOps ports.ArchiveOperations,
 	fileSystem ports.FileSystem,
 	logger ports.Logger,
-	stringUtils ports.StringUtils,
 ) RepositoriesUseCase {
 	return RepositoriesUseCase{
 		configProvider:     configProvider,
@@ -42,7 +40,6 @@ func NewRepositoriesUseCase(
 		archiveOperations:  archiveOps,
 		fileSystem:         fileSystem,
 		logger:             logger,
-		stringUtils:        stringUtils,
 	}
 }
 
@@ -149,14 +146,13 @@ func (uc RepositoriesUseCase) Execute(ctx context.Context, request Request) (Res
 		return Response{}, fmt.Errorf("source configuration validation failed: %w", err)
 	}
 
-	response = Response{Success: true}
-
 	metadata := entities.NewSyncRunMetadata("source", "mirrors", "sync", "default")
 	metadata.SetTotalRepositories(len(config.Environments))
 	ctx = entities.AddMetadataToContext(ctx, metadata)
 
-	if err := uc.executeSourceToMirror(ctx, config, request, &response); err != nil {
-		return response, fmt.Errorf("sync execution failed: %w", err)
+	response, err = uc.executeSourceToMirror(ctx, config, request)
+	if err != nil {
+		return Response{}, fmt.Errorf("sync execution failed: %w", err)
 	}
 
 	logger.Info(ctx, "Repository synchronization completed", map[string]any{
@@ -169,13 +165,12 @@ func (uc RepositoriesUseCase) Execute(ctx context.Context, request Request) (Res
 	return response, nil
 }
 
-// ExecuteSourceToMirror implements the core sync logic.
+// executeSourceToMirror implements the core sync logic.
 func (uc RepositoriesUseCase) executeSourceToMirror(
 	ctx context.Context,
 	config ports.AppConfiguration,
 	_ Request,
-	response *Response,
-) error {
+) (Response, error) {
 	logger := ports.LoggerFromContext(ctx)
 
 	// TRACE: Internal method entry
@@ -188,8 +183,10 @@ func (uc RepositoriesUseCase) executeSourceToMirror(
 	// Step 1: Extract environments from config
 	environments := config.Environments
 	if len(environments) == 0 {
-		return domain.ErrNoEnvironmentsConfigured
+		return Response{}, domain.ErrNoEnvironmentsConfigured
 	}
+
+	response := Response{Success: true}
 
 	for envName, env := range environments {
 		if !env.Enabled {
@@ -210,22 +207,31 @@ func (uc RepositoriesUseCase) executeSourceToMirror(
 			"environment": envName,
 		})
 
-		err := uc.processEnvironment(ctx, envName, env, response)
+		envResult, err := uc.processEnvironment(ctx, envName, env)
 		if err != nil {
-			return fmt.Errorf("failed to process environment %s: %w", envName, err)
+			return Response{}, fmt.Errorf("failed to process environment %s: %w", envName, err)
+		}
+
+		// Aggregate results
+		response.ProcessedRepos += envResult.ProcessedRepos
+		response.SuccessfulSyncs += envResult.SuccessfulSyncs
+		response.FailedSyncs += envResult.FailedSyncs
+		response.Errors = append(response.Errors, envResult.Errors...)
+
+		if envResult.FailedSyncs > 0 {
+			response.Success = false
 		}
 	}
 
-	return nil
+	return response, nil
 }
 
-// ProcessEnvironment processes a single environment (equivalent to sourceToMirror per environment).
+// processEnvironment processes a single environment (equivalent to sourceToMirror per environment).
 func (uc RepositoriesUseCase) processEnvironment(
 	ctx context.Context,
 	envName string,
 	env ports.EnvironmentConfiguration,
-	response *Response,
-) error {
+) (Response, error) {
 	logger := ports.LoggerFromContext(ctx)
 
 	// TRACE: Per-environment processing entry
@@ -255,7 +261,7 @@ func (uc RepositoriesUseCase) processEnvironment(
 
 	fetchResponse, err := fetchUseCase.Execute(ctx, fetchRequest)
 	if err != nil {
-		return fmt.Errorf("failed to fetch source repositories: %w", err)
+		return Response{}, fmt.Errorf("failed to fetch source repositories: %w", err)
 	}
 
 	if len(fetchResponse.ClonedRepos) == 0 && !fetchRequest.DryRun {
@@ -263,7 +269,7 @@ func (uc RepositoriesUseCase) processEnvironment(
 			"environment": envName,
 		})
 
-		return nil
+		return Response{Success: true}, nil
 	}
 
 	// TRACE: Step boundary - fetch completed, starting sync
@@ -272,8 +278,6 @@ func (uc RepositoriesUseCase) processEnvironment(
 		"cloned_repos":  len(fetchResponse.ClonedRepos),
 		"total_mirrors": len(env.Mirrors),
 	})
-
-	response.ProcessedRepos += fetchResponse.ProcessedCount
 
 	// Step 3: Convert mirrors to mirror targets
 	mirrorTargets := uc.convertMirrorsToTargets(env.Mirrors)
@@ -285,7 +289,6 @@ func (uc RepositoriesUseCase) processEnvironment(
 		uc.archiveOperations,
 		uc.fileSystem,
 		uc.logger,
-		uc.stringUtils,
 	)
 
 	syncRequest := ToMirrorsRequest{
@@ -303,16 +306,16 @@ func (uc RepositoriesUseCase) processEnvironment(
 
 	syncResponse, err := syncToMirrorsUseCase.Execute(ctx, syncRequest)
 	if err != nil {
-		return fmt.Errorf("failed to sync to mirrors: %w", err)
+		return Response{}, fmt.Errorf("failed to sync to mirrors: %w", err)
 	}
 
-	// Update response statistics
-	response.SuccessfulSyncs += syncResponse.SuccessfulSyncs
-	response.FailedSyncs += syncResponse.FailedSyncs
-	response.Errors = append(response.Errors, syncResponse.Errors...)
-
-	if syncResponse.FailedSyncs > 0 {
-		response.Success = false
+	// Build and return response
+	response := Response{
+		ProcessedRepos:  fetchResponse.ProcessedCount,
+		SuccessfulSyncs: syncResponse.SuccessfulSyncs,
+		FailedSyncs:     syncResponse.FailedSyncs,
+		Errors:          syncResponse.Errors,
+		Success:         syncResponse.FailedSyncs == 0,
 	}
 
 	logger.Info(ctx, "Environment processing completed", map[string]any{
@@ -321,7 +324,7 @@ func (uc RepositoriesUseCase) processEnvironment(
 		"failed_syncs":     syncResponse.FailedSyncs,
 	})
 
-	return nil
+	return response, nil
 }
 
 // Adapter functions to convert between different type systems

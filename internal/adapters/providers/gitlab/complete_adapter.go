@@ -24,7 +24,6 @@ type CompleteAdapter struct {
 	projectService    *ProjectService
 	protectionService *ProtectionService
 	filterService     *FilterService
-	optionsBuilder    *ProjectOptionsBuilder
 
 	client *gitlab.Client
 	logger ports.Logger
@@ -63,14 +62,12 @@ func NewCompleteAdapter(ctx context.Context, config Config, logger ports.Logger)
 	projectService := NewProjectService(client, logger)
 	protectionService := NewProtectionService(client, logger)
 	filterService := NewFilterService(logger)
-	optionsBuilder := NewProjectOptionsBuilder()
 
 	return &CompleteAdapter{
 		Adapter:           basicAdapter,
 		projectService:    projectService,
 		protectionService: protectionService,
 		filterService:     filterService,
-		optionsBuilder:    optionsBuilder,
 		client:            client,
 		logger:            logger,
 	}, nil
@@ -417,16 +414,17 @@ func (ca *CompleteAdapter) GetAdvancedProjectOptions(
 	namespaceID int,
 	disableFeatures bool,
 ) *gitlab.CreateProjectOptions {
-	ca.optionsBuilder.Reset()
-	ca.optionsBuilder.WithBasicOpts(visibility, name, description, defaultBranch, namespaceID)
+	// Use functional options pattern
+	var opts []ProjectOption
 
-	if disableFeatures {
-		ca.optionsBuilder.WithDisabledFeatures()
-	} else {
-		ca.optionsBuilder.WithEnabledFeatures()
-	}
+	// Add namespace if specified
+	opts = append(opts, WithNamespace(namespaceID))
 
-	return ca.optionsBuilder.Build()
+	// Configure features based on disableFeatures flag
+	opts = append(opts, WithFeatures(!disableFeatures))
+
+	// Build and return the project options
+	return BuildGitLabProject(visibility, name, description, defaultBranch, opts...)
 }
 
 // FilterRepositoriesByNamespace filters repositories by GitLab namespace.

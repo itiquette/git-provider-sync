@@ -7,15 +7,6 @@ SPDX-License-Identifier: CC0-1.0
 
 # CI/CD Examples
 
-## Common Setup
-
-```bash
-# Download latest release (all examples use this)
-wget https://github.com/itiquette/git-provider-sync/releases/latest/download/gitprovidersync_linux_amd64.tar.gz
-tar -xzf gitprovidersync_linux_amd64.tar.gz
-chmod +x gitprovidersync
-```
-
 ## GitHub Actions
 
 ```yaml
@@ -40,7 +31,7 @@ jobs:
       - name: Run Sync
         env:
           GPS_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GPS_GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}  # If mirroring to GitLab
+          GPS_GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
         run: ./gitprovidersync sync --config-file sync-config.yaml
 ```
 
@@ -58,7 +49,7 @@ sync:
     - ./gitprovidersync sync --config-file sync-config.yaml
   variables:
     GPS_GITLAB_TOKEN: $CI_JOB_TOKEN
-    GPS_GITHUB_TOKEN: $GITHUB_TOKEN  # From CI/CD variables
+    GPS_GITHUB_TOKEN: $GITHUB_TOKEN
   only:
     - schedules
 ```
@@ -69,7 +60,7 @@ sync:
 pipeline {
     agent any
     triggers {
-        cron('H 2 * * *')  // Daily at 2 AM
+        cron('H 2 * * *')
     }
     stages {
         stage('Setup') {
@@ -158,9 +149,7 @@ spec:
           restartPolicy: OnFailure
 ```
 
-## Configuration File Example
-
-All CI/CD examples reference a config file:
+## Sample Configuration
 
 ```yaml
 gitprovidersync:
@@ -170,20 +159,14 @@ gitprovidersync:
       owner: "your-org"
       owner_type: group
       auth:
-        token: "${GPS_GITHUB_TOKEN}"  # From environment
+        token: "${GPS_GITHUB_TOKEN}"
       mirrors:
         gitlab-backup:
           provider_type: gitlab
           owner: "backup-org"
           owner_type: group
           auth:
-            token: "${GPS_GITLAB_TOKEN}"  # From environment
+            token: "${GPS_GITLAB_TOKEN}"
 ```
 
-## Tips
-
-- Use scheduled runs for regular backups
-- Store tokens as secrets in your CI/CD platform
-- Use `--dry-run` first to test configuration
-- Set `GPS_LOG_LEVEL=debug` for troubleshooting
-- Consider using `--environment` flag for multiple configurations
+See [configuration.md](configuration.md) for full configuration reference.

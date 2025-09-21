@@ -32,6 +32,7 @@ func (m *mockLoggerForTest) Error(_ context.Context, _ string, _ map[string]any)
 func (m *mockLoggerForTest) Trace(_ context.Context, _ string, _ map[string]any) {}
 func (m *mockLoggerForTest) IsLevelEnabled(_ ports.LogLevel) bool                { return false }
 func (m *mockLoggerForTest) Fatal(_ context.Context, _ string, _ map[string]any) {}
+func (m *mockLoggerForTest) GetLevel() ports.LogLevel                            { return ports.LogLevelInfo }
 
 func TestProjectService_UpdateProject(t *testing.T) { //nolint:gocognit,gocyclo,cyclop,maintidx // Table-driven test with many cases
 	t.Parallel()

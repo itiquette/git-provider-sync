@@ -29,8 +29,9 @@ func TestSignalImmediateFeedback(t *testing.T) {
 	}()
 
 	// Setup signal context
-	ctx := SetupSignalContext(context.Background())
+	ctx, getExitCode := SetupSignalContext(context.Background())
 	require.NotNil(t, ctx)
+	require.NotNil(t, getExitCode)
 
 	// Send signal to self
 	proc, err := os.FindProcess(os.Getpid())
@@ -63,4 +64,8 @@ func TestSignalImmediateFeedback(t *testing.T) {
 	default:
 		t.Fatal("Context should be cancelled after signal")
 	}
+
+	// Verify exit code for SIGINT
+	exitCode := getExitCode()
+	assert.Equal(t, 130, exitCode, "SIGINT should return exit code 130")
 }

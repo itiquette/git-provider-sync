@@ -383,7 +383,8 @@ func (uc FetchSourceRepositoriesUseCase) cloneRepositories(
 	})
 
 	clonedRepos := make([]ports.GitRepository, 0, len(repositories))
-	errors := make([]error, 0)
+
+	var errors []error
 
 	for i, repo := range repositories {
 		// TRACE: Individual repository clone operation

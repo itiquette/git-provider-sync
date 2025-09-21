@@ -21,6 +21,7 @@ import (
 	"itiquette/git-provider-sync/internal/adapters/auth"
 	"itiquette/git-provider-sync/internal/adapters/cli"
 	"itiquette/git-provider-sync/internal/adapters/configuration/dto"
+	"itiquette/git-provider-sync/internal/adapters/filesystem"
 	"itiquette/git-provider-sync/internal/adapters/log"
 	"itiquette/git-provider-sync/internal/domain"
 	"itiquette/git-provider-sync/internal/domain/entities"
@@ -298,9 +299,10 @@ func processAuthTokenFile(authConfig *dto.AuthConfig) error {
 		return nil
 	}
 
-	// Read token from file using the deprecated function for now
-	// Future improvement: Inject TokenReader through loader constructor for better testability
-	token, err := auth.ReadTokenFromFile(authConfig.TokenFile)
+	// Create TokenReader with OS filesystem
+	tokenReader := auth.NewTokenReader(filesystem.NewOSFileSystem())
+
+	token, err := tokenReader.ReadTokenFromFile(authConfig.TokenFile)
 	if err != nil {
 		return fmt.Errorf("failed to read token from file: %w", err)
 	}

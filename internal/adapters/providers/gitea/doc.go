@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 // SPDX-License-Identifier: EUPL-1.2
 
-// Package gitea adapts Gitea API for repositories
+// Package gitea implements RepositoryProvider for Gitea API.
 package gitea

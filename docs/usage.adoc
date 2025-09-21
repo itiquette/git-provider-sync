@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: CC0-1.0
 
-= Git Provider Sync: Usage Documentation
+= Usage
 :toc:
 :toc-title: Table of Contents
 :revdate: {docdatetime}
@@ -27,15 +27,13 @@ Common workflows:
 * **Mirror between providers**: See link:configuration.md[Configuration Reference]
 * **Automated CI/CD**: link:ci-examples.md[CI/CD Examples]
 
-== Introduction
-
-Advanced features and workflows for Git Provider Sync.
 
 
-== 2. Command Line Interface
+
+== Command Line Interface
 
 
-=== 2.1 Basic Usage
+=== Basic Usage
 
 
 * Example: CLI Help Output
@@ -66,7 +64,7 @@ man gitprovidersync
 ----
 
 
-=== 2.2 CLI Usage Examples
+=== CLI Usage Examples
 
 ==== Configuration Display
 
@@ -85,7 +83,7 @@ _Sync, using force push, fetch recent update (3 hours to now)_
 gitprovidersync sync --force-push --since=3h --sanitize-names --config-file /path/config.yaml
 ----
 
-== 3. Configuration
+== Configuration
 
 For complete configuration reference including sources, file locations, environment variables, and examples, see link:configuration.md[Configuration Reference].
 
@@ -99,9 +97,9 @@ use_git_binary: true
 
 NOTE: Only use this if you really need SSH command customization or other Git binary-specific features.
 
-== 4. Provider-Specific
+== Provider-Specific
 
-=== 4.1 Authentication Methods
+=== Authentication Methods
 
 * Default: Use Token Access (recommended)
 * Alternative: SSH with sshagent for non-API access
@@ -110,13 +108,13 @@ For token creation guides and detailed authentication options, see link:configur
 
 
 
-=== 4.2 Provider Rate Limits
+=== Provider Rate Limits
 
 Each Git provider has different API rate limits. Using tokens significantly increases your allowed requests. For detailed rate limit information, consult your provider's API documentation.
 
-== 5. Target-Specific
+== Target-Specific
 
-=== 5.1 Directory Target
+=== Directory Target
 
 * Contains working copy repositories from the source
 * Default: Check out all remote branches locally and keep original origin remote
@@ -132,7 +130,7 @@ Configuration example:
       path: <full/path/to/directory/where/repositories/go>
 ----
 
-=== 5.2 Compressed Archive (tar.gz) Target
+=== Compressed Archive (tar.gz) Target
 
 * Contains tar.gz files of bare repositories
 * Adds a timestamp prefix to allow multiple re-runs
@@ -148,13 +146,13 @@ Configuration example:
       path: <full/path/to/directory/where/tar/archives/go>
 ----
 
-== 6. CI Deployment
+== CI Deployment
 
 For complete CI/CD integration examples including GitLab CI, GitHub Actions, and Kubernetes CronJobs, see link:ci-examples.md[CI/CD Examples].
 
-== 7. Troubleshooting and FAQ
+== Troubleshooting and FAQ
 
-=== 7.1 Common Questions
+=== Common Questions
 
 Q: Is dual HTTP/SSH configuration required?
 

@@ -9,10 +9,10 @@ import (
 )
 
 // SyncOutputFormatter defines the interface for formatting sync operation output.
-// This allows different output styles (console, plain, json, quiet) while keeping
+// Supports different output styles (console, plain, json, quiet) while keeping
 // the sync logic clean and testable.
 //
-//nolint:interfacebloat // Formatter needs comprehensive methods for different output stages
+//nolint:interfacebloat // Multiple methods needed for different output stages
 type SyncOutputFormatter interface {
 	// StartEnvironment indicates the start of syncing an environment
 	StartEnvironment(env string)

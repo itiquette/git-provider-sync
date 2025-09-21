@@ -10,7 +10,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-//nolint:dupl // Table-driven tests for different functions have similar structure
 func TestRemoveNonAlphaNumericChars(t *testing.T) {
 	t.Parallel()
 
@@ -86,87 +85,6 @@ func TestRemoveNonAlphaNumericChars(t *testing.T) {
 			t.Parallel()
 
 			result := RemoveNonAlphaNumericChars(testCase.input)
-			assert.Equal(t, testCase.expected, result)
-		})
-	}
-}
-
-//nolint:dupl // Table-driven tests for different functions have similar structure
-func TestRemoveLinebreaks(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name     string
-		input    string
-		expected string
-	}{
-		{
-			name:     "no linebreaks",
-			input:    "hello world",
-			expected: "hello world",
-		},
-		{
-			name:     "single newline",
-			input:    "hello\nworld",
-			expected: "hello world",
-		},
-		{
-			name:     "carriage return newline",
-			input:    "hello\r\nworld",
-			expected: "hello world",
-		},
-		{
-			name:     "multiple types of linebreaks",
-			input:    "hello\rworld\ntest\vvalue",
-			expected: "hello world test value",
-		},
-		{
-			name:     "form feed character",
-			input:    "hello\fworld",
-			expected: "hello world",
-		},
-		{
-			name:     "unicode line separator",
-			input:    "hello\u2028world",
-			expected: "hello world",
-		},
-		{
-			name:     "unicode paragraph separator",
-			input:    "hello\u2029world",
-			expected: "hello world",
-		},
-		{
-			name:     "next line character",
-			input:    "hello\u0085world",
-			expected: "hello world",
-		},
-		{
-			name:     "multiple consecutive linebreaks",
-			input:    "hello\n\n\nworld",
-			expected: "hello   world",
-		},
-		{
-			name:     "empty string",
-			input:    "",
-			expected: "",
-		},
-		{
-			name:     "only linebreaks",
-			input:    "\n\r\v\f",
-			expected: "    ",
-		},
-		{
-			name:     "mixed content with all linebreak types",
-			input:    "line1\nline2\rline3\r\nline4\vline5\fline6\u0085line7\u2028line8\u2029line9",
-			expected: "line1 line2 line3 line4 line5 line6 line7 line8 line9",
-		},
-	}
-
-	for _, testCase := range tests {
-		t.Run(testCase.name, func(t *testing.T) {
-			t.Parallel()
-
-			result := RemoveLinebreaks(testCase.input)
 			assert.Equal(t, testCase.expected, result)
 		})
 	}
@@ -431,67 +349,6 @@ func TestRegexPatterns(t *testing.T) {
 	}
 }
 
-func TestLinebreakReplacer(t *testing.T) {
-	t.Parallel()
-
-	// Test that the linebreak replacer handles all the expected characters
-	tests := []struct {
-		name     string
-		input    string
-		expected string
-	}{
-		{
-			name:     "carriage return newline",
-			input:    "hello\r\nworld",
-			expected: "hello world",
-		},
-		{
-			name:     "carriage return only",
-			input:    "hello\rworld",
-			expected: "hello world",
-		},
-		{
-			name:     "newline only",
-			input:    "hello\nworld",
-			expected: "hello world",
-		},
-		{
-			name:     "vertical tab",
-			input:    "hello\vworld",
-			expected: "hello world",
-		},
-		{
-			name:     "form feed",
-			input:    "hello\fworld",
-			expected: "hello world",
-		},
-		{
-			name:     "next line (NEL)",
-			input:    "hello\u0085world",
-			expected: "hello world",
-		},
-		{
-			name:     "line separator",
-			input:    "hello\u2028world",
-			expected: "hello world",
-		},
-		{
-			name:     "paragraph separator",
-			input:    "hello\u2029world",
-			expected: "hello world",
-		},
-	}
-
-	for _, testCase := range tests {
-		t.Run(testCase.name, func(t *testing.T) {
-			t.Parallel()
-
-			result := linebreakReplacer.Replace(testCase.input)
-			assert.Equal(t, testCase.expected, result)
-		})
-	}
-}
-
 func TestStringFunctions_LargeInputs(t *testing.T) {
 	t.Parallel()
 
@@ -507,7 +364,7 @@ func TestStringFunctions_LargeInputs(t *testing.T) {
 				// Create a large string with various problematic characters
 				largeInput := strings.Repeat("hello\nworld@123!test----", 1000)
 				// Test that it doesn't panic or take too long
-				result := RemoveLinebreaks(RemoveNonAlphaNumericChars(largeInput))
+				result := RemoveNonAlphaNumericChars(largeInput)
 				assert.NotEmpty(t, result)
 				assert.Contains(t, result, "hello")
 				assert.Contains(t, result, "world")

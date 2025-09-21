@@ -19,11 +19,6 @@ type Logger interface {
 
 	// Level check for performance
 	IsLevelEnabled(level LogLevel) bool
-}
-
-// LoggerLevelController provides level management capabilities.
-type LoggerLevelController interface {
-	SetLevel(level LogLevel)
 	GetLevel() LogLevel
 }
 
@@ -33,13 +28,6 @@ type LoggerWithEnrichment interface {
 	WithField(key string, value any) Logger
 	WithFields(fields map[string]any) Logger
 	WithContext(ctx context.Context) Logger
-}
-
-// FullLogger composes all logging capabilities for implementations that need them.
-type FullLogger interface {
-	Logger
-	LoggerLevelController
-	LoggerWithEnrichment
 }
 
 // LogLevel and LogFormat are already defined in configuration.go
@@ -92,3 +80,4 @@ func (n *noOpLogger) Warn(_ context.Context, _ string, _ map[string]any)  {}
 func (n *noOpLogger) Error(_ context.Context, _ string, _ map[string]any) {}
 func (n *noOpLogger) Fatal(_ context.Context, _ string, _ map[string]any) {}
 func (n *noOpLogger) IsLevelEnabled(_ LogLevel) bool                      { return false }
+func (n *noOpLogger) GetLevel() LogLevel                                  { return LogLevelInfo }

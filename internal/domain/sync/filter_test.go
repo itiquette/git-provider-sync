@@ -25,6 +25,7 @@ func (l testLogger) Warn(_ context.Context, _ string, _ map[string]any)  {}
 func (l testLogger) Error(_ context.Context, _ string, _ map[string]any) {}
 func (l testLogger) Fatal(_ context.Context, _ string, _ map[string]any) {}
 func (l testLogger) IsLevelEnabled(_ ports.LogLevel) bool                { return true }
+func (l testLogger) GetLevel() ports.LogLevel                            { return ports.LogLevelInfo }
 
 // TestFilterRepositories_ShouldApplyFiltersCorrectly validates that repository filtering
 // applies all filter criteria (activity, patterns, attributes) correctly.
@@ -333,7 +334,7 @@ func TestFilterRepositories_ShouldPrioritizeIncludeOverExclude(t *testing.T) {
 // TestFilterRepositories_ShouldMatchPatterns_WhenPatternsProvided validates that
 // glob patterns correctly match repository names for filtering
 // TEST PURPOSE:
-// Ensures the filtering system correctly applies glob patterns to repository names,
+// Tests filtering with glob patterns for repository names,
 // supporting both include and exclude patterns with proper precedence rules.
 // SCENARIOS COVERED:
 // - No patterns (should include all)

@@ -315,6 +315,10 @@ func (m *mockLoggerWithCapture) IsLevelEnabled(_ ports.LogLevel) bool {
 	return true
 }
 
+func (m *mockLoggerWithCapture) GetLevel() ports.LogLevel {
+	return ports.LogLevelInfo
+}
+
 func (m *mockLoggerWithCapture) Trace(_ context.Context, msg string, _ map[string]any) {
 	m.debugMessages = append(m.debugMessages, msg)
 }

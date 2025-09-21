@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"itiquette/git-provider-sync/internal/adapters/shared"
 	"path/filepath"
 
 	"testing"
@@ -337,6 +336,10 @@ func (m *mockLogger) IsLevelEnabled(level ports.LogLevel) bool {
 	return args.Bool(0)
 }
 
+func (m *mockLogger) GetLevel() ports.LogLevel {
+	return ports.LogLevelInfo
+}
+
 func (m *mockLogger) Trace(ctx context.Context, message string, fields map[string]any) {
 	m.Called(ctx, message, fields)
 }
@@ -398,6 +401,12 @@ func (m *mockFileSystem) Join(elem ...string) string {
 }
 
 func (m *mockFileSystem) Clean(path string) string {
+	args := m.Called(path)
+
+	return args.String(0)
+}
+
+func (m *mockFileSystem) SanitizePath(path string) string {
 	args := m.Called(path)
 
 	return args.String(0)
@@ -738,7 +747,6 @@ func TestSyncRepositoriesUseCase_Execute(t *testing.T) {
 			mockFS := &mockFileSystem{}
 
 			// Create use case
-			stringUtils := shared.NewStringUtilsAdapter()
 			useCase := sync.NewRepositoriesUseCase(
 				mockConfig,
 				mockRepo,
@@ -746,7 +754,6 @@ func TestSyncRepositoriesUseCase_Execute(t *testing.T) {
 				mockArchive,
 				mockFS,
 				mockLogger,
-				stringUtils,
 			)
 
 			// Execute

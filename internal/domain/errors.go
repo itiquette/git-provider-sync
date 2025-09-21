@@ -267,28 +267,75 @@ func (h ErrorHandler) HandleFatalError(ctx context.Context, err error) (bool, in
 
 // MapErrorToExitCode maps specific error types to appropriate exit codes.
 func (h ErrorHandler) mapErrorToExitCode(err error) int {
-	errMsg := err.Error()
-
-	switch {
-	case strings.Contains(errMsg, "configuration"),
-		strings.Contains(errMsg, "config"),
-		strings.Contains(errMsg, "flag"):
-		return 2 // Configuration errors
-	case strings.Contains(errMsg, "network"),
-		strings.Contains(errMsg, "connection"),
-		strings.Contains(errMsg, "timeout"):
-		return 3 // Network errors
-	case strings.Contains(errMsg, "permission"),
-		strings.Contains(errMsg, "unauthorized"),
-		strings.Contains(errMsg, "forbidden"),
-		strings.Contains(errMsg, "authentication"):
-		return 4 // Permission/auth errors
-	case strings.Contains(errMsg, "not found"),
-		strings.Contains(errMsg, "does not exist"):
-		return 5 // Resource not found
-	default:
-		return 1 // General operation errors
+	// Check known error types first
+	if code := h.checkKnownErrors(err); code != 0 {
+		return code
 	}
+
+	// Fallback to string matching for external library errors
+	return h.checkErrorString(err.Error())
+}
+
+// checkKnownErrors checks for known error types.
+func (h ErrorHandler) checkKnownErrors(err error) int {
+	// Configuration errors
+	configErrors := []error{
+		ErrConfigurationNotFound, ErrConfigurationLoad, ErrConfigurationUnmarshal,
+		ErrConfigurationValidation, ErrInvalidConfiguration, ErrInvalidFormat,
+		ErrInvalidProvider, ErrMissingOwner, ErrMissingDomain,
+	}
+	for _, e := range configErrors {
+		if errors.Is(err, e) {
+			return 2
+		}
+	}
+
+	// Network errors
+	if errors.Is(err, ErrNetworkTimeout) {
+		return 3
+	}
+
+	// Permission/auth errors
+	if errors.Is(err, ErrAuthenticationFailed) || errors.Is(err, ErrPermissionDenied) {
+		return 4
+	}
+
+	// Resource not found
+	notFoundErrors := []error{
+		ErrRepositoryNotFound, ErrRemoteNotFound,
+		ErrOriginRemoteNotFound, ErrUpstreamRemoteNotFound,
+	}
+	for _, e := range notFoundErrors {
+		if errors.Is(err, e) {
+			return 5
+		}
+	}
+
+	return 0 // No match
+}
+
+// checkErrorString checks error strings for patterns from external libraries.
+//
+//nolint:cyclop // Simple string pattern matching table
+func (h ErrorHandler) checkErrorString(errMsg string) int {
+	if strings.Contains(errMsg, "configuration") || strings.Contains(errMsg, "config") || strings.Contains(errMsg, "flag") {
+		return 2
+	}
+
+	if strings.Contains(errMsg, "network") || strings.Contains(errMsg, "connection") || strings.Contains(errMsg, "timeout") {
+		return 3
+	}
+
+	if strings.Contains(errMsg, "permission") || strings.Contains(errMsg, "unauthorized") ||
+		strings.Contains(errMsg, "forbidden") || strings.Contains(errMsg, "authentication") {
+		return 4
+	}
+
+	if strings.Contains(errMsg, "not found") || strings.Contains(errMsg, "does not exist") {
+		return 5
+	}
+
+	return 1 // General operation errors
 }
 
 // CreateUserFriendlyMessage creates user-friendly messages for specific error types

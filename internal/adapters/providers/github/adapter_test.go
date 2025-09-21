@@ -200,7 +200,7 @@ func createRepoExistsErrorServer() *httptest.Server {
 	}))
 }
 
-func TestListRepositories(t *testing.T) {
+func TestListRepositories_UserAndOrgRepositories(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -341,7 +341,7 @@ func TestListRepositories(t *testing.T) {
 	}
 }
 
-func TestRepositoryExists(t *testing.T) {
+func TestRepositoryExists_AccuratePresenceCheck(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -426,7 +426,7 @@ func TestRepositoryExists(t *testing.T) {
 	}
 }
 
-func TestCreateRepository(t *testing.T) {
+func TestCreateRepository_CorrectSettings(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -509,7 +509,7 @@ func TestCreateRepository(t *testing.T) {
 	}
 }
 
-func TestValidateRepositoryName(t *testing.T) {
+func TestValidateRepositoryName_GitHubCompliance(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -608,7 +608,7 @@ func TestTransformRepositoryName(t *testing.T) {
 	}
 }
 
-func TestGetRepository(t *testing.T) {
+func TestGetRepository_CompleteMetadata(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -1661,7 +1661,7 @@ func TestUnprotect(t *testing.T) {
 }
 
 // Test SetDefaultBranch method (0% coverage).
-func TestGitHubAdapter_SetDefaultBranch_UpdatesViaAPI(t *testing.T) {
+func TestSetDefaultBranch_UpdatesViaAPI(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {

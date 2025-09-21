@@ -8,7 +8,7 @@
 :sectnums:
 
 == Introduction
-This guide provides comprehensive installation instructions for Git Provider Sync across different platforms and package managers.
+Installation instructions for Git Provider Sync.
 
 == Downloading Git Provider Sync
 1. Go to the https://github.com/itiquette/git-provider-sync/releases[Releases page] on GitHub.

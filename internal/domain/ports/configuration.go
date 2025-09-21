@@ -237,16 +237,10 @@ const (
 	SourceTypeFile SourceType = "file"
 	// SourceTypeEnvironment represents environment variable configuration source.
 	SourceTypeEnvironment SourceType = "environment"
-	// SourceTypeEtcd represents etcd configuration source.
-	SourceTypeEtcd SourceType = "etcd"
-	// SourceTypeConsul represents consul configuration source.
-	SourceTypeConsul SourceType = "consul"
-	// SourceTypeVault represents vault configuration source.
-	SourceTypeVault SourceType = "vault"
-	// SourceTypeHTTP represents HTTP configuration source.
-	SourceTypeHTTP SourceType = "http"
 	// SourceTypeDefaults represents default configuration source.
 	SourceTypeDefaults SourceType = "defaults"
+	// NOTE: Removed unused source types (etcd, consul, vault, http)
+	// Following YAGNI - these can be added when actually needed.
 )
 
 // ConfigurationFormat represents the format of configuration data.

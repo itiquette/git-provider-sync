@@ -32,6 +32,7 @@ func (l testCompleteLogger) Warn(_ context.Context, _ string, _ map[string]any) 
 func (l testCompleteLogger) Error(_ context.Context, _ string, _ map[string]any) {}
 func (l testCompleteLogger) Fatal(_ context.Context, _ string, _ map[string]any) {}
 func (l testCompleteLogger) IsLevelEnabled(_ ports.LogLevel) bool                { return true }
+func (l testCompleteLogger) GetLevel() ports.LogLevel                            { return ports.LogLevelInfo }
 
 func TestNewCompleteAdapter(t *testing.T) {
 	t.Parallel()

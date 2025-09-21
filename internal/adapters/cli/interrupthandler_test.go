@@ -118,7 +118,8 @@ func TestInterruptHandler_ShowCancelled(t *testing.T) {
 	assert.Contains(t, output, "× Repository sync cancelled")
 }
 
-// TestInterruptHandler_RateLimiting tests that progress updates are rate limited.
+// TestInterruptHandler_RateLimiting tests that progress updates work without internal rate limiting.
+// Rate limiting is now the caller's responsibility in the stateless design.
 func TestInterruptHandler_RateLimiting(t *testing.T) {
 	t.Parallel()
 
@@ -127,16 +128,16 @@ func TestInterruptHandler_RateLimiting(t *testing.T) {
 	handler := NewInterruptHandler(&buf)
 	ctx := context.Background()
 
-	// Rapid fire progress updates
+	// Rapid fire progress updates - all should be written in stateless design
 	for i := range 10 {
 		handler.ShowProgress(ctx, i, 100, "Processing")
-		time.Sleep(10 * time.Millisecond) // Less than rate limit
+		time.Sleep(10 * time.Millisecond)
 	}
 
-	// Should have fewer updates than calls due to rate limiting
+	// In stateless design, all updates are written (no internal rate limiting)
 	output := buf.String()
 	lines := strings.Count(output, "\r")
-	assert.Less(t, lines, 10, "progress updates should be rate limited")
+	assert.Equal(t, 10, lines, "all progress updates should be written in stateless design")
 }
 
 // TestInterruptHandler_ThreadSafety tests concurrent access.

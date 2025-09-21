@@ -4,9 +4,7 @@
 package gogit
 
 import (
-	"bytes"
 	"context"
-	"io"
 	"strconv"
 	"testing"
 
@@ -27,6 +25,7 @@ func (l testGoGitLogger) Warn(_ context.Context, _ string, _ map[string]any)  {}
 func (l testGoGitLogger) Error(_ context.Context, _ string, _ map[string]any) {}
 func (l testGoGitLogger) Fatal(_ context.Context, _ string, _ map[string]any) {}
 func (l testGoGitLogger) IsLevelEnabled(_ ports.LogLevel) bool                { return true }
+func (l testGoGitLogger) GetLevel() ports.LogLevel                            { return ports.LogLevelInfo }
 
 func TestNewMirrorService(t *testing.T) {
 	t.Parallel()
@@ -67,38 +66,6 @@ func TestNewMirrorService(t *testing.T) {
 			assert.NotNil(t, service)
 			assert.Equal(t, test.logger, service.logger)
 			assert.Equal(t, test.tempDir, service.tempDir)
-			assert.Nil(t, service.progressWriter)
-		})
-	}
-}
-
-func TestMirrorService_SetProgressWriter(t *testing.T) {
-	t.Parallel()
-
-	logger := testGoGitLogger{}
-
-	tests := []struct {
-		name   string
-		writer io.Writer
-	}{
-		{
-			name:   "set buffer writer",
-			writer: &bytes.Buffer{},
-		},
-		{
-			name:   "set nil writer",
-			writer: nil,
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			t.Parallel()
-
-			fs := filesystem.NewOSFileSystem()
-			testService := NewMirrorService(logger, fs, t.TempDir())
-			testService.SetProgressWriter(test.writer)
-			assert.Equal(t, test.writer, testService.progressWriter)
 		})
 	}
 }

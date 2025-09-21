@@ -7,7 +7,7 @@ SPDX-License-Identifier: CC0-1.0
 
 # Functional Patterns in Git Provider Sync
 
-This document showcases the functional programming patterns implemented in the domain layer.
+Functional programming patterns in the domain layer.
 
 ## 1. Immutable Results with Functional Options
 
@@ -226,4 +226,4 @@ These patterns are added alongside existing code:
 3. Both approaches work together
 4. No breaking changes required
 
-The functional patterns enhance the codebase without requiring a rewrite, maintaining backward compatibility while improving testability and composability.
+Functional patterns improve the codebase without requiring a rewrite, maintaining backward compatibility while improving testability and composability.

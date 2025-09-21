@@ -353,49 +353,75 @@ type ValidatorBuilder struct {
 }
 
 // NewValidatorBuilder creates a new validator builder.
-func NewValidatorBuilder() *ValidatorBuilder {
-	return &ValidatorBuilder{
+// Returns value not pointer for functional style.
+func NewValidatorBuilder() ValidatorBuilder {
+	return ValidatorBuilder{
 		validators: []Func{},
 	}
 }
 
 // Required adds a not-empty check.
-func (b *ValidatorBuilder) Required() *ValidatorBuilder {
-	b.validators = append(b.validators, NotEmpty)
+// Uses value receiver and returns new builder for immutability.
+func (b ValidatorBuilder) Required() ValidatorBuilder {
+	// Create new slice to avoid mutation
+	newValidators := make([]Func, len(b.validators)+1)
+	copy(newValidators, b.validators)
+	newValidators[len(b.validators)] = NotEmpty
+	b.validators = newValidators
 
 	return b
 }
 
 // Max adds a maximum length check.
-func (b *ValidatorBuilder) Max(length int) *ValidatorBuilder {
-	b.validators = append(b.validators, MaxLength(length))
+// Uses value receiver and returns new builder for immutability.
+func (b ValidatorBuilder) Max(length int) ValidatorBuilder {
+	// Create new slice to avoid mutation
+	newValidators := make([]Func, len(b.validators)+1)
+	copy(newValidators, b.validators)
+	newValidators[len(b.validators)] = MaxLength(length)
+	b.validators = newValidators
 
 	return b
 }
 
 // Min adds a minimum length check.
-func (b *ValidatorBuilder) Min(length int) *ValidatorBuilder {
-	b.validators = append(b.validators, MinLength(length))
+// Uses value receiver and returns new builder for immutability.
+func (b ValidatorBuilder) Min(length int) ValidatorBuilder {
+	// Create new slice to avoid mutation
+	newValidators := make([]Func, len(b.validators)+1)
+	copy(newValidators, b.validators)
+	newValidators[len(b.validators)] = MinLength(length)
+	b.validators = newValidators
 
 	return b
 }
 
 // Matches adds a pattern check.
-func (b *ValidatorBuilder) Matches(pattern string) *ValidatorBuilder {
-	b.validators = append(b.validators, Pattern(pattern))
+// Uses value receiver and returns new builder for immutability.
+func (b ValidatorBuilder) Matches(pattern string) ValidatorBuilder {
+	// Create new slice to avoid mutation
+	newValidators := make([]Func, len(b.validators)+1)
+	copy(newValidators, b.validators)
+	newValidators[len(b.validators)] = Pattern(pattern)
+	b.validators = newValidators
 
 	return b
 }
 
 // Custom adds a custom validation function.
-func (b *ValidatorBuilder) Custom(fn Func) *ValidatorBuilder {
-	b.validators = append(b.validators, fn)
+// Uses value receiver and returns new builder for immutability.
+func (b ValidatorBuilder) Custom(fn Func) ValidatorBuilder {
+	// Create new slice to avoid mutation
+	newValidators := make([]Func, len(b.validators)+1)
+	copy(newValidators, b.validators)
+	newValidators[len(b.validators)] = fn
+	b.validators = newValidators
 
 	return b
 }
 
 // Build returns the composed validator.
-func (b *ValidatorBuilder) Build() Func {
+func (b ValidatorBuilder) Build() Func {
 	return Compose(b.validators...)
 }
 

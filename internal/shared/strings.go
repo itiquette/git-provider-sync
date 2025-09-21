@@ -7,19 +7,12 @@ package shared
 import (
 	"net/url"
 	"regexp"
-	"strings"
 )
 
 var (
 	// Regex patterns for string cleaning.
 	doubleHyphenRegex    = regexp.MustCompile(`-{2,}`)
 	nonAlphanumericRegex = regexp.MustCompile(`[^a-zA-Z0-9-]|^-|-$`)
-
-	// Linebreak replacer for all Unicode linebreak types.
-	linebreakReplacer = strings.NewReplacer( //nolint:gochecknoglobals // Shared string processing utility
-		"\r\n", " ", "\r", " ", "\n", " ", "\v", " ",
-		"\f", " ", "\u0085", " ", "\u2028", " ", "\u2029", " ",
-	)
 )
 
 // RemoveNonAlphaNumericChars sanitizes strings for safe repository naming operations.
@@ -27,11 +20,6 @@ func RemoveNonAlphaNumericChars(input string) string {
 	result := nonAlphanumericRegex.ReplaceAllString(input, "")
 
 	return doubleHyphenRegex.ReplaceAllString(result, "-")
-}
-
-// RemoveLinebreaks normalizes text by converting all linebreak types to spaces.
-func RemoveLinebreaks(input string) string {
-	return linebreakReplacer.Replace(input)
 }
 
 // AddBasicAuthToURL embeds credentials into URL for authenticated repository operations.

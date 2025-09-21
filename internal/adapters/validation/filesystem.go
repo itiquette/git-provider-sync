@@ -35,10 +35,7 @@ func isReadable(fileSystem ports.FileSystem, path string) bool {
 	}
 
 	defer func() {
-		if err := file.Close(); err != nil {
-			// Log close error
-			_ = err
-		}
+		_ = file.Close() // Best effort close, read check already succeeded
 	}()
 
 	return true
@@ -60,16 +57,10 @@ func isWritable(fileSystem ports.FileSystem, path string) bool {
 		}
 
 		defer func() {
-			if err := fileSystem.Remove(tempFileName); err != nil {
-				// Log remove error
-				_ = err
-			}
+			_ = fileSystem.Remove(tempFileName) // Best effort cleanup
 		}()
 		defer func() {
-			if err := tempFile.Close(); err != nil {
-				// Log close error
-				_ = err
-			}
+			_ = tempFile.Close() // Best effort close, write check already succeeded
 		}()
 
 		return true
@@ -83,10 +74,7 @@ func isWritable(fileSystem ports.FileSystem, path string) bool {
 	}
 
 	defer func() {
-		if err := file.Close(); err != nil {
-			// Log close error
-			_ = err
-		}
+		_ = file.Close() // Best effort close, read check already succeeded
 	}()
 
 	return true

@@ -55,7 +55,7 @@ func NewResults(dryRun bool) *Results {
 	return &Results{
 		StartTime: time.Now(),
 		DryRun:    dryRun,
-		Results:   make([]Result, 0),
+		Results:   []Result{},
 	}
 }
 

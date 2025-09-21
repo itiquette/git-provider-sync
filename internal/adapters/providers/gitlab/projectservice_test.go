@@ -33,6 +33,7 @@ func (m *mockLoggerForTest) Error(_ context.Context, _ string, _ map[string]any)
 func (m *mockLoggerForTest) Trace(_ context.Context, _ string, _ map[string]any) {}
 func (m *mockLoggerForTest) IsLevelEnabled(_ ports.LogLevel) bool                { return false }
 func (m *mockLoggerForTest) Fatal(_ context.Context, _ string, _ map[string]any) {}
+func (m *mockLoggerForTest) GetLevel() ports.LogLevel                            { return ports.LogLevelInfo }
 
 // mockGitLabProject returns a mock GitLab project response.
 func mockGitLabProject() map[string]interface{} {

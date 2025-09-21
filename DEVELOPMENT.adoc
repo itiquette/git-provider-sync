@@ -22,7 +22,7 @@ endif::[]
 
 == Introduction
 
-This guide covers everything from prerequisites to development workflows and quality assurance processes.
+Developer setup and workflows.
 
 == Prerequisites
 
@@ -150,7 +150,7 @@ If any checks fail, follow these steps:
 Once your development environment is set up:
 
 1. **Explore the codebase**: Start with link:docs/architecture.adoc[Software Architecture Documentation] to understand the project
-2. **Run tests**: Execute `just test` to ensure everything works
+2. **Run tests**: Execute `just test`
 3. **Make changes**: Follow our hexagonal architecture patterns
 4. **Test thoroughly**: Use `just verify` before submitting contributions
 5. **Submit contributions**: See link:CONTRIBUTING.md[Contributing Guidelines] for pull request process

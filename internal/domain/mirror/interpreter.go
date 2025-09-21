@@ -5,6 +5,7 @@ package mirror
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -349,8 +350,10 @@ func (ei *EffectInterpreter) executePushToRepository(ctx context.Context, effect
 
 	defer func() {
 		if err := repo.Close(); err != nil {
-			// Log close error
-			_ = err
+			ei.logger.Debug(ctx, "Failed to close repository", map[string]any{
+				"error": err.Error(),
+				"url":   operation.Source.URL,
+			})
 		}
 	}()
 
@@ -519,34 +522,38 @@ func (ei *EffectInterpreter) executeUpdateDefaultBranch(ctx context.Context, _ E
 	return "default_branch_updated"
 }
 
+//nolint:unparam // Interface method, returns nil by design
 func (ei *EffectInterpreter) executeSyncBranchProtection(ctx context.Context, _ Effect, operation Operation) any {
-	// Placeholder implementation for syncing branch protection
-	ei.logger.Info(ctx, "Syncing branch protection", map[string]any{
+	// TODO: Implement branch protection synchronization
+	ei.logger.Warn(ctx, "Branch protection sync not yet implemented", map[string]any{
 		"operation_id": operation.Metadata.ID,
 		"source":       operation.Source.URL,
 		"target":       operation.Target.URL,
 	})
 
-	return "branch_protection_synced"
+	// Return nil to indicate no action taken (not an error, just not implemented)
+	return nil
 }
 
 func (ei *EffectInterpreter) executeCreateDirectories(ctx context.Context, _ Effect, operation Operation) any {
-	// Placeholder implementation for creating directories
-	ei.logger.Info(ctx, "Creating directories", map[string]any{
+	// Not implemented - return error instead of fake success
+	ei.logger.Warn(ctx, "Directory creation not implemented", map[string]any{
 		"operation_id": operation.Metadata.ID,
 	})
 
-	return "directories_created"
+	return errors.New("directory creation not yet implemented")
 }
 
+//nolint:unparam // Interface method, returns nil by design
 func (ei *EffectInterpreter) executeRecordMetrics(ctx context.Context, _ Effect, operation Operation) any {
-	// Placeholder implementation for recording metrics
-	ei.logger.Info(ctx, "Recording metrics", map[string]any{
+	// Not implemented - return nil to indicate no error but no action taken
+	ei.logger.Debug(ctx, "Metrics recording skipped (not implemented)", map[string]any{
 		"operation_id":   operation.Metadata.ID,
 		"operation_type": operation.Type,
 	})
 
-	return "metrics_recorded"
+	// Return nil means success but no value produced
+	return nil
 }
 
 // Helper functions

@@ -5,7 +5,6 @@ package sync
 
 import (
 	"context"
-	"itiquette/git-provider-sync/internal/adapters/shared"
 	"path/filepath"
 	"testing"
 
@@ -183,7 +182,7 @@ func TestPushToProviderUseCase_Execute(t *testing.T) {
 			test.request.SourceGitRepo = mockGitRepo
 
 			// Create use case
-			useCase := NewPushToProviderUseCase(mockProvider, mockGitOps, shared.NewStringUtilsAdapter())
+			useCase := NewPushToProviderUseCase(mockProvider, mockGitOps)
 
 			// Execute
 			ctx := context.Background()
@@ -258,7 +257,7 @@ func TestPushToProviderUseCase_setupGPSUpstreamRemote(t *testing.T) {
 
 			test.setupMock(mockGitRepo)
 
-			useCase := NewPushToProviderUseCase(mockProvider, mockGitOps, shared.NewStringUtilsAdapter())
+			useCase := NewPushToProviderUseCase(mockProvider, mockGitOps)
 			err := useCase.setupGPSUpstreamRemote(context.Background(), mockGitRepo)
 
 			if test.expectError {

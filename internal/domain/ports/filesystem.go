@@ -10,9 +10,8 @@ import (
 
 // FileSystem provides file system operations needed by the domain
 // Keeps the domain pure and testable without OS dependencies.
-// This interface intentionally has many methods to provide a complete
-// abstraction over filesystem operations, enabling both OS and in-memory
-// implementations for testing.
+// Many methods provide complete abstraction over filesystem operations,
+// enabling both OS and in-memory implementations for testing.
 //
 //nolint:interfacebloat // Comprehensive filesystem abstraction requires many methods
 type FileSystem interface {
@@ -36,6 +35,10 @@ type FileSystem interface {
 
 	// Clean cleans a path
 	Clean(path string) string
+
+	// SanitizePath removes path traversal sequences and converts absolute paths to relative paths
+	// Security sanitization to prevent directory traversal attacks
+	SanitizePath(path string) string
 
 	// ReadFile reads the contents of a file
 	ReadFile(path string) ([]byte, error)

@@ -8,7 +8,7 @@
 :imagesdir: assets
 :source-highlighter: rouge
 
-Sync Git repositories across providers, create backups, and archive your code - all from a single tool.
+Sync Git repositories across providers, create backups, and archive your code.
 
 
 
@@ -47,6 +47,9 @@ image::assets/gpsgopher.png[logo, 350, align=center]
 
 |link:docs/ci-examples.md[CI/CD Examples]
 |Automation and pipeline integration
+
+|link:docs/exit-codes.md[Exit Codes]
+|Signal handling and exit code reference
 
 |link:CONTRIBUTING.md[Contributing]
 |Development setup and contribution guidelines

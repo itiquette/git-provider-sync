@@ -6,11 +6,7 @@
 package ports
 
 // Import aggregation point for git operations
-// All git-related interfaces are now split into focused files:
+// All git-related interfaces are split into focused files:
 // - git_service.go: Core GitOperations interface
 // - git_repository.go: Repository interfaces and supporting types
 // - git_options.go: Option types and factory functions
-// maintains backward compatibility while providing better organization
-
-// Re-export interfaces from focused files for backward compatibility
-// Consumers can import from this package and get all git-related types

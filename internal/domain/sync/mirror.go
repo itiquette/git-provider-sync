@@ -14,6 +14,11 @@ import (
 	"itiquette/git-provider-sync/internal/domain/ports"
 )
 
+const (
+	// defaultBranchName is the fallback branch name when none is specified.
+	defaultBranchName = "main"
+)
+
 // ToMirrorsUseCase syncs repositories to multiple mirror destinations.
 type ToMirrorsUseCase struct {
 	repositoryProvider ports.RepositoryProvider
@@ -21,7 +26,6 @@ type ToMirrorsUseCase struct {
 	archiveOperations  ports.ArchiveOperations
 	fileSystem         ports.FileSystem
 	logger             ports.Logger
-	stringUtils        ports.StringUtils
 }
 
 // NewToMirrorsUseCase creates a new ToMirrorsUseCase.
@@ -31,7 +35,6 @@ func NewToMirrorsUseCase(
 	archiveOps ports.ArchiveOperations,
 	fileSystem ports.FileSystem,
 	logger ports.Logger,
-	stringUtils ports.StringUtils,
 ) ToMirrorsUseCase {
 	return ToMirrorsUseCase{
 		repositoryProvider: repositoryProvider,
@@ -39,7 +42,6 @@ func NewToMirrorsUseCase(
 		archiveOperations:  archiveOps,
 		fileSystem:         fileSystem,
 		logger:             logger,
-		stringUtils:        stringUtils,
 	}
 }
 
@@ -366,7 +368,7 @@ func (uc ToMirrorsUseCase) syncToGitProvider(ctx context.Context, sourceRepo por
 	return result
 }
 
-// ValidateRepositoryForMirror ensures repository name compatibility with target mirror provider.
+// ValidateRepositoryForMirror validates repository name for target mirror provider.
 func (uc ToMirrorsUseCase) validateRepositoryForMirror(
 	ctx context.Context,
 	repoName string,
@@ -521,7 +523,12 @@ func (uc ToMirrorsUseCase) syncToArchive(
 
 	// Create target repository entity (for archive metadata)
 	targetRepoBuilder := entities.NewRepositoryBuilder()
-	targetRepoBuilder, _ = targetRepoBuilder.WithName(repoName)
+
+	targetRepoBuilder, err := targetRepoBuilder.WithName(repoName)
+	if err != nil {
+		return fmt.Errorf("failed to set target repository name: %w", err)
+	}
+
 	targetRepoBuilder = targetRepoBuilder.WithDescription("Archive of " + sourceRepoEntity.Description())
 	targetRepoBuilder = targetRepoBuilder.WithProviderType("archive")
 
@@ -588,7 +595,7 @@ func (uc ToMirrorsUseCase) performGitSync(
 	sourceRepoEntity := uc.createRepositoryEntity(ctx, sourceRepo)
 
 	// Create PushToProvider use case and execute
-	pushUseCase := NewPushToProviderUseCase(mirrorProvider, uc.gitOperations, uc.stringUtils)
+	pushUseCase := NewPushToProviderUseCase(mirrorProvider, uc.gitOperations)
 
 	pushRequest := PushRequest{
 		SourceRepository: sourceRepoEntity,
@@ -637,29 +644,44 @@ func (uc ToMirrorsUseCase) performGitSync(
 // CreateRepositoryEntity transforms GitRepository interface into domain entity with fallback handling
 // converts the GitRepository from ports to a full entities.Repository for use cases.
 func (uc ToMirrorsUseCase) createRepositoryEntity(ctx context.Context, gitRepo ports.GitRepository) entities.Repository {
+	repo, err := uc.buildRepositoryFromGit(ctx, gitRepo)
+	if err != nil {
+		// Log error but return a minimal repository for resilience
+		uc.logger.Warn(ctx, "Failed to build repository entity, using fallback", map[string]any{
+			"error": err.Error(),
+			"name":  gitRepo.Name(),
+		})
+
+		return uc.createFallbackRepository(gitRepo.Name())
+	}
+
+	return repo
+}
+
+// buildRepositoryFromGit creates a repository from git repository data.
+func (uc ToMirrorsUseCase) buildRepositoryFromGit(ctx context.Context, gitRepo ports.GitRepository) (entities.Repository, error) {
 	builder := entities.NewRepositoryBuilder()
 
-	// Extract basic repository information
-	name := gitRepo.Name()
-	if name != "" {
-		builder, _ = builder.WithName(name)
-	}
-
-	// Extract URLs
-	if url := gitRepo.URL(); url != "" {
-		if strings.Contains(url, "https://") {
-			builder, _ = builder.WithHTTPSURL(url)
-		} else if strings.Contains(url, "git@") {
-			builder, _ = builder.WithSSHURL(url)
+	// Set name - fail fast on invalid name
+	if name := gitRepo.Name(); name != "" {
+		b, err := builder.WithName(name)
+		if err != nil {
+			return entities.Repository{}, fmt.Errorf("invalid repository name %q: %w", name, err)
 		}
+
+		builder = b
 	}
 
-	// Extract current branch as default branch
-	if currentBranch, err := gitRepo.CurrentBranch(); err == nil && currentBranch != "" {
-		builder, _ = builder.WithDefaultBranch(currentBranch)
-	} else {
-		// Fallback to common default branches
-		builder, _ = builder.WithDefaultBranch("main")
+	// Set URL
+	builder, err := uc.setRepositoryURL(ctx, builder, gitRepo.URL())
+	if err != nil {
+		return entities.Repository{}, fmt.Errorf("invalid repository URL: %w", err)
+	}
+
+	// Set default branch
+	builder, err = uc.setDefaultBranch(ctx, builder, gitRepo)
+	if err != nil {
+		return entities.Repository{}, fmt.Errorf("failed to set default branch: %w", err)
 	}
 
 	// Set default values for other fields
@@ -667,32 +689,83 @@ func (uc ToMirrorsUseCase) createRepositoryEntity(ctx context.Context, gitRepo p
 	builder = builder.WithVisibility("private")   // Default to private for safety
 	builder = builder.WithProviderType("unknown") // Will be set correctly when creating at target
 
-	// Build the repository
 	repo, err := builder.Build()
 	if err != nil {
-		// Log error but return a minimal repository
-		uc.logger.Warn(ctx, "Failed to build repository entity", map[string]any{
-			"error": err.Error(),
-			"name":  name,
-		})
-
-		// Create minimal repository as fallback
-		fallbackBuilder := entities.NewRepositoryBuilder()
-		fallbackBuilder, _ = fallbackBuilder.WithName(name)
-		fallbackBuilder, _ = fallbackBuilder.WithDefaultBranch("main")
-		fallbackBuilder = fallbackBuilder.WithDescription("Synced repository")
-		fallbackBuilder = fallbackBuilder.WithVisibility("private")
-		fallbackBuilder = fallbackBuilder.WithProviderType("unknown")
-
-		if fallbackRepo, buildErr := fallbackBuilder.Build(); buildErr == nil {
-			return fallbackRepo
-		}
-
-		// If even fallback fails, return empty repository
-		return entities.Repository{}
+		return entities.Repository{}, fmt.Errorf("failed to build repository: %w", err)
 	}
 
-	return repo
+	return repo, nil
+}
+
+// setRepositoryURL sets the appropriate URL type on the builder.
+func (uc ToMirrorsUseCase) setRepositoryURL(_ context.Context, builder entities.RepositoryBuilder, url string) (entities.RepositoryBuilder, error) {
+	if url == "" {
+		return builder, nil
+	}
+
+	var err error
+
+	switch {
+	case strings.Contains(url, "https://"):
+		builder, err = builder.WithHTTPSURL(url)
+	case strings.Contains(url, "git@"):
+		builder, err = builder.WithSSHURL(url)
+	default:
+		// URL doesn't match expected patterns, skip it
+		return builder, nil
+	}
+
+	if err != nil {
+		return builder, fmt.Errorf("invalid URL %q: %w", url, err)
+	}
+
+	return builder, nil
+}
+
+// setDefaultBranch sets the default branch with fallback to "main".
+func (uc ToMirrorsUseCase) setDefaultBranch(ctx context.Context, builder entities.RepositoryBuilder, gitRepo ports.GitRepository) (entities.RepositoryBuilder, error) {
+	branch := defaultBranchName // default fallback
+
+	if currentBranch, err := gitRepo.CurrentBranch(); err == nil && currentBranch != "" {
+		branch = currentBranch
+	}
+
+	updatedBuilder, err := builder.WithDefaultBranch(branch)
+	if err != nil {
+		// Default branch error is not critical, log and continue with what we have
+		uc.logger.Debug(ctx, "Using fallback branch name", map[string]any{
+			"error":  err.Error(),
+			"branch": branch,
+			"using":  defaultBranchName,
+		})
+		// Try with the constant default
+		updatedBuilder, err = builder.WithDefaultBranch(defaultBranchName)
+		if err != nil {
+			return builder, fmt.Errorf("failed to set default branch: %w", err)
+		}
+	}
+
+	return updatedBuilder, nil
+}
+
+// createFallbackRepository creates a minimal fallback repository.
+func (uc ToMirrorsUseCase) createFallbackRepository(name string) entities.Repository {
+	fallbackBuilder := entities.NewRepositoryBuilder()
+	if name != "" {
+		fallbackBuilder, _ = fallbackBuilder.WithName(name)
+	}
+
+	fallbackBuilder, _ = fallbackBuilder.WithDefaultBranch(defaultBranchName)
+	fallbackBuilder = fallbackBuilder.WithDescription("Synced repository")
+	fallbackBuilder = fallbackBuilder.WithVisibility("private")
+	fallbackBuilder = fallbackBuilder.WithProviderType("unknown")
+
+	if fallbackRepo, err := fallbackBuilder.Build(); err == nil {
+		return fallbackRepo
+	}
+
+	// If even fallback fails, return empty repository
+	return entities.Repository{}
 }
 
 // SyncBranchProtection replicates branch protection rules from source to mirror with provider compatibility checks.
@@ -720,7 +793,7 @@ func (uc ToMirrorsUseCase) syncBranchProtection(
 
 	// Get default branch protection settings (main/master)
 	// Try to get current branch, fallback to "main"
-	defaultBranch := "main"
+	defaultBranch := defaultBranchName
 	if currentBranch, err := sourceRepo.CurrentBranch(); err == nil && currentBranch != "" {
 		defaultBranch = currentBranch
 	}

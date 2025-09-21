@@ -13,7 +13,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/knadh/koanf/parsers/dotenv"
@@ -50,55 +49,44 @@ var (
 )
 
 // FileAdapter implements the Configuration interface using file-based configuration.
+// Refactored to be more functional - minimal state, no mutex needed.
 type FileAdapter struct {
-	koanf        *koanfpkg.Koanf
-	sources      []ports.ConfigurationSource
-	lastModified time.Time
-	version      string
-	mu           sync.RWMutex
+	version string // Immutable after creation
 }
 
 // New creates a new file-based configuration adapter.
+// Following functional programming - stateless adapter.
 func New() *FileAdapter {
 	return &FileAdapter{
-		koanf:   koanfpkg.New("."),
-		sources: []ports.ConfigurationSource{},
 		version: "1.0.0",
 	}
 }
 
 // Load loads configuration from a single source.
+// Stateless - creates new koanf instance each time (functional approach).
 func (a *FileAdapter) Load(_ context.Context, source ports.ConfigurationSource) (ports.AppConfiguration, error) {
-	a.mu.Lock()
-	defer a.mu.Unlock()
+	// Create new koanf instance - no shared state, no mutex needed
+	koanfInstance := koanfpkg.New(".")
 
-	// Reset koanf instance for fresh load
-	a.koanf = koanfpkg.New(".")
-	a.sources = []ports.ConfigurationSource{source}
-
-	err := a.loadSource(source)
-	if err != nil {
+	// Load the source into koanf
+	if err := a.loadSourceIntoKoanf(koanfInstance, source); err != nil {
 		return ports.AppConfiguration{}, fmt.Errorf("failed to load configuration: %w", err)
 	}
 
-	config, err := a.parseConfiguration()
+	// Parse configuration from koanf
+	config, err := a.parseConfigurationFromKoanf(koanfInstance, []ports.ConfigurationSource{source})
 	if err != nil {
 		return ports.AppConfiguration{}, fmt.Errorf("failed to parse configuration: %w", err)
 	}
-
-	a.lastModified = time.Now()
 
 	return config, nil
 }
 
 // LoadMultiple loads configuration from multiple sources.
+// Stateless - creates new koanf instance each time.
 func (a *FileAdapter) LoadMultiple(_ context.Context, sources []ports.ConfigurationSource) (ports.AppConfiguration, error) {
-	a.mu.Lock()
-	defer a.mu.Unlock()
-
-	// Reset koanf instance for fresh load
-	a.koanf = koanfpkg.New(".")
-	a.sources = sources
+	// Create new koanf instance - no shared state
+	koanfInstance := koanfpkg.New(".")
 
 	// Sort sources by priority (higher priority loaded last)
 	sortedSources := make([]ports.ConfigurationSource, len(sources))
@@ -115,30 +103,25 @@ func (a *FileAdapter) LoadMultiple(_ context.Context, sources []ports.Configurat
 
 	// Load sources in priority order
 	for _, source := range sortedSources {
-		err := a.loadSource(source)
+		err := a.loadSourceIntoKoanf(koanfInstance, source)
 		if err != nil && source.Required {
 			return ports.AppConfiguration{}, fmt.Errorf("failed to load required source %s: %w", source.Location, err)
 		}
 	}
 
-	config, err := a.parseConfiguration()
+	config, err := a.parseConfigurationFromKoanf(koanfInstance, sources)
 	if err != nil {
 		return ports.AppConfiguration{}, fmt.Errorf("failed to parse configuration: %w", err)
 	}
-
-	a.lastModified = time.Now()
 
 	return config, nil
 }
 
 // Reload reloads configuration from existing sources.
-func (a *FileAdapter) Reload(ctx context.Context) (ports.AppConfiguration, error) {
-	a.mu.RLock()
-	sources := make([]ports.ConfigurationSource, len(a.sources))
-	copy(sources, a.sources)
-	a.mu.RUnlock()
-
-	return a.LoadMultiple(ctx, sources)
+// Since we're stateless, we can't reload - return empty config.
+func (a *FileAdapter) Reload(_ context.Context) (ports.AppConfiguration, error) {
+	// Stateless adapter doesn't store sources - return error
+	return ports.AppConfiguration{}, errors.New("reload not supported in stateless adapter - use Load or LoadMultiple with sources")
 }
 
 // Validate validates the configuration.
@@ -178,49 +161,38 @@ func (a *FileAdapter) ValidateEnvironment(env ports.EnvironmentConfiguration) er
 
 // GetSources returns the configuration sources.
 func (a *FileAdapter) GetSources() []ports.ConfigurationSource {
-	a.mu.RLock()
-	defer a.mu.RUnlock()
-
-	sources := make([]ports.ConfigurationSource, len(a.sources))
-	copy(sources, a.sources)
-
-	return sources
+	return nil // Stateless - no stored sources
 }
 
 // GetLastModified returns the last modification time.
 func (a *FileAdapter) GetLastModified() time.Time {
-	a.mu.RLock()
-	defer a.mu.RUnlock()
-
-	return a.lastModified
+	return time.Time{} // Stateless - no stored time
 }
 
 // GetVersion returns the configuration version.
 func (a *FileAdapter) GetVersion() string {
-	a.mu.RLock()
-	defer a.mu.RUnlock()
-
-	return a.version
+	return a.version // Version is immutable
 }
 
 // Private helper methods
 
-// LoadSource loads a single configuration source.
-func (a *FileAdapter) loadSource(source ports.ConfigurationSource) error {
+// loadSourceIntoKoanf loads a single configuration source into koanf.
+// Pure function - no side effects on adapter state.
+func (a *FileAdapter) loadSourceIntoKoanf(koanfInstance *koanfpkg.Koanf, source ports.ConfigurationSource) error {
 	switch source.Type {
 	case ports.SourceTypeFile:
-		return a.loadFileSource(source)
+		return a.loadFileSourceIntoKoanf(koanfInstance, source)
 	case ports.SourceTypeEnvironment:
-		return a.loadEnvironmentSource(source)
-	case ports.SourceTypeEtcd, ports.SourceTypeConsul, ports.SourceTypeVault, ports.SourceTypeHTTP, ports.SourceTypeDefaults:
+		return a.loadEnvironmentSourceIntoKoanf(koanfInstance, source)
+	case ports.SourceTypeDefaults:
 		return fmt.Errorf("%w: %s", ErrSourceTypeNotImplemented, source.Type)
 	default:
 		return fmt.Errorf("%w: %s", ErrUnsupportedSourceType, source.Type)
 	}
 }
 
-// LoadFileSource loads configuration from a file.
-func (a *FileAdapter) loadFileSource(source ports.ConfigurationSource) error {
+// loadFileSourceIntoKoanf loads configuration from a file into koanf.
+func (a *FileAdapter) loadFileSourceIntoKoanf(koanfInstance *koanfpkg.Koanf, source ports.ConfigurationSource) error {
 	if err := a.checkFileExists(source); err != nil {
 		// If it's an optional file that doesn't exist, skip it
 		if strings.Contains(err.Error(), "optional file not found") {
@@ -237,7 +209,7 @@ func (a *FileAdapter) loadFileSource(source ports.ConfigurationSource) error {
 		return err
 	}
 
-	if err := a.loadFileWithParser(source.Location, parser); err != nil {
+	if err := a.loadFileWithParser(koanfInstance, source.Location, parser); err != nil {
 		return err
 	}
 
@@ -291,8 +263,8 @@ func (a *FileAdapter) createParser(format ports.ConfigurationFormat) (koanfpkg.P
 }
 
 // LoadFileWithParser loads the configuration file using the specified parser.
-func (a *FileAdapter) loadFileWithParser(location string, parser koanfpkg.Parser) error {
-	err := a.koanf.Load(file.Provider(location), parser)
+func (a *FileAdapter) loadFileWithParser(k *koanfpkg.Koanf, location string, parser koanfpkg.Parser) error {
+	err := k.Load(file.Provider(location), parser)
 	if err != nil {
 		return fmt.Errorf("failed to load configuration file %s: %w", location, err)
 	}
@@ -301,13 +273,13 @@ func (a *FileAdapter) loadFileWithParser(location string, parser koanfpkg.Parser
 }
 
 // LoadEnvironmentSource loads configuration from environment variables.
-func (a *FileAdapter) loadEnvironmentSource(source ports.ConfigurationSource) error {
+func (a *FileAdapter) loadEnvironmentSourceIntoKoanf(koanfInstance *koanfpkg.Koanf, source ports.ConfigurationSource) error {
 	prefix := source.Location
 	if prefix == "" {
 		prefix = "GPS_" // Default prefix for git-provider-sync
 	}
 
-	err := a.koanf.Load(env.Provider(prefix, ".", func(envVar string) string {
+	err := koanfInstance.Load(env.Provider(prefix, ".", func(envVar string) string {
 		// Convert environment variable names to config keys
 		// GPS_SOURCE_GITHUB_TOKEN -> source.github.token
 		envVar = strings.TrimPrefix(envVar, prefix)
@@ -324,14 +296,14 @@ func (a *FileAdapter) loadEnvironmentSource(source ports.ConfigurationSource) er
 }
 
 // ParseConfiguration parses the loaded configuration into AppConfiguration.
-func (a *FileAdapter) parseConfiguration() (ports.AppConfiguration, error) {
+func (a *FileAdapter) parseConfigurationFromKoanf(koanfInstance *koanfpkg.Koanf, sources []ports.ConfigurationSource) (ports.AppConfiguration, error) {
 	config := ports.NewAppConfiguration()
 
 	// Parse environments
-	if a.koanf.Exists("environments") {
+	if koanfInstance.Exists("environments") {
 		envMap := make(map[string]any)
 
-		err := a.koanf.Unmarshal("environments", &envMap)
+		err := koanfInstance.Unmarshal("environments", &envMap)
 		if err != nil {
 			return config, fmt.Errorf("failed to parse environments: %w", err)
 		}
@@ -347,8 +319,8 @@ func (a *FileAdapter) parseConfiguration() (ports.AppConfiguration, error) {
 	}
 
 	// Parse global settings
-	if a.koanf.Exists("global") {
-		err := a.koanf.Unmarshal("global", &config.GlobalSettings)
+	if koanfInstance.Exists("global") {
+		err := koanfInstance.Unmarshal("global", &config.GlobalSettings)
 		if err != nil {
 			return config, fmt.Errorf("failed to parse global settings: %w", err)
 		}
@@ -358,10 +330,10 @@ func (a *FileAdapter) parseConfiguration() (ports.AppConfiguration, error) {
 	config.Metadata = ports.ConfigurationMetadata{
 		Version:     a.version,
 		LoadTime:    time.Now(),
-		Sources:     a.sources,
+		Sources:     sources,
 		Environment: os.Getenv("ENVIRONMENT"),
 		Validated:   false,
-		Checksum:    a.calculateChecksum(),
+		Checksum:    a.calculateChecksumFromKoanf(koanfInstance),
 	}
 
 	return config, nil
@@ -641,9 +613,9 @@ func (a *FileAdapter) validateGlobalSettings(settings ports.GlobalSettings) []po
 	return validationErrors
 }
 
-// CalculateChecksum calculates a checksum of the current configuration.
-func (a *FileAdapter) calculateChecksum() string {
-	data := a.koanf.Sprint()
+// calculateChecksumFromKoanf calculates a checksum of the configuration from a koanf instance.
+func (a *FileAdapter) calculateChecksumFromKoanf(koanfInstance *koanfpkg.Koanf) string {
+	data := koanfInstance.Sprint()
 	hash := sha256.Sum256([]byte(data))
 
 	return hex.EncodeToString(hash[:])

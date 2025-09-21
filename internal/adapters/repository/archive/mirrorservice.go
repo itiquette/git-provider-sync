@@ -23,10 +23,9 @@ import (
 
 // MirrorService handles archive-based repository mirroring.
 type MirrorService struct {
-	logger         ports.Logger
-	tempDir        string
-	archiveDir     string
-	progressWriter io.Writer
+	logger     ports.Logger
+	tempDir    string
+	archiveDir string
 }
 
 // NewMirrorService creates a new archive mirror service.
@@ -51,6 +50,7 @@ type MirrorRequest struct {
 	IncludePatterns    []string
 	ArchiveNamePattern string
 	DryRun             bool
+	ProgressWriter     io.Writer // Optional writer for progress reporting
 }
 
 // MirrorResult contains the results of an archive mirror operation.
@@ -69,11 +69,6 @@ type PerformanceInfo struct {
 	Duration         string
 	CompressionRatio float64
 	ProcessingRate   int64 // bytes per second
-}
-
-// SetProgressWriter sets a writer for progress reporting.
-func (ms *MirrorService) SetProgressWriter(writer io.Writer) {
-	ms.progressWriter = writer
 }
 
 // Mirror performs an archive-based repository mirror operation.
@@ -239,7 +234,7 @@ func (ms *MirrorService) cloneRepository(ctx context.Context, request MirrorRequ
 	// Configure clone options
 	cloneOptions := &git.CloneOptions{
 		URL:      request.SourceRepository.HTTPSURL(),
-		Progress: ms.progressWriter,
+		Progress: request.ProgressWriter,
 	}
 
 	// Note: Authentication would be configured here if available in request
@@ -528,8 +523,8 @@ func (ms *MirrorService) walkAndAddToTar(sourceDir string, tarWriter *tar.Writer
 		result.FilesProcessed++
 
 		// Report progress
-		if ms.progressWriter != nil && result.FilesProcessed%100 == 0 {
-			if _, err := fmt.Fprintf(ms.progressWriter, "Processed %d files...\n", result.FilesProcessed); err != nil {
+		if request.ProgressWriter != nil && result.FilesProcessed%100 == 0 {
+			if _, err := fmt.Fprintf(request.ProgressWriter, "Processed %d files...\n", result.FilesProcessed); err != nil {
 				// Log error but continue
 				_ = err
 			}

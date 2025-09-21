@@ -15,7 +15,6 @@ import (
 	"itiquette/git-provider-sync/internal/adapters/filesystem"
 	"itiquette/git-provider-sync/internal/adapters/logging"
 	"itiquette/git-provider-sync/internal/adapters/repository/archive"
-	"itiquette/git-provider-sync/internal/adapters/shared"
 	"itiquette/git-provider-sync/internal/adapters/transport"
 	"itiquette/git-provider-sync/internal/domain/ports"
 	"itiquette/git-provider-sync/internal/domain/sync"
@@ -32,7 +31,6 @@ type Container struct {
 	httpFactory     *transport.HTTPFactory
 	fileSystem      ports.FileSystem
 	logger          ports.Logger
-	stringUtils     ports.StringUtils
 }
 
 // ContainerConfig contains configuration for building the container.
@@ -110,10 +108,7 @@ func NewContainer(ctx context.Context, containerConfig ContainerConfig) (*Contai
 
 	// 6. Create git factory with file system dependency
 	gitConfig := getGitConfig(appConfig, containerConfig)
-	gitFactory := NewGitFactory(gitConfig, fileSystem)
-
-	// 7. Create string utils adapter
-	stringUtils := shared.NewStringUtilsAdapter()
+	gitFactory := NewGitFactory(gitConfig, fileSystem, logger)
 
 	// Container with factories only - use cases created on demand
 	return &Container{
@@ -124,7 +119,6 @@ func NewContainer(ctx context.Context, containerConfig ContainerConfig) (*Contai
 		httpFactory:     httpFactory,
 		fileSystem:      fileSystem,
 		logger:          logger,
-		stringUtils:     stringUtils,
 	}, nil
 }
 
@@ -146,11 +140,6 @@ func (c *Container) ProviderFactory() *ProviderFactory {
 // GitFactory returns the git operations factory.
 func (c *Container) GitFactory() *GitFactory {
 	return c.gitFactory
-}
-
-// StringUtils returns the string utilities adapter.
-func (c *Container) StringUtils() ports.StringUtils {
-	return c.stringUtils
 }
 
 // HTTPFactory returns the HTTP factory.
@@ -186,7 +175,7 @@ func (c *Container) CreateSyncUseCase(
 
 	archiveOps := archive.NewOperations(c.logger, tempDir, archiveDir)
 
-	return sync.NewRepositoriesUseCase(c.configAdapter, repositoryProvider, gitOperations, archiveOps, c.fileSystem, c.logger, c.stringUtils)
+	return sync.NewRepositoriesUseCase(c.configAdapter, repositoryProvider, gitOperations, archiveOps, c.fileSystem, c.logger)
 }
 
 // CreateValidateUseCase creates a validation use case with dependency injection.
@@ -286,8 +275,9 @@ type ContainerBuilder struct {
 }
 
 // NewContainerBuilder creates a new container builder.
-func NewContainerBuilder() *ContainerBuilder {
-	return &ContainerBuilder{
+// Returns value not pointer for functional style.
+func NewContainerBuilder() ContainerBuilder {
+	return ContainerBuilder{
 		config: ContainerConfig{
 			ConfigPath:     "config.yaml",
 			Environment:    "development",
@@ -300,48 +290,54 @@ func NewContainerBuilder() *ContainerBuilder {
 }
 
 // WithConfigPath sets the configuration file path.
-func (b *ContainerBuilder) WithConfigPath(path string) *ContainerBuilder {
+// Uses value receiver for functional immutability.
+func (b ContainerBuilder) WithConfigPath(path string) ContainerBuilder {
 	b.config.ConfigPath = path
 
 	return b
 }
 
 // WithEnvironment sets the environment.
-func (b *ContainerBuilder) WithEnvironment(env string) *ContainerBuilder {
+// Uses value receiver for functional immutability.
+func (b ContainerBuilder) WithEnvironment(env string) ContainerBuilder {
 	b.config.Environment = env
 
 	return b
 }
 
 // WithLogLevel sets the log level.
-func (b *ContainerBuilder) WithLogLevel(level string) *ContainerBuilder {
+// Uses value receiver for functional immutability.
+func (b ContainerBuilder) WithLogLevel(level string) ContainerBuilder {
 	b.config.LogLevel = level
 
 	return b
 }
 
 // WithDryRun enables or disables dry run mode.
-func (b *ContainerBuilder) WithDryRun(dryRun bool) *ContainerBuilder {
+// Uses value receiver for functional immutability.
+func (b ContainerBuilder) WithDryRun(dryRun bool) ContainerBuilder {
 	b.config.DryRun = dryRun
 
 	return b
 }
 
 // WithSkipTLSVerify enables or disables TLS verification.
-func (b *ContainerBuilder) WithSkipTLSVerify(skip bool) *ContainerBuilder {
+// Uses value receiver for functional immutability.
+func (b ContainerBuilder) WithSkipTLSVerify(skip bool) ContainerBuilder {
 	b.config.SkipTLSVerify = skip
 
 	return b
 }
 
 // WithMaxConcurrency sets the maximum concurrency.
-func (b *ContainerBuilder) WithMaxConcurrency(maxConcurrency int) *ContainerBuilder {
+// Uses value receiver for functional immutability.
+func (b ContainerBuilder) WithMaxConcurrency(maxConcurrency int) ContainerBuilder {
 	b.config.MaxConcurrency = maxConcurrency
 
 	return b
 }
 
 // Build creates the container with the configured options.
-func (b *ContainerBuilder) Build(ctx context.Context) (*Container, error) {
+func (b ContainerBuilder) Build(ctx context.Context) (*Container, error) {
 	return NewContainer(ctx, b.config)
 }

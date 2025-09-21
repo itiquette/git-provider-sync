@@ -1,7 +1,6 @@
 // SPDX-FileCopyrightText: 2025 The Git Provider Sync Authors
 // SPDX-License-Identifier: EUPL-1.2
 
-// Package main provides a test runner for git-provider-sync
 package main
 
 import (
@@ -87,8 +86,11 @@ func NewTestRunner() *TestRunner {
 }
 
 // GetTestSuites returns all available test suites.
-func (tr *TestRunner) GetTestSuites() []TestSuite {
-	baseDir, _ := os.Getwd()
+func (tr *TestRunner) GetTestSuites() ([]TestSuite, error) {
+	baseDir, err := os.Getwd()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get working directory: %w", err)
+	}
 
 	return []TestSuite{
 		{
@@ -296,7 +298,7 @@ func (tr *TestRunner) GetTestSuites() []TestSuite {
 				},
 			},
 		},
-	}
+	}, nil
 }
 
 // RunTestSuite executes a single test suite.
@@ -489,30 +491,67 @@ func (tr *TestRunner) SaveResults(results map[string][]TestResult) error {
 			return fmt.Errorf("%w: %w", ErrFailedToCreateResultsFile, err)
 		}
 
-		defer func() { _ = file.Close() }()
+		// Write results to file
+		err = tr.writeResultsToFile(file, suiteName, suiteResults)
+		closeErr := file.Close()
 
-		writer := bufio.NewWriter(file)
-		_, _ = fmt.Fprintf(writer, "Test Suite: %s\n", suiteName)
-		_, _ = fmt.Fprintf(writer, "Timestamp: %s\n", time.Now().Format(time.RFC3339))
-		_, _ = fmt.Fprintf(writer, "Commands: %d\n\n", len(suiteResults))
-
-		for _, result := range suiteResults {
-			_, _ = fmt.Fprintf(writer, "Command: %s\n", result.Command.Name)
-			_, _ = fmt.Fprintf(writer, "Success: %v\n", result.Success)
-			_, _ = fmt.Fprintf(writer, "Duration: %v\n", result.Duration)
-			_, _ = fmt.Fprintf(writer, "Exit Code: %d\n", result.ExitCode)
-
-			if result.Output != "" {
-				_, _ = fmt.Fprintf(writer, "Output:\n%s\n", result.Output)
-			}
-
-			_, _ = fmt.Fprintf(writer, "\n%s\n\n", strings.Repeat("-", 50))
+		if err != nil {
+			return fmt.Errorf("failed to write results: %w", err)
 		}
 
-		_ = writer.Flush()
+		if closeErr != nil {
+			return fmt.Errorf("failed to close results file: %w", closeErr)
+		}
 	}
 
 	fmt.Printf("Results saved to %s/\n", tr.outputDir) //nolint:forbidigo // CLI output
+
+	return nil
+}
+
+// writeResultsToFile writes test results to a file.
+func (tr *TestRunner) writeResultsToFile(file *os.File, suiteName string, suiteResults []TestResult) error {
+	writer := bufio.NewWriter(file)
+
+	// Write header
+	header := fmt.Sprintf("Test Suite: %s\nTimestamp: %s\nCommands: %d\n\n",
+		suiteName, time.Now().Format(time.RFC3339), len(suiteResults))
+	if _, err := writer.WriteString(header); err != nil {
+		return fmt.Errorf("failed to write header: %w", err)
+	}
+
+	// Write results
+	for _, result := range suiteResults {
+		if err := tr.writeResult(writer, result); err != nil {
+			return fmt.Errorf("failed to write result: %w", err)
+		}
+	}
+
+	if err := writer.Flush(); err != nil {
+		return fmt.Errorf("failed to flush writer: %w", err)
+	}
+
+	return nil
+}
+
+// writeResult writes a single test result.
+func (tr *TestRunner) writeResult(writer *bufio.Writer, result TestResult) error {
+	output := fmt.Sprintf("Command: %s\nSuccess: %v\nDuration: %v\nExit Code: %d\n",
+		result.Command.Name, result.Success, result.Duration, result.ExitCode)
+
+	if result.Output != "" {
+		output += fmt.Sprintf("Output:\n%s\n", result.Output)
+	}
+
+	if result.Error != nil {
+		output += fmt.Sprintf("Error: %v\n", result.Error)
+	}
+
+	output += fmt.Sprintf("\n%s\n\n", strings.Repeat("-", 50))
+
+	if _, err := writer.WriteString(output); err != nil {
+		return fmt.Errorf("failed to write result: %w", err)
+	}
 
 	return nil
 }
@@ -678,14 +717,17 @@ func setupTestRunner(flags commandLineFlags) *TestRunner {
 }
 
 // SelectTestSuites determines which test suites should be run based on flags.
-func selectTestSuites(runner *TestRunner, flags commandLineFlags) []TestSuite {
-	allSuites := runner.GetTestSuites()
-
-	if flags.suites != "" {
-		return selectSpecificSuites(allSuites, flags.suites)
+func selectTestSuites(runner *TestRunner, flags commandLineFlags) ([]TestSuite, error) {
+	allSuites, err := runner.GetTestSuites()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get test suites: %w", err)
 	}
 
-	return filterSuitesByFlags(allSuites, flags)
+	if flags.suites != "" {
+		return selectSpecificSuites(allSuites, flags.suites), nil
+	}
+
+	return filterSuitesByFlags(allSuites, flags), nil
 }
 
 // SelectSpecificSuites returns the requested test suites by name.
@@ -793,7 +835,11 @@ func main() {
 	}
 
 	// Determine which test suites to run
-	suitesToRun := selectTestSuites(runner, flags)
+	suitesToRun, err := selectTestSuites(runner, flags)
+	if err != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
 
 	// Print startup information
 	printStartupInfo(suitesToRun, flags.dryRun)

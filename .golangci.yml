@@ -56,7 +56,7 @@ linters:
     - gocritic
     - gocyclo
     - godot
-    - godox
+    # - godox # TODOs are legitimate and tracked in issues
     - goheader
     - gomoddirectives
     - gomodguard

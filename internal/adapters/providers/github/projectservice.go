@@ -19,10 +19,10 @@ import (
 )
 
 // ProjectService for GitHub-specific project operations.
+// Now stateless - no more optBuilder with mutable state.
 type ProjectService struct {
 	client            *github.Client
 	logger            ports.Logger
-	optBuilder        *ProjectOptionsBuilder
 	protectionService *ProtectionService
 }
 
@@ -31,7 +31,6 @@ func NewProjectService(client *github.Client, logger ports.Logger) *ProjectServi
 	return &ProjectService{
 		client:            client,
 		logger:            logger,
-		optBuilder:        NewProjectOptionsBuilder(),
 		protectionService: NewProtectionService(client, logger),
 	}
 }
@@ -212,23 +211,27 @@ func (ps *ProjectService) CreateProjectWithAdvancedOptions(ctx context.Context, 
 		"disabled":   request.DisableFeatures,
 	})
 
-	// Use the options builder
-	ps.optBuilder.Reset()
-	ps.optBuilder.BasicOpts(request.Visibility, request.Name, request.Description, request.DefaultBranch)
+	// Use functional approach instead of stateful builder
+	opts := []RepositoryOptionsFunc{}
 
 	if request.DisableFeatures {
-		ps.optBuilder.DisableFeatures()
-	} else {
-		ps.optBuilder.EnableAllFeatures()
+		opts = append(opts, WithDisabledFeatures())
 	}
 
-	// Set additional options
-	ps.optBuilder.SetAutoInit(request.AutoInit)
-	ps.optBuilder.SetGitIgnoreTemplate(request.GitIgnore)
-	ps.optBuilder.SetLicenseTemplate(request.License)
+	if request.AutoInit {
+		opts = append(opts, WithAutoInit())
+	}
 
-	// Build the options
-	repoOpts := ps.optBuilder.Build()
+	if request.GitIgnore != "" {
+		opts = append(opts, WithGitIgnoreTemplate(request.GitIgnore))
+	}
+
+	if request.License != "" {
+		opts = append(opts, WithLicenseTemplate(request.License))
+	}
+
+	// Build the repository options using functional approach
+	repoOpts := BuildGitHubRepository(request.Visibility, request.Name, request.Description, request.DefaultBranch, opts...)
 
 	// Determine organization context
 	orgName := ""

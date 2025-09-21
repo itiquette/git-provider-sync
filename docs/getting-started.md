@@ -31,15 +31,7 @@ gitprovidersync:
 
 ## 2. Set Authentication Token
 
-```bash
-export GPS_GITHUB_TOKEN="ghp_your_github_token"   # GitHub
-export GPS_GITLAB_TOKEN="glpat_your_gitlab_token" # GitLab
-export GPS_GITEA_TOKEN="your_gitea_token"         # Gitea
-```
-
-Or use any environment variable in config: `token: "${GITHUB_TOKEN}"`
-
-See [Configuration Reference](configuration.md) for more options.
+Set provider tokens as environment variables. See [Environment Variables](environment-variables.md) for details.
 
 ## 3. Verify Installation & Configuration
 

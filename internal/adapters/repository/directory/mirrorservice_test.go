@@ -58,6 +58,10 @@ func (ml *mockLogger) IsLevelEnabled(_ ports.LogLevel) bool {
 	return true
 }
 
+func (ml *mockLogger) GetLevel() ports.LogLevel {
+	return ports.LogLevelInfo
+}
+
 func (ml *mockLogger) hasLogMessage(level, message string) bool {
 	for _, entry := range ml.logs {
 		if entry.level == level && strings.Contains(entry.message, message) {

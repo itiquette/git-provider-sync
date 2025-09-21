@@ -6,6 +6,7 @@ package synccmd
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"time"
 
@@ -132,8 +133,8 @@ func fetchSourceRepositoriesWithGitRepos(
 	container *composition.Container,
 	syncCfg dto.SyncConfig,
 ) (sync.FetchSourceResponse, error) {
-	// 1. Create provider configuration
-	providerConfig := ports.ProviderConfig{
+	// 1. Create source provider configuration
+	sourceProviderConfig := ports.ProviderConfig{
 		ProviderType: syncCfg.ProviderType,
 		Domain:       syncCfg.Domain,
 		Owner:        syncCfg.Owner,
@@ -143,7 +144,7 @@ func fetchSourceRepositoriesWithGitRepos(
 	}
 
 	// 2. Create repository provider using factory
-	repositoryProvider, err := container.CreateProvider(ctx, providerConfig)
+	repositoryProvider, err := container.CreateProvider(ctx, sourceProviderConfig)
 	if err != nil {
 		return sync.FetchSourceResponse{}, fmt.Errorf("failed to create provider: %w", err)
 	}
@@ -154,7 +155,7 @@ func fetchSourceRepositoriesWithGitRepos(
 		implementation = "git-binary"
 	}
 
-	gitConfig := ports.GitConfig{
+	sourceGitConfig := ports.GitConfig{
 		PreferredImplementation: implementation,
 		UserName:                "git-provider-sync",
 		UserEmail:               "sync@git-provider-sync.local",
@@ -163,7 +164,7 @@ func fetchSourceRepositoriesWithGitRepos(
 		Debug:                   false,
 	}
 
-	gitOperations, err := container.CreateGitOperations(gitConfig)
+	gitOperations, err := container.CreateGitOperations(sourceGitConfig) //nolint:contextcheck // CreateGitOperations doesn't need context
 	if err != nil {
 		return sync.FetchSourceResponse{}, fmt.Errorf("failed to create git operations: %w", err)
 	}
@@ -179,7 +180,7 @@ func fetchSourceRepositoriesWithGitRepos(
 	}
 
 	request := sync.FetchSourceRequest{
-		ProviderConfig: providerConfig,
+		ProviderConfig: sourceProviderConfig,
 		DryRun:         cliConfig.DryRun(),
 		IncludeForks:   true,
 		Filters:        convertRepositoryFilters(syncCfg.Repositories),
@@ -215,7 +216,7 @@ func syncToMirrorWithGitReposAndResults(
 		Msg("Syncing to mirror target")
 
 	// 1. Create target provider configuration
-	targetConfig := ports.ProviderConfig{
+	targetProviderConfig := ports.ProviderConfig{
 		ProviderType: mirrorCfg.ProviderType,
 		Domain:       mirrorCfg.Domain,
 		Owner:        mirrorCfg.Owner,
@@ -226,19 +227,19 @@ func syncToMirrorWithGitReposAndResults(
 
 	// 2. Create target repository provider
 
-	targetProvider, err := container.CreateProvider(ctx, targetConfig)
+	targetProvider, err := container.CreateProvider(ctx, targetProviderConfig)
 	if err != nil {
 		return fmt.Errorf("failed to create target provider: %w", err)
 	}
 
 	// 3. Create git operations for repository syncing - respect UseGitBinary configuration
-	implementation := "go-git"
+	mirrorImplementation := "go-git"
 	if srcCfg.UseGitBinary {
-		implementation = "git-binary"
+		mirrorImplementation = "git-binary"
 	}
 
-	gitConfig := ports.GitConfig{
-		PreferredImplementation: implementation,
+	mirrorGitConfig := ports.GitConfig{
+		PreferredImplementation: mirrorImplementation,
 		UserName:                "git-provider-sync",
 		UserEmail:               "sync@git-provider-sync.local",
 		MaxConcurrent:           5,
@@ -246,7 +247,7 @@ func syncToMirrorWithGitReposAndResults(
 		Debug:                   false,
 	}
 
-	gitOperations, err := container.CreateGitOperations(gitConfig)
+	gitOperations, err := container.CreateGitOperations(mirrorGitConfig) //nolint:contextcheck // CreateGitOperations doesn't need context
 	if err != nil {
 		return fmt.Errorf("failed to create git operations: %w", err)
 	}
@@ -290,10 +291,7 @@ func syncToMirrorWithGitReposAndResults(
 	// Create archive operations adapter
 	archiveOps := archive.NewOperations(loggerAdapter, os.TempDir(), mirrorCfg.Path)
 
-	// Get string utils from container
-	stringUtils := container.StringUtils()
-
-	syncUseCase := sync.NewToMirrorsUseCase(targetProvider, gitOperations, archiveOps, fileSystem, loggerAdapter, stringUtils)
+	syncUseCase := sync.NewToMirrorsUseCase(targetProvider, gitOperations, archiveOps, fileSystem, loggerAdapter)
 
 	// Get CLI configuration for sync options
 	cliConfig, ok := cli.ConfigFromContext(ctx)
@@ -450,19 +448,22 @@ func outputSyncResults(ctx context.Context, results *sync.Results) error {
 	return nil
 }
 
-// ShowSyncSummary displays sync summary and suggestions.
-func showSyncSummary(syncResults *sync.Results) {
+// showSyncSummaryToWriter displays sync summary to the provided writer.
+// This follows dependency injection pattern for better testability.
+// Note: Currently not used in production as formatter.SyncCompleted handles summary output.
+// Kept for testing purposes to verify summary logic independently.
+func showSyncSummaryToWriter(syncResults *sync.Results, writer io.Writer) {
 	// Add simple summary and suggestion
 	if syncResults.SuccessfulSyncs > 0 {
-		fmt.Fprintf(os.Stderr, "✓ Successfully synced %d repositories\n", syncResults.SuccessfulSyncs)
+		_, _ = fmt.Fprintf(writer, "✓ Successfully synced %d repositories\n", syncResults.SuccessfulSyncs)
 	}
 
 	if syncResults.FailedSyncs > 0 {
-		fmt.Fprintf(os.Stderr, "✗ %d repositories failed\n", syncResults.FailedSyncs)
+		_, _ = fmt.Fprintf(writer, "✗ %d repositories failed\n", syncResults.FailedSyncs)
 	}
 
 	if syncResults.SkippedSyncs > 0 {
-		fmt.Fprintf(os.Stderr, "- %d repositories skipped\n", syncResults.SkippedSyncs)
+		_, _ = fmt.Fprintf(writer, "- %d repositories skipped\n", syncResults.SkippedSyncs)
 	}
 
 	// Store last sync info (simple file-based approach)
@@ -472,9 +473,9 @@ func showSyncSummary(syncResults *sync.Results) {
 
 	// Simple command suggestion
 	if !syncResults.DryRun {
-		fmt.Fprintf(os.Stderr, "\nNext: gitprovidersync status\n")
+		_, _ = fmt.Fprintf(writer, "\nNext: gitprovidersync status\n")
 	} else {
-		fmt.Fprintf(os.Stderr, "\nNext: gitprovidersync sync (without --dry-run)\n")
+		_, _ = fmt.Fprintf(writer, "\nNext: gitprovidersync sync (without --dry-run)\n")
 	}
 }
 

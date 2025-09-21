@@ -24,10 +24,9 @@ import (
 
 // MirrorService provides go-git based repository mirroring operations.
 type MirrorService struct {
-	logger         ports.Logger
-	fileSystem     ports.FileSystem
-	tempDir        string
-	progressWriter io.Writer
+	logger     ports.Logger
+	fileSystem ports.FileSystem
+	tempDir    string
 }
 
 // NewMirrorService creates a new go-git mirror service.
@@ -53,6 +52,7 @@ type MirrorRequest struct {
 	UpdateReferences bool
 	Force            bool
 	DryRun           bool
+	ProgressWriter   io.Writer // Optional writer for progress reporting
 }
 
 // MirrorResult contains the results of a mirror operation.
@@ -73,11 +73,6 @@ type PerformanceInfo struct {
 	DataTransferred int64
 	ObjectsCloned   int
 	RefsUpdated     int
-}
-
-// SetProgressWriter sets a writer for progress reporting.
-func (ms *MirrorService) SetProgressWriter(writer io.Writer) {
-	ms.progressWriter = writer
 }
 
 // Mirror performs a repository mirror operation.
@@ -214,7 +209,7 @@ func (ms *MirrorService) cloneSourceRepository(ctx context.Context, request Mirr
 
 	cloneOptions := &git.CloneOptions{
 		URL:      request.SourceRepository.HTTPSURL(),
-		Progress: ms.progressWriter,
+		Progress: request.ProgressWriter,
 	}
 
 	// Note: Authentication would be configured here in a real implementation
@@ -405,7 +400,7 @@ func (ms *MirrorService) pushToTarget(ctx context.Context, repo *git.Repository,
 	// Configure push options
 	pushOptions := &git.PushOptions{
 		RemoteName: "origin",
-		Progress:   ms.progressWriter,
+		Progress:   request.ProgressWriter,
 		Force:      request.Force,
 	}
 

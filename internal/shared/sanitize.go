@@ -22,6 +22,12 @@ var (
 	authHeaderPattern = regexp.MustCompile(`(?i)(authorization|auth|api[_-]?key|x-api-key|x-auth-token):\s*[^\n\r]*`)
 	// Token in query parameters.
 	queryTokenPattern = regexp.MustCompile(`([?&])(token|api[_-]?key|access[_-]?token|auth|key)=([^&\s]+)`)
+	// Token format validation pattern.
+	tokenFormatPattern = regexp.MustCompile(`^[\w\-\.]+$`)
+	// Letter detection pattern.
+	letterPattern = regexp.MustCompile(`[a-zA-Z]`)
+	// Number detection pattern.
+	numberPattern = regexp.MustCompile(`\d`)
 )
 
 // SanitizeURL removes sensitive credentials from URLs
@@ -266,10 +272,10 @@ func looksLikeToken(str string) bool {
 	}
 
 	// Check if it looks like a token (mix of letters and numbers, possibly with - or _)
-	if matched, _ := regexp.MatchString(`^[\w\-\.]+$`, str); matched {
+	if tokenFormatPattern.MatchString(str) {
 		// Has both letters and numbers?
-		hasLetter := regexp.MustCompile(`[a-zA-Z]`).MatchString(str)
-		hasNumber := regexp.MustCompile(`\d`).MatchString(str)
+		hasLetter := letterPattern.MatchString(str)
+		hasNumber := numberPattern.MatchString(str)
 
 		return hasLetter && hasNumber && len(str) > 30
 	}

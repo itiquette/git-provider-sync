@@ -7,18 +7,15 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"sync"
-	"time"
 
 	"itiquette/git-provider-sync/internal/domain/ports"
 )
 
 // InterruptHandler provides user feedback for interruptible operations
 // Simple, functional, idiomatic - no overengineering.
+// Stateless implementation - caller manages rate limiting if needed.
 type InterruptHandler struct {
-	writer       io.Writer
-	mu           sync.Mutex
-	lastProgress time.Time
+	writer io.Writer
 }
 
 // NewInterruptHandler creates a new interrupt handler.
@@ -30,9 +27,6 @@ func NewInterruptHandler(writer io.Writer) ports.InterruptHandler {
 
 // ShowInterruptible indicates an operation can be interrupted with Ctrl-C.
 func (h *InterruptHandler) ShowInterruptible(ctx context.Context, operation string) {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-
 	select {
 	case <-ctx.Done():
 		// Already cancelled, don't show the message
@@ -43,18 +37,9 @@ func (h *InterruptHandler) ShowInterruptible(ctx context.Context, operation stri
 }
 
 // ShowProgress displays progress for long operations.
+// Note: Caller should handle rate limiting to avoid console spam.
+// This is a pure stateless function - no internal rate limiting.
 func (h *InterruptHandler) ShowProgress(ctx context.Context, current, total int, description string) {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-
-	// Rate limit progress updates to avoid spam
-	now := time.Now()
-	if now.Sub(h.lastProgress) < 100*time.Millisecond {
-		return
-	}
-
-	h.lastProgress = now
-
 	select {
 	case <-ctx.Done():
 		// Operation cancelled, don't update progress
@@ -71,8 +56,5 @@ func (h *InterruptHandler) ShowProgress(ctx context.Context, current, total int,
 
 // ShowCancelled indicates an operation was cancelled by the user.
 func (h *InterruptHandler) ShowCancelled(_ context.Context, operation string) {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-
 	_, _ = fmt.Fprintf(h.writer, "\n× %s cancelled\n", operation)
 }

@@ -23,7 +23,7 @@ func (_m *Logger) EXPECT() *Logger_Expecter {
 }
 
 // Debug provides a mock function with given fields: ctx, msg, fields
-func (_m *Logger) Debug(ctx context.Context, msg string, fields map[string]interface{}) {
+func (_m *Logger) Debug(ctx context.Context, msg string, fields map[string]any) {
 	_m.Called(ctx, msg, fields)
 }
 
@@ -35,14 +35,14 @@ type Logger_Debug_Call struct {
 // Debug is a helper method to define mock.On call
 //   - ctx context.Context
 //   - msg string
-//   - fields map[string]interface{}
+//   - fields map[string]any
 func (_e *Logger_Expecter) Debug(ctx interface{}, msg interface{}, fields interface{}) *Logger_Debug_Call {
 	return &Logger_Debug_Call{Call: _e.mock.On("Debug", ctx, msg, fields)}
 }
 
-func (_c *Logger_Debug_Call) Run(run func(ctx context.Context, msg string, fields map[string]interface{})) *Logger_Debug_Call {
+func (_c *Logger_Debug_Call) Run(run func(ctx context.Context, msg string, fields map[string]any)) *Logger_Debug_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string), args[2].(map[string]interface{}))
+		run(args[0].(context.Context), args[1].(string), args[2].(map[string]any))
 	})
 	return _c
 }
@@ -52,13 +52,13 @@ func (_c *Logger_Debug_Call) Return() *Logger_Debug_Call {
 	return _c
 }
 
-func (_c *Logger_Debug_Call) RunAndReturn(run func(context.Context, string, map[string]interface{})) *Logger_Debug_Call {
+func (_c *Logger_Debug_Call) RunAndReturn(run func(context.Context, string, map[string]any)) *Logger_Debug_Call {
 	_c.Run(run)
 	return _c
 }
 
 // Error provides a mock function with given fields: ctx, msg, fields
-func (_m *Logger) Error(ctx context.Context, msg string, fields map[string]interface{}) {
+func (_m *Logger) Error(ctx context.Context, msg string, fields map[string]any) {
 	_m.Called(ctx, msg, fields)
 }
 
@@ -70,14 +70,14 @@ type Logger_Error_Call struct {
 // Error is a helper method to define mock.On call
 //   - ctx context.Context
 //   - msg string
-//   - fields map[string]interface{}
+//   - fields map[string]any
 func (_e *Logger_Expecter) Error(ctx interface{}, msg interface{}, fields interface{}) *Logger_Error_Call {
 	return &Logger_Error_Call{Call: _e.mock.On("Error", ctx, msg, fields)}
 }
 
-func (_c *Logger_Error_Call) Run(run func(ctx context.Context, msg string, fields map[string]interface{})) *Logger_Error_Call {
+func (_c *Logger_Error_Call) Run(run func(ctx context.Context, msg string, fields map[string]any)) *Logger_Error_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string), args[2].(map[string]interface{}))
+		run(args[0].(context.Context), args[1].(string), args[2].(map[string]any))
 	})
 	return _c
 }
@@ -87,13 +87,13 @@ func (_c *Logger_Error_Call) Return() *Logger_Error_Call {
 	return _c
 }
 
-func (_c *Logger_Error_Call) RunAndReturn(run func(context.Context, string, map[string]interface{})) *Logger_Error_Call {
+func (_c *Logger_Error_Call) RunAndReturn(run func(context.Context, string, map[string]any)) *Logger_Error_Call {
 	_c.Run(run)
 	return _c
 }
 
 // Fatal provides a mock function with given fields: ctx, msg, fields
-func (_m *Logger) Fatal(ctx context.Context, msg string, fields map[string]interface{}) {
+func (_m *Logger) Fatal(ctx context.Context, msg string, fields map[string]any) {
 	_m.Called(ctx, msg, fields)
 }
 
@@ -105,14 +105,14 @@ type Logger_Fatal_Call struct {
 // Fatal is a helper method to define mock.On call
 //   - ctx context.Context
 //   - msg string
-//   - fields map[string]interface{}
+//   - fields map[string]any
 func (_e *Logger_Expecter) Fatal(ctx interface{}, msg interface{}, fields interface{}) *Logger_Fatal_Call {
 	return &Logger_Fatal_Call{Call: _e.mock.On("Fatal", ctx, msg, fields)}
 }
 
-func (_c *Logger_Fatal_Call) Run(run func(ctx context.Context, msg string, fields map[string]interface{})) *Logger_Fatal_Call {
+func (_c *Logger_Fatal_Call) Run(run func(ctx context.Context, msg string, fields map[string]any)) *Logger_Fatal_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string), args[2].(map[string]interface{}))
+		run(args[0].(context.Context), args[1].(string), args[2].(map[string]any))
 	})
 	return _c
 }
@@ -122,13 +122,58 @@ func (_c *Logger_Fatal_Call) Return() *Logger_Fatal_Call {
 	return _c
 }
 
-func (_c *Logger_Fatal_Call) RunAndReturn(run func(context.Context, string, map[string]interface{})) *Logger_Fatal_Call {
+func (_c *Logger_Fatal_Call) RunAndReturn(run func(context.Context, string, map[string]any)) *Logger_Fatal_Call {
 	_c.Run(run)
 	return _c
 }
 
+// GetLevel provides a mock function with no fields
+func (_m *Logger) GetLevel() ports.LogLevel {
+	ret := _m.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetLevel")
+	}
+
+	var r0 ports.LogLevel
+	if rf, ok := ret.Get(0).(func() ports.LogLevel); ok {
+		r0 = rf()
+	} else {
+		r0 = ret.Get(0).(ports.LogLevel)
+	}
+
+	return r0
+}
+
+// Logger_GetLevel_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetLevel'
+type Logger_GetLevel_Call struct {
+	*mock.Call
+}
+
+// GetLevel is a helper method to define mock.On call
+func (_e *Logger_Expecter) GetLevel() *Logger_GetLevel_Call {
+	return &Logger_GetLevel_Call{Call: _e.mock.On("GetLevel")}
+}
+
+func (_c *Logger_GetLevel_Call) Run(run func()) *Logger_GetLevel_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *Logger_GetLevel_Call) Return(_a0 ports.LogLevel) *Logger_GetLevel_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *Logger_GetLevel_Call) RunAndReturn(run func() ports.LogLevel) *Logger_GetLevel_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Info provides a mock function with given fields: ctx, msg, fields
-func (_m *Logger) Info(ctx context.Context, msg string, fields map[string]interface{}) {
+func (_m *Logger) Info(ctx context.Context, msg string, fields map[string]any) {
 	_m.Called(ctx, msg, fields)
 }
 
@@ -140,14 +185,14 @@ type Logger_Info_Call struct {
 // Info is a helper method to define mock.On call
 //   - ctx context.Context
 //   - msg string
-//   - fields map[string]interface{}
+//   - fields map[string]any
 func (_e *Logger_Expecter) Info(ctx interface{}, msg interface{}, fields interface{}) *Logger_Info_Call {
 	return &Logger_Info_Call{Call: _e.mock.On("Info", ctx, msg, fields)}
 }
 
-func (_c *Logger_Info_Call) Run(run func(ctx context.Context, msg string, fields map[string]interface{})) *Logger_Info_Call {
+func (_c *Logger_Info_Call) Run(run func(ctx context.Context, msg string, fields map[string]any)) *Logger_Info_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string), args[2].(map[string]interface{}))
+		run(args[0].(context.Context), args[1].(string), args[2].(map[string]any))
 	})
 	return _c
 }
@@ -157,7 +202,7 @@ func (_c *Logger_Info_Call) Return() *Logger_Info_Call {
 	return _c
 }
 
-func (_c *Logger_Info_Call) RunAndReturn(run func(context.Context, string, map[string]interface{})) *Logger_Info_Call {
+func (_c *Logger_Info_Call) RunAndReturn(run func(context.Context, string, map[string]any)) *Logger_Info_Call {
 	_c.Run(run)
 	return _c
 }
@@ -209,7 +254,7 @@ func (_c *Logger_IsLevelEnabled_Call) RunAndReturn(run func(ports.LogLevel) bool
 }
 
 // Trace provides a mock function with given fields: ctx, msg, fields
-func (_m *Logger) Trace(ctx context.Context, msg string, fields map[string]interface{}) {
+func (_m *Logger) Trace(ctx context.Context, msg string, fields map[string]any) {
 	_m.Called(ctx, msg, fields)
 }
 
@@ -221,14 +266,14 @@ type Logger_Trace_Call struct {
 // Trace is a helper method to define mock.On call
 //   - ctx context.Context
 //   - msg string
-//   - fields map[string]interface{}
+//   - fields map[string]any
 func (_e *Logger_Expecter) Trace(ctx interface{}, msg interface{}, fields interface{}) *Logger_Trace_Call {
 	return &Logger_Trace_Call{Call: _e.mock.On("Trace", ctx, msg, fields)}
 }
 
-func (_c *Logger_Trace_Call) Run(run func(ctx context.Context, msg string, fields map[string]interface{})) *Logger_Trace_Call {
+func (_c *Logger_Trace_Call) Run(run func(ctx context.Context, msg string, fields map[string]any)) *Logger_Trace_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string), args[2].(map[string]interface{}))
+		run(args[0].(context.Context), args[1].(string), args[2].(map[string]any))
 	})
 	return _c
 }
@@ -238,13 +283,13 @@ func (_c *Logger_Trace_Call) Return() *Logger_Trace_Call {
 	return _c
 }
 
-func (_c *Logger_Trace_Call) RunAndReturn(run func(context.Context, string, map[string]interface{})) *Logger_Trace_Call {
+func (_c *Logger_Trace_Call) RunAndReturn(run func(context.Context, string, map[string]any)) *Logger_Trace_Call {
 	_c.Run(run)
 	return _c
 }
 
 // Warn provides a mock function with given fields: ctx, msg, fields
-func (_m *Logger) Warn(ctx context.Context, msg string, fields map[string]interface{}) {
+func (_m *Logger) Warn(ctx context.Context, msg string, fields map[string]any) {
 	_m.Called(ctx, msg, fields)
 }
 
@@ -256,14 +301,14 @@ type Logger_Warn_Call struct {
 // Warn is a helper method to define mock.On call
 //   - ctx context.Context
 //   - msg string
-//   - fields map[string]interface{}
+//   - fields map[string]any
 func (_e *Logger_Expecter) Warn(ctx interface{}, msg interface{}, fields interface{}) *Logger_Warn_Call {
 	return &Logger_Warn_Call{Call: _e.mock.On("Warn", ctx, msg, fields)}
 }
 
-func (_c *Logger_Warn_Call) Run(run func(ctx context.Context, msg string, fields map[string]interface{})) *Logger_Warn_Call {
+func (_c *Logger_Warn_Call) Run(run func(ctx context.Context, msg string, fields map[string]any)) *Logger_Warn_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string), args[2].(map[string]interface{}))
+		run(args[0].(context.Context), args[1].(string), args[2].(map[string]any))
 	})
 	return _c
 }
@@ -273,7 +318,7 @@ func (_c *Logger_Warn_Call) Return() *Logger_Warn_Call {
 	return _c
 }
 
-func (_c *Logger_Warn_Call) RunAndReturn(run func(context.Context, string, map[string]interface{})) *Logger_Warn_Call {
+func (_c *Logger_Warn_Call) RunAndReturn(run func(context.Context, string, map[string]any)) *Logger_Warn_Call {
 	_c.Run(run)
 	return _c
 }

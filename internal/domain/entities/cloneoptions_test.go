@@ -4,10 +4,18 @@
 package entities
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+)
+
+// Define sentinel errors for clone options validation.
+var (
+	ErrMissingRepositoryName = errors.New("repository name is required")
+	ErrMissingSourceURL      = errors.New("source URL is required")
+	ErrMissingTargetPath     = errors.New("target path is required")
 )
 
 func TestCloneOptionsBuilder_Build(t *testing.T) {
@@ -16,37 +24,37 @@ func TestCloneOptionsBuilder_Build(t *testing.T) {
 	tests := []struct {
 		name          string
 		builderSetup  func() CloneOptionsBuilder
-		expectError   bool
+		wantErr       error
 		expectedError string
 	}{
 		{
-			name: "valid clone options",
+			name: "builds_successfully_with_all_required_fields",
 			builderSetup: func() CloneOptionsBuilder {
 				return NewCloneOptionsBuilder().
 					WithRepositoryName("test-repo").
 					WithSourceURL("https://github.com/user/repo.git").
 					WithTargetPath("/tmp/test")
 			},
-			expectError: false,
+			wantErr: nil,
 		},
 		{
-			name: "missing repository name",
+			name: "returns_error_when_repository_name_missing",
 			builderSetup: func() CloneOptionsBuilder {
 				return NewCloneOptionsBuilder().
 					WithSourceURL("https://github.com/user/repo.git").
 					WithTargetPath("/tmp/test")
 			},
-			expectError:   true,
+			wantErr:       ErrMissingRepositoryName,
 			expectedError: "repository name is required",
 		},
 		{
-			name: "missing source URL",
+			name: "returns_error_when_source_url_missing",
 			builderSetup: func() CloneOptionsBuilder {
 				return NewCloneOptionsBuilder().
 					WithRepositoryName("test-repo").
 					WithTargetPath("/tmp/test")
 			},
-			expectError:   true,
+			wantErr:       ErrMissingSourceURL,
 			expectedError: "source URL is required",
 		},
 	}
@@ -58,7 +66,7 @@ func TestCloneOptionsBuilder_Build(t *testing.T) {
 			builder := test.builderSetup()
 			result, err := builder.Build()
 
-			if test.expectError {
+			if test.wantErr != nil {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), test.expectedError)
 				assert.Equal(t, CloneOptions{}, result)
@@ -82,7 +90,7 @@ func TestNewCloneOptionsFromRepository(t *testing.T) {
 		expected    CloneOptions
 	}{
 		{
-			name: "repository with HTTPS URL",
+			name: "creates_options_from_repository_with_https_url",
 			repo: Repository{
 				name:     "test-repo",
 				httpsURL: "https://github.com/user/repo.git",

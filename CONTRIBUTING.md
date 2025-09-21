@@ -23,7 +23,7 @@ For example, you could:
 
 - Fix or report a bug.
 
-- Suggest enhancements to code, tests and documentation.
+- Suggest improvements to code, tests and documentation.
 
 - Report/fix problems found during installing or developer environments.
 
@@ -49,14 +49,14 @@ To do this, open an Issue that summarizes the bug and set the label to "bug".
 ### Suggest a feature
 
 To request a new feature you should summarize the desired functionality and its use case.
-Set the Issue label to "feature" or "enhancement".
+Set the Issue label to "feature".
 
 ## Contribute Code, Documentation and more
 
 You want to contribute code, documentation or other improvements.
 Great, however, there are some practical points to check to make sure that everything runs as smoothly as possible.
 
-- It is always best to discuss your plans beforehand, to ensure that your contribution is in line with the project goals.
+- Discuss your plans beforehand to check that your contribution fits the project goals.
 
 - Check the list of open Issues. Either assign an existing issue to yourself, or create a new one that you would like to work on, and discuss your ideas and use cases.
 
@@ -182,7 +182,7 @@ This implies that for any contributions to the translated version, make sure tha
 
 ## FOSS Standards
 
-This project aims to comply to the principles outlined in the following standards:
+This project follows the principles outlined in the following standards:
 
 - License compliance with the [REUSE specification](https://reuse.software/)
 

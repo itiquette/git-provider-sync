@@ -108,7 +108,7 @@ func (r *Repository) ListBranches(_ context.Context) ([]ports.BranchInfo, error)
 	}, nil
 }
 
-// GetBranches returns a single "main" branch for archive repositories (legacy method).
+// GetBranches returns a single "main" branch for archive repositories.
 func (r *Repository) GetBranches(_ context.Context) ([]string, error) {
 	return []string{"main"}, nil
 }
@@ -118,7 +118,7 @@ func (r *Repository) CurrentBranch() (string, error) {
 	return constants.DefaultBranch, nil
 }
 
-// GetCurrentBranch returns "main" as the current branch (legacy method).
+// GetCurrentBranch returns "main" as the current branch.
 func (r *Repository) GetCurrentBranch(_ context.Context) (string, error) {
 	return constants.DefaultBranch, nil
 }
@@ -157,7 +157,7 @@ func (r *Repository) ListCommits(ctx context.Context, _ ports.ListCommitsOptions
 	return []ports.CommitInfo{commit}, nil
 }
 
-// GetCommits returns a single dummy commit (legacy method).
+// GetCommits returns a single dummy commit.
 func (r *Repository) GetCommits(ctx context.Context, options ports.ListCommitsOptions) ([]ports.CommitInfo, error) {
 	return r.ListCommits(ctx, options)
 }
@@ -236,7 +236,7 @@ func (r *Repository) Diff(_ context.Context, _ ports.DiffOptions) (string, error
 	return "", ErrDiffNotSupported
 }
 
-// GetStatus returns the status of files in the archive directory (legacy method).
+// GetStatus returns the status of files in the archive directory.
 func (r *Repository) GetStatus(ctx context.Context) (ports.StatusResult, error) {
 	return r.Status(ctx)
 }

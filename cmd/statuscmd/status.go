@@ -43,10 +43,8 @@ func NewStatusCommand() *cli.Command {
 	cmd := &cli.Command{
 		Name:  "status",
 		Usage: "Show system status and suggest next actions",
-		Description: `The 'status' command displays the current state of the Git Provider Sync system.
-It validates configuration, optionally tests connectivity, and provides actionable suggestions.
-
-This helps you understand what needs attention and what commands to run next.`,
+		Description: `Display system state and validate configuration.
+Optionally test provider connectivity.`,
 		Action: runStatus,
 		Flags: []cli.Flag{
 			&cli.BoolFlag{

@@ -61,7 +61,7 @@ func createTestRepository(tb testing.TB) (*Repository, string) {
 
 // Test basic repository properties
 
-func TestIsClean_WhenNoChanges_ReturnsTrue(t *testing.T) {
+func TestIsClean(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -102,9 +102,7 @@ func TestIsClean_WhenNoChanges_ReturnsTrue(t *testing.T) {
 			t.Parallel()
 
 			repo := test.setup(t)
-			if test.expected {
-				defer func() { _ = os.RemoveAll(repo.Path()) }()
-			}
+			// No cleanup needed - t.TempDir() auto-cleans
 
 			result := repo.IsClean()
 			assert.Equal(t, test.expected, result)
@@ -112,12 +110,11 @@ func TestIsClean_WhenNoChanges_ReturnsTrue(t *testing.T) {
 	}
 }
 
-func TestHasChanges_WhenChangesExist_ReturnsTrue(t *testing.T) {
+func TestHasChanges(t *testing.T) {
 	t.Parallel()
 
-	repo, tempDir := createTestRepository(t)
-
-	defer func() { _ = os.RemoveAll(tempDir) }()
+	repo, _ := createTestRepository(t)
+	// No cleanup needed - t.TempDir() auto-cleans
 
 	// Archive repositories never have changes
 	assert.False(t, repo.HasChanges())
@@ -125,12 +122,11 @@ func TestHasChanges_WhenChangesExist_ReturnsTrue(t *testing.T) {
 
 // Test commit operations
 
-func TestGetCurrentCommit_WhenArchiveRepository_ReturnsEmptyString(t *testing.T) {
+func TestGetCurrentCommit(t *testing.T) {
 	t.Parallel()
 
-	repo, tempDir := createTestRepository(t)
-
-	defer func() { _ = os.RemoveAll(tempDir) }()
+	repo, _ := createTestRepository(t)
+	// No cleanup needed - t.TempDir() auto-cleans
 
 	commit, err := repo.GetCurrentCommit(context.Background())
 
@@ -152,8 +148,8 @@ func TestGetCurrentCommit_WhenArchiveRepository_ReturnsEmptyString(t *testing.T)
 func TestRepository_GetCommit(t *testing.T) {
 	t.Parallel()
 
-	repo, tempDir := createTestRepository(t)
-	t.Cleanup(func() { _ = os.RemoveAll(tempDir) })
+	repo, _ := createTestRepository(t)
+	// No cleanup needed - t.TempDir() auto-cleans
 
 	tests := []struct {
 		name        string
@@ -203,9 +199,8 @@ func TestRepository_GetCommit(t *testing.T) {
 func TestRepository_ListCommits(t *testing.T) {
 	t.Parallel()
 
-	repo, tempDir := createTestRepository(t)
-
-	defer func() { _ = os.RemoveAll(tempDir) }()
+	repo, _ := createTestRepository(t)
+	// No cleanup needed - t.TempDir() auto-cleans
 
 	commits, err := repo.ListCommits(context.Background(), ports.ListCommitsOptions{})
 
@@ -220,9 +215,8 @@ func TestRepository_ListCommits(t *testing.T) {
 func TestRepository_GetCommits(t *testing.T) {
 	t.Parallel()
 
-	repo, tempDir := createTestRepository(t)
-
-	defer func() { _ = os.RemoveAll(tempDir) }()
+	repo, _ := createTestRepository(t)
+	// No cleanup needed - t.TempDir() auto-cleans
 
 	commits, err := repo.GetCommits(context.Background(), ports.ListCommitsOptions{})
 
@@ -239,9 +233,8 @@ func TestRepository_GetCommits(t *testing.T) {
 func TestRepository_ListBranches(t *testing.T) {
 	t.Parallel()
 
-	repo, tempDir := createTestRepository(t)
-
-	defer func() { _ = os.RemoveAll(tempDir) }()
+	repo, _ := createTestRepository(t)
+	// No cleanup needed - t.TempDir() auto-cleans
 
 	branches, err := repo.ListBranches(context.Background())
 
@@ -259,9 +252,8 @@ func TestRepository_ListBranches(t *testing.T) {
 func TestRepository_Status(t *testing.T) {
 	t.Parallel()
 
-	repo, tempDir := createTestRepository(t)
-
-	defer func() { _ = os.RemoveAll(tempDir) }()
+	repo, _ := createTestRepository(t)
+	// No cleanup needed - t.TempDir() auto-cleans()
 
 	status, err := repo.Status(context.Background())
 
@@ -293,9 +285,8 @@ func TestRepository_Status_NonExistentDirectory(t *testing.T) {
 func TestRepository_GetStatus(t *testing.T) {
 	t.Parallel()
 
-	repo, tempDir := createTestRepository(t)
-
-	defer func() { _ = os.RemoveAll(tempDir) }()
+	repo, _ := createTestRepository(t)
+	// No cleanup needed - t.TempDir() auto-cleans()
 
 	status, err := repo.GetStatus(context.Background())
 
@@ -306,9 +297,8 @@ func TestRepository_GetStatus(t *testing.T) {
 func TestRepository_HasUncommittedChanges(t *testing.T) {
 	t.Parallel()
 
-	repo, tempDir := createTestRepository(t)
-
-	defer func() { _ = os.RemoveAll(tempDir) }()
+	repo, _ := createTestRepository(t)
+	// No cleanup needed - t.TempDir() auto-cleans()
 
 	hasChanges, err := repo.HasUncommittedChanges(context.Background())
 
@@ -321,9 +311,8 @@ func TestRepository_HasUncommittedChanges(t *testing.T) {
 func TestRepository_GetFileContent(t *testing.T) { //nolint:tparallel // Race condition with shared tempDir
 	t.Parallel()
 
-	repo, tempDir := createTestRepository(t)
-
-	defer func() { _ = os.RemoveAll(tempDir) }()
+	repo, _ := createTestRepository(t)
+	// No cleanup needed - t.TempDir() auto-cleans()
 
 	tests := []struct {
 		name        string
@@ -380,7 +369,7 @@ func TestRepository_WriteFile(t *testing.T) {
 	t.Parallel()
 
 	repo, tempDir := createTestRepository(t)
-	t.Cleanup(func() { _ = os.RemoveAll(tempDir) })
+	// No cleanup needed - t.TempDir() auto-cleans
 
 	tests := []struct {
 		name        string
@@ -449,9 +438,8 @@ func TestRepository_WriteFile(t *testing.T) {
 func TestRepository_ListFiles(t *testing.T) { //nolint:tparallel // Race condition with shared tempDir
 	t.Parallel()
 
-	repo, tempDir := createTestRepository(t)
-
-	defer func() { _ = os.RemoveAll(tempDir) }()
+	repo, _ := createTestRepository(t)
+	// No cleanup needed - t.TempDir() auto-cleans()
 
 	tests := []struct {
 		name     string
@@ -484,9 +472,8 @@ func TestRepository_ListFiles(t *testing.T) { //nolint:tparallel // Race conditi
 func TestRepository_ListFiles_NonExistentPath(t *testing.T) {
 	t.Parallel()
 
-	repo, tempDir := createTestRepository(t)
-
-	defer func() { _ = os.RemoveAll(tempDir) }()
+	repo, _ := createTestRepository(t)
+	// No cleanup needed - t.TempDir() auto-cleans()
 
 	_, err := repo.ListFiles(context.Background(), "non-existent-dir")
 
@@ -498,9 +485,8 @@ func TestRepository_ListFiles_NonExistentPath(t *testing.T) {
 func TestRepository_Close(t *testing.T) {
 	t.Parallel()
 
-	repo, tempDir := createTestRepository(t)
-
-	defer func() { _ = os.RemoveAll(tempDir) }()
+	repo, _ := createTestRepository(t)
+	// No cleanup needed - t.TempDir() auto-cleans()
 
 	err := repo.Close()
 
@@ -512,9 +498,8 @@ func TestRepository_Close(t *testing.T) {
 func TestRepository_FileOperations_SecurityValidation(t *testing.T) { //nolint:tparallel // Race condition with shared tempDir
 	t.Parallel()
 
-	repo, tempDir := createTestRepository(t)
-
-	defer func() { _ = os.RemoveAll(tempDir) }()
+	repo, _ := createTestRepository(t)
+	// No cleanup needed - t.TempDir() auto-cleans()
 
 	// Test Unix-style path traversal attempts
 	maliciousPaths := []string{
@@ -566,9 +551,8 @@ func TestRepository_FileOperations_AbsolutePathErrors(t *testing.T) {
 // Benchmark tests for performance regression detection
 
 func BenchmarkRepository_GetFileContent(b *testing.B) {
-	repo, tempDir := createTestRepository(b)
-
-	defer func() { _ = os.RemoveAll(tempDir) }()
+	repo, _ := createTestRepository(b)
+	// No cleanup needed - t.TempDir() auto-cleans
 
 	b.ResetTimer()
 
@@ -581,9 +565,8 @@ func BenchmarkRepository_GetFileContent(b *testing.B) {
 }
 
 func BenchmarkRepository_WriteFile(b *testing.B) {
-	repo, tempDir := createTestRepository(b)
-
-	defer func() { _ = os.RemoveAll(tempDir) }()
+	repo, _ := createTestRepository(b)
+	// No cleanup needed - t.TempDir() auto-cleans
 
 	content := []byte("benchmark content")
 
@@ -600,9 +583,8 @@ func BenchmarkRepository_WriteFile(b *testing.B) {
 }
 
 func BenchmarkRepository_ListFiles(b *testing.B) {
-	repo, tempDir := createTestRepository(b)
-
-	defer func() { _ = os.RemoveAll(tempDir) }()
+	repo, _ := createTestRepository(b)
+	// No cleanup needed - t.TempDir() auto-cleans
 
 	b.ResetTimer()
 

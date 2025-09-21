@@ -188,6 +188,7 @@ func (m *mockLogger) Trace(_ context.Context, _ string, _ map[string]any) {}
 func (m *mockLogger) Warn(_ context.Context, _ string, _ map[string]any)  {}
 func (m *mockLogger) Fatal(_ context.Context, _ string, _ map[string]any) {}
 func (m *mockLogger) IsLevelEnabled(_ ports.LogLevel) bool                { return true }
+func (m *mockLogger) GetLevel() ports.LogLevel                            { return ports.LogLevelInfo }
 
 // Test Service constructors
 

@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestRootCommand_HasRequiredSubcommands(t *testing.T) {
+func TestRootCommand_RegistersAllRequiredSubcommands(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
@@ -32,7 +32,7 @@ func TestRootCommand_HasRequiredSubcommands(t *testing.T) {
 	assert.Contains(t, subCmdNames, "man", "Missing man subcommand")
 }
 
-func TestRootCommand_Metadata(t *testing.T) {
+func TestRootCommand_SetsCorrectMetadataAndDescription(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()

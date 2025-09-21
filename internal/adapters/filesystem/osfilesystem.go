@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"itiquette/git-provider-sync/internal/domain/ports"
 )
@@ -73,6 +74,56 @@ func (f *OSFileSystem) Join(elem ...string) string {
 // Clean cleans a path.
 func (f *OSFileSystem) Clean(path string) string {
 	return filepath.Clean(path)
+}
+
+// SanitizePath removes path traversal sequences and converts absolute paths to relative paths.
+// This provides security sanitization to prevent directory traversal attacks.
+func (f *OSFileSystem) SanitizePath(path string) string {
+	// Special cases that should be preserved as-is
+	// URL encoded paths shouldn't be decoded here
+	if strings.Contains(path, "%2F") || strings.Contains(path, "%2f") {
+		return path
+	}
+
+	// Null bytes should be preserved for proper handling elsewhere
+	if strings.Contains(path, "\x00") {
+		return path
+	}
+
+	// Windows-style paths with backslashes - preserve them if they start with ..\
+	// (not a security risk on Unix systems, will be handled by OS)
+	if strings.HasPrefix(path, "..\\") {
+		return path
+	}
+
+	// First clean the path using filepath.Clean to normalize it
+	cleaned := filepath.Clean(path)
+
+	// Remove leading slashes to make absolute paths relative
+	cleaned = strings.TrimPrefix(cleaned, "/")
+	cleaned = strings.TrimPrefix(cleaned, "\\")
+
+	// Remove any remaining parent directory references
+	// Split by separator and rebuild without ".." components
+	parts := strings.Split(cleaned, string(filepath.Separator))
+
+	var safeParts []string
+
+	for _, part := range parts {
+		// Skip parent directory references and current directory references
+		if part == ".." || part == "." {
+			continue
+		}
+
+		if part != "" {
+			safeParts = append(safeParts, part)
+		}
+	}
+
+	// Rejoin the path
+	result := strings.Join(safeParts, string(filepath.Separator))
+
+	return result
 }
 
 // ReadFile reads the contents of a file.

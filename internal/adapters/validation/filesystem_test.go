@@ -23,7 +23,7 @@ const (
 	testDirPath         = "/testdir"
 )
 
-func TestStatPath(t *testing.T) { //nolint:tparallel // Some subtests cannot run in parallel due to os.Chdir() usage
+func TestStatPath(t *testing.T) {
 	t.Parallel()
 
 	// Create a shared in-memory filesystem for all tests
@@ -82,10 +82,7 @@ func TestStatPath(t *testing.T) { //nolint:tparallel // Some subtests cannot run
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			// Note: Cannot use t.Parallel() with os.Chdir()
-			if test.name != "relative path" {
-				t.Parallel()
-			}
+			t.Parallel()
 
 			path := test.setupPath()
 			info, err := statPath(fileSystem, path)

@@ -7,77 +7,61 @@ SPDX-License-Identifier: CC0-1.0
 
 # Output Formatting
 
-Git Provider Sync provides flexible output formatting to support different use cases, from interactive terminal usage to CI/CD automation.
+Multiple output formats for different use cases.
 
 ## Quick Start
 
 ```bash
-# Default: Beautiful console output for humans
+# Default console output
 gitprovidersync sync
 
-# For CI/CD pipelines and automation
+# JSON for automation
 gitprovidersync sync --format=json
 
-# For log files and scripts
+# Plain text
 gitprovidersync sync --format=plain
 
-# Silent operation (errors only)
+# Errors only
 gitprovidersync --quiet sync
 ```
 
 ## Output Streams
 
-The tool follows Unix conventions for output streams:
-
-- **stdout**: User-facing data, results, and formatted output
-- **stderr**: Error messages and debug logs (when enabled)
-
-This separation allows for clean pipeline usage and log redirection.
+- **stdout**: Results and formatted output
+- **stderr**: Errors and debug logs
 
 ## Output Formats
 
 ### Default Format (Console for TTY)
 
-Beautiful, colored output with icons for interactive terminal usage:
+Colored output with icons for terminals:
 
 ```bash
 gitprovidersync sync --dry-run
-# or explicitly:
+# or
 gitprovidersync sync --format=default
 ```
 
-Features:
-- Colored output with emoji icons
-- Progress indicators
-- Hierarchical display of operations
-- Detailed summary with next steps
-
 ### Plain Format (Default for Pipes)
 
-Simple text output without colors, ideal for logs and non-interactive environments:
+Text output without colors:
 
 ```bash
 gitprovidersync sync --dry-run --format=plain
 ```
 
-Features:
-- No colors or special characters
-- Clean text suitable for log files
-- Structured but simple output
-- Auto-selected when output is piped
+Auto-selected when output is piped.
 
 ### JSON Format
 
-Structured JSON output for automation and programmatic consumption:
+Structured output for automation:
 
 ```bash
 gitprovidersync sync --dry-run --format=json | jq '.type'
 ```
 
-Features:
-- Newline-delimited JSON events
-- Machine-readable format
-- Complete operation details
+Newline-delimited JSON events.
+
 - Ideal for monitoring and automation
 
 ## Verbosity Levels
@@ -171,32 +155,8 @@ gitprovidersync --log-level=debug sync 2> debug.log
 gitprovidersync --log-level=trace sync &> full-output.log
 ```
 
-## Architecture
+## Notes
 
-The output formatting system follows hexagonal architecture:
-
-1. **Domain Layer** (`internal/domain/ports/sync_formatter.go`):
-
-- Defines the `SyncOutputFormatter` interface
-- Pure domain concept, no implementation details
-
-2. **Adapter Layer** (`internal/adapters/cli/`):
-
-- `console_formatter.go`: TTY-friendly output
-- `plain_formatter.go`: Simple text output
-- `json_formatter.go`: Structured JSON
-- `quiet_formatter.go`: Minimal output
-- `formatter_factory.go`: Creates appropriate formatter
-
-3. **Integration** (`cmd/synccmd/formatter_integration.go`):
-
-- Connects formatters to sync command
-- Handles formatter selection based on environment
-
-## Implementation Notes
-
-- Formatters write to stdout for user data
-- Logger writes to stderr only in debug/verbose modes
-- In normal operation, logger is suppressed to avoid mixed output
-- Output format detection is automatic based on TTY presence
-- Color support respects NO_COLOR environment variable
+- Output goes to stdout, logs to stderr
+- Format auto-detected from TTY presence
+- Colors respect NO_COLOR environment variable

@@ -7,7 +7,7 @@ SPDX-License-Identifier: EUPL-1.2
 
 # Git Test Environment Utility
 
-This package provides utilities for setting up isolated git environments for integration testing. It allows you to test real git operations without external dependencies or network calls.
+Utilities for setting up isolated git environments for integration testing. Test real git operations without external dependencies or network calls.
 
 ## Features
 
@@ -234,12 +234,12 @@ require.NoError(t, err)
 
 ## Best Practices
 
-1. **Automatic Cleanup**: Using `t.TempDir()` ensures automatic cleanup without manual intervention
+1. **Automatic Cleanup**: Using `t.TempDir()` for automatic cleanup
 2. **Parallel Tests**: Use `t.Parallel()` since each test gets isolated directories
 3. **Descriptive Names**: Use custom repository names for complex scenarios
-4. **Realistic Content**: Add realistic file structures for comprehensive testing
+4. **Realistic Content**: Add realistic file structures for testing
 5. **Test Boundaries**: Focus on testing git operations, not business logic
 
 ## Examples
 
-See `example_usage.go` for comprehensive usage examples and `git_test_env_test.go` for test cases demonstrating the utility in action.
+See `example_usage.go` for usage examples and `git_test_env_test.go` for test cases.

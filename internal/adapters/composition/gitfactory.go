@@ -5,6 +5,7 @@
 package composition
 
 import (
+	"context"
 	"fmt"
 
 	"itiquette/git-provider-sync/internal/adapters/repository/archive"
@@ -18,12 +19,14 @@ import (
 // GitFactory creates git operations instances based on configuration.
 type GitFactory struct {
 	fileSystem ports.FileSystem
+	logger     ports.Logger
 }
 
 // NewGitFactory creates a new git operations factory.
-func NewGitFactory(_ ports.GitConfig, fileSystem ports.FileSystem) *GitFactory {
+func NewGitFactory(_ ports.GitConfig, fileSystem ports.FileSystem, logger ports.Logger) *GitFactory {
 	return &GitFactory{
 		fileSystem: fileSystem,
+		logger:     logger,
 	}
 }
 
@@ -38,7 +41,16 @@ func (f *GitFactory) CreateOperations(config ports.GitConfig) (ports.GitOperatio
 	case ProviderTypeGoGit:
 		return gogit.New(config), nil
 	case ProviderTypeGitBinary:
-		return gitbinary.New(config), nil
+		// Use the functional constructor for gitbinary
+		adapterConfig := gitbinary.BuildAdapterConfig(config, f.logger,
+			gitbinary.WithConfigFileSystem(f.fileSystem))
+
+		adapter, err := gitbinary.NewFunctional(context.Background(), adapterConfig)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create git binary adapter: %w", err)
+		}
+
+		return adapter, nil
 	case ProviderTypeDirectory:
 		return directory.New(config), nil
 	case ProviderTypeArchive:

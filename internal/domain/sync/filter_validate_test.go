@@ -5,6 +5,7 @@ package sync_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -14,53 +15,72 @@ import (
 	"itiquette/git-provider-sync/internal/domain/sync"
 )
 
-func TestFilterRepositoriesUseCase_ValidateFilterRequest(t *testing.T) {
+// Define sentinel errors for testing.
+var (
+	errInvalidActivityLimit = errors.New("invalid activity limit duration")
+)
+
+func TestValidateFilterRequest_InputFormats(t *testing.T) {
 	t.Parallel()
 
 	useCase := sync.NewFilterRepositoriesUseCase(nil)
 	require.NotNil(t, useCase)
 
 	tests := []struct {
-		name    string
-		request sync.FilterRequest
-		wantErr bool
-		errMsg  string
+		name           string
+		request        sync.FilterRequest
+		wantErr        error  // Use error type instead of bool
+		errMsgContains string // For partial error message matching
 	}{
 		{
-			name: "valid request with repositories",
+			name: "valid_request_with_repositories",
 			request: sync.FilterRequest{
 				Repositories: []entities.Repository{
 					{}, // Empty repository is fine for validation
 				},
 			},
-			wantErr: false,
+			wantErr: nil,
 		},
 		{
-			name:    "empty request is valid",
+			name:    "empty_request_is_valid",
 			request: sync.FilterRequest{},
-			wantErr: false,
+			wantErr: nil,
 		},
 		{
-			name: "valid activity limit duration",
+			name: "valid_activity_limit_duration_hours",
 			request: sync.FilterRequest{
 				ActiveFromLimit: "24h",
 			},
-			wantErr: false,
+			wantErr: nil,
 		},
 		{
-			name: "invalid activity limit duration",
+			name: "invalid_activity_limit_duration_format",
 			request: sync.FilterRequest{
 				ActiveFromLimit: "invalid",
 			},
-			wantErr: true,
-			errMsg:  "invalid activity limit duration",
+			wantErr:        errInvalidActivityLimit, // Using sentinel error for clarity
+			errMsgContains: "invalid activity limit duration",
 		},
 		{
-			name: "valid duration formats",
+			name: "valid_duration_format_30_days",
 			request: sync.FilterRequest{
 				ActiveFromLimit: "720h", // 30 days in hours
 			},
-			wantErr: false,
+			wantErr: nil,
+		},
+		{
+			name: "valid_duration_format_minutes",
+			request: sync.FilterRequest{
+				ActiveFromLimit: "30m",
+			},
+			wantErr: nil,
+		},
+		{
+			name: "valid_duration_format_seconds",
+			request: sync.FilterRequest{
+				ActiveFromLimit: "3600s",
+			},
+			wantErr: nil,
 		},
 	}
 
@@ -69,14 +89,17 @@ func TestFilterRepositoriesUseCase_ValidateFilterRequest(t *testing.T) {
 			t.Parallel()
 
 			err := useCase.ValidateFilterRequest(context.Background(), testCase.request)
-			if testCase.wantErr {
-				require.Error(t, err)
 
-				if testCase.errMsg != "" {
-					assert.Contains(t, err.Error(), testCase.errMsg)
+			if testCase.wantErr != nil {
+				require.Error(t, err, "Expected error but got nil")
+
+				// Check for specific error message content
+				if testCase.errMsgContains != "" {
+					assert.Contains(t, err.Error(), testCase.errMsgContains,
+						"Error message should contain expected text")
 				}
 			} else {
-				require.NoError(t, err)
+				require.NoError(t, err, "Expected no error but got: %v", err)
 			}
 		})
 	}

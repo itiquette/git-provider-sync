@@ -28,6 +28,7 @@ func (l testGitLabLogger) Warn(_ context.Context, _ string, _ map[string]any)  {
 func (l testGitLabLogger) Error(_ context.Context, _ string, _ map[string]any) {}
 func (l testGitLabLogger) Fatal(_ context.Context, _ string, _ map[string]any) {}
 func (l testGitLabLogger) IsLevelEnabled(_ ports.LogLevel) bool                { return true }
+func (l testGitLabLogger) GetLevel() ports.LogLevel                            { return ports.LogLevelInfo }
 
 func TestNewCompleteAdapter(t *testing.T) {
 	t.Parallel()
@@ -93,7 +94,6 @@ func TestNewCompleteAdapter(t *testing.T) {
 					assert.NotNil(t, adapter.projectService)
 					assert.NotNil(t, adapter.protectionService)
 					assert.NotNil(t, adapter.filterService)
-					assert.NotNil(t, adapter.optionsBuilder)
 				}
 			}
 		})

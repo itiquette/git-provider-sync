@@ -127,7 +127,8 @@ run_dockle_scan() {
     return 0
   fi
 
-  local temp_tar="/tmp/$EXECUTABLE-$build_tag.tar"
+  local temp_tar
+  temp_tar=$(mktemp /tmp/container-dockle-scan-XXXXXX.tar)
 
   # Save image to tar for dockle analysis
   if ! podman save -o "$temp_tar" "localhost/$EXECUTABLE:$build_tag"; then
@@ -138,9 +139,6 @@ run_dockle_scan() {
   # Run dockle scan
   local scan_result=0
   dockle --input "$temp_tar" || scan_result=$?
-
-  # Cleanup
-  rm -f "$temp_tar"
 
   if [[ $scan_result -ne 0 ]]; then
     log "dockle scan completed with warnings/errors (exit code: $scan_result)"

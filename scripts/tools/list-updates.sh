@@ -54,7 +54,6 @@ validate_tools_directory() {
 main() {
   validate_project_directory || exit 1
 
-  # Check for required tools
   if ! command -v jq >/dev/null 2>&1; then
     fail "jq is required but not installed"
     log "Install jq to parse JSON output: apt install jq / brew install jq"
@@ -82,11 +81,8 @@ main() {
   latest_go=$(curl -sL "https://go.dev/dl/?mode=json" 2>/dev/null | jq -r '.[0].version' 2>/dev/null | sed 's/^go//' || echo "")
 
   if [[ -n "$latest_go" ]]; then
-    # Extract major.minor for comparison
-    current_major_minor=$(echo "$current_go_full" | cut -d. -f1,2)
-    latest_major_minor=$(echo "$latest_go" | cut -d. -f1,2)
-
-    if [[ "$current_major_minor" == "$latest_major_minor" ]]; then
+    # Compare full versions including patch
+    if [[ "$current_go_full" == "$latest_go" ]]; then
       printf "  %-30s ${GREEN}%s${NC} (up to date)\n" "Go" "$current_go_full"
     else
       # Show full version with patch number for the update
@@ -123,12 +119,12 @@ main() {
           read -r module current rest <<<"$line"
 
           if echo "$line" | grep -q '\['; then
-            # This direct dependency has an update available
+            # Direct dependency has an update available
             latest="${line#*[}"
             latest="${latest%]*}"
             printf "  %-50s ${YELLOW}%s${NC} → ${GREEN}%s${NC}\n" "$module" "$current" "$latest"
           else
-            # This direct dependency is up to date
+            # Direct dependency is up to date
             printf "  %-50s ${GREEN}%s${NC} (up to date)\n" "$module" "$current"
           fi
           break

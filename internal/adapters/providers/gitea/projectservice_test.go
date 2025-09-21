@@ -30,6 +30,7 @@ func (l testGiteaProjectLogger) Error(_ context.Context, _ string, _ map[string]
 func (l testGiteaProjectLogger) Fatal(_ context.Context, _ string, _ map[string]any) {
 }
 func (l testGiteaProjectLogger) IsLevelEnabled(_ ports.LogLevel) bool { return true }
+func (l testGiteaProjectLogger) GetLevel() ports.LogLevel             { return ports.LogLevelInfo }
 
 // Removed TestNewProjectService - constructor test with nil dependency adds no value
 // Actual service behavior is tested in TestProjectService_ValidateProjectName

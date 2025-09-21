@@ -5,7 +5,7 @@
 
 # Upgrades Go development tools to latest versions with intelligent version checking
 # Usage: ./scripts/tools/upgrade-go-dev-tools.sh
-# Dependencies: go 1.24.4+, jq, tools/go.mod with tool directive
+# Dependencies: go 1.25+, jq, tools/go.mod with tool directive
 # Output: Per-tool upgrade status, summary of tools upgraded vs skipped
 
 set -euo pipefail

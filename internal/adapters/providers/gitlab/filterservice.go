@@ -16,6 +16,7 @@ import (
 const (
 	visibilityPrivate  = "private"
 	visibilityInternal = "internal"
+	visibilityPublic   = "public"
 )
 
 // FilterService provides GitLab-specific repository filtering operations.

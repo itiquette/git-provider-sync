@@ -176,7 +176,7 @@ func (m *SharedMockGitRepository) IsBare() bool                   { return false
 func (m *SharedMockGitRepository) IsClean() bool                  { return true }
 func (m *SharedMockGitRepository) HasChanges() bool               { return false }
 func (m *SharedMockGitRepository) Close() error                   { return nil }
-func (m *SharedMockGitRepository) CurrentBranch() (string, error) { return "main", nil }
+func (m *SharedMockGitRepository) CurrentBranch() (string, error) { return defaultBranchName, nil }
 func (m *SharedMockGitRepository) ListBranches(_ context.Context) ([]ports.BranchInfo, error) {
 	return []ports.BranchInfo{}, nil
 }
@@ -316,6 +316,10 @@ func (m *SharedMockLogger) Fatal(ctx context.Context, msg string, fields map[str
 
 func (m *SharedMockLogger) IsLevelEnabled(_ ports.LogLevel) bool {
 	return true
+}
+
+func (m *SharedMockLogger) GetLevel() ports.LogLevel {
+	return ports.LogLevelInfo
 }
 
 func createTestRepository(name string) entities.Repository {

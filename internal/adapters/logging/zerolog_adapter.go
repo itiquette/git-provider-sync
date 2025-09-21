@@ -89,9 +89,12 @@ func (z *ZerologAdapter) WithContext(ctx context.Context) ports.Logger { //nolin
 	return &ZerologAdapter{logger: zerolog.Ctx(newLogger)}
 }
 
-// SetLevel sets the minimum log level for this logger.
-func (z *ZerologAdapter) SetLevel(level ports.LogLevel) {
-	*z.logger = z.logger.Level(z.convertLogLevel(level))
+// WithLevel returns a new logger with the specified log level.
+// This is the functional alternative to SetLevel.
+func (z *ZerologAdapter) WithLevel(level ports.LogLevel) *ZerologAdapter {
+	newLogger := z.logger.Level(z.convertLogLevel(level))
+
+	return &ZerologAdapter{logger: &newLogger}
 }
 
 // GetLevel returns the current logging level.

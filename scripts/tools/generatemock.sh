@@ -52,11 +52,7 @@ prepare_directories() {
 
 # Function to clean old auto-generated mocks (preserve manual mocks)
 clean_old_mocks() {
-  printf '%bCleaning old auto-generated mock files...%b\n' "$BLUE" "$NC"
-  if [ -d "${OUTPUT_DIR}" ]; then
-    # Only clean files that don't have "manual creation" in their header
-    find "${OUTPUT_DIR}" -name "*.go" -type f -exec grep -L "manual creation" {} + -print0 | xargs -0 rm -f 2>/dev/null || true
-  fi
+  printf '%bGenerating fresh mock files...%b\n' "$BLUE" "$NC"
 }
 
 printf '%bStarting hexagonal architecture mock generation...%b\n' "$BLUE" "$NC"
@@ -110,7 +106,7 @@ fi
 printf '%bGenerating GitLab API mocks for specific interfaces...%b\n' "$YELLOW" "$NC"
 printf '%bTargeting only the interfaces we actually use%b\n' "$BLUE" "$NC"
 
-# Ensure dependencies are downloaded
+# Download dependencies
 go mod download >/dev/null 2>&1
 
 # Generate specific interfaces for core git-provider-sync operations

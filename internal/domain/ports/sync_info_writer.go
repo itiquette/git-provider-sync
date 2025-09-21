@@ -4,7 +4,7 @@
 package ports
 
 // SyncInfo represents the sync results information to be persisted.
-// This is a simple DTO to avoid import cycles with the sync package.
+// DTO to avoid import cycles with the sync package.
 type SyncInfo struct {
 	Timestamp         int64
 	TotalRepositories int

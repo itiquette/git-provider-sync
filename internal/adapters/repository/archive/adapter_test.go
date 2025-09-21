@@ -643,7 +643,8 @@ func TestCreateArchive_WhenSourceDoesNotExist_ReturnsError(t *testing.T) {
 	archivePath, err := os.CreateTemp("", "test-archive-*.tar.gz")
 	require.NoError(t, err)
 
-	defer func() { _ = os.Remove(archivePath.Name()) }()
+	// Use t.Cleanup for safe cleanup even on panic
+	t.Cleanup(func() { _ = os.Remove(archivePath.Name()) })
 
 	_ = archivePath.Close()
 
@@ -1178,7 +1179,8 @@ func TestAdapter_extractDirectory_Error(t *testing.T) {
 func BenchmarkAdapter_Clone(b *testing.B) {
 	archivePath := createTestArchive(b)
 
-	defer func() { _ = os.Remove(archivePath) }()
+	// Use b.Cleanup for benchmark cleanup
+	b.Cleanup(func() { _ = os.Remove(archivePath) })
 
 	fs := createTestFileSystem(b)
 	adapter := NewWithFileSystem(createMockGitConfig(), fs)
@@ -1204,7 +1206,8 @@ func BenchmarkAdapter_Clone(b *testing.B) {
 func BenchmarkAdapter_extractArchive(b *testing.B) {
 	archivePath := createTestArchive(b)
 
-	defer func() { _ = os.Remove(archivePath) }()
+	// Use b.Cleanup for benchmark cleanup
+	b.Cleanup(func() { _ = os.Remove(archivePath) })
 
 	fs := createTestFileSystem(b)
 	adapter := NewWithFileSystem(createMockGitConfig(), fs)
@@ -1229,21 +1232,18 @@ func BenchmarkAdapter_createArchive(b *testing.B) {
 	fs := createTestFileSystem(b)
 	adapter := NewWithFileSystem(createMockGitConfig(), fs)
 
+	// Use a temp directory for all archives, auto-cleaned by b.TempDir
+	tempDir := b.TempDir()
+
 	b.ResetTimer()
 
 	for i := range b.N {
-		archivePath, err := os.CreateTemp("", fmt.Sprintf("benchmark-archive-%d-*.tar.gz", i))
+		archivePath := filepath.Join(tempDir, fmt.Sprintf("benchmark-archive-%d.tar.gz", i))
+
+		err := adapter.createArchive(sourceDir, archivePath)
 		if err != nil {
 			b.Fatal(err)
 		}
-
-		_ = archivePath.Close()
-
-		err = adapter.createArchive(sourceDir, archivePath.Name())
-		if err != nil {
-			b.Fatal(err)
-		}
-
-		_ = os.Remove(archivePath.Name())
+		// No manual cleanup needed - b.TempDir() handles it
 	}
 }

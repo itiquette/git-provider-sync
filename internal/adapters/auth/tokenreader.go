@@ -78,28 +78,6 @@ func (tr *TokenReader) ReadTokenFromFile(path string) (string, error) {
 	return token, nil
 }
 
-// ReadTokenFromFile is a legacy function that creates a TokenReader with OS filesystem.
-// Deprecated: Use TokenReader.ReadTokenFromFile instead for better testability.
-func ReadTokenFromFile(path string) (string, error) {
-	// Import cycle prevents using filesystem.NewOSFileSystem() here
-	// This is a compatibility shim - new code should use TokenReader
-	if path == "-" {
-		return ReadTokenFromStdin()
-	}
-
-	data, err := os.ReadFile(path) //nolint:gosec // User provides the path explicitly
-	if err != nil {
-		return "", fmt.Errorf("failed to read token file %s: %w", path, err)
-	}
-
-	token := strings.TrimSpace(string(data))
-	if token == "" {
-		return "", fmt.Errorf("token file %s is empty", path)
-	}
-
-	return token, nil
-}
-
 // ValidateToken performs basic validation on a token
 // Returns an error if the token appears invalid.
 func ValidateToken(token string) error {

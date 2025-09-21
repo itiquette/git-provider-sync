@@ -13,6 +13,7 @@ import (
 
 	"itiquette/git-provider-sync/internal/domain"
 	"itiquette/git-provider-sync/internal/domain/ports"
+	"itiquette/git-provider-sync/internal/shared"
 )
 
 // ExecutorService defines the interface for executing git commands.
@@ -34,7 +35,7 @@ type executorService struct {
 func NewExecutorService(binaryPath string) ExecutorService { //nolint:ireturn
 	return &executorService{
 		gitBinaryPath: binaryPath,
-		gitTimeout:    5 * time.Minute, // Default 5 minutes
+		gitTimeout:    DefaultTimeout,
 	}
 }
 
@@ -43,14 +44,14 @@ func NewExecutorServiceWithLogger(binaryPath string, logger ports.Logger) Execut
 	return &executorService{
 		gitBinaryPath: binaryPath,
 		logger:        logger,
-		gitTimeout:    5 * time.Minute, // Default 5 minutes
+		gitTimeout:    DefaultTimeout,
 	}
 }
 
 // NewExecutorServiceWithTimeout creates a new git executor service with configurable timeout.
 func NewExecutorServiceWithTimeout(binaryPath string, logger ports.Logger, timeout time.Duration) ExecutorService { //nolint:ireturn
 	if timeout == 0 {
-		timeout = 5 * time.Minute
+		timeout = DefaultTimeout
 	}
 
 	return &executorService{
@@ -86,12 +87,17 @@ func (e *executorService) RunGitCommand(ctx context.Context, env []string, worki
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("error executing '%s %s': %w. output: %s", e.gitBinaryPath, strings.Join(args, " "), err, output)
+		// Sanitize command arguments and output to prevent credential leakage
+		sanitizedArgs := shared.SanitizeURL(strings.Join(args, " "))
+		sanitizedOutput := shared.SanitizeURL(string(output))
+
+		return fmt.Errorf("error executing git %s: %w. output: %s", sanitizedArgs, err, sanitizedOutput)
 	}
 
 	if e.logger != nil {
+		// Sanitize output before logging to prevent credential leakage
 		e.logger.Debug(ctx, "Git command output", map[string]any{
-			"output": string(output),
+			"output": shared.SanitizeURL(string(output)),
 		})
 	}
 
@@ -113,7 +119,10 @@ func (e *executorService) RunGitCommandWithOutput(ctx context.Context, workingDi
 
 	output, err := cmd.Output()
 	if err != nil {
-		return nil, fmt.Errorf("failed to execute git command: %w", err)
+		// Sanitize command arguments to prevent credential leakage
+		sanitizedArgs := shared.SanitizeURL(strings.Join(args, " "))
+
+		return nil, fmt.Errorf("failed to execute git %s: %w", sanitizedArgs, err)
 	}
 
 	return output, nil

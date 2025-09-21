@@ -47,8 +47,9 @@ func TestSetupSignalContext(t *testing.T) {
 			baseCtx := context.Background()
 
 			// Setup signal context
-			ctx := SetupSignalContext(baseCtx)
+			ctx, getExitCode := SetupSignalContext(baseCtx)
 			require.NotNil(t, ctx)
+			require.NotNil(t, getExitCode)
 
 			// Verify context is not cancelled initially
 			select {

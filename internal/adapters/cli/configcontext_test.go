@@ -20,7 +20,7 @@ type testStructKey struct{}
 
 // Test ConfigKey type
 
-func TestConfigKey_Type(t *testing.T) {
+func TestConfigKey_UniquenessAsContextKey(t *testing.T) {
 	t.Parallel()
 
 	var (
@@ -36,7 +36,7 @@ func TestConfigKey_Type(t *testing.T) {
 
 // Test ConfigFromContext function
 
-func TestConfigFromContext(t *testing.T) {
+func TestConfigFromContext_ReturnsStoredOrDefaultConfig(t *testing.T) {
 	t.Parallel()
 
 	// Create a test CLI config for the valid case
@@ -56,13 +56,13 @@ func TestConfigFromContext(t *testing.T) {
 		expectedConfig entities.CLIConfig
 	}{
 		{
-			name:           "empty context",
+			name:           "returns_default_config_when_context_empty",
 			setupContext:   context.Background,
 			expectedFound:  false,
 			expectedConfig: entities.CLIConfig{},
 		},
 		{
-			name: "context with valid config",
+			name: "retrieves_config_when_properly_stored",
 			setupContext: func() context.Context {
 				ctx := context.Background()
 
@@ -72,7 +72,7 @@ func TestConfigFromContext(t *testing.T) {
 			expectedConfig: validConfig,
 		},
 		{
-			name: "context with wrong type",
+			name: "returns_default_when_value_wrong_type",
 			setupContext: func() context.Context {
 				ctx := context.Background()
 
@@ -82,7 +82,7 @@ func TestConfigFromContext(t *testing.T) {
 			expectedConfig: entities.CLIConfig{},
 		},
 		{
-			name: "context with nil value",
+			name: "returns_default_when_value_is_nil",
 			setupContext: func() context.Context {
 				ctx := context.Background()
 

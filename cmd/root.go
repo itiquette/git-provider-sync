@@ -5,9 +5,11 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 
 	"github.com/urfave/cli/v3"
@@ -146,7 +148,7 @@ func RunApplication(version, commitSHA, buildDate string) {
 	ctx := context.Background()
 
 	// Set up signal handling for graceful shutdown
-	ctx = SetupSignalContext(ctx)
+	ctx, getSignalExitCode := SetupSignalContext(ctx)
 
 	zerologLogger := log.Logger(ctx)
 
@@ -160,7 +162,21 @@ func RunApplication(version, commitSHA, buildDate string) {
 		// If debug logging was enabled, show the debug log path
 		showDebugLogPath(ctx)
 
-		os.Exit(1)
+		// Check if the error is due to context cancellation from a signal
+		if errors.Is(err, context.Canceled) {
+			// Exit with the signal exit code if a signal was received
+			if exitCode := getSignalExitCode(); exitCode != 0 {
+				os.Exit(exitCode)
+			}
+		}
+
+		// Use DetermineExitCode to get the appropriate exit code
+		os.Exit(DetermineExitCode(err))
+	}
+
+	// Check if we received a signal even without error (shouldn't happen but be safe)
+	if exitCode := getSignalExitCode(); exitCode != 0 {
+		os.Exit(exitCode)
 	}
 
 	// Show debug log path on successful completion too (if debug enabled)
@@ -175,18 +191,69 @@ func showDebugLogPath(ctx context.Context) {
 	}
 }
 
-// SetupSignalContext creates a context that will be cancelled on interrupt signals.
-func SetupSignalContext(ctx context.Context) context.Context {
-	// Create a context that will be cancelled on SIGINT (Ctrl-C) or SIGTERM
-	ctx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
+// SetupSignalContext creates a context that will be cancelled on interrupt signals
+// and returns a function to get the exit code for the received signal.
+func SetupSignalContext(ctx context.Context) (context.Context, func() int) {
+	// Track which signal was received
+	var (
+		mutex          sync.Mutex
+		receivedSignal os.Signal
+	)
 
-	// Provide immediate feedback when interrupted
+	// Create a new context that we can cancel
+	ctx, cancel := context.WithCancel(ctx)
+
+	// Set up signal notification channel
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan,
+		syscall.SIGHUP,  // Terminal hangup
+		syscall.SIGINT,  // Ctrl+C
+		syscall.SIGQUIT, // Ctrl+\ (quit with core dump)
+		syscall.SIGTERM, // Termination request
+	)
+
+	// Handle signals in goroutine
 	go func() {
-		<-ctx.Done()
-		// Immediate feedback - user knows their Ctrl-C was received
-		fmt.Fprintf(os.Stderr, "\nInterrupted\n")
-		stop()
+		sig := <-sigChan
+
+		mutex.Lock()
+
+		receivedSignal = sig
+
+		mutex.Unlock()
+
+		// Provide appropriate feedback based on signal
+		switch sig {
+		case syscall.SIGQUIT:
+			fmt.Fprintf(os.Stderr, "\nQuit\n")
+		case syscall.SIGHUP:
+			fmt.Fprintf(os.Stderr, "\nHangup\n")
+		case syscall.SIGTERM:
+			fmt.Fprintf(os.Stderr, "\nTerminated\n")
+		default:
+			fmt.Fprintf(os.Stderr, "\nInterrupted\n")
+		}
+
+		// Cancel the context to trigger shutdown
+		cancel()
 	}()
 
-	return ctx
+	// Return function to get exit code based on signal
+	getExitCode := func() int {
+		mutex.Lock()
+		defer mutex.Unlock()
+
+		if receivedSignal == nil {
+			return ExitSuccess
+		}
+
+		// Use the helper function to convert signal to exit code
+		if signum, ok := receivedSignal.(syscall.Signal); ok {
+			return SignalToExitCode(signum)
+		}
+
+		return ExitSuccess
+	}
+
+	return ctx, getExitCode
 }

@@ -29,7 +29,8 @@ func TestNewGitFactory(t *testing.T) {
 	// Use memory filesystem for tests
 	memFS := testutil.NewMemFS(t)
 	fs := filesystem.NewAferoFileSystem(memFS.Fs)
-	_ = NewGitFactory(config, fs)
+	logger := testutil.NewNoOpLogger()
+	_ = NewGitFactory(config, fs, logger)
 	// GitFactory is now stateless - no config field
 }
 
@@ -48,7 +49,7 @@ func TestGitFactory_CreateOperations_GoGit(t *testing.T) {
 	// Use memory filesystem for tests
 	memFS := testutil.NewMemFS(t)
 	fs := filesystem.NewAferoFileSystem(memFS.Fs)
-	factory := NewGitFactory(factoryConfig, fs)
+	factory := NewGitFactory(factoryConfig, fs, testutil.NewNoOpLogger())
 
 	operationConfig := ports.GitConfig{
 		UserName:                "testuser",
@@ -79,7 +80,7 @@ func TestGitFactory_CreateOperations_GitBinary(t *testing.T) {
 	// Use memory filesystem for tests
 	memFS := testutil.NewMemFS(t)
 	fs := filesystem.NewAferoFileSystem(memFS.Fs)
-	factory := NewGitFactory(factoryConfig, fs)
+	factory := NewGitFactory(factoryConfig, fs, testutil.NewNoOpLogger())
 
 	operationConfig := ports.GitConfig{
 		UserName:                "testuser",
@@ -110,7 +111,7 @@ func TestGitFactory_CreateOperations_Directory(t *testing.T) {
 	// Use memory filesystem for tests
 	memFS := testutil.NewMemFS(t)
 	fs := filesystem.NewAferoFileSystem(memFS.Fs)
-	factory := NewGitFactory(factoryConfig, fs)
+	factory := NewGitFactory(factoryConfig, fs, testutil.NewNoOpLogger())
 
 	operationConfig := ports.GitConfig{
 		UserName:                "testuser",
@@ -141,7 +142,7 @@ func TestGitFactory_CreateOperations_Archive(t *testing.T) {
 	// Use memory filesystem for tests
 	memFS := testutil.NewMemFS(t)
 	fs := filesystem.NewAferoFileSystem(memFS.Fs)
-	factory := NewGitFactory(factoryConfig, fs)
+	factory := NewGitFactory(factoryConfig, fs, testutil.NewNoOpLogger())
 
 	operationConfig := ports.GitConfig{
 		UserName:                "testuser",
@@ -163,7 +164,7 @@ func TestGitFactory_CreateOperations_UnsupportedImplementation(t *testing.T) {
 	// Use memory filesystem for tests
 	memFS := testutil.NewMemFS(t)
 	fs := filesystem.NewAferoFileSystem(memFS.Fs)
-	factory := NewGitFactory(ports.GitConfig{}, fs)
+	factory := NewGitFactory(ports.GitConfig{}, fs, testutil.NewNoOpLogger())
 
 	config := ports.GitConfig{
 		UserName:                "testuser",
@@ -185,7 +186,7 @@ func TestGitFactory_CreateOperations_EmptyImplementation(t *testing.T) {
 	// Use memory filesystem for tests
 	memFS := testutil.NewMemFS(t)
 	fs := filesystem.NewAferoFileSystem(memFS.Fs)
-	factory := NewGitFactory(ports.GitConfig{}, fs)
+	factory := NewGitFactory(ports.GitConfig{}, fs, testutil.NewNoOpLogger())
 
 	config := ports.GitConfig{
 		UserName:                "testuser",

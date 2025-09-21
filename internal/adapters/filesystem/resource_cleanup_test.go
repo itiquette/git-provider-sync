@@ -231,8 +231,10 @@ func TestResourceCleanup_FileDescriptors(t *testing.T) {
 		require.NoError(t, err)
 
 		// Should be able to delete the file immediately after closing
+		// Using t.Cleanup would be too late to test immediate deletion
+		// This is testing the behavior that files can be deleted after closing
 		err = os.Remove(testFile)
-		require.NoError(t, err)
+		require.NoError(t, err, "Should be able to delete file after closing handle")
 		assert.NoFileExists(t, testFile)
 	})
 

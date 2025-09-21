@@ -20,7 +20,7 @@ import (
 	"itiquette/git-provider-sync/internal/testutil"
 )
 
-func TestCreateSystemStatus_WhenGivenValidConfiguration_ReturnsCorrectStatus(t *testing.T) {
+func TestCreateSystemStatus_GeneratesValidStatusFromConfiguration(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -132,7 +132,7 @@ func TestCreateSystemStatus_WhenGivenValidConfiguration_ReturnsCorrectStatus(t *
 	}
 }
 
-func TestBuildHTTPSURL_WhenGivenDomain_ReturnsProperlyFormattedURL(t *testing.T) {
+func TestBuildHTTPSURL_HandlesVariousDomainFormats(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -167,7 +167,7 @@ func TestBuildHTTPSURL_WhenGivenDomain_ReturnsProperlyFormattedURL(t *testing.T)
 	}
 }
 
-func TestProviderConnectivity_WhenCheckingConnections_ReturnsValidationResults(t *testing.T) {
+func TestProviderConnectivity_ValidatesHTTPConnectionToProviders(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
@@ -200,7 +200,7 @@ func TestProviderConnectivity_WhenCheckingConnections_ReturnsValidationResults(t
 	require.True(t, results[0].Validation.Required)
 }
 
-func TestFormatSystemStatus_WhenFormattingAsJSON_ReturnsValidJSONStructure(t *testing.T) {
+func TestFormatSystemStatus_ProducesCorrectOutputForEachFormat(t *testing.T) {
 	t.Parallel()
 
 	status := SystemStatus{
@@ -257,7 +257,7 @@ func TestFormatSystemStatus_WhenFormattingAsJSON_ReturnsValidJSONStructure(t *te
 	}
 }
 
-func TestFormatStatus_ConsoleOutput_ReturnsReadableText(t *testing.T) {
+func TestFormatStatusConsole(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -334,7 +334,7 @@ func TestFormatStatus_ConsoleOutput_ReturnsReadableText(t *testing.T) {
 	}
 }
 
-func TestFormatStatus_JSONOutput_ReturnsValidJSON(t *testing.T) {
+func TestFormatStatusJSON(t *testing.T) {
 	t.Parallel()
 
 	status := SystemStatus{
@@ -371,7 +371,7 @@ func TestFormatStatus_JSONOutput_ReturnsValidJSON(t *testing.T) {
 	require.Contains(t, result, "\"suggestions\":")
 }
 
-func TestFormatStatus_PlainOutput_ReturnsSimpleText(t *testing.T) {
+func TestFormatStatusPlain(t *testing.T) {
 	t.Parallel()
 
 	status := SystemStatus{
@@ -400,7 +400,7 @@ func TestFormatStatus_PlainOutput_ReturnsSimpleText(t *testing.T) {
 	require.Contains(t, result, "TOTAL_WARNINGS\t1")
 }
 
-func TestHandleStatusError_WithErrorTypes_FormatsCorrectly(t *testing.T) {
+func TestHandleStatusError(t *testing.T) {
 	// Tests error handling logic without capturing fmt.Printf output
 	// (capturing Printf output in tests is complex and unreliable)
 	t.Parallel()
@@ -439,7 +439,7 @@ func TestHandleStatusError_WithErrorTypes_FormatsCorrectly(t *testing.T) {
 	}
 }
 
-func TestGetLastSyncInfo_ParsesSyncFileContent_ReturnsFormattedInfo(t *testing.T) {
+func TestGetLastSyncInfo_ReadsAndParsesSyncInfoCorrectly(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {

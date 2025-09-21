@@ -24,8 +24,6 @@ func TestNew(t *testing.T) {
 	adapter := New()
 
 	assert.NotNil(t, adapter)
-	assert.NotNil(t, adapter.koanf)
-	assert.Empty(t, adapter.sources)
 	assert.Equal(t, "1.0.0", adapter.version)
 }
 
@@ -151,7 +149,8 @@ environments:
 			} else {
 				require.NoError(t, err)
 				assert.NotNil(t, config)
-				assert.NotZero(t, adapter.GetLastModified())
+				// Stateless adapter doesn't track last modified
+				assert.Zero(t, adapter.GetLastModified())
 			}
 		})
 	}
@@ -254,10 +253,10 @@ environments:
 `
 	require.NoError(t, os.WriteFile(configPath, []byte(newContent), 0600))
 
-	// Reload
-	reloadedConfig, err := adapter.Reload(ctx)
-	require.NoError(t, err)
-	assert.Equal(t, "reloaded-owner", reloadedConfig.Environments["test"].Source.Owner)
+	// Reload - should return error in stateless adapter
+	_, err = adapter.Reload(ctx)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "reload not supported in stateless adapter")
 }
 
 func TestValidate(t *testing.T) {
@@ -455,11 +454,10 @@ func TestGetters(t *testing.T) {
 	_, err := adapter.Load(ctx, source)
 	require.NoError(t, err)
 
-	// Test after loading
+	// Test after loading - in stateless adapter, these return empty
 	sources := adapter.GetSources()
-	assert.Len(t, sources, 1)
-	assert.Equal(t, configPath, sources[0].Location)
-	assert.False(t, adapter.GetLastModified().IsZero())
+	assert.Empty(t, sources)                           // Stateless adapter doesn't store sources
+	assert.True(t, adapter.GetLastModified().IsZero()) // Stateless adapter doesn't track last modified
 }
 
 func TestFileFormatDetection(t *testing.T) {
@@ -630,26 +628,7 @@ func TestUnsupportedSourceTypes(t *testing.T) {
 		sourceType ports.SourceType
 		expectErr  error
 	}{
-		{
-			name:       "etcd not implemented",
-			sourceType: ports.SourceTypeEtcd,
-			expectErr:  ErrSourceTypeNotImplemented,
-		},
-		{
-			name:       "consul not implemented",
-			sourceType: ports.SourceTypeConsul,
-			expectErr:  ErrSourceTypeNotImplemented,
-		},
-		{
-			name:       "vault not implemented",
-			sourceType: ports.SourceTypeVault,
-			expectErr:  ErrSourceTypeNotImplemented,
-		},
-		{
-			name:       "http not implemented",
-			sourceType: ports.SourceTypeHTTP,
-			expectErr:  ErrSourceTypeNotImplemented,
-		},
+
 		{
 			name:       "unsupported type",
 			sourceType: ports.SourceType("unknown"),
@@ -775,7 +754,7 @@ func TestConcurrentAccess(t *testing.T) {
 	}
 
 	// Verify adapter is still in good state
-	assert.NotEmpty(t, adapter.GetSources())
+	assert.Empty(t, adapter.GetSources()) // Stateless adapter doesn't store sources
 	assert.Equal(t, "1.0.0", adapter.GetVersion())
 }
 

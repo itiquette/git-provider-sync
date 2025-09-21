@@ -134,11 +134,45 @@ func (uc ValidateSyncUseCase) Execute(
 	ctx context.Context,
 	request ValidateSyncRequest,
 ) (ValidateSyncResponse, error) {
-	var errors []ValidationError
+	// Run core validations first
+	errors, warnings := uc.runCoreValidations(request)
 
-	var warnings []ValidationWarning
+	// Run optional validations based on options
+	if request.Options.CheckConnectivity {
+		connErrors := uc.validateConnectivity(ctx, request.SourceConfig, request.MirrorTargets)
+		errors = append(errors, connErrors...)
+	}
 
-	var recommendations []string
+	if request.Options.CheckAuthentication {
+		authErrors := uc.validateAuthentication(ctx, request.SourceConfig, request.MirrorTargets)
+		errors = append(errors, authErrors...)
+	}
+
+	// Estimate repository count unless we have errors in strict mode
+	var repoCount int
+	if len(errors) == 0 || !request.Options.StrictMode {
+		repoCount = uc.safeEstimateRepositoryCount(ctx, request.SourceConfig, &warnings)
+	}
+
+	estimatedDuration := uc.calculateEstimatedDuration(repoCount, len(request.MirrorTargets))
+	recommendations := uc.generateRecommendations(errors, warnings, request.MirrorTargets, repoCount)
+
+	return ValidateSyncResponse{
+		Valid:              len(errors) == 0,
+		Errors:             errors,
+		Warnings:           warnings,
+		RepositoryCount:    repoCount,
+		EstimatedDuration:  estimatedDuration,
+		RecommendedActions: recommendations,
+	}, nil
+}
+
+// runCoreValidations performs essential validations that always run.
+func (uc ValidateSyncUseCase) runCoreValidations(request ValidateSyncRequest) ([]ValidationError, []ValidationWarning) {
+	var (
+		errors   []ValidationError
+		warnings []ValidationWarning
+	)
 
 	// Validate source configuration
 	sourceErrors := uc.validateSourceConfig(request.SourceConfig)
@@ -149,50 +183,27 @@ func (uc ValidateSyncUseCase) Execute(
 	errors = append(errors, mirrorErrors...)
 	warnings = append(warnings, mirrorWarnings...)
 
-	// Validate connectivity if requested
-	if request.Options.CheckConnectivity {
-		connErrors := uc.validateConnectivity(ctx, request.SourceConfig, request.MirrorTargets)
-		errors = append(errors, connErrors...)
+	return errors, warnings
+}
+
+// safeEstimateRepositoryCount estimates repository count and converts errors to warnings.
+func (uc ValidateSyncUseCase) safeEstimateRepositoryCount(
+	ctx context.Context,
+	config ports.ProviderConfig,
+	warnings *[]ValidationWarning,
+) int {
+	count, err := uc.estimateRepositoryCount(ctx, config)
+	if err != nil {
+		*warnings = append(*warnings, ValidationWarning{
+			Type:    WarningTypePerformance,
+			Message: "Could not estimate repository count: " + err.Error(),
+			Impact:  "Duration estimate may be inaccurate",
+		})
+
+		return 0
 	}
 
-	// Validate authentication if requested
-	if request.Options.CheckAuthentication {
-		authErrors := uc.validateAuthentication(ctx, request.SourceConfig, request.MirrorTargets)
-		errors = append(errors, authErrors...)
-	}
-
-	// Get repository count estimate
-	repoCount := 0
-
-	if len(errors) == 0 || !request.Options.StrictMode {
-		count, err := uc.estimateRepositoryCount(ctx, request.SourceConfig)
-		if err != nil {
-			warnings = append(warnings, ValidationWarning{
-				Type:    WarningTypePerformance,
-				Message: "Could not estimate repository count: " + err.Error(),
-				Impact:  "Duration estimate may be inaccurate",
-			})
-		} else {
-			repoCount = count
-		}
-	}
-
-	// Generate recommendations
-	recommendations = uc.generateRecommendations(errors, warnings, request.MirrorTargets, repoCount)
-
-	// Calculate estimated duration
-	estimatedDuration := uc.calculateEstimatedDuration(repoCount, len(request.MirrorTargets))
-
-	response := ValidateSyncResponse{
-		Valid:              len(errors) == 0,
-		Errors:             errors,
-		Warnings:           warnings,
-		RepositoryCount:    repoCount,
-		EstimatedDuration:  estimatedDuration,
-		RecommendedActions: recommendations,
-	}
-
-	return response, nil
+	return count
 }
 
 // ValidateSourceConfig validates the source provider configuration.

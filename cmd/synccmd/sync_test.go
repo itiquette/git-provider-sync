@@ -4,6 +4,7 @@
 package synccmd
 
 import (
+	"bytes"
 	"context"
 	"os"
 	"path/filepath"
@@ -20,7 +21,7 @@ import (
 	"itiquette/git-provider-sync/internal/domain/sync"
 )
 
-func TestConvertRepositoryFilters(t *testing.T) {
+func TestConvertRepositoryFilters_HandlesEmptyAndPopulatedPatterns(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -100,7 +101,7 @@ func TestConvertRepositoryFilters(t *testing.T) {
 	}
 }
 
-func TestConvertMirrorConfigToMirrorTargets(t *testing.T) {
+func TestConvertMirrorConfigToMirrorTargets_ValidatesAndFiltersInvalidConfigs(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -251,7 +252,7 @@ func TestConvertMirrorConfigToMirrorTargets(t *testing.T) {
 	}
 }
 
-func TestSyncInputOption(t *testing.T) {
+func TestSyncInputOption_DebugLogOutputsAllFieldsWithoutPanic(t *testing.T) {
 	t.Parallel()
 
 	// Create a temporary file for log output
@@ -313,7 +314,7 @@ func TestSyncInputOption(t *testing.T) {
 	}
 }
 
-func TestOutputSyncResults(t *testing.T) {
+func TestOutputSyncResults_FormatsResultsUsingConfiguredFormatter(t *testing.T) {
 	t.Parallel()
 
 	// Create test results
@@ -349,28 +350,101 @@ func TestOutputSyncResults(t *testing.T) {
 	}
 }
 
-func TestShowSyncSummary(_ *testing.T) { //nolint:paralleltest // DO NOT run this in parallel due to race conditions with global logger state
-	// Create test results with different outcomes
-	results := sync.NewResults(false) // not dry run
-	results.SuccessfulSyncs = 5
-	results.FailedSyncs = 2
-	results.SkippedSyncs = 1
-	results.TotalRepositories = 8
+func TestShowSyncSummary_OutputsCorrectSummaryForDifferentResults(t *testing.T) {
+	t.Parallel()
 
-	// Test summary function (should not panic)
-	showSyncSummary(results)
+	tests := []struct {
+		name            string
+		results         *sync.Results
+		expectedContent []string
+		notExpected     []string
+	}{
+		{
+			name: "mixed_results_without_dry_run",
+			results: func() *sync.Results {
+				results := sync.NewResults(false)
+				results.SuccessfulSyncs = 5
+				results.FailedSyncs = 2
+				results.SkippedSyncs = 1
+				results.TotalRepositories = 8
 
-	// Test with dry run
-	dryRunResults := sync.NewResults(true)
-	dryRunResults.SuccessfulSyncs = 3
-	dryRunResults.FailedSyncs = 0
-	dryRunResults.SkippedSyncs = 0
-	dryRunResults.TotalRepositories = 3
+				return results
+			}(),
+			expectedContent: []string{
+				"✓ Successfully synced 5 repositories",
+				"✗ 2 repositories failed",
+				"- 1 repositories skipped",
+				"Next: gitprovidersync status",
+			},
+			notExpected: []string{
+				"without --dry-run",
+			},
+		},
+		{
+			name: "successful_dry_run",
+			results: func() *sync.Results {
+				results := sync.NewResults(true)
+				results.SuccessfulSyncs = 3
+				results.FailedSyncs = 0
+				results.SkippedSyncs = 0
+				results.TotalRepositories = 3
 
-	showSyncSummary(dryRunResults)
+				return results
+			}(),
+			expectedContent: []string{
+				"✓ Successfully synced 3 repositories",
+				"Next: gitprovidersync sync (without --dry-run)",
+			},
+			notExpected: []string{
+				"✗",  // No failures
+				"- ", // No skipped
+			},
+		},
+		{
+			name: "only_failures",
+			results: func() *sync.Results {
+				results := sync.NewResults(false)
+				results.SuccessfulSyncs = 0
+				results.FailedSyncs = 4
+				results.SkippedSyncs = 0
+				results.TotalRepositories = 4
+
+				return results
+			}(),
+			expectedContent: []string{
+				"✗ 4 repositories failed",
+			},
+			notExpected: []string{
+				"✓",  // No success
+				"- ", // No skipped
+			},
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			// Use a buffer to capture output instead of os.Stderr
+			var buf bytes.Buffer
+			showSyncSummaryToWriter(testCase.results, &buf)
+
+			output := buf.String()
+
+			// Check expected content
+			for _, expected := range testCase.expectedContent {
+				assert.Contains(t, output, expected, "Missing expected content: %s", expected)
+			}
+
+			// Check content that should not be present
+			for _, notExpected := range testCase.notExpected {
+				assert.NotContains(t, output, notExpected, "Found unexpected content: %s", notExpected)
+			}
+		})
+	}
 }
 
-func TestSaveLastSyncInfo(t *testing.T) {
+func TestSaveLastSyncInfo_WritesCorrectInfoToFileWithoutChangingDirectory(t *testing.T) {
 	t.Parallel() // Safe now - no more directory changes!
 
 	// Create temporary directory for test
@@ -402,7 +476,7 @@ func TestSaveLastSyncInfo(t *testing.T) {
 }
 
 // Additional integration-style tests for better coverage.
-func TestSyncHexagonal_WithMissingTmpDir_HandlesGracefully(t *testing.T) {
+func TestPerformSync_WithEmptyConfiguration_ReturnsErrorGracefully(t *testing.T) {
 	t.Parallel()
 
 	// Create context without CLI config

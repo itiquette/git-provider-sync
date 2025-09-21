@@ -526,7 +526,21 @@ clean: clean-build clean-caches
 [group('maintenance')]
 clean-build:
     @just _header "Remove compiled binaries"
-    @just _run_with_output "rm -rf {{bin}} {{dist}} && mkdir -p {{bin}} {{dist}} && go clean -cache" "Build artifacts clean"
+    @bash -c 'set -euo pipefail; \
+    for dir in "{{bin}}" "{{dist}}"; do \
+        if [[ -L "$dir" ]]; then \
+            echo "Error: $dir is a symlink, refusing to remove" >&2; \
+            exit 1; \
+        fi; \
+        if [[ -e "$dir" ]] && [[ ! -d "$dir" ]]; then \
+            echo "Error: $dir exists but is not a directory, refusing to remove" >&2; \
+            exit 1; \
+        fi; \
+    done; \
+    rm -rf "{{bin}}" "{{dist}}"; \
+    mkdir -p "{{bin}}" "{{dist}}"; \
+    go clean -cache; \
+    echo "✓ Build artifacts clean completed"'
 
 # Clean development caches - clear Go and Go linter caches
 [group('maintenance')]

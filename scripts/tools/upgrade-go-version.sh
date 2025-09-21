@@ -18,7 +18,7 @@ readonly YELLOW=$'\033[1;33m'
 readonly CYAN=$'\033[0;36m'
 readonly NC=$'\033[0m' # No Color
 
-# Helper functions
+# Logging utilities
 log() { printf "%s\n" "$1"; }
 success() { printf "${GREEN}✓${NC} %s\n" "$1"; }
 fail() { printf "${RED}✗${NC} %s\n" "$1" >&2; }
@@ -66,7 +66,6 @@ update_file() {
 
   # Use sed with the provided pattern and replacement
   if sed -i.bak "$pattern" "$file"; then
-    rm -f "${file}.bak"
     success "Updated $file"
   else
     fail "Failed to update $file"
@@ -83,54 +82,52 @@ main() {
   local latest_version
   latest_version=$(get_latest_go_version)
 
-  # Extract major.minor for go.mod (Go uses major.minor in go.mod)
-  local latest_major_minor
-  latest_major_minor=$(echo "$latest_version" | cut -d. -f1,2)
-
   log ""
   info "Current Go version: ${current_version}"
-  info "Latest Go version: ${latest_version} (go.mod will use ${latest_major_minor})"
+  info "Latest Go version: ${latest_version}"
 
-  # Check if update is needed (handle both 1.25 and 1.25.0 formats)
-  local current_major_minor
-  current_major_minor=$(echo "$current_version" | cut -d. -f1,2)
+  # Normalize versions for comparison (add .0 if needed)
+  local current_normalized="${current_version}"
+  if [[ ! "$current_version" =~ \. ]]; then
+    current_normalized="${current_version}.0"
+  elif [[ "$current_version" =~ ^[0-9]+\.[0-9]+$ ]]; then
+    current_normalized="${current_version}.0"
+  fi
 
-  if [[ "$current_major_minor" == "$latest_major_minor" ]]; then
+  if [[ "$current_normalized" == "$latest_version" ]]; then
     success "Already using the latest Go version"
     exit 0
   fi
 
   log ""
-  info "Updating Go version from ${current_version} to ${latest_major_minor}..."
+  info "Updating Go version from ${current_version} to ${latest_version}..."
   log ""
 
-  # Update go.mod files
+  # Update go.mod files - use full version with patch
   info "Updating go.mod files..."
-  update_file "go.mod" "$current_version" "$latest_major_minor" \
-    "s/^go ${current_version}/go ${latest_major_minor}/" \
-    "go ${latest_major_minor}"
+  update_file "go.mod" "$current_version" "$latest_version" \
+    "s/^go ${current_version}/go ${latest_version}/" \
+    "go ${latest_version}"
 
-  update_file "tools/go.mod" "$current_version" "$latest_major_minor" \
-    "s/^go ${current_version}/go ${latest_major_minor}/" \
-    "go ${latest_major_minor}"
+  update_file "tools/go.mod" "$current_version" "$latest_version" \
+    "s/^go ${current_version}/go ${latest_version}/" \
+    "go ${latest_version}"
 
   # Update GitHub workflow files
   info "Updating GitHub workflow files..."
   for workflow in .github/workflows/*.yml .github/workflows/*.yaml; do
     if [[ -f "$workflow" ]]; then
       # Update go-version fields (handles both quoted and unquoted)
-      sed -i.bak "s/go-version: ['\"]\\?${current_version}['\"]\\?/go-version: '${latest_major_minor}'/" "$workflow"
-      sed -i.bak "s/go-version: ['\"]\\?${latest_version}['\"]\\?/go-version: '${latest_version}'/" "$workflow"
+      sed -i.bak "s/go-version: ['\"]\\?${current_version}['\"]\\?/go-version: '${latest_version}'/" "$workflow"
 
-      # Update Go setup actions that use full version
-      sed -i.bak "s/go-version: ['\"]\\?[0-9]\\+\\.[0-9]\\+\\.[0-9]\\+['\"]\\?/go-version: '${latest_version}'/" "$workflow"
+      # Update Go setup actions that use any version format
+      sed -i.bak "s/go-version: ['\"]\\?[0-9]\\+\\.[0-9]\\+\\(\\.[0-9]\\+\\)\\?['\"]\\?/go-version: '${latest_version}'/" "$workflow"
 
       # Update matrix versions
-      sed -i.bak "s/\\[${current_version}\\]/[${latest_major_minor}]/" "$workflow"
-      sed -i.bak "s/'${current_version}'/'${latest_major_minor}'/" "$workflow"
-      sed -i.bak "s/\"${current_version}\"/\"${latest_major_minor}\"/" "$workflow"
+      sed -i.bak "s/\\[${current_version}\\]/[${latest_version}]/" "$workflow"
+      sed -i.bak "s/'${current_version}'/'${latest_version}'/" "$workflow"
+      sed -i.bak "s/\"${current_version}\"/\"${latest_version}\"/" "$workflow"
 
-      rm -f "${workflow}.bak"
       success "Updated $(basename "$workflow")"
     fi
   done
@@ -138,10 +135,14 @@ main() {
   # Update documentation files
   info "Updating documentation files..."
 
+  # Extract major.minor for docs (they typically use major.minor format)
+  local latest_major_minor
+  latest_major_minor=$(echo "$latest_version" | cut -d. -f1,2)
+
   # Update version references in docs
-  for doc in README.md docs/*.md CONTRIBUTING.md; do
+  for doc in README.md README.adoc docs/*.md docs/*.adoc CONTRIBUTING.md AGENTS.md; do
     if [[ -f "$doc" ]]; then
-      # Update Go version mentions (e.g., "Go 1.23" -> "Go 1.24")
+      # Update Go version mentions (e.g., "Go 1.25" -> "Go 1.26")
       sed -i.bak "s/Go ${current_version}/Go ${latest_major_minor}/g" "$doc"
       sed -i.bak "s/go${current_version}/go${latest_major_minor}/g" "$doc"
       sed -i.bak "s/Go ${current_version%.*}/Go ${latest_major_minor%.*}/g" "$doc"
@@ -149,11 +150,7 @@ main() {
       # Update version in code blocks
       sed -i.bak "s/^go ${current_version}/go ${latest_major_minor}/g" "$doc"
 
-      if diff -q "$doc" "${doc}.bak" >/dev/null; then
-        rm -f "${doc}.bak"
-        # File unchanged, skip message
-      else
-        rm -f "${doc}.bak"
+      if ! diff -q "$doc" "${doc}.bak" >/dev/null; then
         success "Updated $(basename "$doc")"
       fi
     fi
@@ -171,7 +168,6 @@ main() {
       sed -i.bak "s/ARG GO_VERSION=${current_version}/ARG GO_VERSION=${latest_version}/" "$containerfile"
       sed -i.bak "s/ARG GO_VERSION=\"${current_version}\"/ARG GO_VERSION=\"${latest_version}\"/" "$containerfile"
 
-      rm -f "${containerfile}.bak"
       success "Updated $containerfile"
     fi
   done
@@ -181,7 +177,6 @@ main() {
     info "Updating .tool-versions..."
     sed -i.bak "s/golang ${current_version}/golang ${latest_version}/" ".tool-versions"
     sed -i.bak "s/golang [0-9]\\+\\.[0-9]\\+\\.[0-9]\\+/golang ${latest_version}/" ".tool-versions"
-    rm -f ".tool-versions.bak"
     success "Updated .tool-versions"
   fi
 
@@ -197,13 +192,13 @@ main() {
 
   log ""
   success "Go version updated successfully!"
-  info "Updated from ${current_version} to ${latest_major_minor} (latest: ${latest_version})"
+  info "Updated from ${current_version} to ${latest_version}"
   log ""
   warn "Please review the changes and test the build before committing"
   info "Recommended next steps:"
   log "  1. Run 'just test' to verify tests pass"
   log "  2. Run 'just lint' to check for any issues"
-  log "  3. Commit the changes with: git commit -m \"build: upgrade Go to ${latest_major_minor}\""
+  log "  3. Commit the changes with: git commit -m \"build: upgrade Go to ${latest_version}\""
 }
 
 main "$@"

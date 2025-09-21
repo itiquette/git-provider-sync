@@ -63,16 +63,55 @@ Commands available: **sync** (primary operation), **print** (display configurati
 ## EXIT STATUS
 
 **0**
-: Synchronization completed successfully, all repositories in sync.
+: Success - operation completed without errors.
 
 **1**
-: Synchronization failed or conflicts detected.
+: General error - unspecified failure during execution.
 
 **2**
-: Configuration or system error (invalid arguments, network issues, etc.).
+: Misuse - invalid command usage, bad arguments, or incorrect flags.
+
+**77**
+: Permission denied - API authentication failed (401/403), insufficient token scopes, or file permission errors.
+
+**78**
+: Configuration error - invalid configuration file, YAML syntax errors, or missing required settings.
+
+**126**
+: Cannot execute - command exists but cannot be executed (e.g., git binary lacks execute permission).
+
+**127**
+: Command not found - required command not found in PATH (e.g., git binary missing).
+
+**129**
+: SIGHUP - terminated by SIGHUP signal (terminal hangup).
 
 **130**
-: Interrupted by signal (SIGINT, SIGTERM, SIGQUIT).
+: SIGINT - terminated by SIGINT signal (Ctrl+C).
+
+**131**
+: SIGQUIT - terminated by SIGQUIT signal (Ctrl+\, quit with core dump).
+
+**143**
+: SIGTERM - terminated by SIGTERM signal (graceful termination request).
+
+## SIGNALS
+
+**gitprovidersync** handles the following signals for controlled shutdown:
+
+**SIGHUP** (1)
+: Terminal hangup signal. Performs graceful shutdown and exits with code 129.
+
+**SIGINT** (2)
+: Interrupt signal (Ctrl+C). Performs graceful shutdown and exits with code 130.
+
+**SIGQUIT** (3)
+: Quit signal (Ctrl+\). Exits immediately without cleanup, exits with code 131.
+
+**SIGTERM** (15)
+: Termination signal. Performs graceful shutdown and exits with code 143.
+
+Sending a second signal during shutdown forces immediate termination.
 
 ## ENVIRONMENT
 

@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -359,25 +360,38 @@ func (ms *MirrorService) sanitizeURL(_ context.Context, url string) string {
 	return shared.SanitizeURL(url)
 }
 
-func (ms *MirrorService) addBasicAuthToURL(_ context.Context, url, username, token string) string {
-	// Simple implementation - in production, use proper URL parsing
-	if strings.HasPrefix(url, "https://") {
-		return strings.Replace(url, "https://", fmt.Sprintf("https://%s:%s@", username, token), 1)
+func (ms *MirrorService) addBasicAuthToURL(_ context.Context, urlStr, username, token string) string {
+	parsedURL, err := url.Parse(urlStr)
+	if err != nil {
+		// If URL parsing fails, return original
+		return urlStr
 	}
 
-	return url
+	// Only add auth to HTTPS URLs
+	if parsedURL.Scheme != "https" {
+		return urlStr
+	}
+
+	// url.UserPassword already handles escaping
+	parsedURL.User = url.UserPassword(username, token)
+
+	return parsedURL.String()
 }
 
-func (ms *MirrorService) removeBasicAuthFromURL(_ context.Context, url string) string {
-	// Simple implementation - in production, use proper URL parsing
-	if strings.Contains(url, "@") {
-		parts := strings.Split(url, "@")
-		if len(parts) >= 2 {
-			return "https://" + parts[len(parts)-1]
-		}
+func (ms *MirrorService) removeBasicAuthFromURL(_ context.Context, urlStr string) string {
+	parsedURL, err := url.Parse(urlStr)
+	if err != nil {
+		// If URL parsing fails, return original
+		return urlStr
 	}
 
-	return url
+	// Only remove user info if the URL has a host
+	// This avoids breaking malformed URLs like "https://user@"
+	if parsedURL.Host != "" && parsedURL.User != nil {
+		parsedURL.User = nil
+	}
+
+	return parsedURL.String()
 }
 
 func (ms *MirrorService) createRepositoryEntity(_ context.Context, _ string, _ MirrorConfig) entities.Repository {

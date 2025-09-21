@@ -12,7 +12,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"itiquette/git-provider-sync/internal/adapters/filesystem"
-	sharedadapters "itiquette/git-provider-sync/internal/adapters/shared"
 	"itiquette/git-provider-sync/internal/domain/entities"
 	"itiquette/git-provider-sync/internal/domain/ports"
 )
@@ -30,9 +29,8 @@ func TestToMirrorsUseCase_EmptyRequest(t *testing.T) {
 	mockLogger.On("Debug", mock.Anything, mock.Anything, mock.Anything).Maybe()
 	mockLogger.On("Info", mock.Anything, mock.Anything, mock.Anything).Maybe()
 
-	// Create filesystem and string utils
+	// Create filesystem
 	fs := filesystem.NewOSFileSystem() //nolint:varnamelen // Common abbreviation for filesystem
-	stringUtils := sharedadapters.NewStringUtilsAdapter()
 
 	// Create use case
 	useCase := NewToMirrorsUseCase(
@@ -41,7 +39,6 @@ func TestToMirrorsUseCase_EmptyRequest(t *testing.T) {
 		nil,
 		fs,
 		mockLogger,
-		stringUtils,
 	)
 
 	// Execute with empty request
@@ -77,9 +74,8 @@ func TestToMirrorsUseCase_NoMirrorTargets(t *testing.T) {
 	mockLogger.On("Debug", mock.Anything, mock.Anything, mock.Anything).Maybe()
 	mockLogger.On("Info", mock.Anything, mock.Anything, mock.Anything).Maybe()
 
-	// Create filesystem and string utils
+	// Create filesystem
 	fs := filesystem.NewOSFileSystem() //nolint:varnamelen // Common abbreviation for filesystem
-	stringUtils := sharedadapters.NewStringUtilsAdapter()
 
 	// Create use case
 	useCase := NewToMirrorsUseCase(
@@ -88,7 +84,6 @@ func TestToMirrorsUseCase_NoMirrorTargets(t *testing.T) {
 		nil,
 		fs,
 		mockLogger,
-		stringUtils,
 	)
 
 	// Execute with no mirror targets

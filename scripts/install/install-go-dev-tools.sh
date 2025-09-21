@@ -50,19 +50,18 @@ find_command() {
 check_go() {
   local go_cmd
   go_cmd=$(find_command go "$HOME/go/bin/go" "/usr/local/go/bin/go") || {
-    fail "Go not found. Please install Go 1.24.4 or later"
+    fail "Go not found. Please install Go 1.25 or later"
   }
 
   local go_version
   go_version=$("$go_cmd" env GOVERSION | cut -c3-)
-  success "Go $go_version found at $go_cmd"
+  success "Go $go_version found at $go_cmd" >&2
   echo "$go_cmd"
 }
 
 install_go_tools() {
   local go_cmd="$1"
 
-  # Check for tools directory
   if [[ ! -d "$TOOLS_DIR" ]] || [[ ! -f "$TOOLS_DIR/go.mod" ]]; then
     fail "Tools module not found at $TOOLS_DIR/go.mod"
   fi
@@ -73,9 +72,9 @@ install_go_tools() {
   (
     cd "$TOOLS_DIR"
 
-    # Get list of tools from go.mod
+    # Extract tools from tool directive (Go 1.25+ format)
     local tools
-    tools=$("$go_cmd" list -f '{{join .Imports " "}}' -tags tools 2>/dev/null || true)
+    tools=$(awk '/^tool \(/{flag=1; next} /^\)/{flag=0} flag && /^\s+[a-zA-Z]/' go.mod 2>/dev/null | sed 's/^\s*//' | sed 's/\s*$//' || true)
 
     if [[ -z "$tools" ]]; then
       log "No tools found in $TOOLS_DIR/go.mod"
@@ -83,9 +82,11 @@ install_go_tools() {
     fi
 
     # Install each tool
-    for tool in $tools; do
-      log "Installing $tool"
-      "$go_cmd" install -v "$tool" || log "Failed to install $tool (continuing)"
+    echo "$tools" | while IFS= read -r tool; do
+      if [[ -n "$tool" ]]; then
+        log "Installing $tool"
+        "$go_cmd" install -v "$tool" || log "Failed to install $tool (continuing)"
+      fi
     done
   )
 
@@ -127,14 +128,6 @@ main() {
 
   printf "\n"
   success "Development tools setup completed"
-
-  # Show GOPATH/bin status
-  local gopath
-  gopath=$("$go_cmd" env GOPATH)
-  if [[ ":$PATH:" != *":${gopath}/bin:"* ]]; then
-    printf "${YELLOW}Note:${NC} ${gopath}/bin is not in your PATH\n"
-    printf "Add it with: export PATH=\"\$PATH:${gopath}/bin\"\n"
-  fi
 }
 
 main "$@"

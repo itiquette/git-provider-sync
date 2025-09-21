@@ -65,6 +65,8 @@ func (m *mockLogger) Trace(_ context.Context, _ string, _ map[string]any) {}
 
 func (m *mockLogger) IsLevelEnabled(_ ports.LogLevel) bool { return true }
 
+func (m *mockLogger) GetLevel() ports.LogLevel { return ports.LogLevelInfo }
+
 func TestNewProviderFactory(t *testing.T) {
 	t.Parallel()
 

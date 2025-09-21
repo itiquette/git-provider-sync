@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -59,6 +58,10 @@ func (ml *mockLogger) IsLevelEnabled(_ ports.LogLevel) bool {
 	return true
 }
 
+func (ml *mockLogger) GetLevel() ports.LogLevel {
+	return ports.LogLevelDebug
+}
+
 func (ml *mockLogger) hasLogMessage(level, message string) bool {
 	for _, entry := range ml.logs {
 		if entry.level == level && strings.Contains(entry.message, message) {
@@ -70,37 +73,31 @@ func (ml *mockLogger) hasLogMessage(level, message string) bool {
 }
 
 // Helper functions for creating test repositories.
-func createMockRepository(name, httpsURL, description string) entities.Repository {
+func createMockRepository(t *testing.T, name, httpsURL, description string) entities.Repository {
+	t.Helper()
+
 	builder := entities.NewRepositoryBuilder()
 
 	var err error
 
 	builder, err = builder.WithName(name)
-	if err != nil {
-		panic(err) // In tests, panic on builder errors
-	}
+	require.NoError(t, err, "failed to set repository name")
 
 	builder, err = builder.WithHTTPSURL(httpsURL)
-	if err != nil {
-		panic(err)
-	}
+	require.NoError(t, err, "failed to set HTTPS URL")
 
 	// Some methods don't return errors
 	builder = builder.WithDescription(description)
 
 	builder, err = builder.WithDefaultBranch("main")
-	if err != nil {
-		panic(err)
-	}
+	require.NoError(t, err, "failed to set default branch")
 
 	builder = builder.WithPrivate(false)
 	builder = builder.WithArchived(false)
 	builder = builder.WithFork(false)
 
 	repo, err := builder.Build()
-	if err != nil {
-		panic(err)
-	}
+	require.NoError(t, err, "failed to build repository")
 
 	return repo
 }
@@ -118,21 +115,6 @@ func TestNewMirrorService(t *testing.T) {
 	assert.Equal(t, logger, service.logger)
 	assert.Equal(t, tempDir, service.tempDir)
 	assert.Equal(t, archiveDir, service.archiveDir)
-	assert.Nil(t, service.progressWriter)
-}
-
-func TestMirrorService_SetProgressWriter(t *testing.T) {
-	t.Parallel()
-
-	logger := &mockLogger{}
-	tempDir := t.TempDir()
-	archiveDir := t.TempDir()
-	service := NewMirrorService(logger, tempDir, archiveDir)
-
-	var buffer bytes.Buffer
-	service.SetProgressWriter(&buffer)
-
-	assert.Equal(t, &buffer, service.progressWriter)
 }
 
 func TestMirrorService_Mirror_DryRun(t *testing.T) {
@@ -144,8 +126,8 @@ func TestMirrorService_Mirror_DryRun(t *testing.T) {
 
 	service := NewMirrorService(logger, tempDir, archiveDir)
 
-	sourceRepo := createMockRepository("test-repo", "https://github.com/test/repo", "Test repository")
-	targetRepo := createMockRepository("target-repo", "https://gitlab.com/test/target", "Target repository")
+	sourceRepo := createMockRepository(t, "test-repo", "https://github.com/test/repo", "Test repository")
+	targetRepo := createMockRepository(t, "target-repo", "https://gitlab.com/test/target", "Target repository")
 
 	request := MirrorRequest{
 		SourceRepository: sourceRepo,
@@ -182,8 +164,8 @@ func TestMirrorService_Mirror_ActualRun(t *testing.T) {
 
 	service := NewMirrorService(logger, tempDir, archiveDir)
 
-	sourceRepo := createMockRepository("test-repo", "https://github.com/test/repo", "Test repository")
-	targetRepo := createMockRepository("target-repo", "https://gitlab.com/test/target", "Target repository")
+	sourceRepo := createMockRepository(t, "test-repo", "https://github.com/test/repo", "Test repository")
+	targetRepo := createMockRepository(t, "target-repo", "https://gitlab.com/test/target", "Target repository")
 
 	request := MirrorRequest{
 		SourceRepository: sourceRepo,
@@ -226,8 +208,8 @@ func TestMirrorService_Mirror_UnsupportedFormat(t *testing.T) {
 
 	service := NewMirrorService(logger, tempDir, archiveDir)
 
-	sourceRepo := createMockRepository("test-repo", "https://github.com/test/repo", "Test repository")
-	targetRepo := createMockRepository("target-repo", "https://gitlab.com/test/target", "Target repository")
+	sourceRepo := createMockRepository(t, "test-repo", "https://github.com/test/repo", "Test repository")
+	targetRepo := createMockRepository(t, "target-repo", "https://gitlab.com/test/target", "Target repository")
 
 	request := MirrorRequest{
 		SourceRepository: sourceRepo,
@@ -255,8 +237,8 @@ func TestMirrorService_Mirror_TarFormat(t *testing.T) {
 
 	service := NewMirrorService(logger, tempDir, archiveDir)
 
-	sourceRepo := createMockRepository("test-repo", "https://github.com/test/repo", "Test repository")
-	targetRepo := createMockRepository("target-repo", "https://gitlab.com/test/target", "Target repository")
+	sourceRepo := createMockRepository(t, "test-repo", "https://github.com/test/repo", "Test repository")
+	targetRepo := createMockRepository(t, "target-repo", "https://gitlab.com/test/target", "Target repository")
 
 	request := MirrorRequest{
 		SourceRepository: sourceRepo,
@@ -285,8 +267,8 @@ func TestMirrorService_Mirror_WithPatterns(t *testing.T) {
 
 	service := NewMirrorService(logger, tempDir, archiveDir)
 
-	sourceRepo := createMockRepository("test-repo", "https://github.com/test/repo", "Test repository")
-	targetRepo := createMockRepository("target-repo", "https://gitlab.com/test/target", "Target repository")
+	sourceRepo := createMockRepository(t, "test-repo", "https://github.com/test/repo", "Test repository")
+	targetRepo := createMockRepository(t, "target-repo", "https://gitlab.com/test/target", "Target repository")
 
 	request := MirrorRequest{
 		SourceRepository: sourceRepo,
@@ -316,16 +298,16 @@ func TestMirrorService_Mirror_WithProgressWriter(t *testing.T) {
 	service := NewMirrorService(logger, tempDir, archiveDir)
 
 	var progressBuffer bytes.Buffer
-	service.SetProgressWriter(&progressBuffer)
 
-	sourceRepo := createMockRepository("test-repo", "https://github.com/test/repo", "Test repository")
-	targetRepo := createMockRepository("target-repo", "https://gitlab.com/test/target", "Target repository")
+	sourceRepo := createMockRepository(t, "test-repo", "https://github.com/test/repo", "Test repository")
+	targetRepo := createMockRepository(t, "target-repo", "https://gitlab.com/test/target", "Target repository")
 
 	request := MirrorRequest{
 		SourceRepository: sourceRepo,
 		TargetRepository: targetRepo,
 		ArchiveFormat:    "tar.gz",
 		DryRun:           false,
+		ProgressWriter:   &progressBuffer,
 	}
 
 	result, err := service.Mirror(context.Background(), request)
@@ -346,8 +328,8 @@ func TestMirrorService_Mirror_WithCustomArchiveName(t *testing.T) {
 
 	service := NewMirrorService(logger, tempDir, archiveDir)
 
-	sourceRepo := createMockRepository("test-repo", "https://github.com/test/repo", "Test repository")
-	targetRepo := createMockRepository("target-repo", "https://gitlab.com/test/target", "Target repository")
+	sourceRepo := createMockRepository(t, "test-repo", "https://github.com/test/repo", "Test repository")
+	targetRepo := createMockRepository(t, "target-repo", "https://gitlab.com/test/target", "Target repository")
 
 	request := MirrorRequest{
 		SourceRepository:   sourceRepo,
@@ -374,7 +356,7 @@ func TestMirrorService_generateArchiveName(t *testing.T) {
 	archiveDir := t.TempDir()
 	service := NewMirrorService(logger, tempDir, archiveDir)
 
-	sourceRepo := createMockRepository("my-repo", "https://github.com/test/my-repo", "Test repository")
+	sourceRepo := createMockRepository(t, "my-repo", "https://github.com/test/my-repo", "Test repository")
 
 	tests := []struct {
 		name           string
@@ -594,7 +576,7 @@ func TestMirrorService_createRealisticRepositoryStructure(t *testing.T) {
 	tempDir := t.TempDir()
 	archiveDir := t.TempDir()
 	service := NewMirrorService(logger, tempDir, archiveDir)
-	repo := createMockRepository("my-awesome-repo", "https://github.com/test/my-awesome-repo", "An awesome test repository")
+	repo := createMockRepository(t, "my-awesome-repo", "https://github.com/test/my-awesome-repo", "An awesome test repository")
 
 	err := service.createRealisticRepositoryStructure(tempDir, repo)
 	require.NoError(t, err)
@@ -723,19 +705,19 @@ func TestMirrorService_cleanupWorkingDirectory_Error(t *testing.T) {
 func TestGenerateTimestamp(t *testing.T) {
 	t.Parallel()
 
-	timestamp1 := generateTimestamp()
+	// Test format validation
+	timestamp := generateTimestamp()
+	assert.NotEmpty(t, timestamp)
 
-	time.Sleep(10 * time.Millisecond) // Ensure different timestamp
+	// Verify format (YYYYMMDD-HHMMSS.mmm)
+	// The actual format is "20060102-150405.000" based on the implementation
+	assert.Regexp(t, `^\d{8}-\d{6}\.\d{3}$`, timestamp, "Timestamp should match format YYYYMMDD-HHMMSS.mmm")
 
-	timestamp2 := generateTimestamp()
-
-	assert.NotEmpty(t, timestamp1)
-	assert.NotEmpty(t, timestamp2)
-	assert.NotEqual(t, timestamp1, timestamp2)
-
-	// Verify format (YYYYMMDD-HHMMSS-mmm)
-	assert.Len(t, timestamp1, 19) // 8 + 1 + 6 + 1 + 3
-	assert.Contains(t, timestamp1, "-")
+	// Test that function returns consistent format
+	for range 10 {
+		ts := generateTimestamp()
+		assert.Regexp(t, `^\d{8}-\d{6}\.\d{3}$`, ts, "All timestamps should match format")
+	}
 }
 
 // Archive mirror service workflow tests.
@@ -790,10 +772,10 @@ func TestMirrorServiceWorkflow(t *testing.T) {
 			tempDir := t.TempDir()
 			archiveDir := t.TempDir()
 
-			sourceRepo := createMockRepository("workflow-test",
+			sourceRepo := createMockRepository(t, "workflow-test",
 				"https://github.com/test/workflow",
 				"Workflow test repository")
-			targetRepo := createMockRepository("workflow-target",
+			targetRepo := createMockRepository(t, "workflow-target",
 				"https://gitlab.com/test/workflow-target",
 				"Target workflow repository")
 
@@ -859,8 +841,8 @@ func TestMirrorServiceValidation(t *testing.T) {
 		{
 			name: "invalid archive format",
 			request: MirrorRequest{
-				SourceRepository: createMockRepository("test", "https://github.com/test/repo", "Test"),
-				TargetRepository: createMockRepository("target", "https://gitlab.com/test/target", "Target"),
+				SourceRepository: createMockRepository(t, "test", "https://github.com/test/repo", "Test"),
+				TargetRepository: createMockRepository(t, "target", "https://gitlab.com/test/target", "Target"),
 				ArchiveFormat:    "invalid-format",
 			},
 			expectError:   true,
@@ -869,8 +851,8 @@ func TestMirrorServiceValidation(t *testing.T) {
 		{
 			name: "invalid compression level",
 			request: MirrorRequest{
-				SourceRepository: createMockRepository("source", "https://github.com/test/source", "Source"),
-				TargetRepository: createMockRepository("target", "https://gitlab.com/test/target", "Target"),
+				SourceRepository: createMockRepository(t, "source", "https://github.com/test/source", "Source"),
+				TargetRepository: createMockRepository(t, "target", "https://gitlab.com/test/target", "Target"),
 				ArchiveFormat:    "tar.gz",
 				CompressionLevel: 15, // Invalid: should be 0-9
 			},

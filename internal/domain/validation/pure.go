@@ -111,7 +111,8 @@ func ValidateGlobalSettings(settings ports.GlobalSettings) Results {
 
 // ValidateEnvironment validates environment configuration.
 func ValidateEnvironment(env ports.EnvironmentConfiguration) Results {
-	results := make([]Result, 0)
+	// Pre-allocate with estimated size
+	results := make([]Result, 0, 10)
 
 	// Validate environment name
 	if strings.TrimSpace(env.Name) == "" {
@@ -154,7 +155,8 @@ func ValidateEnvironment(env ports.EnvironmentConfiguration) Results {
 
 // ValidateSourceConfiguration validates source provider configuration.
 func ValidateSourceConfiguration(source ports.SourceConfiguration) Results {
-	results := make([]Result, 0)
+	// Pre-allocate with estimated size
+	results := make([]Result, 0, 8)
 
 	// Validate provider type
 	if !isValidProviderType(source.ProviderType) {

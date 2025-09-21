@@ -14,7 +14,7 @@ As contributors and maintainers, we pledge to make participation in our project 
 
 ## Standards of Behavior
 
-To ensure a positive atmosphere, we expect all participants to:
+For a positive atmosphere, we expect all participants to:
 
 - **Be respectful and considerate**: Treat others with courtesy and respect. Disagreements should be handled professionally.
 

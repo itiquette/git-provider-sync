@@ -516,9 +516,9 @@ func (ps *ProjectService) getNamespaceID(_ string) *int {
 // ConvertToGitLabVisibility converts standard visibility to GitLab visibility.
 func (ps *ProjectService) convertToGitLabVisibility(visibility string) gitlab.VisibilityValue {
 	switch strings.ToLower(visibility) {
-	case "private":
+	case visibilityPrivate:
 		return gitlab.PrivateVisibility
-	case "internal":
+	case visibilityInternal:
 		return gitlab.InternalVisibility
 	case visibilityPublic:
 		return gitlab.PublicVisibility
@@ -531,13 +531,13 @@ func (ps *ProjectService) convertToGitLabVisibility(visibility string) gitlab.Vi
 func (ps *ProjectService) convertFromGitLabVisibility(visibility gitlab.VisibilityValue) string {
 	switch visibility {
 	case gitlab.PrivateVisibility:
-		return "private"
+		return visibilityPrivate
 	case gitlab.InternalVisibility:
-		return "internal"
+		return visibilityInternal
 	case gitlab.PublicVisibility:
-		return "public"
+		return visibilityPublic
 	default:
-		return "public"
+		return visibilityPublic
 	}
 }
 

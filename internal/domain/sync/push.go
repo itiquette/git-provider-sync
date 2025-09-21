@@ -13,6 +13,7 @@ import (
 	"itiquette/git-provider-sync/internal/domain"
 	"itiquette/git-provider-sync/internal/domain/entities"
 	"itiquette/git-provider-sync/internal/domain/ports"
+	"itiquette/git-provider-sync/internal/shared"
 )
 
 const (
@@ -32,17 +33,15 @@ var (
 // Creates target repository if needed, temporarily disables branch protection during push,
 // Then restores protection settings.
 type PushToProviderUseCase struct {
-	provider    ports.RepositoryProvider
-	gitOps      ports.GitOperations
-	stringUtils ports.StringUtils
+	provider ports.RepositoryProvider
+	gitOps   ports.GitOperations
 }
 
 // NewPushToProviderUseCase creates a new push to provider use case.
-func NewPushToProviderUseCase(provider ports.RepositoryProvider, gitOps ports.GitOperations, stringUtils ports.StringUtils) *PushToProviderUseCase {
+func NewPushToProviderUseCase(provider ports.RepositoryProvider, gitOps ports.GitOperations) *PushToProviderUseCase {
 	return &PushToProviderUseCase{
-		provider:    provider,
-		gitOps:      gitOps,
-		stringUtils: stringUtils,
+		provider: provider,
+		gitOps:   gitOps,
 	}
 }
 
@@ -128,7 +127,7 @@ func (uc *PushToProviderUseCase) executePush(ctx context.Context, request PushRe
 		"step": "2_ensure_repo",
 	})
 
-	exists, projectID, err := uc.ensureRepositoryExists(ctx, request)
+	exists, projectID, err := uc.createRepositoryIfNeeded(ctx, request)
 	if err != nil {
 		return uc.failResponse(err), fmt.Errorf("ensure repo: %w", err)
 	}
@@ -277,8 +276,8 @@ func (uc *PushToProviderUseCase) setupGPSUpstreamRemote(ctx context.Context, git
 	return domain.ErrUpstreamRemoteNotFound
 }
 
-// EnsureRepositoryExists checks if repository exists and creates it if needed.
-func (uc *PushToProviderUseCase) ensureRepositoryExists(ctx context.Context, request PushRequest) (bool, string, error) {
+// CreateRepositoryIfNeeded checks if repository exists and creates it if needed.
+func (uc *PushToProviderUseCase) createRepositoryIfNeeded(ctx context.Context, request PushRequest) (bool, string, error) {
 	logger := ports.LoggerFromContext(ctx)
 
 	// DEBUG: Repository existence check (application state)
@@ -485,7 +484,7 @@ func (uc *PushToProviderUseCase) buildTargetURL(_ context.Context, request PushR
 	// AlphaNumHyphName option not implemented
 	alphaNumName := false // Placeholder for request.TargetConfig.Options().AlphaNumHyphName
 	if alphaNumName {
-		repositoryName = uc.stringUtils.RemoveNonAlphaNumericChars(repositoryName)
+		repositoryName = shared.RemoveNonAlphaNumericChars(repositoryName)
 	}
 
 	// Extract authentication details from target config
@@ -503,7 +502,7 @@ func (uc *PushToProviderUseCase) buildTargetURL(_ context.Context, request PushR
 
 	// Add authentication if token is provided
 	if token != "" {
-		baseURL = uc.stringUtils.AddBasicAuthToURL(baseURL, "git", token)
+		baseURL = shared.AddBasicAuthToURL(baseURL, "git", token)
 	}
 
 	return baseURL

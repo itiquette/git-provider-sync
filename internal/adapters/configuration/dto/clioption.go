@@ -4,37 +4,11 @@
 package dto
 
 import (
-	"context"
 	"fmt"
-	"io"
-	"os"
 )
 
 // CLIOptionKey is used as a key for storing and retrieving CLIOption from a context.
 type CLIOptionKey struct{}
-
-// ErrorHandlerKey is used as a key for storing and retrieving error handler from a context.
-type ErrorHandlerKey struct{}
-
-// ErrorHandler defines an interface for handling CLI option errors.
-type ErrorHandler interface {
-	HandleError(ctx context.Context, err error)
-}
-
-// StderrErrorHandler is the default error handler that writes to stderr.
-type StderrErrorHandler struct {
-	Writer io.Writer
-}
-
-// HandleError writes error message to stderr.
-func (h *StderrErrorHandler) HandleError(_ context.Context, err error) {
-	writer := h.Writer
-	if writer == nil {
-		writer = os.Stderr
-	}
-
-	_, _ = fmt.Fprintf(writer, "CLI Option Error: %v\n", err)
-}
 
 // CLIOption represents the set of command-line options available in the application.
 type CLIOption struct {

@@ -13,7 +13,7 @@ type ResultsOption func(*Results) *Results
 func NewFunctionalResults(opts ...ResultsOption) Results {
 	results := Results{
 		StartTime: time.Now(),
-		Results:   make([]Result, 0),
+		Results:   []Result{},
 	}
 
 	// Apply all options
@@ -129,61 +129,68 @@ func (r Results) Apply(fn func(Results) Results) Results {
 }
 
 // ResultBuilder builds sync results.
+// Uses value receivers for functional immutability.
 type ResultBuilder struct {
 	results Results
 }
 
 // NewResultBuilder creates a new builder.
-func NewResultBuilder() *ResultBuilder {
-	return &ResultBuilder{
+// Returns value not pointer for functional style.
+func NewResultBuilder() ResultBuilder {
+	return ResultBuilder{
 		results: Results{
 			StartTime: time.Now(),
-			Results:   make([]Result, 0),
+			Results:   []Result{},
 		},
 	}
 }
 
 // DryRun sets the dry run flag.
-func (b *ResultBuilder) DryRun(dryRun bool) *ResultBuilder {
+// Uses value receiver for functional immutability.
+func (b ResultBuilder) DryRun(dryRun bool) ResultBuilder {
 	b.results.DryRun = dryRun
 
 	return b
 }
 
 // AddResult adds a result to the builder.
-func (b *ResultBuilder) AddResult(result Result) *ResultBuilder {
+// Uses value receiver for functional immutability.
+func (b ResultBuilder) AddResult(result Result) ResultBuilder {
 	b.results = b.results.WithResult(result)
 
 	return b
 }
 
 // TotalSources sets the total sources.
-func (b *ResultBuilder) TotalSources(count int) *ResultBuilder {
+// Uses value receiver for functional immutability.
+func (b ResultBuilder) TotalSources(count int) ResultBuilder {
 	b.results.TotalSources = count
 
 	return b
 }
 
 // TotalMirrors sets the total mirrors.
-func (b *ResultBuilder) TotalMirrors(count int) *ResultBuilder {
+// Uses value receiver for functional immutability.
+func (b ResultBuilder) TotalMirrors(count int) ResultBuilder {
 	b.results.TotalMirrors = count
 
 	return b
 }
 
 // TotalRepositories sets the total repositories.
-func (b *ResultBuilder) TotalRepositories(count int) *ResultBuilder {
+// Uses value receiver for functional immutability.
+func (b ResultBuilder) TotalRepositories(count int) ResultBuilder {
 	b.results.TotalRepositories = count
 
 	return b
 }
 
 // Build returns the built Results.
-func (b *ResultBuilder) Build() Results {
+func (b ResultBuilder) Build() Results {
 	return b.results
 }
 
 // BuildCompleted returns the built Results with completion time set.
-func (b *ResultBuilder) BuildCompleted() Results {
+func (b ResultBuilder) BuildCompleted() Results {
 	return b.results.WithCompletion()
 }

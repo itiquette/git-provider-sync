@@ -9,23 +9,9 @@ SPDX-License-Identifier: CC0-1.0
 
 ## Token Configuration Methods
 
-### 1. Provider-Specific Environment Variables (Recommended)
+See [Environment Variables](environment-variables.md) for provider-specific tokens.
 
-```bash
-export GPS_GITHUB_TOKEN="ghp_xxxxxxxxxxxxxxxxxxxx"
-export GPS_GITLAB_TOKEN="glpat_xxxxxxxxxxxxxxxxxxxx"
-export GPS_GITEA_TOKEN="gitea_xxxxxxxxxxxxxxxxxxxx"
-gitprovidersync sync
-```
-
-### 2. Environment Variable Expansion
-
-```yaml
-auth:
-  token: "${GITHUB_TOKEN}"  # Expands from environment
-```
-
-### 3. Token Files
+### Token Files (Most Secure)
 
 ```yaml
 auth:
@@ -49,30 +35,9 @@ chmod 600 ~/.tokens/github
 echo "ghp_xxx" > ~/.tokens/github
 ```
 
-## CI/CD Examples
+## CI/CD Integration
 
-### GitHub Actions
-
-```yaml
-env:
-  GPS_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  GPS_GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
-```
-
-### GitLab CI
-
-```yaml
-variables:
-  GPS_GITLAB_TOKEN: $CI_JOB_TOKEN
-  GPS_GITHUB_TOKEN: $GITHUB_TOKEN
-```
-
-### Kubernetes
-
-```bash
-kubectl create secret generic git-tokens \
-  --from-literal=GPS_GITHUB_TOKEN=ghp_xxx
-```
+See [CI/CD Examples](ci-examples.md) for platform-specific token configuration.
 
 ## Creating Provider Tokens
 
@@ -82,11 +47,9 @@ kubectl create secret generic git-tokens \
 | GitLab | gitlab.com/-/profile/personal_access_tokens | `api`, `read_repository`, `write_repository` |
 | Gitea | gitea.example.com/user/settings/applications | All repository scopes |
 
-## Precedence Order
+## Token Precedence
 
-1. Provider-specific environment variables (`GPS_GITHUB_TOKEN`)
-2. Environment variable expansion (`token: "${MY_TOKEN}"`)
-3. Token file (`token_file: "/path/to/file"`)
+See [Configuration](configuration.md#authentication) for token precedence details.
 
 ## Troubleshooting
 

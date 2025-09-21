@@ -116,9 +116,6 @@ generate_completions() {
   # Create output directory
   mkdir -p "$OUTPUT_DIR"
 
-  # Remove existing completions
-  rm -f "$OUTPUT_DIR/${BINARY_NAME}".{bash,zsh,fish}
-
   local generated_count=0
   local shells=("bash" "zsh" "fish")
 
@@ -139,7 +136,6 @@ generate_completions() {
       fi
     else
       log "Failed to generate $shell completion (command may not be supported)"
-      rm -f "$output_file"
     fi
   done
 

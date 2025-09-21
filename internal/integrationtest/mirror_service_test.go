@@ -375,3 +375,4 @@ func (l *testMirrorLogger) Trace(context.Context, string, map[string]any) {}
 func (l *testMirrorLogger) Warn(context.Context, string, map[string]any)  {}
 func (l *testMirrorLogger) Fatal(context.Context, string, map[string]any) {}
 func (l *testMirrorLogger) IsLevelEnabled(ports.LogLevel) bool            { return true }
+func (l *testMirrorLogger) GetLevel() ports.LogLevel                      { return ports.LogLevelInfo }

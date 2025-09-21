@@ -28,6 +28,10 @@ type contextKey string
 const (
 	// logLevelKey is the context key for log level..
 	logLevelKey contextKey = "logLevel"
+
+	// Exit codes.
+	exitMisuse      = 2  // Bad command usage
+	exitConfigError = 78 // Configuration error
 	// logLevelExplicitKey is the context key for whether log level was explicitly set.
 	logLevelExplicitKey contextKey = "logLevelExplicit"
 )
@@ -35,11 +39,10 @@ const (
 // NewSyncCommand creates the sync command for repository mirroring.
 func NewSyncCommand() *cli.Command {
 	cmd := &cli.Command{
-		Name:  "sync",
-		Usage: "Mirror repositories from a source Git provider to targets",
-		Description: `The 'sync' command mirrors your repositories from a source Git provider to one or more targets.
-It allows for various options to control the synchronization process.`,
-		Action: runSync,
+		Name:        "sync",
+		Usage:       "Mirror repositories from a source Git provider to targets",
+		Description: `Mirror repositories from source to target providers.`,
+		Action:      runSync,
 		Flags: []cli.Flag{
 			&cli.BoolFlag{
 				Name:     "dry-run",
@@ -75,61 +78,81 @@ It allows for various options to control the synchronization process.`,
 	return cmd
 }
 
+// exitFunc allows overriding os.Exit for testing.
+//
+//nolint:gochecknoglobals // Required for testing
+var exitFunc = os.Exit
+
 // RunSync executes sync using simple functional approach.
 func runSync(ctx context.Context, cmd *cli.Command) error {
+	// Extract CLI options
 	cliConfig, err := baseOpt.ExtractRootInputOptions(cmd)
 	if err != nil {
-		log.Logger(ctx).Error().Err(err).Msg("Failed to extract CLI options")
-
-		if !testing.Testing() {
-			os.Exit(2) // Configuration error
-		}
-
-		return fmt.Errorf("failed to extract CLI options: %w", err)
+		return handleError(ctx, err, "Failed to extract CLI options", withExitCode(exitMisuse))
 	}
 
-	// Extract sync-specific flags and merge with CLI config
+	// Setup context with config and logging
 	updatedConfig := mergeSyncOptionsWithCLIConfig(cliConfig, cmd)
-
 	ctx = cliAdapters.WithCLIConfig(ctx, updatedConfig)
 	ctx = initLogger(ctx, cmd)
 
-	// Use original proven configuration loader
+	// Load configuration
 	config, err := configuration.DefaultConfigLoader{}.LoadConfiguration(ctx)
 	if err != nil {
-		log.Logger(ctx).Error().Err(err).Msg("Failed to load configuration")
-
-		if !testing.Testing() {
-			os.Exit(2) // Configuration error
-		}
-
-		return fmt.Errorf("failed to load configuration: %w", err)
+		return handleError(ctx, err, "Failed to load configuration", withExitCode(exitConfigError))
 	}
 
-	// Check for dangerous operations requiring confirmation
+	// Check dangerous operations
 	if !confirmDangerousOperations(ctx, cmd) {
-		log.Logger(ctx).Info().Msg("Operation cancelled by user")
-
-		if !testing.Testing() {
-			os.Exit(1) // User cancelled
-		}
-
-		return errors.New("operation cancelled by user")
+		return handleError(ctx, errors.New("operation cancelled by user"), "Operation cancelled by user", withExitCode(1))
 	}
 
-	// Execute sync using proper hexagonal architecture
-	err = performSync(ctx, config)
-	if err != nil {
-		log.Logger(ctx).Error().Err(err).Msg("Sync operation failed")
-
-		if !testing.Testing() {
-			os.Exit(1) // Operation failure
-		}
-
-		return err
+	// Execute sync - happy path
+	if err := performSync(ctx, config); err != nil {
+		return handleError(ctx, err, "Sync operation failed", withExitCode(1))
 	}
 
 	return nil
+}
+
+// errorOption is a functional option for error handling.
+type errorOption func(*errorConfig)
+
+// errorConfig holds error handling configuration.
+type errorConfig struct {
+	exitCode int
+	logLevel string
+}
+
+// withExitCode sets the exit code for the error.
+func withExitCode(code int) errorOption {
+	return func(c *errorConfig) {
+		c.exitCode = code
+	}
+}
+
+// handleError handles errors with functional options.
+func handleError(ctx context.Context, err error, msg string, opts ...errorOption) error {
+	// Default config
+	cfg := &errorConfig{
+		exitCode: 1,
+		logLevel: "error",
+	}
+
+	// Apply options
+	for _, opt := range opts {
+		opt(cfg)
+	}
+
+	// Log the error
+	log.Logger(ctx).Error().Err(err).Msg(msg)
+
+	// Exit if not in test mode
+	if !testing.Testing() {
+		exitFunc(cfg.exitCode)
+	}
+
+	return fmt.Errorf("%s: %w", strings.ToLower(msg), err)
 }
 
 // MergeSyncOptionsWithCLIConfig merges sync-specific flags with existing CLI dto.

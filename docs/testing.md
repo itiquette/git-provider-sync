@@ -10,16 +10,15 @@ SPDX-License-Identifier: CC0-1.0
 ## Quick Start
 
 ```bash
-just test        # Run all tests
-just verify      # Full verification suite
-just quality     # Quality checks
+just test
+just verify
+just quality
 
-# Specific test scenarios
-go test ./...                    # Unit tests
-go test -tags=integration ./...  # Integration tests
-go test -race ./...              # Race detection
-go test -cover ./...             # Coverage report
-go test -run TestName ./path     # Single test
+go test ./...
+go test -tags=integration ./...
+go test -race ./...
+go test -cover ./...
+go test -run TestName ./path
 ```
 
 ## Writing Tests
@@ -102,33 +101,26 @@ env, err := testutil.SetupGitTestEnvironment(t, gitOps, opts)
 ### Coverage
 
 ```bash
-# Generate coverage report
 go test -coverprofile=coverage.out ./...
 go tool cover -html=coverage.out
-
-# Coverage requirements
-# - Domain logic: >80%
-# - Use cases: All paths covered
-# - Adapters: Integration tested
 ```
+
+Coverage targets:
+- Domain logic: >80%
+- Use cases: All paths covered
+- Adapters: Integration tested
 
 ## Debugging Tests
 
 ```bash
-# Verbose output
 go test -v ./path/to/package
-
-# Debug specific test
 dlv test ./path/to/package -- -test.run TestName
-
-# Keep temp directories for inspection
 KEEP_TEMP=1 go test ./...
 ```
 
 ## CI/CD Integration
 
 ```yaml
-# GitHub Actions example
 - name: Test
   run: |
     just test
