@@ -37,10 +37,8 @@ func newRootCommandWithOptions(versionString string, enableSuggestions bool) *cl
 	rootCmd := &cli.Command{
 		Name:    "gitprovidersync",
 		Version: versionString,
-		Usage:   "Utility for mirroring and storing Git repositories",
-		Description: `A utility for mirroring Git repositories to various Git providers or storage.
-Supports GitHub, Gitea, GitLab, uncompressed directories, and a compressed archive format (tar.gz).
-Allows syncing to multiple mirror destinations.`,
+		Usage:   "mirror git repositories across providers",
+		// Description removed - details are in man page and subcommand help
 
 		// Enable shell completion
 		EnableShellCompletion: true,
@@ -50,6 +48,22 @@ Allows syncing to multiple mirror destinations.`,
 
 		// Show version flag in help and enable --version
 		HideVersion: false,
+
+		// Clean, minimal help output like kubectl/docker
+		CustomRootCommandHelpTemplate: `{{.Usage}}
+
+Usage:
+  {{.Name}} [global options] command [command options]
+
+Commands:{{range .Commands}}{{if not .Hidden}}
+  {{.Name}}{{if .Aliases}}, {{join .Aliases ", "}}{{end}}{{"\t"}}{{.Usage}}{{end}}{{end}}
+
+Global Options:
+{{range $category := .FlagCategories}}{{if $category.Name}}  {{$category.Name}}
+{{end}}{{range $flag := $category.Flags}}  {{$flag}}
+{{end}}{{end}}
+Use '{{.Name}} <command> --help' for more information about a command.
+`,
 
 		// Global flags
 		Flags: []cli.Flag{

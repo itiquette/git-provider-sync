@@ -46,7 +46,7 @@ func TestFetchSourceRepositoriesUseCase_Execute(t *testing.T) {
 				}
 
 				// Mock repository listing
-				provider.On("ListRepositories", mock.Anything, mock.AnythingOfType("ports.ProviderConfig")).Return(repos, nil)
+				provider.On("List", mock.Anything, mock.AnythingOfType("ports.ProviderConfig")).Return(repos, nil)
 
 				// Mock git operations for temporary directory
 				gitOps.On("GetTmpDirPath", mock.Anything).Return(testTmpDir, nil)
@@ -88,7 +88,7 @@ func TestFetchSourceRepositoriesUseCase_Execute(t *testing.T) {
 				}
 
 				// Mock repository listing
-				provider.On("ListRepositories", mock.Anything, mock.AnythingOfType("ports.ProviderConfig")).Return(repos, nil)
+				provider.On("List", mock.Anything, mock.AnythingOfType("ports.ProviderConfig")).Return(repos, nil)
 
 				// No clone operations should be called in dry run
 				// Mock logger calls (lenient)
@@ -120,7 +120,7 @@ func TestFetchSourceRepositoriesUseCase_Execute(t *testing.T) {
 				}
 
 				// Mock repository listing
-				provider.On("ListRepositories", mock.Anything, mock.AnythingOfType("ports.ProviderConfig")).Return(repos, nil)
+				provider.On("List", mock.Anything, mock.AnythingOfType("ports.ProviderConfig")).Return(repos, nil)
 
 				// Mock git operations for temporary directory
 				gitOps.On("GetTmpDirPath", mock.Anything).Return(testTmpDir, nil)
@@ -157,7 +157,7 @@ func TestFetchSourceRepositoriesUseCase_Execute(t *testing.T) {
 			name: "provider_listing_failure",
 			setupMocks: func(provider *SharedMockRepositoryProvider, _ *SharedMockGitOperations) {
 				// Mock repository listing failure
-				provider.On("ListRepositories", mock.Anything, mock.AnythingOfType("ports.ProviderConfig")).Return(
+				provider.On("List", mock.Anything, mock.AnythingOfType("ports.ProviderConfig")).Return(
 					[]entities.Repository{}, domain.ErrFailedToAuthenticateProvider)
 
 				// Mock logger calls (lenient)
@@ -182,7 +182,7 @@ func TestFetchSourceRepositoriesUseCase_Execute(t *testing.T) {
 				}
 
 				// Mock repository listing
-				provider.On("ListRepositories", mock.Anything, mock.AnythingOfType("ports.ProviderConfig")).Return(repos, nil)
+				provider.On("List", mock.Anything, mock.AnythingOfType("ports.ProviderConfig")).Return(repos, nil)
 
 				// Mock git operations for temporary directory
 				gitOps.On("GetTmpDirPath", mock.Anything).Return(testTmpDir, nil)

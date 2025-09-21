@@ -833,7 +833,7 @@ func (uc ToMirrorsUseCase) syncBranchProtection(
 	}
 
 	// Set branch protection on mirror
-	err := mirrorProvider.SetBranchProtection(ctx, mirrorConfig, targetRepoName, defaultBranch, protection)
+	err := mirrorProvider.SetProtection(ctx, mirrorConfig, targetRepoName, defaultBranch, protection)
 	if err != nil {
 		return fmt.Errorf("failed to set branch protection on mirror: %w", err)
 	}

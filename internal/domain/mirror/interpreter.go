@@ -303,7 +303,7 @@ func (ei *EffectInterpreter) executeCreateRepository(ctx context.Context, effect
 		Visibility:  getVisibility(isPrivate),
 	}
 
-	repo, err := ei.repoProvider.CreateRepository(ctx, providerConfig, createOptions)
+	repo, err := ei.repoProvider.Create(ctx, providerConfig, createOptions)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create repository: %w", err)
 	}
@@ -431,7 +431,7 @@ func (ei *EffectInterpreter) executeRepositoryUpdate(
 
 	updateOptions := optionsFunc(value)
 
-	err := ei.repoProvider.UpdateRepository(ctx, providerConfig, repository, updateOptions)
+	err := ei.repoProvider.Update(ctx, providerConfig, repository, updateOptions)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update repository %s: %w", dryRunAction, err)
 	}
@@ -470,7 +470,7 @@ func (ei *EffectInterpreter) executeUpdateTopics(ctx context.Context, effect Eff
 		Topics: topics,
 	}
 
-	err := ei.repoProvider.UpdateRepository(ctx, providerConfig, repository, updateOptions)
+	err := ei.repoProvider.Update(ctx, providerConfig, repository, updateOptions)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update repository topics: %w", err)
 	}

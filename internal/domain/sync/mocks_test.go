@@ -19,7 +19,7 @@ type SharedMockRepositoryProvider struct {
 	mock.Mock
 }
 
-func (m *SharedMockRepositoryProvider) ListRepositories(ctx context.Context, config ports.ProviderConfig) ([]entities.Repository, error) {
+func (m *SharedMockRepositoryProvider) List(ctx context.Context, config ports.ProviderConfig) ([]entities.Repository, error) {
 	args := m.Called(ctx, config)
 	if err := args.Error(1); err != nil {
 		return nil, fmt.Errorf("failed to list repositories: %w", err)
@@ -28,19 +28,19 @@ func (m *SharedMockRepositoryProvider) ListRepositories(ctx context.Context, con
 	return args.Get(0).([]entities.Repository), nil //nolint:forcetypeassert // Test mock - controlled return values
 }
 
-func (m *SharedMockRepositoryProvider) ProjectExists(ctx context.Context, owner, name string) (bool, string, error) {
+func (m *SharedMockRepositoryProvider) VerifyTarget(ctx context.Context, owner, name string) (bool, string, error) {
 	args := m.Called(ctx, owner, name)
 
 	return args.Bool(0), args.String(1), args.Error(2)
 }
 
-func (m *SharedMockRepositoryProvider) CreateRepositoryForPush(ctx context.Context, request ports.CreateRepositoryRequest) (string, error) {
+func (m *SharedMockRepositoryProvider) PrepareForPush(ctx context.Context, request ports.CreateRepositoryRequest) (string, error) {
 	args := m.Called(ctx, request)
 
 	return args.String(0), args.Error(1)
 }
 
-func (m *SharedMockRepositoryProvider) Protect(ctx context.Context, owner, branch, projectID string) error {
+func (m *SharedMockRepositoryProvider) LockForSync(ctx context.Context, owner, branch, projectID string) error {
 	args := m.Called(ctx, owner, branch, projectID)
 	if err := args.Error(0); err != nil {
 		return fmt.Errorf("failed to protect branch: %w", err)
@@ -49,7 +49,7 @@ func (m *SharedMockRepositoryProvider) Protect(ctx context.Context, owner, branc
 	return nil
 }
 
-func (m *SharedMockRepositoryProvider) Unprotect(ctx context.Context, branch, projectID string) error {
+func (m *SharedMockRepositoryProvider) UnlockAfterSync(ctx context.Context, branch, projectID string) error {
 	args := m.Called(ctx, branch, projectID)
 	if err := args.Error(0); err != nil {
 		return fmt.Errorf("failed to unprotect branch: %w", err)
@@ -58,23 +58,23 @@ func (m *SharedMockRepositoryProvider) Unprotect(ctx context.Context, branch, pr
 	return nil
 }
 
-func (m *SharedMockRepositoryProvider) GetRepository(_ context.Context, _ ports.ProviderConfig, _ string) (entities.Repository, error) {
+func (m *SharedMockRepositoryProvider) Get(_ context.Context, _ ports.ProviderConfig, _ string) (entities.Repository, error) {
 	return entities.Repository{}, nil
 }
 
-func (m *SharedMockRepositoryProvider) RepositoryExists(_ context.Context, _ ports.RepositoryExistsRequest) (bool, string, error) {
+func (m *SharedMockRepositoryProvider) Exists(_ context.Context, _ ports.RepositoryExistsRequest) (bool, string, error) {
 	return false, "", nil
 }
 
-func (m *SharedMockRepositoryProvider) CreateRepository(_ context.Context, _ ports.ProviderConfig, _ ports.CreateRepositoryOptions) (entities.Repository, error) {
+func (m *SharedMockRepositoryProvider) Create(_ context.Context, _ ports.ProviderConfig, _ ports.CreateRepositoryOptions) (entities.Repository, error) {
 	return entities.Repository{}, nil
 }
 
-func (m *SharedMockRepositoryProvider) UpdateRepository(_ context.Context, _ ports.ProviderConfig, _ string, _ ports.UpdateRepositoryOptions) error {
+func (m *SharedMockRepositoryProvider) Update(_ context.Context, _ ports.ProviderConfig, _ string, _ ports.UpdateRepositoryOptions) error {
 	return nil
 }
 
-func (m *SharedMockRepositoryProvider) DeleteRepository(_ context.Context, _ ports.ProviderConfig, _ string) error {
+func (m *SharedMockRepositoryProvider) Delete(_ context.Context, _ ports.ProviderConfig, _ string) error {
 	return nil
 }
 
@@ -82,7 +82,7 @@ func (m *SharedMockRepositoryProvider) SetDefaultBranch(_ context.Context, _, _,
 	return nil
 }
 
-func (m *SharedMockRepositoryProvider) ValidateRepositoryName(_ string) error {
+func (m *SharedMockRepositoryProvider) ValidateName(_ string) error {
 	return nil
 }
 
@@ -90,19 +90,19 @@ func (m *SharedMockRepositoryProvider) IsValidProjectName(_ context.Context, _ s
 	return true
 }
 
-func (m *SharedMockRepositoryProvider) TransformRepositoryName(name string, _ ports.NameTransformOptions) string {
+func (m *SharedMockRepositoryProvider) TransformName(name string, _ ports.NameTransformOptions) string {
 	return name
 }
 
-func (m *SharedMockRepositoryProvider) GetBranchProtection(_ context.Context, _ ports.ProviderConfig, _, _ string) (ports.BranchProtection, error) {
+func (m *SharedMockRepositoryProvider) GetProtection(_ context.Context, _ ports.ProviderConfig, _, _ string) (ports.BranchProtection, error) {
 	return ports.BranchProtection{}, nil
 }
 
-func (m *SharedMockRepositoryProvider) SetBranchProtection(_ context.Context, _ ports.ProviderConfig, _, _ string, _ ports.BranchProtection) error {
+func (m *SharedMockRepositoryProvider) SetProtection(_ context.Context, _ ports.ProviderConfig, _, _ string, _ ports.BranchProtection) error {
 	return nil
 }
 
-func (m *SharedMockRepositoryProvider) RemoveBranchProtection(_ context.Context, _ ports.ProviderConfig, _, _ string) error {
+func (m *SharedMockRepositoryProvider) RemoveProtection(_ context.Context, _ ports.ProviderConfig, _, _ string) error {
 	return nil
 }
 
@@ -110,7 +110,7 @@ func (m *SharedMockRepositoryProvider) ListProtectedBranches(_ context.Context, 
 	return []string{}, nil
 }
 
-func (m *SharedMockRepositoryProvider) GetProviderInfo() ports.ProviderInfo {
+func (m *SharedMockRepositoryProvider) GetInfo() ports.ProviderInfo {
 	return ports.ProviderInfo{}
 }
 

@@ -43,6 +43,18 @@ func NewSyncCommand() *cli.Command {
 		Usage:       "Mirror repositories from a source Git provider to targets",
 		Description: `Mirror repositories from source to target providers.`,
 		Action:      runSync,
+		CustomHelpTemplate: `{{.Usage}}
+
+Usage:
+  {{.FullName}} [options]
+{{if .Description}}
+Description:
+  {{.Description}}
+{{end}}
+Options:
+{{range $category := .FlagCategories}}{{if $category.Name}}  {{$category.Name}}
+{{end}}{{range $flag := $category.Flags}}  {{$flag}}
+{{end}}{{end}}`,
 		Flags: []cli.Flag{
 			&cli.BoolFlag{
 				Name:     "dry-run",

@@ -89,7 +89,7 @@ func TestValidateSyncUseCase_BasicValidation(t *testing.T) {
 		{
 			name: "valid configuration",
 			setupMock: func(m *mockhexagonal.RepositoryProvider) {
-				m.On("ListRepositories", mock.Anything, mock.Anything).
+				m.On("List", mock.Anything, mock.Anything).
 					Return([]entities.Repository{}, nil).Once()
 			},
 			request: sync.ValidateSyncRequest{
@@ -117,7 +117,7 @@ func TestValidateSyncUseCase_BasicValidation(t *testing.T) {
 			name: "missing owner",
 			setupMock: func(m *mockhexagonal.RepositoryProvider) {
 				// Mock should handle any calls even with invalid config
-				m.On("ListRepositories", mock.Anything, mock.Anything).
+				m.On("List", mock.Anything, mock.Anything).
 					Return([]entities.Repository{}, nil).Maybe()
 			},
 			request: sync.ValidateSyncRequest{

@@ -98,7 +98,7 @@ type mockRepositoryProvider struct {
 }
 
 // Simplified mock methods - only implement what's needed for these tests.
-func (m *mockRepositoryProvider) ListRepositories(ctx context.Context, config ports.ProviderConfig) ([]entities.Repository, error) {
+func (m *mockRepositoryProvider) List(ctx context.Context, config ports.ProviderConfig) ([]entities.Repository, error) {
 	args := m.Called(ctx, config)
 	if err := args.Error(1); err != nil {
 		return nil, err //nolint:wrapcheck // Test mock
@@ -109,7 +109,7 @@ func (m *mockRepositoryProvider) ListRepositories(ctx context.Context, config po
 	return repos, nil
 }
 
-func (m *mockRepositoryProvider) GetRepository(ctx context.Context, config ports.ProviderConfig, name string) (entities.Repository, error) {
+func (m *mockRepositoryProvider) Get(ctx context.Context, config ports.ProviderConfig, name string) (entities.Repository, error) {
 	args := m.Called(ctx, config, name)
 	// Safe type assertion - test mock controls return values
 	repo, _ := args.Get(0).(entities.Repository)
@@ -117,13 +117,13 @@ func (m *mockRepositoryProvider) GetRepository(ctx context.Context, config ports
 	return repo, args.Error(1) //nolint:wrapcheck // Test mock
 }
 
-func (m *mockRepositoryProvider) RepositoryExists(ctx context.Context, request ports.RepositoryExistsRequest) (bool, string, error) {
+func (m *mockRepositoryProvider) Exists(ctx context.Context, request ports.RepositoryExistsRequest) (bool, string, error) {
 	args := m.Called(ctx, request)
 
 	return args.Bool(0), args.String(1), args.Error(2)
 }
 
-func (m *mockRepositoryProvider) CreateRepository(ctx context.Context, config ports.ProviderConfig, options ports.CreateRepositoryOptions) (entities.Repository, error) {
+func (m *mockRepositoryProvider) Create(ctx context.Context, config ports.ProviderConfig, options ports.CreateRepositoryOptions) (entities.Repository, error) {
 	args := m.Called(ctx, config, options)
 	// Safe type assertion - test mock controls return values
 	repo, _ := args.Get(0).(entities.Repository)
@@ -131,44 +131,44 @@ func (m *mockRepositoryProvider) CreateRepository(ctx context.Context, config po
 	return repo, args.Error(1) //nolint:wrapcheck // Test mock
 }
 
-func (m *mockRepositoryProvider) UpdateRepository(ctx context.Context, config ports.ProviderConfig, name string, options ports.UpdateRepositoryOptions) error {
+func (m *mockRepositoryProvider) Update(ctx context.Context, config ports.ProviderConfig, name string, options ports.UpdateRepositoryOptions) error {
 	args := m.Called(ctx, config, name, options)
 
 	return args.Error(0) //nolint:wrapcheck // Test mock
 }
 
-func (m *mockRepositoryProvider) DeleteRepository(ctx context.Context, config ports.ProviderConfig, name string) error {
+func (m *mockRepositoryProvider) Delete(ctx context.Context, config ports.ProviderConfig, name string) error {
 	args := m.Called(ctx, config, name)
 
 	return args.Error(0) //nolint:wrapcheck // Test mock
 }
 
-func (m *mockRepositoryProvider) ValidateRepositoryName(name string) error {
+func (m *mockRepositoryProvider) ValidateName(name string) error {
 	args := m.Called(name)
 
 	return args.Error(0) //nolint:wrapcheck // Test mock
 }
 
-func (m *mockRepositoryProvider) TransformRepositoryName(name string, options ports.NameTransformOptions) string {
+func (m *mockRepositoryProvider) TransformName(name string, options ports.NameTransformOptions) string {
 	args := m.Called(name, options)
 
 	return args.String(0)
 }
 
-func (m *mockRepositoryProvider) GetBranchProtection(ctx context.Context, config ports.ProviderConfig, repoName, branch string) (ports.BranchProtection, error) {
+func (m *mockRepositoryProvider) GetProtection(ctx context.Context, config ports.ProviderConfig, repoName, branch string) (ports.BranchProtection, error) {
 	args := m.Called(ctx, config, repoName, branch)
 	protection, _ := args.Get(0).(ports.BranchProtection)
 
 	return protection, args.Error(1) //nolint:wrapcheck // Test mock
 }
 
-func (m *mockRepositoryProvider) SetBranchProtection(ctx context.Context, config ports.ProviderConfig, repoName, branch string, protection ports.BranchProtection) error {
+func (m *mockRepositoryProvider) SetProtection(ctx context.Context, config ports.ProviderConfig, repoName, branch string, protection ports.BranchProtection) error {
 	args := m.Called(ctx, config, repoName, branch, protection)
 
 	return args.Error(0) //nolint:wrapcheck // Test mock
 }
 
-func (m *mockRepositoryProvider) RemoveBranchProtection(ctx context.Context, config ports.ProviderConfig, repoName, branch string) error {
+func (m *mockRepositoryProvider) RemoveProtection(ctx context.Context, config ports.ProviderConfig, repoName, branch string) error {
 	args := m.Called(ctx, config, repoName, branch)
 
 	return args.Error(0) //nolint:wrapcheck // Test mock
@@ -181,7 +181,7 @@ func (m *mockRepositoryProvider) ListProtectedBranches(ctx context.Context, conf
 	return branches, args.Error(1) //nolint:wrapcheck // Test mock
 }
 
-func (m *mockRepositoryProvider) GetProviderInfo() ports.ProviderInfo {
+func (m *mockRepositoryProvider) GetInfo() ports.ProviderInfo {
 	args := m.Called()
 	info, _ := args.Get(0).(ports.ProviderInfo)
 
@@ -194,25 +194,25 @@ func (m *mockRepositoryProvider) SupportsFeature(feature ports.ProviderFeature) 
 	return args.Bool(0)
 }
 
-func (m *mockRepositoryProvider) CreateRepositoryForPush(ctx context.Context, request ports.CreateRepositoryRequest) (string, error) {
+func (m *mockRepositoryProvider) PrepareForPush(ctx context.Context, request ports.CreateRepositoryRequest) (string, error) {
 	args := m.Called(ctx, request)
 
 	return args.String(0), args.Error(1)
 }
 
-func (m *mockRepositoryProvider) ProjectExists(ctx context.Context, owner, repo string) (bool, string, error) {
+func (m *mockRepositoryProvider) VerifyTarget(ctx context.Context, owner, repo string) (bool, string, error) {
 	args := m.Called(ctx, owner, repo)
 
 	return args.Bool(0), args.String(1), args.Error(2)
 }
 
-func (m *mockRepositoryProvider) Protect(ctx context.Context, owner string, defaultBranch string, projectIDstr string) error {
+func (m *mockRepositoryProvider) LockForSync(ctx context.Context, owner string, defaultBranch string, projectIDstr string) error {
 	args := m.Called(ctx, owner, defaultBranch, projectIDstr)
 
 	return args.Error(0) //nolint:wrapcheck // Test mock
 }
 
-func (m *mockRepositoryProvider) Unprotect(ctx context.Context, defaultBranch string, projectIDStr string) error {
+func (m *mockRepositoryProvider) UnlockAfterSync(ctx context.Context, defaultBranch string, projectIDStr string) error {
 	args := m.Called(ctx, defaultBranch, projectIDStr)
 
 	return args.Error(0) //nolint:wrapcheck // Test mock
@@ -620,7 +620,7 @@ func TestSyncRepositoriesUseCase_Execute(t *testing.T) {
 					Return(testConfig, nil)
 
 				// Setup repository provider expectations for validation
-				mockRepo.On("ListRepositories", mock.Anything, mock.AnythingOfType("ports.ProviderConfig")).
+				mockRepo.On("List", mock.Anything, mock.AnythingOfType("ports.ProviderConfig")).
 					Return([]entities.Repository{}, nil)
 
 				// Setup git operations expectations for temporary directory management
@@ -703,7 +703,7 @@ func TestSyncRepositoriesUseCase_Execute(t *testing.T) {
 					Return(testConfig, nil)
 
 				// Setup repository provider expectations for validation
-				mockRepo.On("ListRepositories", mock.Anything, mock.AnythingOfType("ports.ProviderConfig")).
+				mockRepo.On("List", mock.Anything, mock.AnythingOfType("ports.ProviderConfig")).
 					Return([]entities.Repository{}, nil)
 
 				// Setup git operations expectations for temporary directory management

@@ -107,8 +107,8 @@ func TestCriticalGitHubToGitLabSyncFlow(t *testing.T) {
 		gitlabTarget := createLocalGitLabTarget(gitlabBarePath)
 
 		// Step 4: Mock GitLab provider responses (simulating API calls)
-		mockProvider.On("ProjectExists", mock.Anything, "gitlab-user", "test-repo").Return(false, "", nil)
-		mockProvider.On("CreateRepositoryForPush", mock.Anything, mock.AnythingOfType("ports.CreateRepositoryRequest")).Return("gitlab-project-123", nil)
+		mockProvider.On("VerifyTarget", mock.Anything, "gitlab-user", "test-repo").Return(false, "", nil)
+		mockProvider.On("PrepareForPush", mock.Anything, mock.AnythingOfType("ports.CreateRepositoryRequest")).Return("gitlab-project-123", nil)
 
 		// Step 5: Create source repository entity
 		sourceRepo := createTestRepository("test-repo")
@@ -200,7 +200,7 @@ func TestRemoteURLUpdateFailure(t *testing.T) {
 	}, nil).Once()
 
 	// Mock project exists
-	mockProvider.On("ProjectExists", mock.Anything, "gitlab-user", "test-repo").Return(true, "project-123", nil)
+	mockProvider.On("VerifyTarget", mock.Anything, "gitlab-user", "test-repo").Return(true, "project-123", nil)
 
 	// CRITICAL: Mock UpdateRemote failure (this tests our fix's error handling)
 	mockGitRepo.On("UpdateRemote", mock.Anything, "origin", mock.AnythingOfType("string")).Return(assert.AnError)

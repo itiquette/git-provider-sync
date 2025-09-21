@@ -197,7 +197,7 @@ func TestListRepositories(t *testing.T) {
 			require.NoError(t, err)
 
 			// Test ListRepositories
-			repos, err := adapter.ListRepositories(ctx, ports.ProviderConfig{})
+			repos, err := adapter.List(ctx, ports.ProviderConfig{})
 
 			if testCase.expectError {
 				require.Error(t, err)
@@ -295,7 +295,7 @@ func TestRepositoryExists(t *testing.T) {
 				Name:  testCase.repoName,
 			}
 
-			exists, _, err := adapter.RepositoryExists(ctx, request)
+			exists, _, err := adapter.Exists(ctx, request)
 
 			if testCase.expectError {
 				require.Error(t, err)
@@ -416,7 +416,7 @@ func TestCreateRepository(t *testing.T) {
 			require.NoError(t, err)
 
 			// Test CreateRepository
-			result, err := adapter.CreateRepository(ctx, ports.ProviderConfig{}, testCase.repoRequest)
+			result, err := adapter.Create(ctx, ports.ProviderConfig{}, testCase.repoRequest)
 
 			if testCase.expectError {
 				require.Error(t, err)
@@ -494,7 +494,7 @@ func TestUpdateRepository(t *testing.T) {
 			require.NoError(t, err)
 
 			// Test UpdateRepository
-			err = adapter.UpdateRepository(ctx, ports.ProviderConfig{}, "test-repo", testCase.updateReq)
+			err = adapter.Update(ctx, ports.ProviderConfig{}, "test-repo", testCase.updateReq)
 
 			if testCase.expectError {
 				require.Error(t, err)
@@ -635,7 +635,7 @@ func TestGetRepository(t *testing.T) {
 			require.NoError(t, err)
 
 			providerConfig := ports.ProviderConfig{Owner: testCase.owner}
-			repo, err := adapter.GetRepository(ctx, providerConfig, testCase.repoName)
+			repo, err := adapter.Get(ctx, providerConfig, testCase.repoName)
 
 			if testCase.expectError {
 				require.Error(t, err)
@@ -709,7 +709,7 @@ func TestDeleteRepository(t *testing.T) {
 			require.NoError(t, err)
 
 			providerConfig := ports.ProviderConfig{Owner: testCase.owner}
-			err = adapter.DeleteRepository(ctx, providerConfig, testCase.repoName)
+			err = adapter.Delete(ctx, providerConfig, testCase.repoName)
 
 			if testCase.expectError {
 				require.Error(t, err)
@@ -769,7 +769,7 @@ func TestValidateRepositoryName(t *testing.T) {
 			adapter, err := New("test-token", "")
 			require.NoError(t, err)
 
-			err = adapter.ValidateRepositoryName(testCase.repoName)
+			err = adapter.ValidateName(testCase.repoName)
 
 			if testCase.expectError {
 				require.Error(t, err)
@@ -861,7 +861,7 @@ func TestTransformRepositoryName(t *testing.T) {
 			adapter, err := New("test-token", "")
 			require.NoError(t, err)
 
-			result := adapter.TransformRepositoryName(testCase.inputName, testCase.options)
+			result := adapter.TransformName(testCase.inputName, testCase.options)
 			assert.Equal(t, testCase.expectedName, result)
 		})
 	}
@@ -873,7 +873,7 @@ func TestGetProviderInfo(t *testing.T) {
 	adapter, err := New("test-token", "custom.gitlab.com")
 	require.NoError(t, err)
 
-	info := adapter.GetProviderInfo()
+	info := adapter.GetInfo()
 
 	assert.Equal(t, "GitLab", info.Name)
 	assert.Equal(t, "gitlab", info.Type)
@@ -1029,7 +1029,7 @@ func TestCreateRepositoryForPush(t *testing.T) {
 			adapter, err := NewWithConfig(ctx, config)
 			require.NoError(t, err)
 
-			repoID, err := adapter.CreateRepositoryForPush(ctx, testCase.request)
+			repoID, err := adapter.PrepareForPush(ctx, testCase.request)
 
 			if testCase.expectError {
 				require.Error(t, err)
@@ -1119,7 +1119,7 @@ func TestProjectExists(t *testing.T) {
 			adapter, err := NewWithConfig(ctx, config)
 			require.NoError(t, err)
 
-			exists, projectID, err := adapter.ProjectExists(ctx, testCase.owner, testCase.repo)
+			exists, projectID, err := adapter.VerifyTarget(ctx, testCase.owner, testCase.repo)
 
 			if testCase.expectError {
 				require.Error(t, err)
@@ -1253,7 +1253,7 @@ func TestGetBranchProtection(t *testing.T) {
 			}
 
 			providerConfig := ports.ProviderConfig{Owner: testCase.owner}
-			protection, err := adapter.GetBranchProtection(ctx, providerConfig, testCase.repo, testCase.branch)
+			protection, err := adapter.GetProtection(ctx, providerConfig, testCase.repo, testCase.branch)
 
 			if testCase.expectError {
 				require.Error(t, err)
@@ -1334,7 +1334,7 @@ func TestSetBranchProtection(t *testing.T) {
 			require.NoError(t, err)
 
 			providerConfig := ports.ProviderConfig{Owner: testCase.owner}
-			err = adapter.SetBranchProtection(ctx, providerConfig, testCase.repo, testCase.branch, testCase.protection)
+			err = adapter.SetProtection(ctx, providerConfig, testCase.repo, testCase.branch, testCase.protection)
 
 			if testCase.expectError {
 				require.Error(t, err)
@@ -1402,7 +1402,7 @@ func TestRemoveBranchProtection(t *testing.T) {
 			require.NoError(t, err)
 
 			providerConfig := ports.ProviderConfig{Owner: testCase.owner}
-			err = adapter.RemoveBranchProtection(ctx, providerConfig, testCase.repo, testCase.branch)
+			err = adapter.RemoveProtection(ctx, providerConfig, testCase.repo, testCase.branch)
 
 			if testCase.expectError {
 				require.Error(t, err)
@@ -1522,7 +1522,7 @@ func TestProtectUnprotectBranches(t *testing.T) {
 			testFunc: func(t *testing.T, adapter *Adapter, _ *httptest.Server) {
 				t.Helper()
 				ctx := context.Background()
-				err := adapter.Protect(ctx, "testowner", "main", "123")
+				err := adapter.LockForSync(ctx, "testowner", "main", "123")
 				if err != nil {
 					t.Errorf("Protect failed: %v", err)
 				}
@@ -1535,7 +1535,7 @@ func TestProtectUnprotectBranches(t *testing.T) {
 			testFunc: func(t *testing.T, adapter *Adapter, _ *httptest.Server) {
 				t.Helper()
 				ctx := context.Background()
-				err := adapter.Protect(ctx, "testowner", "main", "invalid")
+				err := adapter.LockForSync(ctx, "testowner", "main", "invalid")
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), "invalid project ID")
 			},
@@ -1547,7 +1547,7 @@ func TestProtectUnprotectBranches(t *testing.T) {
 			testFunc: func(t *testing.T, adapter *Adapter, _ *httptest.Server) {
 				t.Helper()
 				ctx := context.Background()
-				err := adapter.Unprotect(ctx, "main", "123")
+				err := adapter.UnlockAfterSync(ctx, "main", "123")
 				if err != nil {
 					t.Errorf("Unprotect failed: %v", err)
 				}
@@ -1560,7 +1560,7 @@ func TestProtectUnprotectBranches(t *testing.T) {
 			testFunc: func(t *testing.T, adapter *Adapter, _ *httptest.Server) {
 				t.Helper()
 				ctx := context.Background()
-				err := adapter.Unprotect(ctx, "main", "invalid")
+				err := adapter.UnlockAfterSync(ctx, "main", "invalid")
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), "invalid project ID")
 			},

@@ -340,9 +340,9 @@ func (suite *TestMockSuite) SetupSuccessScenario() {
 
 	suite.Provider.On("ListRepositories", mock.Anything, mock.Anything).
 		Return([]string{"repo1", "repo2"}, nil)
-	suite.Provider.On("GetRepository", mock.Anything, mock.Anything, mock.Anything).
+	suite.Provider.On("Get", mock.Anything, mock.Anything, mock.Anything).
 		Return(struct{}{}, nil)
-	suite.Provider.On("CreateRepository", mock.Anything, mock.Anything, mock.Anything).
+	suite.Provider.On("Create", mock.Anything, mock.Anything, mock.Anything).
 		Return(nil)
 }
 
@@ -356,9 +356,9 @@ func (suite *TestMockSuite) SetupFailureScenario(errMsg string) error {
 
 	suite.Provider.On("ListRepositories", mock.Anything, mock.Anything).
 		Return([]string{}, err)
-	suite.Provider.On("GetRepository", mock.Anything, mock.Anything, mock.Anything).
+	suite.Provider.On("Get", mock.Anything, mock.Anything, mock.Anything).
 		Return(nil, err)
-	suite.Provider.On("CreateRepository", mock.Anything, mock.Anything, mock.Anything).
+	suite.Provider.On("Create", mock.Anything, mock.Anything, mock.Anything).
 		Return(err)
 
 	return err

@@ -101,8 +101,8 @@ func NewWithConfig(_ context.Context, config Config) (*Adapter, error) {
 	}, nil
 }
 
-// ListRepositories lists all repositories for a user/organization.
-func (a *Adapter) ListRepositories(_ context.Context, config ports.ProviderConfig) ([]entities.Repository, error) {
+// List lists all repositories for a user/organization.
+func (a *Adapter) List(_ context.Context, config ports.ProviderConfig) ([]entities.Repository, error) {
 	opts := gitea.ListReposOptions{
 		ListOptions: gitea.ListOptions{PageSize: 100},
 	}
@@ -138,8 +138,8 @@ func (a *Adapter) ListRepositories(_ context.Context, config ports.ProviderConfi
 	return allRepos, nil
 }
 
-// GetRepository gets a specific repository.
-func (a *Adapter) GetRepository(_ context.Context, config ports.ProviderConfig, name string) (entities.Repository, error) {
+// Get gets a specific repository.
+func (a *Adapter) Get(_ context.Context, config ports.ProviderConfig, name string) (entities.Repository, error) {
 	repo, _, err := a.client.GetRepo(config.Owner, name)
 	if err != nil {
 		return entities.Repository{}, fmt.Errorf("failed to get repository %s: %w", name, err)
@@ -148,8 +148,8 @@ func (a *Adapter) GetRepository(_ context.Context, config ports.ProviderConfig, 
 	return a.convertToRepository(repo)
 }
 
-// RepositoryExists checks if a repository exists.
-func (a *Adapter) RepositoryExists(_ context.Context, request ports.RepositoryExistsRequest) (bool, string, error) {
+// Exists checks if a repository exists.
+func (a *Adapter) Exists(_ context.Context, request ports.RepositoryExistsRequest) (bool, string, error) {
 	repo, resp, err := a.client.GetRepo(request.Owner, request.Name)
 	if err != nil {
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
@@ -162,8 +162,8 @@ func (a *Adapter) RepositoryExists(_ context.Context, request ports.RepositoryEx
 	return true, strconv.FormatInt(repo.ID, 10), nil
 }
 
-// CreateRepository creates a new repository.
-func (a *Adapter) CreateRepository(_ context.Context, config ports.ProviderConfig, options ports.CreateRepositoryOptions) (entities.Repository, error) {
+// Create creates a new repository.
+func (a *Adapter) Create(_ context.Context, config ports.ProviderConfig, options ports.CreateRepositoryOptions) (entities.Repository, error) {
 	createOpts := gitea.CreateRepoOption{
 		Name:        options.Name,
 		Description: options.Description,
@@ -193,8 +193,8 @@ func (a *Adapter) CreateRepository(_ context.Context, config ports.ProviderConfi
 	return a.convertToRepository(createdRepo)
 }
 
-// UpdateRepository updates an existing repository.
-func (a *Adapter) UpdateRepository(_ context.Context, config ports.ProviderConfig, name string, options ports.UpdateRepositoryOptions) error {
+// Update updates an existing repository.
+func (a *Adapter) Update(_ context.Context, config ports.ProviderConfig, name string, options ports.UpdateRepositoryOptions) error {
 	editOpts := gitea.EditRepoOption{}
 
 	if options.Description != nil {
@@ -218,8 +218,8 @@ func (a *Adapter) UpdateRepository(_ context.Context, config ports.ProviderConfi
 	return nil
 }
 
-// DeleteRepository deletes a repository.
-func (a *Adapter) DeleteRepository(_ context.Context, config ports.ProviderConfig, name string) error {
+// Delete deletes a repository.
+func (a *Adapter) Delete(_ context.Context, config ports.ProviderConfig, name string) error {
 	_, err := a.client.DeleteRepo(config.Owner, name)
 	if err != nil {
 		return fmt.Errorf("failed to delete repository: %w", err)
@@ -228,8 +228,8 @@ func (a *Adapter) DeleteRepository(_ context.Context, config ports.ProviderConfi
 	return nil
 }
 
-// ValidateRepositoryName validates a repository name for Gitea.
-func (a *Adapter) ValidateRepositoryName(name string) error {
+// ValidateName validates a repository name for Gitea.
+func (a *Adapter) ValidateName(name string) error {
 	if name == "" {
 		return ErrRepositoryNameEmpty
 	}
@@ -248,10 +248,10 @@ func (a *Adapter) ValidateRepositoryName(name string) error {
 	return nil
 }
 
-// TransformRepositoryName transforms a repository name according to transformation rules
+// TransformName transforms a repository name according to transformation rules
 // Options parameter supports prefix/suffix addition, case conversion,
 // Character replacement, and length constraints for Gitea provider compatibility.
-func (a *Adapter) TransformRepositoryName(name string, options ports.NameTransformOptions) string {
+func (a *Adapter) TransformName(name string, options ports.NameTransformOptions) string {
 	result := name
 
 	if options.ToLowercase {
@@ -286,8 +286,8 @@ func (a *Adapter) TransformRepositoryName(name string, options ports.NameTransfo
 	return result
 }
 
-// GetBranchProtection gets branch protection settings.
-func (a *Adapter) GetBranchProtection(_ context.Context, config ports.ProviderConfig, repoName, branch string) (ports.BranchProtection, error) {
+// GetProtection gets branch protection settings.
+func (a *Adapter) GetProtection(_ context.Context, config ports.ProviderConfig, repoName, branch string) (ports.BranchProtection, error) {
 	protection, _, err := a.client.GetBranchProtection(config.Owner, repoName, branch)
 	if err != nil {
 		return ports.BranchProtection{}, fmt.Errorf("failed to get branch protection: %w", err)
@@ -296,8 +296,8 @@ func (a *Adapter) GetBranchProtection(_ context.Context, config ports.ProviderCo
 	return a.convertBranchProtection(protection), nil
 }
 
-// SetBranchProtection sets branch protection settings.
-func (a *Adapter) SetBranchProtection(_ context.Context, config ports.ProviderConfig, repoName, _ string, protection ports.BranchProtection) error {
+// SetProtection sets branch protection settings.
+func (a *Adapter) SetProtection(_ context.Context, config ports.ProviderConfig, repoName, _ string, protection ports.BranchProtection) error {
 	opts := a.convertToGiteaProtection(protection)
 
 	_, _, err := a.client.CreateBranchProtection(config.Owner, repoName, opts)
@@ -308,8 +308,8 @@ func (a *Adapter) SetBranchProtection(_ context.Context, config ports.ProviderCo
 	return nil
 }
 
-// RemoveBranchProtection removes branch protection.
-func (a *Adapter) RemoveBranchProtection(_ context.Context, config ports.ProviderConfig, repoName, branch string) error {
+// RemoveProtection removes branch protection.
+func (a *Adapter) RemoveProtection(_ context.Context, config ports.ProviderConfig, repoName, branch string) error {
 	_, err := a.client.DeleteBranchProtection(config.Owner, repoName, branch)
 	if err != nil {
 		return fmt.Errorf("failed to remove branch protection: %w", err)
@@ -333,8 +333,8 @@ func (a *Adapter) ListProtectedBranches(_ context.Context, config ports.Provider
 	return names, nil
 }
 
-// GetProviderInfo returns Gitea API capabilities, features, and limitations for provider selection.
-func (a *Adapter) GetProviderInfo() ports.ProviderInfo {
+// GetInfo returns Gitea API capabilities, features, and limitations for provider selection.
+func (a *Adapter) GetInfo() ports.ProviderInfo {
 	return ports.ProviderInfo{
 		Name:       "Gitea",
 		Type:       "gitea",
@@ -351,7 +351,7 @@ func (a *Adapter) GetProviderInfo() ports.ProviderInfo {
 			ports.FeatureGitLFS,
 			ports.FeatureReleases,
 		},
-		Capabilities: ports.ProviderCapabilities{
+		Capabilities: ports.ProviderCapabilitiesInfo{
 			MaxRepositoriesPerRequest: 100,
 			MaxFileSize:               100 * 1024 * 1024,  // 100MB
 			MaxRepositorySize:         1024 * 1024 * 1024, // 1GB
@@ -366,7 +366,7 @@ func (a *Adapter) GetProviderInfo() ports.ProviderInfo {
 
 // SupportsFeature checks if Gitea supports a specific feature.
 func (a *Adapter) SupportsFeature(feature ports.ProviderFeature) bool {
-	info := a.GetProviderInfo()
+	info := a.GetInfo()
 	for _, f := range info.Features {
 		if f == feature {
 			return true
@@ -376,8 +376,8 @@ func (a *Adapter) SupportsFeature(feature ports.ProviderFeature) bool {
 	return false
 }
 
-// CreateRepositoryForPush creates a repository optimized for push operations with minimal metadata.
-func (a *Adapter) CreateRepositoryForPush(_ context.Context, request ports.CreateRepositoryRequest) (string, error) {
+// PrepareForPush creates a repository optimized for push operations with minimal metadata.
+func (a *Adapter) PrepareForPush(_ context.Context, request ports.CreateRepositoryRequest) (string, error) {
 	opts := gitea.CreateRepoOption{
 		Name:        request.Name,
 		Description: request.Description,
@@ -396,8 +396,8 @@ func (a *Adapter) CreateRepositoryForPush(_ context.Context, request ports.Creat
 	return strconv.FormatInt(repo.ID, 10), nil
 }
 
-// ProjectExists checks if a project exists and returns its ID.
-func (a *Adapter) ProjectExists(_ context.Context, owner, repo string) (bool, string, error) {
+// VerifyTarget checks if a project exists and returns its ID.
+func (a *Adapter) VerifyTarget(_ context.Context, owner, repo string) (bool, string, error) {
 	repository, resp, err := a.client.GetRepo(owner, repo)
 	if err != nil {
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
@@ -410,8 +410,8 @@ func (a *Adapter) ProjectExists(_ context.Context, owner, repo string) (bool, st
 	return true, strconv.FormatInt(repository.ID, 10), nil
 }
 
-// Protect enables branch protection for Gitea.
-func (a *Adapter) Protect(_ context.Context, owner string, defaultBranch string, projectIDstr string) error {
+// LockForSync enables branch protection for Gitea.
+func (a *Adapter) LockForSync(_ context.Context, owner string, defaultBranch string, projectIDstr string) error {
 	// Gitea uses repo owner/name for protection, not just ID
 	// We'd need to get the repo name from the ID, but for now use owner
 	opts := gitea.CreateBranchProtectionOption{
@@ -427,8 +427,8 @@ func (a *Adapter) Protect(_ context.Context, owner string, defaultBranch string,
 	return nil
 }
 
-// Unprotect disables branch protection for Gitea.
-func (a *Adapter) Unprotect(_ context.Context, _ string, _ string) error {
+// UnlockAfterSync disables branch protection for Gitea.
+func (a *Adapter) UnlockAfterSync(_ context.Context, _ string, _ string) error {
 	// Gitea protection removal - would need repo owner/name
 	// For now, return nil as this is a placeholder
 	return nil
@@ -450,7 +450,7 @@ func (a *Adapter) SetDefaultBranch(_ context.Context, owner, name, branch string
 
 // IsValidProjectName validates a project name for Gitea.
 func (a *Adapter) IsValidProjectName(_ context.Context, name string) bool {
-	return a.ValidateRepositoryName(name) == nil
+	return a.ValidateName(name) == nil
 }
 
 func (a *Adapter) convertToRepository(repo *gitea.Repository) (entities.Repository, error) {

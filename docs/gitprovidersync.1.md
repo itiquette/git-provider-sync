@@ -2,7 +2,7 @@
 
 ## NAME
 
-gitprovidersync - synchronize Git repositories between providers
+gitprovidersync - mirror git repositories across providers
 
 ## SYNOPSIS
 
@@ -13,11 +13,18 @@ gitprovidersync - synchronize Git repositories between providers
 
 ## DESCRIPTION
 
-**gitprovidersync** synchronizes Git repositories between different Git providers (GitHub, GitLab, Gitea) and local storage. It can mirror repositories to other providers, archive them as compressed files, or save them to directories.
+**gitprovidersync** mirrors Git repositories across various Git providers and storage backends. It provides a unified interface for synchronizing repositories between GitHub, GitLab, Gitea, local directories, and compressed archives (tar.gz).
 
-Configuration is specified in YAML format. Use **--config-file** to specify the configuration file path.
+The tool supports:
+- Mirroring repositories to multiple destinations simultaneously
+- Archiving repositories for backup purposes
+- Migrating repositories between different Git providers
+- Preserving repository metadata and settings where possible
+- Batch operations for organization-wide synchronization
 
-Commands available: **sync** (primary operation), **print** (display configuration), and **man** (generate manual pages).
+Configuration is specified in YAML format. Use **--config-file** to specify the configuration file path. The tool supports environment variables for sensitive data like authentication tokens.
+
+Primary commands: **sync** (mirror repositories), **status** (show sync status), **print** (display configuration).
 
 ## OPTIONS
 

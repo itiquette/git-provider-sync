@@ -15,60 +15,57 @@ import (
 	"itiquette/git-provider-sync/internal/domain/filter"
 )
 
-// RepositoryDiscovery provides repository discovery capabilities.
-type RepositoryDiscovery interface {
-	ListRepositories(ctx context.Context, config ProviderConfig) ([]entities.Repository, error)
-	GetRepository(ctx context.Context, config ProviderConfig, name string) (entities.Repository, error)
-	RepositoryExists(ctx context.Context, request RepositoryExistsRequest) (bool, string, error)
+// RepositoryQuery provides read-only repository operations.
+type RepositoryQuery interface {
+	List(ctx context.Context, config ProviderConfig) ([]entities.Repository, error)
+	Get(ctx context.Context, config ProviderConfig, name string) (entities.Repository, error)
+	Exists(ctx context.Context, request RepositoryExistsRequest) (bool, string, error)
 }
 
-// RepositoryLifecycle provides repository creation, update, and deletion.
-type RepositoryLifecycle interface {
-	CreateRepository(ctx context.Context, config ProviderConfig, options CreateRepositoryOptions) (entities.Repository, error)
-	UpdateRepository(ctx context.Context, config ProviderConfig, name string, options UpdateRepositoryOptions) error
-	DeleteRepository(ctx context.Context, config ProviderConfig, name string) error
+// RepositoryCommand provides repository mutation operations.
+type RepositoryCommand interface {
+	Create(ctx context.Context, config ProviderConfig, options CreateRepositoryOptions) (entities.Repository, error)
+	Update(ctx context.Context, config ProviderConfig, name string, options UpdateRepositoryOptions) error
+	Delete(ctx context.Context, config ProviderConfig, name string) error
 	SetDefaultBranch(ctx context.Context, owner, name, branch string) error
 }
 
-// RepositoryValidation provides name validation and transformation.
-type RepositoryValidation interface {
-	ValidateRepositoryName(name string) error
+// RepositoryPolicy enforces naming and protection rules.
+type RepositoryPolicy interface {
+	// Naming rules
+	ValidateName(name string) error
 	IsValidProjectName(ctx context.Context, name string) bool
-	TransformRepositoryName(name string, options NameTransformOptions) string
-}
+	TransformName(name string, options NameTransformOptions) string
 
-// BranchProtectionManager provides branch protection management.
-type BranchProtectionManager interface {
-	GetBranchProtection(ctx context.Context, config ProviderConfig, repoName, branch string) (BranchProtection, error)
-	SetBranchProtection(ctx context.Context, config ProviderConfig, repoName, branch string, protection BranchProtection) error
-	RemoveBranchProtection(ctx context.Context, config ProviderConfig, repoName, branch string) error
+	// Protection rules
+	GetProtection(ctx context.Context, config ProviderConfig, repoName, branch string) (BranchProtection, error)
+	SetProtection(ctx context.Context, config ProviderConfig, repoName, branch string, protection BranchProtection) error
+	RemoveProtection(ctx context.Context, config ProviderConfig, repoName, branch string) error
 	ListProtectedBranches(ctx context.Context, config ProviderConfig, repoName string) ([]string, error)
 }
 
-// ProviderPushOperations defines operations for pushing repositories to providers.
-type ProviderPushOperations interface {
-	CreateRepositoryForPush(ctx context.Context, request CreateRepositoryRequest) (string, error)
-	ProjectExists(ctx context.Context, owner, repo string) (bool, string, error)
-	Protect(ctx context.Context, owner string, defaultBranch string, projectIDstr string) error
-	Unprotect(ctx context.Context, defaultBranch string, projectIDStr string) error
+// SyncOperations provides operations specific to synchronization workflow.
+type SyncOperations interface {
+	PrepareForPush(ctx context.Context, request CreateRepositoryRequest) (string, error)
+	VerifyTarget(ctx context.Context, owner, repo string) (bool, string, error)
+	LockForSync(ctx context.Context, owner string, branch string, projectID string) error
+	UnlockAfterSync(ctx context.Context, branch string, projectID string) error
 }
 
-// ProviderCapabilitiesPort provides information about provider capabilities.
-type ProviderCapabilitiesPort interface {
-	GetProviderInfo() ProviderInfo
+// ProviderCapabilities provides feature detection.
+type ProviderCapabilities interface {
+	GetInfo() ProviderInfo
 	SupportsFeature(feature ProviderFeature) bool
 }
 
-// RepositoryProvider defines the interface for git provider operations (secondary port)
-// port is implemented by adapters that connect to external git providers like GitHub, GitLab, Gitea
-// composes smaller, focused interfaces following the Interface Segregation Principle.
+// RepositoryProvider composes all provider capabilities
+// This is a secondary port implemented by adapters for GitHub, GitLab, Gitea, etc.
 type RepositoryProvider interface {
-	RepositoryDiscovery
-	RepositoryLifecycle
-	RepositoryValidation
-	BranchProtectionManager
-	ProviderCapabilitiesPort
-	ProviderPushOperations
+	RepositoryQuery
+	RepositoryCommand
+	RepositoryPolicy
+	SyncOperations
+	ProviderCapabilities
 }
 
 // ProviderConfig represents configuration for connecting to a git provider.
@@ -218,7 +215,7 @@ type ProviderInfo struct {
 	Domain       string
 	APIVersion   string
 	Features     []ProviderFeature
-	Capabilities ProviderCapabilities
+	Capabilities ProviderCapabilitiesInfo
 }
 
 // ProviderFeature represents a feature supported by a provider.
@@ -295,8 +292,8 @@ const (
 	FeatureReleases ProviderFeature = "releases"
 )
 
-// ProviderCapabilities represents the capabilities of a provider.
-type ProviderCapabilities struct {
+// ProviderCapabilitiesInfo represents the capabilities of a provider.
+type ProviderCapabilitiesInfo struct {
 	MaxRepositoriesPerRequest int
 	MaxFileSize               int64
 	MaxRepositorySize         int64

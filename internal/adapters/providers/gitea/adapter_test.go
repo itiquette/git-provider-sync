@@ -288,7 +288,7 @@ func TestListRepositories(t *testing.T) {
 			providerConfig := ports.ProviderConfig{
 				Owner: "testuser", // Provide owner to make correct API call
 			}
-			repos, err := adapter.ListRepositories(ctx, providerConfig)
+			repos, err := adapter.List(ctx, providerConfig)
 
 			if testCase.expectError {
 				require.Error(t, err)
@@ -399,7 +399,7 @@ func TestRepositoryExists(t *testing.T) {
 				Name:  testCase.repoName,
 			}
 
-			exists, _, err := adapter.RepositoryExists(ctx, request)
+			exists, _, err := adapter.Exists(ctx, request)
 
 			if testCase.expectError {
 				require.Error(t, err)
@@ -532,7 +532,7 @@ func TestCreateRepository(t *testing.T) {
 			require.NoError(t, err)
 
 			// Test CreateRepository
-			result, err := adapter.CreateRepository(ctx, ports.ProviderConfig{}, testCase.repoRequest)
+			result, err := adapter.Create(ctx, ports.ProviderConfig{}, testCase.repoRequest)
 
 			if testCase.expectError {
 				require.Error(t, err)
@@ -623,7 +623,7 @@ func TestUpdateRepository(t *testing.T) {
 			providerConfig := ports.ProviderConfig{
 				Owner: "testuser", // Provide owner for API call
 			}
-			err = adapter.UpdateRepository(ctx, providerConfig, "test-repo", testCase.updateReq)
+			err = adapter.Update(ctx, providerConfig, "test-repo", testCase.updateReq)
 
 			if testCase.expectError {
 				require.Error(t, err)
@@ -681,7 +681,7 @@ func TestValidateRepositoryName(t *testing.T) {
 				domain: "test-domain",
 			}
 
-			err := adapter.ValidateRepositoryName(testCase.repoName)
+			err := adapter.ValidateName(testCase.repoName)
 
 			if testCase.expectError {
 				require.Error(t, err)
@@ -927,7 +927,7 @@ func TestGetRepository(t *testing.T) {
 			require.NoError(t, err)
 
 			providerConfig := ports.ProviderConfig{Owner: test.owner}
-			repo, err := adapter.GetRepository(ctx, providerConfig, test.repoName)
+			repo, err := adapter.Get(ctx, providerConfig, test.repoName)
 
 			if test.expectError {
 				require.Error(t, err)
@@ -1004,7 +1004,7 @@ func TestDeleteRepository(t *testing.T) {
 			require.NoError(t, err)
 
 			providerConfig := ports.ProviderConfig{Owner: test.owner}
-			err = adapter.DeleteRepository(ctx, providerConfig, test.repoName)
+			err = adapter.Delete(ctx, providerConfig, test.repoName)
 
 			if test.expectError {
 				require.Error(t, err)
@@ -1072,7 +1072,7 @@ func TestTransformRepositoryName(t *testing.T) {
 
 			adapter := &Adapter{domain: "test"}
 
-			result := adapter.TransformRepositoryName(test.inputName, test.options)
+			result := adapter.TransformName(test.inputName, test.options)
 			assert.Equal(t, test.expectedName, result)
 		})
 	}
@@ -1152,7 +1152,7 @@ func TestCreateRepositoryForPush(t *testing.T) {
 			adapter, err := NewWithConfig(ctx, config)
 			require.NoError(t, err)
 
-			repoID, err := adapter.CreateRepositoryForPush(ctx, test.request)
+			repoID, err := adapter.PrepareForPush(ctx, test.request)
 
 			if test.expectError {
 				require.Error(t, err)
@@ -1242,7 +1242,7 @@ func TestProjectExists(t *testing.T) {
 			adapter, err := NewWithConfig(ctx, config)
 			require.NoError(t, err)
 
-			exists, projectID, err := adapter.ProjectExists(ctx, test.owner, test.repo)
+			exists, projectID, err := adapter.VerifyTarget(ctx, test.owner, test.repo)
 
 			if test.expectError {
 				require.Error(t, err)

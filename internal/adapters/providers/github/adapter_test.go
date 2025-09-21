@@ -316,7 +316,7 @@ func TestListRepositories_UserAndOrgRepositories(t *testing.T) {
 			adapter := NewWithConfig(context.Background(), config)
 
 			// Execute test
-			repos, err := adapter.ListRepositories(context.Background(), testCase.config)
+			repos, err := adapter.List(context.Background(), testCase.config)
 
 			// Verify results
 			if testCase.expectedError {
@@ -412,7 +412,7 @@ func TestRepositoryExists_AccuratePresenceCheck(t *testing.T) {
 			adapter := NewWithConfig(context.Background(), config)
 
 			// Execute test
-			exists, url, err := adapter.RepositoryExists(context.Background(), testCase.request)
+			exists, url, err := adapter.Exists(context.Background(), testCase.request)
 
 			// Verify results
 			if testCase.expectedError {
@@ -489,7 +489,7 @@ func TestCreateRepository_CorrectSettings(t *testing.T) {
 			adapter := NewWithConfig(context.Background(), config)
 
 			// Execute test
-			repo, err := adapter.CreateRepository(context.Background(), testCase.config, testCase.options)
+			repo, err := adapter.Create(context.Background(), testCase.config, testCase.options)
 
 			// Verify results
 			if testCase.expectedError {
@@ -545,7 +545,7 @@ func TestValidateRepositoryName_GitHubCompliance(t *testing.T) {
 			t.Parallel()
 
 			adapter := New(context.Background(), "")
-			err := adapter.ValidateRepositoryName(testCase.repoName)
+			err := adapter.ValidateName(testCase.repoName)
 
 			if testCase.expectedError {
 				require.Error(t, err)
@@ -602,7 +602,7 @@ func TestTransformRepositoryName(t *testing.T) {
 			t.Parallel()
 
 			adapter := New(context.Background(), "")
-			result := adapter.TransformRepositoryName(testCase.input, testCase.options)
+			result := adapter.TransformName(testCase.input, testCase.options)
 			assert.Equal(t, testCase.expectedName, result)
 		})
 	}
@@ -685,7 +685,7 @@ func TestGetRepository_CompleteMetadata(t *testing.T) {
 			adapter := NewWithConfig(context.Background(), config)
 
 			// Execute test
-			repo, err := adapter.GetRepository(context.Background(), testCase.config, testCase.repoName)
+			repo, err := adapter.Get(context.Background(), testCase.config, testCase.repoName)
 
 			// Verify results
 			if testCase.expectedError {
@@ -752,7 +752,7 @@ func TestGitHubAdapterWorkflow(t *testing.T) {
 			t.Run("list repositories", func(t *testing.T) {
 				t.Parallel()
 
-				repos, err := adapter.ListRepositories(context.Background(), providerConfig)
+				repos, err := adapter.List(context.Background(), providerConfig)
 				require.NoError(t, err)
 				assert.Len(t, repos, len(test.expectedRepos))
 
@@ -765,7 +765,7 @@ func TestGitHubAdapterWorkflow(t *testing.T) {
 				t.Parallel()
 
 				if len(test.expectedRepos) > 0 {
-					repo, err := adapter.GetRepository(context.Background(), providerConfig, test.expectedRepos[0])
+					repo, err := adapter.Get(context.Background(), providerConfig, test.expectedRepos[0])
 					require.NoError(t, err)
 					assert.Equal(t, test.expectedRepos[0], repo.Name())
 				}
@@ -775,7 +775,7 @@ func TestGitHubAdapterWorkflow(t *testing.T) {
 				t.Parallel()
 
 				if len(test.expectedRepos) > 0 {
-					exists, url, err := adapter.RepositoryExists(context.Background(), ports.RepositoryExistsRequest{
+					exists, url, err := adapter.Exists(context.Background(), ports.RepositoryExistsRequest{
 						Owner: test.owner,
 						Name:  test.expectedRepos[0],
 					})
@@ -788,7 +788,7 @@ func TestGitHubAdapterWorkflow(t *testing.T) {
 			t.Run("create new repository", func(t *testing.T) {
 				t.Parallel()
 
-				newRepo, err := adapter.CreateRepository(context.Background(), providerConfig, ports.CreateRepositoryOptions{
+				newRepo, err := adapter.Create(context.Background(), providerConfig, ports.CreateRepositoryOptions{
 					Name:        "new-created-repo",
 					Description: "Created via API",
 					Visibility:  "public",
@@ -991,7 +991,7 @@ func TestUpdateRepository(t *testing.T) {
 
 			adapter := setupTestAdapter(t, server.URL)
 
-			err := adapter.UpdateRepository(context.Background(), test.config, test.repoName, test.options)
+			err := adapter.Update(context.Background(), test.config, test.repoName, test.options)
 
 			if test.expectedError {
 				require.Error(t, err)
@@ -1059,7 +1059,7 @@ func TestDeleteRepository(t *testing.T) {
 
 			adapter := setupTestAdapter(t, server.URL)
 
-			err := adapter.DeleteRepository(context.Background(), test.config, test.repoName)
+			err := adapter.Delete(context.Background(), test.config, test.repoName)
 
 			if test.expectedError {
 				require.Error(t, err)
@@ -1121,7 +1121,7 @@ func TestCreateRepositoryForPush(t *testing.T) {
 
 			adapter := setupTestAdapter(t, server.URL)
 
-			repoID, err := adapter.CreateRepositoryForPush(context.Background(), test.request)
+			repoID, err := adapter.PrepareForPush(context.Background(), test.request)
 
 			if test.expectedError {
 				require.Error(t, err)
@@ -1193,7 +1193,7 @@ func TestProjectExists(t *testing.T) {
 
 			adapter := setupTestAdapter(t, server.URL)
 
-			exists, projectID, err := adapter.ProjectExists(context.Background(), test.owner, test.repo)
+			exists, projectID, err := adapter.VerifyTarget(context.Background(), test.owner, test.repo)
 
 			if test.expectedError {
 				require.Error(t, err)
@@ -1288,7 +1288,7 @@ func TestGetBranchProtection(t *testing.T) {
 
 			adapter := setupTestAdapter(t, server.URL)
 
-			protection, err := adapter.GetBranchProtection(context.Background(), test.config, test.repoName, test.branch)
+			protection, err := adapter.GetProtection(context.Background(), test.config, test.repoName, test.branch)
 
 			if test.expectedError {
 				require.Error(t, err)
@@ -1376,7 +1376,7 @@ func TestSetBranchProtection(t *testing.T) {
 
 			adapter := setupTestAdapter(t, server.URL)
 
-			err := adapter.SetBranchProtection(context.Background(), test.config, test.repoName, test.branch, test.protection)
+			err := adapter.SetProtection(context.Background(), test.config, test.repoName, test.branch, test.protection)
 
 			if test.expectedError {
 				require.Error(t, err)
@@ -1447,7 +1447,7 @@ func TestRemoveBranchProtection(t *testing.T) {
 
 			adapter := setupTestAdapter(t, server.URL)
 
-			err := adapter.RemoveBranchProtection(context.Background(), test.config, test.repoName, test.branch)
+			err := adapter.RemoveProtection(context.Background(), test.config, test.repoName, test.branch)
 
 			if test.expectedError {
 				require.Error(t, err)
@@ -1592,7 +1592,7 @@ func TestProtect(t *testing.T) {
 
 			adapter := setupTestAdapter(t, server.URL)
 
-			err := adapter.Protect(context.Background(), test.owner, test.defaultBranch, test.projectID)
+			err := adapter.LockForSync(context.Background(), test.owner, test.defaultBranch, test.projectID)
 
 			if test.expectedError {
 				require.Error(t, err)
@@ -1645,7 +1645,7 @@ func TestUnprotect(t *testing.T) {
 
 			adapter := setupTestAdapter(t, server.URL)
 
-			err := adapter.Unprotect(context.Background(), test.defaultBranch, test.projectID)
+			err := adapter.UnlockAfterSync(context.Background(), test.defaultBranch, test.projectID)
 
 			if test.expectedError {
 				require.Error(t, err)

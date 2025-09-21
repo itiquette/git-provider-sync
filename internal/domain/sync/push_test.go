@@ -47,7 +47,7 @@ func TestPushToProviderUseCase_Execute(t *testing.T) {
 				}, nil).Once()
 
 				// Mock repository existence check
-				provider.On("ProjectExists", mock.Anything, "target-owner", "test-repo").Return(true, "project-123", nil)
+				provider.On("VerifyTarget", mock.Anything, "target-owner", "test-repo").Return(true, "project-123", nil)
 
 				// Mock remote URL update (CRITICAL: Our fix for GitHub → GitLab sync)
 				gitRepo.On("UpdateRemote", mock.Anything, "origin", mock.AnythingOfType("string")).Return(nil).Once()
@@ -86,8 +86,8 @@ func TestPushToProviderUseCase_Execute(t *testing.T) {
 				}, nil).Once()
 
 				// Mock repository doesn't exist, needs creation
-				provider.On("ProjectExists", mock.Anything, "target-owner", "new-repo").Return(false, "", nil)
-				provider.On("CreateRepositoryForPush", mock.Anything, mock.AnythingOfType("ports.CreateRepositoryRequest")).Return("new-project-456", nil)
+				provider.On("VerifyTarget", mock.Anything, "target-owner", "new-repo").Return(false, "", nil)
+				provider.On("PrepareForPush", mock.Anything, mock.AnythingOfType("ports.CreateRepositoryRequest")).Return("new-project-456", nil)
 
 				// Mock remote URL update (CRITICAL: Our fix for GitHub → GitLab sync)
 				gitRepo.On("UpdateRemote", mock.Anything, "origin", mock.AnythingOfType("string")).Return(nil).Once()
@@ -142,7 +142,7 @@ func TestPushToProviderUseCase_Execute(t *testing.T) {
 				}, nil).Once()
 
 				// Mock repository exists
-				provider.On("ProjectExists", mock.Anything, "target-owner", "fail-repo").Return(true, "project-fail", nil).Once()
+				provider.On("VerifyTarget", mock.Anything, "target-owner", "fail-repo").Return(true, "project-fail", nil).Once()
 
 				// Mock remote URL update (CRITICAL: Our fix for GitHub → GitLab sync)
 				gitRepo.On("UpdateRemote", mock.Anything, "origin", mock.AnythingOfType("string")).Return(nil).Once()

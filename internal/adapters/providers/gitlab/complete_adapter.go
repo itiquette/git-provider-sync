@@ -350,7 +350,7 @@ func (ca *CompleteAdapter) GetProjectInfos(
 	// Use the basic adapter to get repositories
 	config := ports.ProviderConfig{Owner: owner}
 
-	repos, err := ca.ListRepositories(ctx, config)
+	repos, err := ca.List(ctx, config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list repositories: %w", err)
 	}

@@ -292,7 +292,7 @@ func (uc *PushToProviderUseCase) createRepositoryIfNeeded(ctx context.Context, r
 	}
 
 	// Check if repository exists
-	exists, projectID, err := uc.provider.ProjectExists(ctx,
+	exists, projectID, err := uc.provider.VerifyTarget(ctx,
 		request.TargetConfig.Owner(),
 		request.SourceRepository.Name())
 	if err != nil {
@@ -346,7 +346,7 @@ func (uc *PushToProviderUseCase) createRepository(ctx context.Context, request P
 		Private:       visibility == "private",
 	}
 
-	projectID, err := uc.provider.CreateRepositoryForPush(ctx, createRequest)
+	projectID, err := uc.provider.PrepareForPush(ctx, createRequest)
 	if err != nil {
 		return "", fmt.Errorf("%w: %s. err: %w", ErrCreateRepository, request.SourceRepository.Name(), err)
 	}
@@ -540,7 +540,7 @@ func (uc *PushToProviderUseCase) disableProtection(ctx context.Context, request 
 	}
 
 	// Call provider Unprotect method (as in main branch)
-	err := uc.provider.Unprotect(ctx, defaultBranch, projectID)
+	err := uc.provider.UnlockAfterSync(ctx, defaultBranch, projectID)
 	if err != nil {
 		return fmt.Errorf("failed to unprotect branch %s: %w", defaultBranch, err)
 	}
@@ -574,7 +574,7 @@ func (uc *PushToProviderUseCase) enableProtection(ctx context.Context, request P
 	owner := request.TargetConfig.Owner()
 
 	// Call provider Protect method (as in main branch)
-	err := uc.provider.Protect(ctx, owner, defaultBranch, projectID)
+	err := uc.provider.LockForSync(ctx, owner, defaultBranch, projectID)
 	if err != nil {
 		return fmt.Errorf("failed to protect branch %s: %w", defaultBranch, err)
 	}

@@ -86,12 +86,12 @@ func (uc FetchSourceRepositoriesUseCase) Execute(
 	})
 
 	// TRACE: Step 1 - Cross to provider adapter
-	logger.Trace(ctx, "crossing to provider adapter: ListRepositories", map[string]any{
+	logger.Trace(ctx, "crossing to provider adapter: List", map[string]any{
 		"step":     "1_list_repositories",
 		"provider": request.ProviderConfig.ProviderType,
 	})
 
-	repositories, err := uc.repositoryProvider.ListRepositories(ctx, request.ProviderConfig)
+	repositories, err := uc.repositoryProvider.List(ctx, request.ProviderConfig)
 	if err != nil {
 		return FetchSourceResponse{}, fmt.Errorf("failed to fetch repositories from provider: %w", err)
 	}

@@ -489,7 +489,7 @@ func (uc ValidateSyncUseCase) estimateRepositoryCount(
 	ctx context.Context,
 	config ports.ProviderConfig,
 ) (int, error) {
-	repositories, err := uc.repositoryProvider.ListRepositories(ctx, config)
+	repositories, err := uc.repositoryProvider.List(ctx, config)
 	if err != nil {
 		return 0, fmt.Errorf("failed to list repositories for validation: %w", err)
 	}

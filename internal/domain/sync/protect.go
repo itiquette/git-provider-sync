@@ -132,7 +132,7 @@ func (uc BranchProtectionUseCase) GetProtectionStatus(
 		"branch":     branch,
 	})
 
-	protection, err := uc.repositoryProvider.GetBranchProtection(ctx, providerConfig, repoName, branch)
+	protection, err := uc.repositoryProvider.GetProtection(ctx, providerConfig, repoName, branch)
 	if err != nil {
 		return ports.BranchProtection{}, fmt.Errorf("failed to get branch protection: %w", err)
 	}
@@ -174,7 +174,7 @@ func (uc BranchProtectionUseCase) enableProtection(
 	}
 
 	// Set branch protection using the repository provider
-	err := uc.repositoryProvider.SetBranchProtection(
+	err := uc.repositoryProvider.SetProtection(
 		ctx,
 		request.ProviderConfig,
 		request.Repository.Name(),
@@ -210,7 +210,7 @@ func (uc BranchProtectionUseCase) disableProtection(
 	}
 
 	// Remove branch protection using the repository provider
-	err := uc.repositoryProvider.RemoveBranchProtection(
+	err := uc.repositoryProvider.RemoveProtection(
 		ctx,
 		request.ProviderConfig,
 		request.Repository.Name(),
@@ -244,7 +244,7 @@ func (uc BranchProtectionUseCase) updateProtection(
 	}
 
 	// Update branch protection using the repository provider
-	err := uc.repositoryProvider.SetBranchProtection(
+	err := uc.repositoryProvider.SetProtection(
 		ctx,
 		request.ProviderConfig,
 		request.Repository.Name(),

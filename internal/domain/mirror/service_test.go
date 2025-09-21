@@ -58,7 +58,7 @@ func (m *mockGitOps) DeleteTmpDir(_ context.Context) error {
 
 type mockRepoProvider struct{}
 
-func (m *mockRepoProvider) CreateRepository(_ context.Context, _ ports.ProviderConfig, options ports.CreateRepositoryOptions) (entities.Repository, error) {
+func (m *mockRepoProvider) Create(_ context.Context, _ ports.ProviderConfig, options ports.CreateRepositoryOptions) (entities.Repository, error) {
 	repo, err := entities.NewRepositoryBuilder().WithName(options.Name)
 	if err != nil {
 		return entities.Repository{}, fmt.Errorf("failed to set repository name: %w", err)
@@ -78,11 +78,11 @@ func (m *mockRepoProvider) CreateRepository(_ context.Context, _ ports.ProviderC
 	return built, nil
 }
 
-func (m *mockRepoProvider) UpdateRepository(_ context.Context, _ ports.ProviderConfig, _ string, _ ports.UpdateRepositoryOptions) error {
+func (m *mockRepoProvider) Update(_ context.Context, _ ports.ProviderConfig, _ string, _ ports.UpdateRepositoryOptions) error {
 	return nil
 }
 
-func (m *mockRepoProvider) GetRepository(_ context.Context, _ ports.ProviderConfig, name string) (entities.Repository, error) {
+func (m *mockRepoProvider) Get(_ context.Context, _ ports.ProviderConfig, name string) (entities.Repository, error) {
 	repo, err := entities.NewRepositoryBuilder().WithName(name)
 	if err != nil {
 		return entities.Repository{}, fmt.Errorf("failed to set repository name: %w", err)
@@ -102,16 +102,16 @@ func (m *mockRepoProvider) GetRepository(_ context.Context, _ ports.ProviderConf
 	return built, nil
 }
 
-func (m *mockRepoProvider) ListRepositories(_ context.Context, _ ports.ProviderConfig) ([]entities.Repository, error) {
+func (m *mockRepoProvider) List(_ context.Context, _ ports.ProviderConfig) ([]entities.Repository, error) {
 	return []entities.Repository{}, nil
 }
 
-func (m *mockRepoProvider) DeleteRepository(_ context.Context, _ ports.ProviderConfig, _ string) error {
+func (m *mockRepoProvider) Delete(_ context.Context, _ ports.ProviderConfig, _ string) error {
 	return nil
 }
 
 // Missing RepositoryProvider interface methods.
-func (m *mockRepoProvider) CreateRepositoryForPush(_ context.Context, _ ports.CreateRepositoryRequest) (string, error) {
+func (m *mockRepoProvider) CreateForPush(_ context.Context, _ ports.CreateRepositoryRequest) (string, error) {
 	return "https://example.com/repo.git", nil
 }
 
@@ -119,23 +119,23 @@ func (m *mockRepoProvider) SetDefaultBranch(_ context.Context, _, _, _ string) e
 	return nil
 }
 
-func (m *mockRepoProvider) RepositoryExists(_ context.Context, _ ports.RepositoryExistsRequest) (bool, string, error) {
+func (m *mockRepoProvider) Exists(_ context.Context, _ ports.RepositoryExistsRequest) (bool, string, error) {
 	return true, "https://example.com/repo.git", nil
 }
 
-func (m *mockRepoProvider) ValidateRepositoryName(_ string) error {
+func (m *mockRepoProvider) ValidateName(_ string) error {
 	return nil
 }
 
-func (m *mockRepoProvider) GetBranchProtection(_ context.Context, _ ports.ProviderConfig, _, _ string) (ports.BranchProtection, error) {
+func (m *mockRepoProvider) GetProtection(_ context.Context, _ ports.ProviderConfig, _, _ string) (ports.BranchProtection, error) {
 	return ports.BranchProtection{}, nil
 }
 
-func (m *mockRepoProvider) SetBranchProtection(_ context.Context, _ ports.ProviderConfig, _, _ string, _ ports.BranchProtection) error {
+func (m *mockRepoProvider) SetProtection(_ context.Context, _ ports.ProviderConfig, _, _ string, _ ports.BranchProtection) error {
 	return nil
 }
 
-func (m *mockRepoProvider) RemoveBranchProtection(_ context.Context, _ ports.ProviderConfig, _, _ string) error {
+func (m *mockRepoProvider) RemoveProtection(_ context.Context, _ ports.ProviderConfig, _, _ string) error {
 	return nil
 }
 
@@ -143,12 +143,8 @@ func (m *mockRepoProvider) ListProtectedBranches(_ context.Context, _ ports.Prov
 	return []string{}, nil
 }
 
-func (m *mockRepoProvider) GetProviderInfo() ports.ProviderInfo {
+func (m *mockRepoProvider) GetInfo() ports.ProviderInfo {
 	return ports.ProviderInfo{Name: "mock-provider", Type: "git"}
-}
-
-func (m *mockRepoProvider) GetCapabilities() ports.ProviderCapabilities {
-	return ports.ProviderCapabilities{SupportsPrivateRepos: true}
 }
 
 func (m *mockRepoProvider) PushToProvider(_ context.Context, _ ports.ProviderConfig, _ string, _ ports.SyncOptions) (ports.SyncResult, error) {
@@ -175,7 +171,7 @@ func (m *mockRepoProvider) SupportsFeature(_ ports.ProviderFeature) bool {
 	return true
 }
 
-func (m *mockRepoProvider) TransformRepositoryName(name string, _ ports.NameTransformOptions) string {
+func (m *mockRepoProvider) TransformName(name string, _ ports.NameTransformOptions) string {
 	return name
 }
 
@@ -860,4 +856,21 @@ func createTestService() *Service {
 	}
 
 	return NewService(&mockGitOps{}, &mockRepoProvider{}, &mockLogger{}, config)
+}
+
+// SyncOperations interface methods.
+func (m *mockRepoProvider) PrepareForPush(_ context.Context, _ ports.CreateRepositoryRequest) (string, error) {
+	return "project-id", nil
+}
+
+func (m *mockRepoProvider) VerifyTarget(_ context.Context, _, _ string) (bool, string, error) {
+	return true, "project-id", nil
+}
+
+func (m *mockRepoProvider) LockForSync(_ context.Context, _, _, _ string) error {
+	return nil
+}
+
+func (m *mockRepoProvider) UnlockAfterSync(_ context.Context, _, _ string) error {
+	return nil
 }

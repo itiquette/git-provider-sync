@@ -274,7 +274,7 @@ func (a *Adapter) buildSSHCommand(auth ports.AuthOptions) string {
 func (a *Adapter) buildSSHKeyCommand(auth ports.AuthOptions) string {
 	// If we have key bytes, write to temp file
 	if len(auth.SSHKey) > 0 {
-		keyFile := filepath.Join(a.tempDir, "ssh_key")
+		keyFile := filepath.Join(a.tempDir, "ssh_key.txt")
 		if err := os.WriteFile(keyFile, auth.SSHKey, 0600); err == nil {
 			return fmt.Sprintf("ssh -i %s -o StrictHostKeyChecking=no", keyFile)
 		}

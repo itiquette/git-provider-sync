@@ -86,8 +86,8 @@ func NewWithConfig(ctx context.Context, config Config) *Adapter {
 	return &Adapter{client: client}
 }
 
-// ListRepositories fetches all repositories for the specified owner.
-func (a *Adapter) ListRepositories(ctx context.Context, config ports.ProviderConfig) ([]entities.Repository, error) {
+// List fetches all repositories for the specified owner.
+func (a *Adapter) List(ctx context.Context, config ports.ProviderConfig) ([]entities.Repository, error) {
 	opts := &github.RepositoryListByUserOptions{
 		Type:        "all",
 		Sort:        "updated",
@@ -122,8 +122,8 @@ func (a *Adapter) ListRepositories(ctx context.Context, config ports.ProviderCon
 	return allRepos, nil
 }
 
-// GetRepository fetches individual repository with complete metadata and error handling.
-func (a *Adapter) GetRepository(ctx context.Context, config ports.ProviderConfig, name string) (entities.Repository, error) {
+// Get fetches individual repository with complete metadata and error handling.
+func (a *Adapter) Get(ctx context.Context, config ports.ProviderConfig, name string) (entities.Repository, error) {
 	repo, _, err := a.client.Repositories.Get(ctx, config.Owner, name)
 	if err != nil {
 		return entities.Repository{}, fmt.Errorf("failed to get repository %s: %w", name, err)
@@ -132,8 +132,8 @@ func (a *Adapter) GetRepository(ctx context.Context, config ports.ProviderConfig
 	return a.convertToRepository(repo)
 }
 
-// RepositoryExists validates repository existence with proper 404 handling and ID extraction.
-func (a *Adapter) RepositoryExists(ctx context.Context, request ports.RepositoryExistsRequest) (bool, string, error) {
+// Exists validates repository existence with proper 404 handling and ID extraction.
+func (a *Adapter) Exists(ctx context.Context, request ports.RepositoryExistsRequest) (bool, string, error) {
 	repository, resp, err := a.client.Repositories.Get(ctx, request.Owner, request.Name)
 	if err != nil {
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
@@ -150,8 +150,8 @@ func (a *Adapter) RepositoryExists(ctx context.Context, request ports.Repository
 	return true, "", nil
 }
 
-// CreateRepository establishes new repository with organization detection and metadata initialization.
-func (a *Adapter) CreateRepository(ctx context.Context, config ports.ProviderConfig, options ports.CreateRepositoryOptions) (entities.Repository, error) {
+// Create establishes new repository with organization detection and metadata initialization.
+func (a *Adapter) Create(ctx context.Context, config ports.ProviderConfig, options ports.CreateRepositoryOptions) (entities.Repository, error) {
 	repo := &github.Repository{
 		Name:        github.Ptr(options.Name),
 		Description: github.Ptr(options.Description),
@@ -181,8 +181,8 @@ func (a *Adapter) CreateRepository(ctx context.Context, config ports.ProviderCon
 	return a.convertToRepository(createdRepo)
 }
 
-// UpdateRepository modifies repository properties with selective field updates and validation.
-func (a *Adapter) UpdateRepository(ctx context.Context, config ports.ProviderConfig, name string, options ports.UpdateRepositoryOptions) error {
+// Update modifies repository properties with selective field updates and validation.
+func (a *Adapter) Update(ctx context.Context, config ports.ProviderConfig, name string, options ports.UpdateRepositoryOptions) error {
 	repo := &github.Repository{}
 
 	if options.Description != nil {
@@ -205,8 +205,8 @@ func (a *Adapter) UpdateRepository(ctx context.Context, config ports.ProviderCon
 	return nil
 }
 
-// DeleteRepository removes repository with proper error handling and confirmation.
-func (a *Adapter) DeleteRepository(ctx context.Context, config ports.ProviderConfig, name string) error {
+// Delete removes repository with proper error handling and confirmation.
+func (a *Adapter) Delete(ctx context.Context, config ports.ProviderConfig, name string) error {
 	_, err := a.client.Repositories.Delete(ctx, config.Owner, name)
 	if err != nil {
 		return fmt.Errorf("failed to delete repository: %w", err)
@@ -218,8 +218,8 @@ func (a *Adapter) DeleteRepository(ctx context.Context, config ports.ProviderCon
 // Note: Repository filtering is handled by domain.FilterRepositoriesUseCase
 // adapter focuses only on GitHub API interactions
 
-// ValidateRepositoryName validates a repository name for GitHub.
-func (a *Adapter) ValidateRepositoryName(name string) error {
+// ValidateName validates a repository name for GitHub.
+func (a *Adapter) ValidateName(name string) error {
 	if name == "" {
 		return domain.ErrRepositoryNameEmpty
 	}
@@ -238,10 +238,10 @@ func (a *Adapter) ValidateRepositoryName(name string) error {
 	return nil
 }
 
-// TransformRepositoryName transforms a repository name according to transformation rules
+// TransformName transforms a repository name according to transformation rules
 // Options parameter supports prefix/suffix addition, case conversion,
 // Character replacement, and length constraints for GitHub provider compatibility.
-func (a *Adapter) TransformRepositoryName(name string, options ports.NameTransformOptions) string {
+func (a *Adapter) TransformName(name string, options ports.NameTransformOptions) string {
 	result := name
 
 	if options.ToLowercase {
@@ -276,8 +276,8 @@ func (a *Adapter) TransformRepositoryName(name string, options ports.NameTransfo
 	return result
 }
 
-// GetBranchProtection retrieves protection rules for the specified branch. Returns empty protection if branch is unprotected.
-func (a *Adapter) GetBranchProtection(ctx context.Context, config ports.ProviderConfig, repoName, branch string) (ports.BranchProtection, error) {
+// GetProtection retrieves protection rules for the specified branch. Returns empty protection if branch is unprotected.
+func (a *Adapter) GetProtection(ctx context.Context, config ports.ProviderConfig, repoName, branch string) (ports.BranchProtection, error) {
 	protection, _, err := a.client.Repositories.GetBranchProtection(ctx, config.Owner, repoName, branch)
 	if err != nil {
 		return ports.BranchProtection{}, fmt.Errorf("failed to get branch protection: %w", err)
@@ -286,8 +286,8 @@ func (a *Adapter) GetBranchProtection(ctx context.Context, config ports.Provider
 	return a.convertBranchProtection(protection), nil
 }
 
-// SetBranchProtection applies protection rules to the specified branch.
-func (a *Adapter) SetBranchProtection(ctx context.Context, config ports.ProviderConfig, repoName, branch string, protection ports.BranchProtection) error {
+// SetProtection applies protection rules to the specified branch.
+func (a *Adapter) SetProtection(ctx context.Context, config ports.ProviderConfig, repoName, branch string, protection ports.BranchProtection) error {
 	req := a.convertToGitHubProtection(protection)
 
 	_, _, err := a.client.Repositories.UpdateBranchProtection(ctx, config.Owner, repoName, branch, req)
@@ -298,8 +298,8 @@ func (a *Adapter) SetBranchProtection(ctx context.Context, config ports.Provider
 	return nil
 }
 
-// RemoveBranchProtection disables all protection rules for the specified branch.
-func (a *Adapter) RemoveBranchProtection(ctx context.Context, config ports.ProviderConfig, repoName, branch string) error {
+// RemoveProtection disables all protection rules for the specified branch.
+func (a *Adapter) RemoveProtection(ctx context.Context, config ports.ProviderConfig, repoName, branch string) error {
 	_, err := a.client.Repositories.RemoveBranchProtection(ctx, config.Owner, repoName, branch)
 	if err != nil {
 		return fmt.Errorf("failed to remove branch protection: %w", err)
@@ -328,8 +328,8 @@ func (a *Adapter) ListProtectedBranches(ctx context.Context, config ports.Provid
 	return names, nil
 }
 
-// GetProviderInfo returns GitHub API capabilities, rate limits, and supported features for provider selection.
-func (a *Adapter) GetProviderInfo() ports.ProviderInfo {
+// GetInfo returns GitHub API capabilities, rate limits, and supported features for provider selection.
+func (a *Adapter) GetInfo() ports.ProviderInfo {
 	return ports.ProviderInfo{
 		Name:       "GitHub",
 		Type:       "github",
@@ -351,7 +351,7 @@ func (a *Adapter) GetProviderInfo() ports.ProviderInfo {
 			ports.FeatureTopics,
 			ports.FeatureReleases,
 		},
-		Capabilities: ports.ProviderCapabilities{
+		Capabilities: ports.ProviderCapabilitiesInfo{
 			MaxRepositoriesPerRequest: 100,
 			MaxFileSize:               100 * 1024 * 1024,  // 100MB
 			MaxRepositorySize:         1024 * 1024 * 1024, // 1GB
@@ -366,7 +366,7 @@ func (a *Adapter) GetProviderInfo() ports.ProviderInfo {
 
 // SupportsFeature checks if GitHub supports a specific feature.
 func (a *Adapter) SupportsFeature(feature ports.ProviderFeature) bool {
-	info := a.GetProviderInfo()
+	info := a.GetInfo()
 	for _, f := range info.Features {
 		if f == feature {
 			return true
@@ -376,8 +376,8 @@ func (a *Adapter) SupportsFeature(feature ports.ProviderFeature) bool {
 	return false
 }
 
-// CreateRepositoryForPush creates a repository optimized for push operations with minimal metadata.
-func (a *Adapter) CreateRepositoryForPush(ctx context.Context, request ports.CreateRepositoryRequest) (string, error) {
+// PrepareForPush creates a repository optimized for push operations with minimal metadata.
+func (a *Adapter) PrepareForPush(ctx context.Context, request ports.CreateRepositoryRequest) (string, error) {
 	repo := &github.Repository{
 		Name:        github.Ptr(request.Name),
 		Description: github.Ptr(request.Description),
@@ -405,8 +405,8 @@ func (a *Adapter) CreateRepositoryForPush(ctx context.Context, request ports.Cre
 	return "", domain.ErrRepositoryNoID
 }
 
-// ProjectExists checks if a project exists and returns its ID.
-func (a *Adapter) ProjectExists(ctx context.Context, owner, repo string) (bool, string, error) {
+// VerifyTarget checks if a project exists and returns its ID.
+func (a *Adapter) VerifyTarget(ctx context.Context, owner, repo string) (bool, string, error) {
 	repository, resp, err := a.client.Repositories.Get(ctx, owner, repo)
 	if err != nil {
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
@@ -423,8 +423,8 @@ func (a *Adapter) ProjectExists(ctx context.Context, owner, repo string) (bool, 
 	return true, "", nil
 }
 
-// Protect enables branch protection for the specified repository.
-func (a *Adapter) Protect(ctx context.Context, owner string, defaultBranch string, projectIDstr string) error {
+// LockForSync enables branch protection for the specified repository.
+func (a *Adapter) LockForSync(ctx context.Context, owner string, defaultBranch string, projectIDstr string) error {
 	// Convert projectID from string to int64
 	projectID, err := strconv.ParseInt(projectIDstr, 10, 64)
 	if err != nil {
@@ -457,8 +457,8 @@ func (a *Adapter) Protect(ctx context.Context, owner string, defaultBranch strin
 	return nil
 }
 
-// Unprotect disables branch protection for the specified repository.
-func (a *Adapter) Unprotect(ctx context.Context, defaultBranch string, projectIDStr string) error {
+// UnlockAfterSync disables branch protection for the specified repository.
+func (a *Adapter) UnlockAfterSync(ctx context.Context, defaultBranch string, projectIDStr string) error {
 	// Convert projectID from string to int64
 	projectID, err := strconv.ParseInt(projectIDStr, 10, 64)
 	if err != nil {
@@ -503,7 +503,7 @@ func (a *Adapter) SetDefaultBranch(ctx context.Context, owner, name, branch stri
 
 // IsValidProjectName validates a project name for GitHub.
 func (a *Adapter) IsValidProjectName(_ context.Context, name string) bool {
-	return a.ValidateRepositoryName(name) == nil
+	return a.ValidateName(name) == nil
 }
 
 func (a *Adapter) convertToGitHubProtection(protection ports.BranchProtection) *github.ProtectionRequest {

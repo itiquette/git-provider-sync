@@ -68,7 +68,7 @@ func TestBranchProtectionUseCase_ExecuteProtection(t *testing.T) {
 				mockLogger.On("Info", mock.Anything, "Executing branch protection operation", mock.Anything).Once()
 				mockLogger.On("Debug", mock.Anything, "Enabling branch protection", mock.Anything).Once()
 				mockProvider.On("SupportsFeature", ports.FeatureBranchProtection).Return(true).Once()
-				mockProvider.On("SetBranchProtection", mock.Anything, mock.Anything, "test-repo", "main", mock.Anything).Return(nil).Once()
+				mockProvider.On("SetProtection", mock.Anything, mock.Anything, "test-repo", "main", mock.Anything).Return(nil).Once()
 				mockLogger.On("Info", mock.Anything, "Branch protection enabled successfully", mock.Anything).Once()
 				mockLogger.On("Info", mock.Anything, "Branch protection operation completed", mock.Anything).Once()
 			},
@@ -97,7 +97,7 @@ func TestBranchProtectionUseCase_ExecuteProtection(t *testing.T) {
 				mockLogger.On("Info", mock.Anything, "Executing branch protection operation", mock.Anything).Once()
 				mockLogger.On("Debug", mock.Anything, "Disabling branch protection", mock.Anything).Once()
 				mockProvider.On("SupportsFeature", ports.FeatureBranchProtection).Return(true).Once()
-				mockProvider.On("RemoveBranchProtection", mock.Anything, mock.Anything, "test-repo", "main").Return(nil).Once()
+				mockProvider.On("RemoveProtection", mock.Anything, mock.Anything, "test-repo", "main").Return(nil).Once()
 				mockLogger.On("Info", mock.Anything, "Branch protection disabled successfully", mock.Anything).Once()
 				mockLogger.On("Info", mock.Anything, "Branch protection operation completed", mock.Anything).Once()
 			},
@@ -131,7 +131,7 @@ func TestBranchProtectionUseCase_ExecuteProtection(t *testing.T) {
 				mockLogger.On("Info", mock.Anything, "Executing branch protection operation", mock.Anything).Once()
 				mockLogger.On("Debug", mock.Anything, "Updating branch protection", mock.Anything).Once()
 				mockProvider.On("SupportsFeature", ports.FeatureBranchProtection).Return(true).Once()
-				mockProvider.On("SetBranchProtection", mock.Anything, mock.Anything, "test-repo", "develop", mock.Anything).Return(nil).Once()
+				mockProvider.On("SetProtection", mock.Anything, mock.Anything, "test-repo", "develop", mock.Anything).Return(nil).Once()
 				mockLogger.On("Info", mock.Anything, "Branch protection updated successfully", mock.Anything).Once()
 				mockLogger.On("Info", mock.Anything, "Branch protection operation completed", mock.Anything).Once()
 			},
@@ -217,7 +217,7 @@ func TestBranchProtectionUseCase_ExecuteProtection(t *testing.T) {
 				mockLogger.On("Info", mock.Anything, "Executing branch protection operation", mock.Anything).Once()
 				mockLogger.On("Debug", mock.Anything, "Enabling branch protection", mock.Anything).Once()
 				mockProvider.On("SupportsFeature", ports.FeatureBranchProtection).Return(true).Once()
-				mockProvider.On("SetBranchProtection", mock.Anything, mock.Anything, "test-repo", "main", mock.Anything).
+				mockProvider.On("SetProtection", mock.Anything, mock.Anything, "test-repo", "main", mock.Anything).
 					Return(errors.New("API rate limit exceeded")).Once()
 				mockLogger.On("Info", mock.Anything, "Branch protection operation completed", mock.Anything).Once()
 			},
@@ -306,7 +306,7 @@ func TestBranchProtectionUseCase_GetProtectionStatus(t *testing.T) {
 						RequiredApprovingReviewCount: 2,
 					},
 				}
-				mockProvider.On("GetBranchProtection", mock.Anything, mock.Anything, "test-repo", "main").
+				mockProvider.On("GetProtection", mock.Anything, mock.Anything, "test-repo", "main").
 					Return(expectedProtection, nil).Once()
 			},
 			expectedProt: ports.BranchProtection{
@@ -329,7 +329,7 @@ func TestBranchProtectionUseCase_GetProtectionStatus(t *testing.T) {
 			branch:   "develop",
 			setupMocks: func(mockProvider *mockhexagonal.RepositoryProvider, mockLogger *mockhexagonal.Logger) {
 				mockLogger.On("Debug", mock.Anything, "Getting branch protection status", mock.Anything).Once()
-				mockProvider.On("GetBranchProtection", mock.Anything, mock.Anything, "test-repo", "develop").
+				mockProvider.On("GetProtection", mock.Anything, mock.Anything, "test-repo", "develop").
 					Return(ports.BranchProtection{Protected: false}, nil).Once()
 			},
 			expectedProt: ports.BranchProtection{Protected: false},
@@ -346,7 +346,7 @@ func TestBranchProtectionUseCase_GetProtectionStatus(t *testing.T) {
 			branch:   "main",
 			setupMocks: func(mockProvider *mockhexagonal.RepositoryProvider, mockLogger *mockhexagonal.Logger) {
 				mockLogger.On("Debug", mock.Anything, "Getting branch protection status", mock.Anything).Once()
-				mockProvider.On("GetBranchProtection", mock.Anything, mock.Anything, "test-repo", "main").
+				mockProvider.On("GetProtection", mock.Anything, mock.Anything, "test-repo", "main").
 					Return(ports.BranchProtection{}, errors.New("branch not found")).Once()
 			},
 			expectedProt:  ports.BranchProtection{},
@@ -524,13 +524,13 @@ func TestBranchProtectionUseCase_CrossProviderCompatibility(t *testing.T) {
 			mockLogger.On("Info", mock.Anything, "Executing branch protection operation", mock.Anything).Once()
 			mockLogger.On("Debug", mock.Anything, "Enabling branch protection", mock.Anything).Once()
 			mockProvider.On("SupportsFeature", ports.FeatureBranchProtection).Return(true).Once()
-			mockProvider.On("SetBranchProtection", mock.Anything, mock.Anything, "test-repo", "main", mock.Anything).Return(nil).Once()
+			mockProvider.On("SetProtection", mock.Anything, mock.Anything, "test-repo", "main", mock.Anything).Return(nil).Once()
 			mockLogger.On("Info", mock.Anything, "Branch protection enabled successfully", mock.Anything).Once()
 			mockLogger.On("Info", mock.Anything, "Branch protection operation completed", mock.Anything).Once()
 
 			// 2. Get status
 			mockLogger.On("Debug", mock.Anything, "Getting branch protection status", mock.Anything).Once()
-			mockProvider.On("GetBranchProtection", mock.Anything, mock.Anything, "test-repo", "main").
+			mockProvider.On("GetProtection", mock.Anything, mock.Anything, "test-repo", "main").
 				Return(protection, nil).Once()
 
 			// 3. List protected branches
@@ -542,7 +542,7 @@ func TestBranchProtectionUseCase_CrossProviderCompatibility(t *testing.T) {
 			mockLogger.On("Info", mock.Anything, "Executing branch protection operation", mock.Anything).Once()
 			mockLogger.On("Debug", mock.Anything, "Disabling branch protection", mock.Anything).Once()
 			mockProvider.On("SupportsFeature", ports.FeatureBranchProtection).Return(true).Once()
-			mockProvider.On("RemoveBranchProtection", mock.Anything, mock.Anything, "test-repo", "main").Return(nil).Once()
+			mockProvider.On("RemoveProtection", mock.Anything, mock.Anything, "test-repo", "main").Return(nil).Once()
 			mockLogger.On("Info", mock.Anything, "Branch protection disabled successfully", mock.Anything).Once()
 			mockLogger.On("Info", mock.Anything, "Branch protection operation completed", mock.Anything).Once()
 
@@ -662,7 +662,7 @@ func TestBranchProtectionUseCase_ProviderSpecificFeatures(t *testing.T) {
 			mockLogger.On("Info", mock.Anything, "Executing branch protection operation", mock.Anything).Once()
 			mockLogger.On("Debug", mock.Anything, "Enabling branch protection", mock.Anything).Once()
 			mockProvider.On("SupportsFeature", ports.FeatureBranchProtection).Return(true).Once()
-			mockProvider.On("SetBranchProtection", mock.Anything, mock.Anything, "test-repo", "main", testCase.protection).Return(nil).Once()
+			mockProvider.On("SetProtection", mock.Anything, mock.Anything, "test-repo", "main", testCase.protection).Return(nil).Once()
 			mockLogger.On("Info", mock.Anything, "Branch protection enabled successfully", mock.Anything).Once()
 			mockLogger.On("Info", mock.Anything, "Branch protection operation completed", mock.Anything).Once()
 
