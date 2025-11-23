@@ -60,6 +60,7 @@ func TestProjectService_UpdateProject(t *testing.T) { //nolint:gocognit,gocyclo,
 					switch {
 					case r.Method == http.MethodPatch && r.URL.Path == "/repos/testowner/testrepo":
 						var req github.Repository
+
 						err := json.NewDecoder(r.Body).Decode(&req)
 						if err != nil {
 							t.Errorf("Failed to decode request: %v", err)
@@ -67,9 +68,11 @@ func TestProjectService_UpdateProject(t *testing.T) { //nolint:gocognit,gocyclo,
 
 							return
 						}
+
 						assert.Equal(t, "Updated repository description", *req.Description)
 
 						w.WriteHeader(http.StatusOK)
+
 						resp := github.Repository{
 							ID:          github.Ptr(int64(123)),
 							Name:        github.Ptr("testrepo"),
@@ -98,6 +101,7 @@ func TestProjectService_UpdateProject(t *testing.T) { //nolint:gocognit,gocyclo,
 				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { //nolint:varnamelen // Standard HTTP handler params
 					if r.Method == http.MethodPatch && r.URL.Path == testRepoPath {
 						var req github.Repository
+
 						err := json.NewDecoder(r.Body).Decode(&req)
 						if err != nil {
 							t.Errorf("Failed to decode request: %v", err)
@@ -105,9 +109,11 @@ func TestProjectService_UpdateProject(t *testing.T) { //nolint:gocognit,gocyclo,
 
 							return
 						}
+
 						assert.True(t, *req.Private)
 
 						w.WriteHeader(http.StatusOK)
+
 						resp := github.Repository{
 							ID:      github.Ptr(int64(123)),
 							Name:    github.Ptr("testrepo"),
@@ -136,6 +142,7 @@ func TestProjectService_UpdateProject(t *testing.T) { //nolint:gocognit,gocyclo,
 				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { //nolint:varnamelen // Standard HTTP handler params
 					if r.Method == http.MethodPatch && r.URL.Path == testRepoPath {
 						var req github.Repository
+
 						err := json.NewDecoder(r.Body).Decode(&req)
 						if err != nil {
 							t.Errorf("Failed to decode request: %v", err)
@@ -143,9 +150,11 @@ func TestProjectService_UpdateProject(t *testing.T) { //nolint:gocognit,gocyclo,
 
 							return
 						}
+
 						assert.Equal(t, "develop", *req.DefaultBranch)
 
 						w.WriteHeader(http.StatusOK)
+
 						resp := github.Repository{
 							ID:            github.Ptr(int64(123)),
 							Name:          github.Ptr("testrepo"),
@@ -174,6 +183,7 @@ func TestProjectService_UpdateProject(t *testing.T) { //nolint:gocognit,gocyclo,
 				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { //nolint:varnamelen // Standard HTTP handler params
 					if r.Method == http.MethodPut && r.URL.Path == testTopicsPath {
 						var req map[string][]string
+
 						err := json.NewDecoder(r.Body).Decode(&req)
 						if err != nil {
 							t.Errorf("Failed to decode request: %v", err)
@@ -181,6 +191,7 @@ func TestProjectService_UpdateProject(t *testing.T) { //nolint:gocognit,gocyclo,
 
 							return
 						}
+
 						assert.Equal(t, []string{"go", "sync", "git"}, req["names"])
 
 						w.WriteHeader(http.StatusOK)
@@ -207,6 +218,7 @@ func TestProjectService_UpdateProject(t *testing.T) { //nolint:gocognit,gocyclo,
 				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { //nolint:varnamelen // Standard HTTP handler params
 					if r.Method == http.MethodPatch && r.URL.Path == testRepoPath {
 						var req github.Repository
+
 						err := json.NewDecoder(r.Body).Decode(&req)
 						if err != nil {
 							t.Errorf("Failed to decode request: %v", err)
@@ -221,6 +233,7 @@ func TestProjectService_UpdateProject(t *testing.T) { //nolint:gocognit,gocyclo,
 						assert.Equal(t, "main", *req.DefaultBranch)
 
 						w.WriteHeader(http.StatusOK)
+
 						resp := github.Repository{
 							ID:            github.Ptr(int64(123)),
 							Name:          github.Ptr("testrepo"),
@@ -279,6 +292,7 @@ func TestProjectService_UpdateProject(t *testing.T) { //nolint:gocognit,gocyclo,
 			updates:  ports.UpdateRepositoryOptions{},
 			setupServer: func(t *testing.T) *httptest.Server {
 				t.Helper()
+
 				callCount := 0
 
 				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
@@ -300,14 +314,17 @@ func TestProjectService_UpdateProject(t *testing.T) { //nolint:gocognit,gocyclo,
 			},
 			setupServer: func(t *testing.T) *httptest.Server {
 				t.Helper()
+
 				callCount := 0
 
 				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { //nolint:varnamelen // Standard HTTP handler params
 					callCount++
+
 					switch {
 					case r.Method == http.MethodPatch && r.URL.Path == "/repos/testowner/testrepo":
 						// First call: update description
 						var req github.Repository
+
 						err := json.NewDecoder(r.Body).Decode(&req)
 						if err != nil {
 							t.Errorf("Failed to decode request: %v", err)
@@ -315,9 +332,11 @@ func TestProjectService_UpdateProject(t *testing.T) { //nolint:gocognit,gocyclo,
 
 							return
 						}
+
 						assert.Equal(t, "Repository with topics", *req.Description)
 
 						w.WriteHeader(http.StatusOK)
+
 						resp := github.Repository{
 							ID:          github.Ptr(int64(123)),
 							Name:        github.Ptr("testrepo"),
@@ -329,6 +348,7 @@ func TestProjectService_UpdateProject(t *testing.T) { //nolint:gocognit,gocyclo,
 					case r.Method == http.MethodPut && r.URL.Path == testTopicsPath:
 						// Second call: update topics
 						var req map[string][]string
+
 						err := json.NewDecoder(r.Body).Decode(&req)
 						if err != nil {
 							t.Errorf("Failed to decode request: %v", err)
@@ -336,9 +356,11 @@ func TestProjectService_UpdateProject(t *testing.T) { //nolint:gocognit,gocyclo,
 
 							return
 						}
+
 						assert.Equal(t, []string{"golang", "testing"}, req["names"])
 
 						w.WriteHeader(http.StatusOK)
+
 						_, err = w.Write([]byte(`{"names": ["golang", "testing"]}`))
 						if err != nil {
 							t.Errorf("Failed to write response: %v", err)

@@ -5,6 +5,7 @@ package github
 
 import (
 	"regexp"
+	"strings"
 
 	"itiquette/git-provider-sync/internal/domain/constants"
 )
@@ -79,13 +80,17 @@ func ValidateAndCleanName(name string) (string, bool, []string) {
 func cleanInvalidCharacters(name string) string {
 	result := ""
 
+	var resultSb82 strings.Builder
+
 	for _, char := range name {
 		if isValidChar(char) {
-			result += string(char)
+			resultSb82.WriteRune(char)
 		} else if isReplaceable(char) {
 			result += "-"
 		}
 	}
+
+	result += resultSb82.String()
 
 	// Ensure it's not empty after cleaning
 	if result == "" {

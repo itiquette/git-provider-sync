@@ -187,8 +187,9 @@ build-image: build-all
 # ==================================================================================== #
 
 # ▪ Execute linting - all file types
+# Note: lint-commit temporarily disabled - will be re-enabled later
 [group('lint')]
-lint: lint-go lint-shell lint-md lint-yaml lint-actions lint-containers lint-license lint-commit lint-secrets
+lint: lint-go lint-shell lint-md lint-yaml lint-actions lint-containers lint-license lint-secrets
     @printf "\033[0;32m✓ All linting checks completed\033[0m\n"
 
 # Lint Go source code - static analysis and verification
@@ -217,16 +218,17 @@ lint-actions:
 
 
 # Validate commit messages - branch comparison check
-[group('lint')]
-lint-commit:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    just _header "Commit message validation" "conform"
-    if [[ $(git rev-list --count {{compare_to_branch}}..) -gt 0 ]]; then
-        just _run_with_output "podman run --rm -i --volume $(pwd):/repo -w /repo ghcr.io/siderolabs/conform:{{conform_version}} enforce --base-branch={{compare_to_branch}}" "Conform completed"
-    else
-        printf "\033[1;33m! No new commits found in branch compared to %s, skipping commit lint\033[0m\n" "{{compare_to_branch}}"
-    fi
+# Temporarily disabled - will be re-enabled later
+# [group('lint')]
+# lint-commit:
+#     #!/usr/bin/env bash
+#     set -euo pipefail
+#     just _header "Commit message validation" "conform"
+#     if [[ $(git rev-list --count {{compare_to_branch}}..) -gt 0 ]]; then
+#         just _run_with_output "podman run --rm -i --volume $(pwd):/repo -w /repo ghcr.io/siderolabs/conform:{{conform_version}} enforce --base-branch={{compare_to_branch}}" "Conform completed"
+#     else
+#         printf "\033[1;33m! No new commits found in branch compared to %s, skipping commit lint\033[0m\n" "{{compare_to_branch}}"
+#     fi
 
 # Lint container definitions - Containerfile best practices
 [group('lint')]

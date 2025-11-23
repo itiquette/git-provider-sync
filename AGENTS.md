@@ -128,7 +128,7 @@ just upgrade-go-dev-tools  # Upgrade development tools
 ## Code Style Guidelines
 
 ### Go Conventions (Be Idiomatic)
-- **Module**: `itiquette/git-provider-sync` (Go 1.25.0+)
+- **Module**: `itiquette/git-provider-sync` (Go 1+)
 - **Formatting**: Standard `go fmt` formatting
 - **Imports**: Group by stdlib → external → internal with blank lines
 - **Naming**:  

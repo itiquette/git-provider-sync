@@ -38,7 +38,7 @@ func TestMain_WithDifferentArgs_ProducesExpectedOutput(t *testing.T) { //nolint:
 		{
 			name:         "help command",
 			args:         []string{"gitprovidersync", "--help"},
-			expectOutput: []string{"USAGE:", "gitprovidersync"},
+			expectOutput: []string{"Usage:", "gitprovidersync"},
 			expectError:  false,
 		},
 		{

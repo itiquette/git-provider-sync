@@ -520,6 +520,7 @@ func TestEdgeCases(t *testing.T) {
 			name: "custom domain parsing from URL",
 			testFunc: func(t *testing.T) {
 				t.Helper()
+
 				config := Config{
 					Token:          "test-token",
 					BaseURL:        "https://my-gitlab.example.com/api/v4",
@@ -537,6 +538,7 @@ func TestEdgeCases(t *testing.T) {
 			name: "URL without protocol",
 			testFunc: func(t *testing.T) {
 				t.Helper()
+
 				config := Config{
 					Token:   "test-token",
 					BaseURL: "my-gitlab.example.com",
@@ -1521,7 +1523,9 @@ func TestProtectUnprotectBranches(t *testing.T) {
 			name: "successful protect branch",
 			testFunc: func(t *testing.T, adapter *Adapter, _ *httptest.Server) {
 				t.Helper()
+
 				ctx := context.Background()
+
 				err := adapter.LockForSync(ctx, "testowner", "main", "123")
 				if err != nil {
 					t.Errorf("Protect failed: %v", err)
@@ -1534,6 +1538,7 @@ func TestProtectUnprotectBranches(t *testing.T) {
 			name: "protect with invalid project ID",
 			testFunc: func(t *testing.T, adapter *Adapter, _ *httptest.Server) {
 				t.Helper()
+
 				ctx := context.Background()
 				err := adapter.LockForSync(ctx, "testowner", "main", "invalid")
 				require.Error(t, err)
@@ -1546,7 +1551,9 @@ func TestProtectUnprotectBranches(t *testing.T) {
 			name: "successful unprotect branch",
 			testFunc: func(t *testing.T, adapter *Adapter, _ *httptest.Server) {
 				t.Helper()
+
 				ctx := context.Background()
+
 				err := adapter.UnlockAfterSync(ctx, "main", "123")
 				if err != nil {
 					t.Errorf("Unprotect failed: %v", err)
@@ -1559,6 +1566,7 @@ func TestProtectUnprotectBranches(t *testing.T) {
 			name: "unprotect with invalid project ID",
 			testFunc: func(t *testing.T, adapter *Adapter, _ *httptest.Server) {
 				t.Helper()
+
 				ctx := context.Background()
 				err := adapter.UnlockAfterSync(ctx, "main", "invalid")
 				require.Error(t, err)

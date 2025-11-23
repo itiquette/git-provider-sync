@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"itiquette/git-provider-sync/internal/domain"
 	"itiquette/git-provider-sync/internal/domain/ports"
 	"itiquette/git-provider-sync/internal/shared"
 )
@@ -79,8 +78,10 @@ func (e *executorService) RunGitCommand(ctx context.Context, env []string, worki
 
 	cmd.Env = append(os.Environ(), env...)
 
+	// Require non-empty workingDir for safety
+	// This ensures git commands run in the expected directory
 	if len(workingDir) == 0 {
-		return domain.ErrWorkingDirEmpty
+		return fmt.Errorf("workingDir is required for git command: %s", strings.Join(args, " "))
 	}
 
 	cmd.Dir = workingDir
@@ -113,9 +114,13 @@ func (e *executorService) RunGitCommandWithOutput(ctx context.Context, workingDi
 	// #nosec G204 - Git binary path is validated at startup
 	cmd := exec.CommandContext(ctx, e.gitBinaryPath, args...)
 
-	if len(workingDir) != 0 {
-		cmd.Dir = workingDir
+	// Require non-empty workingDir for RunGitCommandWithOutput too
+	// This is consistent with RunGitCommand
+	if len(workingDir) == 0 {
+		return nil, fmt.Errorf("workingDir is required for git command: %s", strings.Join(args, " "))
 	}
+
+	cmd.Dir = workingDir
 
 	output, err := cmd.Output()
 	if err != nil {

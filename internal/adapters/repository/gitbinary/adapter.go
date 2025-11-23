@@ -177,7 +177,10 @@ func (a *Adapter) Init(ctx context.Context, path string, options ports.InitOptio
 
 	args = append(args, path)
 
-	if err := a.mirrorSvc.executorSvc.RunGitCommand(ctx, nil, "", args...); err != nil {
+	// For git init with explicit path, use the parent directory as working directory
+	// This is safer than passing empty workingDir
+	parentDir := filepath.Dir(path)
+	if err := a.mirrorSvc.executorSvc.RunGitCommand(ctx, nil, parentDir, args...); err != nil {
 		return nil, fmt.Errorf("git init failed: %w", err)
 	}
 

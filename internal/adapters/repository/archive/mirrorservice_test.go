@@ -121,8 +121,11 @@ func TestMirrorService_Mirror_DryRun(t *testing.T) {
 	t.Parallel()
 
 	logger := &mockLogger{}
-	tempDir := t.TempDir()
-	archiveDir := t.TempDir()
+	// NOTE: Cannot convert to memory - MirrorService directly uses OS filesystem
+	// for git operations and doesn't support filesystem injection.
+	// Would require refactoring MirrorService to accept ports.FileSystem.
+	tempDir := "/temp"
+	archiveDir := "/archives"
 
 	service := NewMirrorService(logger, tempDir, archiveDir)
 

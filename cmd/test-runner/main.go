@@ -838,6 +838,7 @@ func main() {
 	suitesToRun, err := selectTestSuites(runner, flags)
 	if err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+
 		os.Exit(1)
 	}
 

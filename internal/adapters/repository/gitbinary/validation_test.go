@@ -12,6 +12,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// NOTE: These tests cannot be converted to in-memory testing because they
+// test actual git binary execution which requires real system calls.
+// The gitbinary adapter executes external git commands and cannot work
+// with an in-memory filesystem.
 func TestValidateGitBinary(t *testing.T) {
 	t.Parallel()
 

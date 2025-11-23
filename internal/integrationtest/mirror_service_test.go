@@ -317,54 +317,63 @@ func createInvalidMirrorTestRepository() entities.Repository {
 
 type testMirrorProvider struct{}
 
-func (m *testMirrorProvider) CreateRepository(context.Context, ports.ProviderConfig, ports.CreateRepositoryOptions) (entities.Repository, error) {
-	return entities.Repository{}, nil
-}
-func (m *testMirrorProvider) UpdateRepository(context.Context, ports.ProviderConfig, string, ports.UpdateRepositoryOptions) error {
-	return nil
-}
-func (m *testMirrorProvider) GetRepository(context.Context, ports.ProviderConfig, string) (entities.Repository, error) {
-	return entities.Repository{}, nil
-}
-func (m *testMirrorProvider) ListRepositories(context.Context, ports.ProviderConfig) ([]entities.Repository, error) {
+// RepositoryQuery methods
+func (m *testMirrorProvider) List(context.Context, ports.ProviderConfig) ([]entities.Repository, error) {
 	return nil, nil
 }
-func (m *testMirrorProvider) DeleteRepository(context.Context, ports.ProviderConfig, string) error {
+func (m *testMirrorProvider) Get(context.Context, ports.ProviderConfig, string) (entities.Repository, error) {
+	return entities.Repository{}, nil
+}
+func (m *testMirrorProvider) Exists(context.Context, ports.RepositoryExistsRequest) (bool, string, error) {
+	return true, "test-project-id", nil
+}
+
+// RepositoryCommand methods
+func (m *testMirrorProvider) Create(context.Context, ports.ProviderConfig, ports.CreateRepositoryOptions) (entities.Repository, error) {
+	return entities.Repository{}, nil
+}
+func (m *testMirrorProvider) Update(context.Context, ports.ProviderConfig, string, ports.UpdateRepositoryOptions) error {
 	return nil
 }
-func (m *testMirrorProvider) CreateRepositoryForPush(context.Context, ports.CreateRepositoryRequest) (string, error) {
-	return "test-project-id", nil
+func (m *testMirrorProvider) Delete(context.Context, ports.ProviderConfig, string) error {
+	return nil
 }
 func (m *testMirrorProvider) SetDefaultBranch(context.Context, string, string, string) error {
 	return nil
 }
-func (m *testMirrorProvider) RepositoryExists(context.Context, ports.RepositoryExistsRequest) (bool, string, error) {
-	return true, "test-project-id", nil
+
+// RepositoryPolicy methods
+func (m *testMirrorProvider) ValidateName(string) error                       { return nil }
+func (m *testMirrorProvider) IsValidProjectName(context.Context, string) bool { return true }
+func (m *testMirrorProvider) TransformName(name string, opts ports.NameTransformOptions) string {
+	return name
 }
-func (m *testMirrorProvider) ValidateRepositoryName(string) error { return nil }
-func (m *testMirrorProvider) GetBranchProtection(context.Context, ports.ProviderConfig, string, string) (ports.BranchProtection, error) {
+func (m *testMirrorProvider) GetProtection(context.Context, ports.ProviderConfig, string, string) (ports.BranchProtection, error) {
 	return ports.BranchProtection{}, nil
 }
-func (m *testMirrorProvider) SetBranchProtection(context.Context, ports.ProviderConfig, string, string, ports.BranchProtection) error {
+func (m *testMirrorProvider) SetProtection(context.Context, ports.ProviderConfig, string, string, ports.BranchProtection) error {
 	return nil
 }
-func (m *testMirrorProvider) RemoveBranchProtection(context.Context, ports.ProviderConfig, string, string) error {
+func (m *testMirrorProvider) RemoveProtection(context.Context, ports.ProviderConfig, string, string) error {
 	return nil
 }
 func (m *testMirrorProvider) ListProtectedBranches(context.Context, ports.ProviderConfig, string) ([]string, error) {
 	return nil, nil
 }
-func (m *testMirrorProvider) GetProviderInfo() ports.ProviderInfo        { return ports.ProviderInfo{} }
-func (m *testMirrorProvider) SupportsFeature(ports.ProviderFeature) bool { return true }
-func (m *testMirrorProvider) ProjectExists(context.Context, string, string) (bool, string, error) {
+
+// SyncOperations methods
+func (m *testMirrorProvider) PrepareForPush(context.Context, ports.CreateRepositoryRequest) (string, error) {
+	return "test-project-id", nil
+}
+func (m *testMirrorProvider) VerifyTarget(context.Context, string, string) (bool, string, error) {
 	return true, "test-project", nil
 }
-func (m *testMirrorProvider) Protect(context.Context, string, string, string) error { return nil }
-func (m *testMirrorProvider) Unprotect(context.Context, string, string) error       { return nil }
-func (m *testMirrorProvider) IsValidProjectName(context.Context, string) bool       { return true }
-func (m *testMirrorProvider) TransformRepositoryName(name string, _ ports.NameTransformOptions) string {
-	return name
-}
+func (m *testMirrorProvider) LockForSync(context.Context, string, string, string) error { return nil }
+func (m *testMirrorProvider) UnlockAfterSync(context.Context, string, string) error     { return nil }
+
+// ProviderCapabilities methods
+func (m *testMirrorProvider) GetInfo() ports.ProviderInfo                { return ports.ProviderInfo{} }
+func (m *testMirrorProvider) SupportsFeature(ports.ProviderFeature) bool { return true }
 
 type testMirrorLogger struct{}
 

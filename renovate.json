@@ -1,33 +1,12 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "Renovate configuration for git-provider-sync - extends base Itiquette config",
   "extends": [
-    "config:best-practices",
-    ":gitSignOff",
-    ":maintainLockFilesWeekly",
-    ":automergeMinor",
-    ":semanticCommits"
+    "github>itiquette/.github:renovate-base.json"
   ],
-  "semanticCommitType": "build",
-  "semanticCommitScope": "deps",
-  "commitMessageLowerCase": "auto",
-  "commitBody": "Signed-off-by: {{{gitAuthor}}}",
-  "vulnerabilityAlerts": {
-    "labels": [
-      "security"
-    ],
-    "enabled": true,
-    "automerge": true
-  },
   "packageRules": [
     {
-      "matchManagers": [
-        "github-actions"
-      ],
-      "addLabels": [
-        "actions"
-      ]
-    },
-    {
+      "description": "Label all Go module updates",
       "matchManagers": [
         "gomod"
       ],
@@ -37,6 +16,7 @@
       ]
     },
     {
+      "description": "Go major updates require manual review",
       "matchManagers": [
         "gomod"
       ],
@@ -45,27 +25,44 @@
       ],
       "addLabels": [
         "major-update"
-      ]
+      ],
+      "automerge": false
     },
     {
-      "groupName": "github dependencies",
+      "description": "Group GitHub.com dependencies together",
+      "matchManagers": [
+        "gomod"
+      ],
       "matchPackageNames": [
-        "/^github.com//"
-      ]
+        "/^github\\.com/"
+      ],
+      "groupName": "github.com dependencies"
     },
     {
-      "groupName": "golang standard library",
+      "description": "Group golang.org/x/* standard library packages",
+      "matchManagers": [
+        "gomod"
+      ],
       "matchPackageNames": [
-        "/^golang.org/x//"
-      ]
+        "/^golang\\.org\\/x/"
+      ],
+      "groupName": "golang.org/x packages"
     },
     {
+      "description": "Group koanf configuration library updates",
+      "matchManagers": [
+        "gomod"
+      ],
       "matchPackageNames": [
-        "github.com/knadh/koanf"
+        "/koanf/"
       ],
       "groupName": "koanf dependencies"
     },
     {
+      "description": "Bump Go version in go.mod",
+      "matchManagers": [
+        "gomod"
+      ],
       "matchPackageNames": [
         "go"
       ],
@@ -75,46 +72,18 @@
       "rangeStrategy": "bump"
     },
     {
-      "matchManagers": [
-        "github-actions"
-      ],
-      "matchPackageNames": [
-        "slsa-framework/slsa-github-generator",
-      ],
-      "pinDigests": false
-    },
-    {
-      "matchUpdateTypes": [
-        "minor",
-        "patch"
-      ],
-      "matchManagers": [
-        "github-actions"
-      ],
-      "groupName": "github actions minor and patch updates",
-      "automerge": true
-    },
-    {
-      "matchUpdateTypes": [
-        "minor",
-        "patch"
-      ],
+      "description": "Auto-merge Go minor and patch updates after minimum release age",
       "matchManagers": [
         "gomod"
       ],
-      "groupName": "go dependencies minor and patch updates",
-      "automerge": true,
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
       "matchPackageNames": [
-        "!go"
-      ]
-    },
-    {
-      "matchManagers": [
-        "dockerfile"
+        "!/^go$/"
       ],
-      "addLabels": [
-        "container"
-      ],
+      "groupName": "go dependencies",
       "automerge": true
     }
   ]

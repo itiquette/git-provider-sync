@@ -34,13 +34,11 @@ func TestGitBinaryAdapterIntegration(t *testing.T) {
 	}
 
 	// Use t.TempDir() for complete test isolation
-	adapter := gitbinary.NewWithTempDir(config, t.TempDir())
 	zerologInstance := zerolog.New(os.Stderr).Level(zerolog.InfoLevel)
 	logger := logging.NewZerologAdapter(&zerologInstance)
 	ctx := context.Background()
 
-	// Initialize adapter
-	err := adapter.Initialize(ctx, logger)
+	adapter, err := gitbinary.NewWithDependencies(ctx, config, logger, gitbinary.WithTempDir(t.TempDir()))
 	require.NoError(t, err)
 
 	tests := []struct {
@@ -285,7 +283,7 @@ func testGitBinaryErrorHandling(t *testing.T, adapter *gitbinary.Adapter) {
 	require.Error(t, err, "Should fail to clone invalid URL")
 
 	// Test adapter properties
-	assert.Equal(t, "git-binary", adapter.GetName())
+	assert.Equal(t, "gitbinary", adapter.GetName())
 	// Test URL support (GitBinary may have different URL support patterns)
 	t.Logf("HTTPS URL support: %t", adapter.SupportsURL("https://github.com/test/repo.git"))
 	t.Logf("SSH URL support: %t", adapter.SupportsURL("git@github.com:test/repo.git"))

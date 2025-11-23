@@ -154,6 +154,7 @@ func (f *PlainFormatter) SyncCompleted(results ports.SyncResults) {
 	// Show repository details if available
 	if len(results.Repositories) > 0 && len(results.Repositories) <= 10 {
 		_, _ = fmt.Fprintln(f.writer, "  Repositories:")
+
 		for _, repo := range results.Repositories {
 			switch {
 			case repo.Success:

@@ -279,58 +279,64 @@ type MockGitLabProvider struct {
 	mock.Mock
 }
 
-func (m *MockGitLabProvider) ProjectExists(ctx context.Context, owner, name string) (bool, string, error) {
-	args := m.Called(ctx, owner, name)
-	return args.Bool(0), args.String(1), args.Error(2)
-}
-
-func (m *MockGitLabProvider) CreateRepositoryForPush(ctx context.Context, req ports.CreateRepositoryRequest) (string, error) {
-	args := m.Called(ctx, req)
-	return args.String(0), args.Error(1)
-}
-
-// Implement other required methods with minimal implementations
-func (m *MockGitLabProvider) Protect(context.Context, string, string, string) error { return nil }
-func (m *MockGitLabProvider) Unprotect(context.Context, string, string) error       { return nil }
-func (m *MockGitLabProvider) ListRepositories(context.Context, ports.ProviderConfig) ([]entities.Repository, error) {
+// RepositoryQuery methods
+func (m *MockGitLabProvider) List(context.Context, ports.ProviderConfig) ([]entities.Repository, error) {
 	return nil, nil
 }
-func (m *MockGitLabProvider) GetRepository(context.Context, ports.ProviderConfig, string) (entities.Repository, error) {
+func (m *MockGitLabProvider) Get(context.Context, ports.ProviderConfig, string) (entities.Repository, error) {
 	return entities.Repository{}, nil
 }
-func (m *MockGitLabProvider) RepositoryExists(context.Context, ports.RepositoryExistsRequest) (bool, string, error) {
+func (m *MockGitLabProvider) Exists(context.Context, ports.RepositoryExistsRequest) (bool, string, error) {
 	return false, "", nil
 }
-func (m *MockGitLabProvider) CreateRepository(context.Context, ports.ProviderConfig, ports.CreateRepositoryOptions) (entities.Repository, error) {
+
+// RepositoryCommand methods
+func (m *MockGitLabProvider) Create(context.Context, ports.ProviderConfig, ports.CreateRepositoryOptions) (entities.Repository, error) {
 	return entities.Repository{}, nil
 }
-func (m *MockGitLabProvider) UpdateRepository(context.Context, ports.ProviderConfig, string, ports.UpdateRepositoryOptions) error {
+func (m *MockGitLabProvider) Update(context.Context, ports.ProviderConfig, string, ports.UpdateRepositoryOptions) error {
 	return nil
 }
-func (m *MockGitLabProvider) DeleteRepository(context.Context, ports.ProviderConfig, string) error {
+func (m *MockGitLabProvider) Delete(context.Context, ports.ProviderConfig, string) error {
 	return nil
 }
 func (m *MockGitLabProvider) SetDefaultBranch(context.Context, string, string, string) error {
 	return nil
 }
-func (m *MockGitLabProvider) ValidateRepositoryName(string) error             { return nil }
+
+// RepositoryPolicy methods
+func (m *MockGitLabProvider) ValidateName(string) error                       { return nil }
 func (m *MockGitLabProvider) IsValidProjectName(context.Context, string) bool { return true }
-func (m *MockGitLabProvider) TransformRepositoryName(name string, _ ports.NameTransformOptions) string {
+func (m *MockGitLabProvider) TransformName(name string, _ ports.NameTransformOptions) string {
 	return name
 }
-func (m *MockGitLabProvider) GetBranchProtection(context.Context, ports.ProviderConfig, string, string) (ports.BranchProtection, error) {
+func (m *MockGitLabProvider) GetProtection(context.Context, ports.ProviderConfig, string, string) (ports.BranchProtection, error) {
 	return ports.BranchProtection{}, nil
 }
-func (m *MockGitLabProvider) SetBranchProtection(context.Context, ports.ProviderConfig, string, string, ports.BranchProtection) error {
+func (m *MockGitLabProvider) SetProtection(context.Context, ports.ProviderConfig, string, string, ports.BranchProtection) error {
 	return nil
 }
-func (m *MockGitLabProvider) RemoveBranchProtection(context.Context, ports.ProviderConfig, string, string) error {
+func (m *MockGitLabProvider) RemoveProtection(context.Context, ports.ProviderConfig, string, string) error {
 	return nil
 }
 func (m *MockGitLabProvider) ListProtectedBranches(context.Context, ports.ProviderConfig, string) ([]string, error) {
 	return nil, nil
 }
-func (m *MockGitLabProvider) GetProviderInfo() ports.ProviderInfo        { return ports.ProviderInfo{} }
+
+// SyncOperations methods
+func (m *MockGitLabProvider) PrepareForPush(ctx context.Context, req ports.CreateRepositoryRequest) (string, error) {
+	args := m.Called(ctx, req)
+	return args.String(0), args.Error(1)
+}
+func (m *MockGitLabProvider) VerifyTarget(ctx context.Context, owner, name string) (bool, string, error) {
+	args := m.Called(ctx, owner, name)
+	return args.Bool(0), args.String(1), args.Error(2)
+}
+func (m *MockGitLabProvider) LockForSync(context.Context, string, string, string) error { return nil }
+func (m *MockGitLabProvider) UnlockAfterSync(context.Context, string, string) error     { return nil }
+
+// ProviderCapabilities methods
+func (m *MockGitLabProvider) GetInfo() ports.ProviderInfo                { return ports.ProviderInfo{} }
 func (m *MockGitLabProvider) SupportsFeature(ports.ProviderFeature) bool { return true }
 
 // TestSyncLogger provides a simple logger mock for integration tests

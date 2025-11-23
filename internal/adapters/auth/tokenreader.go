@@ -36,7 +36,9 @@ func ReadTokenFromStdin() (string, error) {
 	if term.IsTerminal(int(os.Stdin.Fd())) {
 		// Interactive mode - hide input for security
 		fmt.Fprint(os.Stderr, "Enter token: ")
+
 		byteToken, err := term.ReadPassword(int(os.Stdin.Fd()))
+
 		fmt.Fprintln(os.Stderr) // New line after hidden input
 
 		if err != nil {

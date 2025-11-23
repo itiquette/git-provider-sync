@@ -207,6 +207,7 @@ gitprovidersync:
 			name: "Unreadable config file permissions",
 			setupFiles: func(tempDir string) (string, error) {
 				configPath := filepath.Join(tempDir, "unreadable.yaml")
+
 				content := `
 gitprovidersync:
   defaultenv:

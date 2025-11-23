@@ -299,6 +299,7 @@ func TestBranchProtectionUseCase_GetProtectionStatus(t *testing.T) {
 			branch:   "main",
 			setupMocks: func(mockProvider *mockhexagonal.RepositoryProvider, mockLogger *mockhexagonal.Logger) {
 				mockLogger.On("Debug", mock.Anything, "Getting branch protection status", mock.Anything).Once()
+
 				expectedProtection := ports.BranchProtection{
 					Protected:     true,
 					EnforceAdmins: true,

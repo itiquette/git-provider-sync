@@ -364,6 +364,7 @@ func TestRepositoryExists_AccuratePresenceCheck(t *testing.T) {
 							HTMLURL:  github.Ptr("https://github.com/testowner/existing-repo"),
 							CloneURL: github.Ptr("https://github.com/testowner/existing-repo.git"),
 						}
+
 						writer.Header().Set("Content-Type", "application/json")
 						_ = json.NewEncoder(writer).Encode(repo)
 					} else {
@@ -945,6 +946,7 @@ func TestUpdateRepository(t *testing.T) {
 					assert.Contains(t, req.URL.Path, "/repos/testowner/test-repo")
 
 					writer.WriteHeader(http.StatusOK)
+
 					response := `{
 						"id": 1,
 						"name": "test-repo",
@@ -1158,6 +1160,7 @@ func TestProjectExists(t *testing.T) {
 					assert.Contains(t, req.URL.Path, "/repos/testowner/test-repo")
 
 					writer.WriteHeader(http.StatusOK)
+
 					response := `{"id": 123, "name": "test-repo"}`
 					_, _ = writer.Write([]byte(response))
 				}))
@@ -1239,6 +1242,7 @@ func TestGetBranchProtection(t *testing.T) {
 					assert.Contains(t, req.URL.Path, "/repos/testowner/test-repo/branches/main/protection")
 
 					writer.WriteHeader(http.StatusOK)
+
 					response := `{
 						"required_status_checks": {
 							"strict": true,
@@ -1326,6 +1330,7 @@ func TestSetBranchProtection(t *testing.T) {
 					assert.Contains(t, req.URL.Path, "/repos/testowner/test-repo/branches/main/protection")
 
 					writer.WriteHeader(http.StatusOK)
+
 					response := `{
 						"required_status_checks": {
 							"strict": true,
@@ -1483,6 +1488,7 @@ func TestListProtectedBranches(t *testing.T) {
 					assert.Contains(t, req.URL.Path, "/repos/testowner/test-repo/branches")
 
 					writer.WriteHeader(http.StatusOK)
+
 					response := `[
 						{
 							"name": "main",
@@ -1682,10 +1688,12 @@ func TestSetDefaultBranch_UpdatesViaAPI(t *testing.T) {
 
 					// Verify request body
 					var reqBody github.Repository
+
 					_ = json.NewDecoder(req.Body).Decode(&reqBody)
 					assert.Equal(t, "develop", *reqBody.DefaultBranch)
 
 					writer.WriteHeader(http.StatusOK)
+
 					response := `{
 						"id": 123,
 						"name": "test-repo",

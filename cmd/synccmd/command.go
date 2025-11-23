@@ -52,9 +52,8 @@ Description:
   {{.Description}}
 {{end}}
 Options:
-{{range $category := .FlagCategories}}{{if $category.Name}}  {{$category.Name}}
-{{end}}{{range $flag := $category.Flags}}  {{$flag}}
-{{end}}{{end}}`,
+{{range .VisibleFlags}}  {{.}}
+{{end}}`,
 		Flags: []cli.Flag{
 			&cli.BoolFlag{
 				Name:     "dry-run",

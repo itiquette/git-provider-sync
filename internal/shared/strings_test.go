@@ -297,6 +297,7 @@ func TestRegexPatterns(t *testing.T) {
 			name: "doubleHyphenRegex matches multiple hyphens",
 			testFunc: func(t *testing.T) {
 				t.Helper()
+
 				testCases := []struct {
 					input    string
 					expected bool
@@ -320,6 +321,7 @@ func TestRegexPatterns(t *testing.T) {
 			name: "nonAlphanumericRegex matches correctly",
 			testFunc: func(t *testing.T) {
 				t.Helper()
+
 				testCases := []struct {
 					input    string
 					expected bool

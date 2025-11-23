@@ -20,7 +20,7 @@ Quality goals:
 == Constraints
 
 Technical:
-* Go 1.25.0+
+* Go 1+
 * Git 2.43+
 * Provider API limitations and rate limits
 

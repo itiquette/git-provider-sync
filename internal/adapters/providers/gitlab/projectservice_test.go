@@ -125,6 +125,7 @@ func TestProjectService_UpdateProject(t *testing.T) { //nolint:gocognit,cyclop,m
 					case r.Method == http.MethodPut && r.URL.Path == testProjectIDPath:
 						// Update project
 						var req map[string]interface{}
+
 						err := json.NewDecoder(r.Body).Decode(&req)
 						if err != nil {
 							t.Errorf("Failed to decode request body: %v", err)
@@ -132,6 +133,7 @@ func TestProjectService_UpdateProject(t *testing.T) { //nolint:gocognit,cyclop,m
 
 							return
 						}
+
 						assert.Equal(t, "Updated GitLab repository description", req["description"])
 
 						w.WriteHeader(http.StatusOK)
@@ -196,6 +198,7 @@ func TestProjectService_UpdateProject(t *testing.T) { //nolint:gocognit,cyclop,m
 						_ = json.NewEncoder(w).Encode(mockGitLabProject())
 					case r.Method == http.MethodPut && r.URL.Path == testProjectIDPath:
 						var req map[string]interface{}
+
 						err := json.NewDecoder(r.Body).Decode(&req)
 						if err != nil {
 							t.Errorf("Failed to decode request: %v", err)
@@ -212,9 +215,11 @@ func TestProjectService_UpdateProject(t *testing.T) { //nolint:gocognit,cyclop,m
 
 							return
 						}
+
 						assert.Len(t, topics, 3)
 
 						w.WriteHeader(http.StatusOK)
+
 						err = json.NewEncoder(w).Encode(map[string]interface{}{
 							"id":     123,
 							"name":   "testrepo",

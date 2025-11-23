@@ -40,5 +40,5 @@ func TestRootCommand_SetsCorrectMetadataAndDescription(t *testing.T) {
 
 	// Test metadata is properly set
 	assert.Equal(t, "gitprovidersync", cmd.Name)
-	assert.Contains(t, cmd.Description, "utility", "Description should mention utility")
+	assert.Equal(t, "mirror git repositories across providers", cmd.Usage)
 }

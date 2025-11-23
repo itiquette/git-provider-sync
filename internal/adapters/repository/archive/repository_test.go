@@ -16,6 +16,7 @@ import (
 	"itiquette/git-provider-sync/internal/adapters/filesystem"
 	"itiquette/git-provider-sync/internal/domain"
 	"itiquette/git-provider-sync/internal/domain/ports"
+	"itiquette/git-provider-sync/internal/testutil"
 )
 
 // Test helper functions
@@ -54,6 +55,41 @@ func createTestRepository(tb testing.TB) (*Repository, string) {
 		path:   tempDir,
 		config: config,
 		fs:     filesystem.NewOSFileSystem(),
+	}
+
+	return repo, tempDir
+}
+
+// createTestRepositoryInMemory creates a test repository with sample files in memory.
+// Currently unused but kept for future migration of remaining tests.
+//
+//nolint:unused // Will be used when migrating remaining tests
+func createTestRepositoryInMemory(tb testing.TB) (*Repository, string) {
+	tb.Helper()
+
+	// Use memory filesystem for faster tests
+	memFS := testutil.NewMemFS(tb)
+	fileSystem := filesystem.NewAferoFileSystem(memFS.Fs)
+
+	tempDir := "/test-repo"
+
+	// Create test files in memory
+	testFile1 := filepath.Join(tempDir, "file1.txt")
+	testFile2 := filepath.Join(tempDir, "subdir", "file2.txt")
+
+	require.NoError(tb, fileSystem.MkdirAll(tempDir, 0750))
+	require.NoError(tb, fileSystem.MkdirAll(filepath.Dir(testFile2), 0750))
+	require.NoError(tb, fileSystem.WriteFile(testFile1, []byte("content 1"), 0600))
+	require.NoError(tb, fileSystem.WriteFile(testFile2, []byte("content 2"), 0600))
+
+	config := ports.GitConfig{
+		UserName:  "Test User",
+		UserEmail: "test@example.com",
+	}
+	repo := &Repository{
+		path:   tempDir,
+		config: config,
+		fs:     fileSystem,
 	}
 
 	return repo, tempDir
