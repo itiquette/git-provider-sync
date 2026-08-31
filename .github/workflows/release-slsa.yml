@@ -55,7 +55,7 @@ jobs:
       packages: read
     steps:
       - name: Install the verifier
-        uses: slsa-framework/slsa-verifier/actions/installer@6657aada084353c65e5dde35394b1a010289fab0 # v2.7.0
+        uses: slsa-framework/slsa-verifier/actions/installer@ea584f4502babc6f60d9bc799dbbb13c1caa9ee6 # v2.7.1
 
       - name: Download assets
         env:
@@ -91,14 +91,14 @@ jobs:
       packages: read
     steps:
       - name: Login
-        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install Cosign
-        uses: sigstore/cosign-installer@3454372f43399081ed03b604cb2d021dabca52bb # v3.8.2
+        uses: sigstore/cosign-installer@7e8b541eb2e61bf99390e1afd4be13a184e9ebc5 # v3.10.1
 
       - name: Verify image
         env:
