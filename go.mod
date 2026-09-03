@@ -4,16 +4,18 @@
 
 module itiquette/git-provider-sync
 
-go 1.24.2
+go 1.26.0
 
 require (
 	code.gitea.io/sdk/gitea v0.21.0
 	github.com/go-git/go-git/v5 v5.14.0
 	github.com/google/go-github/v71 v71.0.0
+	github.com/google/go-github/v91 v91.0.0
 	github.com/hashicorp/go-retryablehttp v0.7.7
 	github.com/knadh/koanf/parsers/dotenv v1.0.0
-	github.com/knadh/koanf/parsers/yaml v0.1.0
-	github.com/knadh/koanf/providers/env v1.0.0
+	github.com/knadh/koanf/parsers/yaml v1.1.1
+	github.com/knadh/koanf/providers/env v1.1.0
+	github.com/knadh/koanf/providers/env/v2 v2.0.1
 	github.com/knadh/koanf/providers/file v1.1.2
 	github.com/knadh/koanf/v2 v2.1.2
 	github.com/mholt/archives v0.1.1
@@ -21,7 +23,6 @@ require (
 	github.com/spf13/cobra v1.9.1
 	github.com/stretchr/testify v1.10.0
 	gitlab.com/gitlab-org/api/client-go v0.127.0
-
 )
 
 require (
@@ -36,6 +37,7 @@ require (
 	github.com/muesli/mango-pflag v0.1.0 // indirect
 	github.com/sorairolake/lzip-go v0.3.7 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
+	go.yaml.in/yaml/v3 v3.0.3 // indirect
 )
 
 require (
@@ -56,7 +58,7 @@ require (
 	github.com/go-git/go-billy/v5 v5.6.2
 	github.com/go-viper/mapstructure/v2 v2.2.1 // indirect
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect
-	github.com/google/go-querystring v1.1.0 // indirect
+	github.com/google/go-querystring v1.2.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
