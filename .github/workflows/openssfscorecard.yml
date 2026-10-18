@@ -21,4 +21,4 @@ jobs:
       contents: read
       security-events: write
       id-token: write
-    uses: itiquette/.github/.github/workflows/openssf-scorecard.yml@main
+    uses: itiquette/.github/.github/workflows/openssf-scorecard.yml@f7042fff6ac433d8ee8fad147085774222903fe0 # main
