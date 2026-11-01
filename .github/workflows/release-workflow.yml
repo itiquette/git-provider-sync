@@ -17,7 +17,7 @@ jobs:
     secrets: inherit
     permissions:
       contents: write
-    uses: itiquette/.github/.github/workflows/version-bump-changelog.yml@main
+    uses: itiquette/.github/.github/workflows/version-bump-changelog.yml@35090b753bbd7a739c958ac7d36d0e6838fc5833 # main
 
   release:
     needs: [version-bump]
