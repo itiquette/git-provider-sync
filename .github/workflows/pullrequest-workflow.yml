@@ -18,16 +18,16 @@ permissions:
 
 jobs:
   commitlint:
-    uses: itiquette/.github/.github/workflows/commit-lint.yml@main
+    uses: itiquette/.github/.github/workflows/commit-lint.yml@7b9f58f1deed0edac2e3bbe9c221b7004130b61c # main
   dependencyreviewlint:
-    uses: itiquette/.github/.github/workflows/dependency-review.yml@main
+    uses: itiquette/.github/.github/workflows/dependency-review.yml@7b9f58f1deed0edac2e3bbe9c221b7004130b61c # main
   licenselint:
-    uses: itiquette/.github/.github/workflows/license-lint.yml@main
+    uses: itiquette/.github/.github/workflows/license-lint.yml@7b9f58f1deed0edac2e3bbe9c221b7004130b61c # main
   misclint:
     permissions:
       contents: read
       security-events: write
-    uses: itiquette/.github/.github/workflows/mega-lint.yml@main
+    uses: itiquette/.github/.github/workflows/mega-lint.yml@7b9f58f1deed0edac2e3bbe9c221b7004130b61c # main
   golint:
     uses: ./.github/workflows/golint.yml
   test:
